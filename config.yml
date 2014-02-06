@@ -1,0 +1,7 @@
+private:
+    Testing: true
+    SQLALCHEMY_DATABASE_URI: postgresql://simpledoge:testing@localhost:5432/simpledoge
+    SECRET_KEY: 'sdfgljksdflg'
+public:
+    DEBUG: True
+

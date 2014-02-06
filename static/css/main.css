@@ -1,0 +1,37 @@
+@font-face {
+  font-family: "Bebas Neue";
+  src: url("/static/fonts/BebasNeue Regular.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "High Tide";
+  src: url("/static/fonts/High Tide Bold.otf") format("opentype");
+}
+
+h1 {
+  font-family: "High Tide";
+  letter-spacing: 2px;
+  font-size: 60px;
+}
+
+h2{ 
+  font-family: "High Tide";
+  font-size: 36px;
+}
+
+h1 small {
+  font-size: 24px;
+  font-weight:normal;
+  display:block;
+  margin-top:20px;
+  color: #555;
+}
+
+h3, h4 {
+  font-family: "Bebas Neue";
+  letter-spacing: 1.5px;
+}
+
+h3 {
+  margin-top:5px;
+}

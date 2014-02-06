@@ -1,0 +1,15 @@
+{
+  "name": "simpledoge",
+  "version": "0.1.0",
+  "description": "Many hashrate. Very crypto. Wow",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Eric Cook",
+  "devDependencies": {
+    "grunt": "~0.4.1",
+    "grunt-shell": "~0.6.0",
+    "grunt-cli": "~0.1.11",
+    "grunt-contrib-watch": "~0.5.3"
+  }
+}

@@ -1,0 +1,7 @@
+nose
+nose-progressive
+coverage
+flake8
+pylint
+uwsgi
+flask_debugtoolbar
