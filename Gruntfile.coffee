@@ -20,6 +20,10 @@ module.exports = (grunt) ->
         tasks: ['shell:reload']
         options:
           atBegin: true
+      static:
+        files: ['static/css/*.css', 'templates/*.html']
+        options:
+          livereload: true
 
   grunt.loadNpmTasks('grunt-shell')
   grunt.loadNpmTasks('grunt-contrib-watch')

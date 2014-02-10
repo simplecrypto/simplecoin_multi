@@ -5,7 +5,7 @@ uwsgi:
     socket: 127.0.0.1:3031
     daemonize: uwsgi.log
     pidfile: uwsgi.pid
-    log-format: %(request_id) %(addr) - %(user) [%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size) "%(referer)" "%(uagent)"
+    #log-format: %(request_id) %(addr) - %(user) [%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size) "%(referer)" "%(uagent)"
     #logger: socket:127.0.0.1:1717
     #log-encoder: msgpack map:4|str:message|msg|str:hostname|str:%h|str:version|str:%V|str:appname|str:myapp
     log-slow: true

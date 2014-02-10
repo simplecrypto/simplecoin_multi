@@ -1,5 +1,120 @@
 {% extends "base.html" %}
 {% block body %}
-<h1>Homepage</h1>
-<h3><a href="/12">Graphs and shit</a></h3>
+<div class="container">
+
+
+  <!-- Get started
+  ================================================== -->
+
+    <div class="row page-header">
+      <div class="col-lg-6">
+        <div>
+          <h2>Getting started</h2>
+          <p>In your miner set your dogecoin address as the username</p>
+          <p>Use stratum+tcp://stratum.simpledoge.com Port:3333</p>
+          <br>
+          <p>New to dogecoin mining? <a href="http://www.reddit.com/r/dogemining/wiki/index/mining_guide">Reddit</a>
+          has a detailed step-by-step guide.</p>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="well well-lg">
+          <h3>Configs for common miners</h3>
+          <p>cgminer -o stratum+tcp://stratum.simpledoge.com Port: 3333 -u YourAddress -p x -I 9 </p>
+          <p>bfgminer -o stratum+tcp://stratum.simpledoge.com Port: 3333 -O YourAddress </p>
+        </div>
+      </div>
+
+    </div>
+
+  <!-- Recent blocks
+  ================================================== -->
+  <div class="bs-docs-section">
+
+    <div class="row">
+      <div class="col-lg-12">
+        <div>
+          <h2>Recent blocks</h2>
+        </div>
+
+        <div class="bs-example table-responsive">
+          <table class="table table-striped table-hover ">
+            <tbody><tr>
+              <th>Block</th>
+              <th>Age</th>
+              <th>Duration</th>
+              <th>Difficulty</th>
+              <th>Accepted Shares</th>
+              <th>Confirmations</th>
+              <th>Contributor</th>
+              <th>Block hash</th>
+            </tr>
+            <tr class="active">
+              <td>1</td>
+              <td>Column content</td>
+              <td>Column content</td>
+              <td>Column content</td>
+              <td>Column content</td>
+              <td>Column content</td>
+              <td>Column content</td>
+              <td>Column content</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>Column content</td>
+              <td>Column content</td>
+              <td>Column content</td>
+              <td>Column content</td>
+              <td>Column content</td>
+              <td>Column content</td>
+              <td>Column content</td>
+            </tr>
+            <tr class="success">
+              <td>4</td>
+              <td>Column content</td>
+              <td>Column content</td>
+              <td>Column content</td>
+              <td>Column content</td>
+              <td>Column content</td>
+              <td>Column content</td>
+              <td>Column content</td>
+            </tr>
+            <tr class="danger">
+              <td>5</td>
+              <td>Column content</td>
+              <td>Column content</td>
+              <td>Column content</td>
+              <td>Column content</td>
+              <td>Column content</td>
+              <td>Column content</td>
+              <td>Column content</td>
+            </tr>
+          </tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- About
+  ================================================== -->
+
+  <!-- Get started
+  ================================================== -->
+
+  <div class="">
+    <div class="col-lg-12">
+      <div>
+        <h2>About Simple Doge</h2>
+        <p>No registration</p>
+        <p>1% Fees</p>
+        <p>We run on a custom rolled python pool server, donate to support our devs - DOGE: </p>
+      </div>
+    </div>
+
+  </div>
+
+
+</div>
 {% endblock %}
