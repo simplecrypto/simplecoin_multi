@@ -16,3 +16,47 @@ h3 {
 .no-padding {
   padding:0;
 }
+
+
+/* User stats styling */
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #fff;
+  shape-rendering: crispEdges;
+}
+
+.x.axis path {
+{#  display: none;#}
+}
+
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+.line2 {
+  fill: none;
+  stroke: red;
+  stroke-width: 1.5px;
+}
+
+.line3 {
+  fill: none;
+  stroke: purple;
+  stroke-width: 1.5px;
+}
+
+g.axis {
+  fill: white;
+}
+
+.legend {
+  fill: white;
+  padding: 5px;
+  font: 10px sans-serif;
+  background: yellow;
+  box-shadow: 2px 2px 1px #888;
+}

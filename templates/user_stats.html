@@ -1,57 +1,12 @@
 {% extends "base.html" %}
 {% block body %}
 
-<style>
-
-.axis path,
-.axis line {
-  fill: none;
-  stroke: #fff;
-  shape-rendering: crispEdges;
-}
-
-.x.axis path {
-{#  display: none;#}
-}
-
-.line {
-  fill: none;
-  stroke: steelblue;
-  stroke-width: 1.5px;
-}
-
-.line2 {
-  fill: none;
-  stroke: red;
-  stroke-width: 1.5px;
-}
-
-.line3 {
-  fill: none;
-  stroke: purple;
-  stroke-width: 1.5px;
-}
-
-g.axis {
-  fill: white;
-}
-
-.legend {
-  fill: white;
-  padding: 5px;
-  font: 10px sans-serif;
-  background: yellow;
-  box-shadow: 2px 2px 1px #888;
-}
-
-</style>
-
 <script src="http://d3js.org/d3.v3.js"></script>
 <script>
 $(document).ready(function() {
 
   calculate_hash = function(hashPerMin) {
-    return ((Math.pow(2, 16) * hashPerMin)/300)/1000;
+    return ((Math.pow(2, 16) * hashPerMin)/60)/1000;
   }
 
   var margin = {top: 20, right: 125, bottom: 30, left: 70},
@@ -59,7 +14,7 @@ $(document).ready(function() {
       height = 500 - margin.top - margin.bottom;
 
   var color_hash = [
-            ["Five minute avg", "steelblue"],
+            ["One minute Avg", "steelblue"],
             ["Moving Avg", "red"]
           ]
 

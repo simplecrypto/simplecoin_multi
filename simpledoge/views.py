@@ -22,7 +22,7 @@ def address_stats(address=None):
     res = es.search(index="minute_shares", size="1440", fields="time,shares", body={
         "query": {
             "term": {
-                'username':"DLmW4utjzP7ML8iVyoQQHB1vVsCCPPnezi"
+                'username':address
             }
 
         },
