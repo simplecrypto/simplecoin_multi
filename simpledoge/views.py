@@ -1,3 +1,4 @@
+from pprint import pprint
 from flask import render_template, Blueprint, abort, jsonify
 from elasticsearch import Elasticsearch
 
@@ -7,7 +8,13 @@ main = Blueprint('main', __name__)
 
 @main.route("/")
 def home():
-    return render_template('home.html')
+
+    es = Elasticsearch()
+    res = es.search(index="p_stats", size="5", body={})
+
+    p_stats = [(r['_source']) for r in res['hits']['hits']]
+    pprint(res['hits'])
+    return render_template('home.html', p_stats=p_stats)
 
 
 @main.route("/<address>")

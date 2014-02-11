@@ -41,6 +41,9 @@ ic.create(
   }
 )
 
+es.index(index='p_stats', doc_type='round_time', body={'seconds': 1200})
+es.index(index='p_stats', doc_type='hash_rate', body={'hashrate':1800000})
+es.index(index='p_stats', doc_type='shares', body={'shares':500})
 
 def add_shares(username, shares):
     es.index(index='minute_shares', doc_type='shares', body=shares)

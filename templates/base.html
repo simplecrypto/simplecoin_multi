@@ -10,8 +10,19 @@
   <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css" rel="stylesheet">
   <link href="//netdna.bootstrapcdn.com/bootswatch/3.1.0/slate/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/main.css">
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+  <link rel="stylesheet" href="/static/css/odometer-theme-default.css" />
+  <script src="//code.jquery.com/jquery-2.1.0.min.js"></script>
   <script>window.jQuery || document.write('<script src="js/vendor/jquery-1.10.2.min.js"><\/script>')</script>
+  <script src="static/js/odometer.min.js"></script>
+  <script>
+    $(document).ready(function() {
+
+      setInterval(function(){
+        $('.odometer').html("50000");
+      },1000);
+
+    });
+  </script>
 </head>
 <body>
   <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
@@ -25,7 +36,12 @@
         Simple Doge - No registration required
         </a>
         <div style="float:right;">
-          <p>Pool Hashrate: {{ p_hashrate }} | Round Time: {{ round_time }} | Round Shares: {{ round_shares }} | Round Luck: {{ round_luck }}</p>
+          <p>
+            {% set p_hashrate = (65536 * (p_stats[2]['hashrate']/p_stats[1]['seconds']))/60000  %}
+            Pool Hashrate: <span class="odometer" style="min-width:75px;">{{ p_hashrate }}</span> Khash/second |
+            Round Time: {{ p_stats[1]['seconds']/60 }} minutes |
+            Round Shares: {{ p_stats[0]['shares'] }} | Round Luck: {{ round_luck }}
+          </p>
         </div>
 {#        <ul class="nav navbar-nav">#}
 {#          <li class="active"><a href="#">Simple Doge</a> - No registration.</li>#}
