@@ -11,6 +11,7 @@ ic = IndicesClient(es)
 addresses = ['DLmW4utjzP7ML8iVyoQQHB1vVsCCPPnezi', 'DJaFeBfSYeLBm1MAR1BxJHwS4ornrzALoy', 'DRhevw3qkAjmAjyNkSyXh2kxvrXuxktmyD']
 
 ic.delete(index='minute_shares')
+ic.delete(index='p_hashrate')
 
 MAPPINGS = {
   'shares': {
@@ -43,7 +44,7 @@ ic.create(
 
 es.index(index='p_stats', doc_type='round_time', body={'seconds': 1200})
 es.index(index='p_stats', doc_type='hash_rate', body={'hashrate':1800000})
-es.index(index='p_stats', doc_type='shares', body={'shares':500})
+es.index(index='p_stats', doc_type='shares', body={'shares':5000})
 
 def add_shares(username, shares):
     es.index(index='minute_shares', doc_type='shares', body=shares)
@@ -55,6 +56,11 @@ for i in range(0,288):
     timestamp = calendar.timegm(d.utctimetuple())
     for address in addresses:
         add_shares(address, {'shares':randint(10, 16)*256, 'username':address, 'time': timestamp})
+    d = (origin + timedelta(0, (300*i))).replace(second=0)
+    timestamp = calendar.timegm(d.utctimetuple())
+    es.index(index='p_hashrate', doc_type='asdf', body={'hashrate':randint(50, 55)*256, 'time': timestamp})
+
+ic.flush('p_hashrate,minute_shares')
 
 
 # res = es.index(index="eric", doc_type='share', id=3, body=doc)

@@ -14,11 +14,42 @@
   <script src="//code.jquery.com/jquery-2.1.0.min.js"></script>
   <script>window.jQuery || document.write('<script src="js/vendor/jquery-1.10.2.min.js"><\/script>')</script>
   <script src="static/js/odometer.min.js"></script>
+  <script src="http://d3js.org/d3.v3.js"></script>
   <script>
     $(document).ready(function() {
+      var shares, hashrate, seconds, khashpersec, shares_per_sec;
+      {# Grab new pool stats #}
+      $.ajax({
+        dataType: "json",
+        url: "/nav_stats",
+      }).success(function(data) {
+        shares = data['nav_stats'][0]['shares'];
+
+        hashrate = data['nav_stats'][2]['hashrate'];
+        seconds = data['nav_stats'][1]['seconds'];
+        khashpersec = (65536 * (hashrate/seconds))/60000;
+        shares_per_sec = (shares/seconds);
+      });
+
+      function n(n){
+          return n > 9 ? "" + n: "0" + n;
+      }
+
 
       setInterval(function(){
-        $('.odometer').html("50000");
+        seconds += 1;
+        additional_shares = shares_per_sec * seconds
+        y = seconds%60
+        minutes = n(Math.floor(seconds/60)%60);
+        hours = n(Math.floor(seconds/3600));
+
+        $('.odometer.shares').text(Math.round(additional_shares));
+
+        $('.minutes').text(minutes);
+        $('.seconds').text(n(y));
+        $('.hours').text(hours);
+
+        $('.odometer.hashes').text(Math.round(khashpersec));
       },1000);
 
     });
@@ -37,19 +68,13 @@
         </a>
         <div style="float:right;">
           <p>
-            {% set p_hashrate = (65536 * (p_stats[2]['hashrate']/p_stats[1]['seconds']))/60000  %}
-            Pool Hashrate: <span class="odometer" style="min-width:75px;">{{ p_hashrate }}</span> Khash/second |
-            Round Time: {{ p_stats[1]['seconds']/60 }} minutes |
-            Round Shares: {{ p_stats[0]['shares'] }} | Round Luck: {{ round_luck }}
+
+            Pool Hashrate: <span class="odometer hashes">0</span> Khash/second |
+            Round Time: <span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span> |
+            Round Shares: <span class="odometer shares">0</span>
           </p>
         </div>
-{#        <ul class="nav navbar-nav">#}
-{#          <li class="active"><a href="#">Simple Doge</a> - No registration.</li>#}
-{#          <li><a href="#about">About</a></li>#}
-{#          <li><a href="#contact">Contact</a></li>#}
-{#        </ul>#}
       </div>
-      <!--/.nav-collapse -->
     </div>
   </div>
   {% block body %}

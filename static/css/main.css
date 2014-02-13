@@ -4,17 +4,22 @@ h3 {
 
 .page-header {
   padding-top:80px;
+  padding-bottom:50px;
+}
+
+.row-header {
+  border-bottom:1px solid #1c1e22;
+  padding-bottom:50px;
 }
 
 .padding-top {
   padding-top: 20px;
 }
-
-.page-header {
-  padding-bottom:50px;
-}
 .no-padding {
   padding:0;
+}
+.no-margin-top {
+  margin-top:0;
 }
 
 

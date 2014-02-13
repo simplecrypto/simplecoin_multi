@@ -8,19 +8,37 @@ main = Blueprint('main', __name__)
 
 @main.route("/")
 def home():
+    return render_template('home.html')
 
+@main.route("/nav_stats")
+def nav_stats():
     es = Elasticsearch()
     res = es.search(index="p_stats", size="5", body={})
 
-    p_stats = [(r['_source']) for r in res['hits']['hits']]
-    pprint(res['hits'])
-    return render_template('home.html', p_stats=p_stats)
+    nav_stats = [(r['_source']) for r in res['hits']['hits']]
+    return jsonify(nav_stats=nav_stats)
+
+@main.route("/pool_stats")
+def pool_stats():
+
+    es = Elasticsearch()
+    res = es.search(index="p_hashrate", size="288", body={
+        "query": {
+            "match_all": {}
+        },
+        "sort": {
+            "time": "desc"
+        }
+
+    })
+
+    p_stats = [(list(r['_source'].values())) for r in res['hits']['hits']]
+    return jsonify(p_stats=p_stats, length=len(p_stats))
 
 
 @main.route("/<address>")
 
 def view_resume(address=None):
-
     return render_template('user_stats.html', username=address)
 
 @main.route("/<address>/stats")

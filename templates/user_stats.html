@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block body %}
 
-<script src="http://d3js.org/d3.v3.js"></script>
+
 <script>
 $(document).ready(function() {
 
@@ -98,7 +98,7 @@ $(document).ready(function() {
     });
 
     x.domain(d3.extent(data['points'], function(d) { return d.time; }));
-    y.domain(d3.extent(data['points'], function(d) { return d.shares; }));
+    y.domain([0, d3.max(data['points'], function(d) { return d.shares*1.2; })]);
 
     svg.append("g")
         .attr("class", "x axis")
@@ -110,7 +110,7 @@ $(document).ready(function() {
         .call(yAxis)
       .append("text")
         .attr("transform", "rotate(-90)")
-        .attr("y", 6)
+        .attr("y", -60)
         .attr("dy", ".71em")
         .style("text-anchor", "end")
         .text("KHash (/sec)");

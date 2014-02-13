@@ -1,53 +1,220 @@
 {% extends "base.html" %}
 {% block body %}
+
+
+<script>
+$(document).ready(function() {
+
+  calculate_hash = function(hashPer5Min) {
+    return ((Math.pow(2, 16) * hashPer5Min)/300)/1000000;
+  }
+
+  var margin = {top: 20, right: 125, bottom: 30, left: 70},
+      width = 960 - margin.left - margin.right,
+      height = 300 - margin.top - margin.bottom;
+
+  var color_hash = [
+            ["Five minute Avg", "steelblue"]
+          ]
+
+  var x = d3.time.scale()
+      .range([0, width]);
+
+  var y = d3.scale.linear()
+      .range([height, 0]);
+
+  var xAxis = d3.svg.axis()
+      .scale(x)
+      .orient("bottom");
+
+  var yAxis = d3.svg.axis()
+      .scale(y)
+      .orient("left");
+
+  var line = d3.svg.line()
+      .interpolate("basis")
+      .x(function(d) { return x(d.time); })
+      .y(function(d) { return y(d.shares); });
+
+  var svg = d3.select(".pool-stats").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  d3.json("/pool_stats", function(error, data) {
+    data['p_stats'].forEach(function(d) {
+
+      d.time = new Date(d[1] * 1000);
+      d.shares = calculate_hash(d[0]);
+    });
+
+    x.domain(d3.extent(data['p_stats'], function(d) { return d.time; }));
+    y.domain([0, d3.max(data['p_stats'], function(d) { return d.shares*1.2; })]);
+
+    svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis)
+
+    svg.append("g")
+        .attr("class", "y axis")
+        .call(yAxis)
+      .append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", -60)
+        .attr("dy", ".71em")
+        .style("text-anchor", "end")
+        .text("MHash/sec");
+
+    svg.append("path")
+        .datum(data['p_stats'])
+        .attr("class", "line")
+        .attr("d", line);
+
+    // add legend
+    var legend = svg.append("g")
+      .attr("class", "legend")
+      .attr("height", 100)
+      .attr("width", 100)
+      .attr('transform', 'translate(-20,50)')
+
+      legend
+        .selectAll('rect')
+        .data(color_hash)
+        .enter()
+        .append("rect")
+      .attr("x",  width + 57)
+        .attr("y", function(d, i){ return i *  20;})
+      .attr("width", 10)
+      .attr("height", 10)
+      .style("fill", function(d) {
+          var color = d[1];
+          return color;
+        })
+
+      legend.selectAll('text')
+        .data(color_hash)
+        .enter()
+        .append("text")
+      .attr("x", width + 70)
+        .attr("y", function(d, i){ return i *  20 + 9;})
+      .text(function(d) {
+          var text = d[0];
+          return text;
+        });
+
+  });
+
+  {# Action stats form based on input val #}
+  $('#statsform').submit(function(){
+    var address = $('#inputAddress').val();
+    $(this).attr('action', "/" + address);
+  });
+
+});
+</script>
+
 <div class="container">
 
 
-  <!-- Get started
+  <!-- Img
   ================================================== -->
 
     <div class="row page-header">
-      <div class="col-lg-6">
-        <div>
-          <h2>New to Cryptocurrency?</h2>
-          <p><a href="http://www.reddit.com/r/dogemining/wiki/index/mining_guide">Reddit</a>
-          has a detailed step-by-step guide.</p>
-          <br>
-          <p>In your miner set your dogecoin address as the username</p>
-          <p>Use stratum+tcp://stratum.simpledoge.com Port:3333</p>
-
-
+      <div class="col-lg-5">
+        <div class="text-center">
+          <img src="static/img/doge-miner.jpg" width="450">
         </div>
       </div>
-
-      <div class="col-lg-6">
-        <div class="well well-lg">
-          <h3>Configs for common miners</h3>
-          <p>cgminer -o stratum+tcp://stratum.simpledoge.com Port: 3333 -u YourAddress -p x -I 9 </p>
-          <p>bfgminer -o stratum+tcp://stratum.simpledoge.com Port: 3333 -O YourAddress </p>
-        </div>
-      </div>
-
-    </div>
-
 
   <!-- About
   ================================================== -->
 
+      <div class="col-lg-7">
+        <div>
+          <h2 class="no-margin-top" style="padding-bottom: 10px;">About Simple Doge</h2>
+          <h4>No registration required!</h4>
+          <h4>1% Fees</h4>
+          <h4>
+            Custom python pool server. Much new. Very speed.
+          </h4>
+          <h4></h4>
+        </div>
+        <br>
+
   <!-- Get started
   ================================================== -->
 
-  <div class="">
-    <div class="col-lg-12">
-      <div>
-        <h2>About Simple Doge</h2>
-        <p>No registration</p>
-        <p>1% Fees</p>
-        <p>We run on a custom rolled python pool server, donate to support our devs - DOGE: </p>
+        <div class="well well-lg">
+          <h3>Get started mining:</h3>
+          <p>Use stratum+tcp://stratum.simpledoge.com Port:3333</p>
+          <p>cgminer -o stratum+tcp://stratum.simpledoge.com:3333 -u YourDogeAddress -p x -I 9 </p>
+          <p>bfgminer -o stratum+tcp://stratum.simpledoge.com:3333 -O YourDogeAddress </p>
+        </div>
       </div>
+
     </div>
 
+
+  <!-- New users
+  ================================================== -->
+  <div class="row row-header">
+      <div class="col-lg-12">
+        <div class="">
+          <h2>New to Cryptocurrency?</h2>
+          <br>
+          <h4>Check out a detailed step-by-step guide on <a href="http://www.reddit.com/r/dogemining/wiki/index/mining_guide" target="_blank">Reddit</a></h4>
+          <br>
+          <h4>To get started mining on the pool just set your miner to use your dogecoin address as the username</h4>
+        </div>
+      </div>
   </div>
+
+
+  <!-- Pool stats
+  ================================================== -->
+  <div class="row row-header">
+      <div class="col-lg-12">
+        <div class="pool-stats">
+          <h2>Pool Hashrate</h2>
+
+        </div>
+      </div>
+  </div>
+
+  <!-- User stats
+  ================================================== -->
+  <div class="row row-header" style="padding-top:50px;">
+      <div class="col-lg-12">
+        <div class="col-lg-8 col-lg-offset-2">
+          <div class="well">
+            <form class="bs-example form-horizontal" id="statsform">
+              <fieldset>
+                <legend>Personal stats available at http://simpledoge.com/YourDogeAddress</legend>
+                <div class="form-group">
+                  <label for="inputAddress" class="col-lg-2 control-label">Address</label>
+                  <div class="col-lg-8">
+                    <input type="text" class="form-control" id="inputAddress" placeholder="Doge Address">
+                    <span class="help-block">Paste your Doge address for quick access to individualized stats</span>
+                  </div>
+                  <button type="submit" class="btn btn-primary">Go</button>
+                </div>
+              </fieldset>
+            </form>
+          </div>
+        </div>
+      </div>
+  </div>
+
+  <div class="row" style="padding-top:30px;padding-bottom:20px;">
+    <div class="col-lg-8 col-lg-offset-2 text-center">
+      <small>Donate to the devs: DOGE DRhevw3qkAjmAjyNkSyXh2kxvrXuxktmyD
+        <br>Check out a helper library for building your own pool on <a href="https://github.com/icook/cryptokit">Github</a>.</small>
+    </div>
+  </div>
+
+
 
 
 </div>
