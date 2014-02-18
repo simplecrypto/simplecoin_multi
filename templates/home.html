@@ -45,8 +45,8 @@ $(document).ready(function() {
   d3.json("/pool_stats", function(error, data) {
     data['p_stats'].forEach(function(d) {
 
-      d.time = new Date(d[1] * 1000);
-      d.shares = calculate_hash(d[0]);
+      d.time = new Date(d[0] * 1000);
+      d.shares = calculate_hash(d[1]);
     });
 
     x.domain(d3.extent(data['p_stats'], function(d) { return d.time; }));

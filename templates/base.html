@@ -23,9 +23,9 @@
         dataType: "json",
         url: "/nav_stats",
       }).success(function(data) {
-        shares = data['nav_stats'][0]['shares'];
+        shares = data['nav_stats'][2]['shares'];
 
-        hashrate = data['nav_stats'][2]['hashrate'];
+        hashrate = data['nav_stats'][0]['hashrate'];
         seconds = data['nav_stats'][1]['seconds'];
         khashpersec = (65536 * (hashrate/seconds))/60000;
         shares_per_sec = (shares/seconds);

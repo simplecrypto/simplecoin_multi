@@ -10,14 +10,27 @@ ic = IndicesClient(es)
 
 addresses = ['DLmW4utjzP7ML8iVyoQQHB1vVsCCPPnezi', 'DJaFeBfSYeLBm1MAR1BxJHwS4ornrzALoy', 'DRhevw3qkAjmAjyNkSyXh2kxvrXuxktmyD']
 
-ic.delete(index='minute_shares')
-ic.delete(index='p_hashrate')
+if (ic.exists(index='minute_shares')):
+    ic.delete(index='minute_shares')
+if (ic.exists(index='p_hashrate')):
+    ic.delete(index='p_hashrate')
+if (ic.exists(index='user')):
+    ic.delete(index='user')
 
-MAPPINGS = {
+MAPPINGS_1 = {
   'shares': {
     'properties': {
       'username': { 'type': "string", 'analyzer': 'case_sensitive', "store": "no"},
       'shares': {'type': "integer", 'store': "no"}
+    }
+  }
+}
+
+MAPPINGS_2 = {
+  'payout_data': {
+    'properties': {
+      'username': { 'type': "string", 'analyzer': 'case_sensitive', "store": "no"},
+      'confirmed_earnings': {'type': "integer", 'store': "no"}
     }
   }
 }
@@ -38,9 +51,27 @@ ic.create(
   index='minute_shares',
   body={
     'settings': SETTINGS,
-    'mappings': MAPPINGS
+    'mappings': MAPPINGS_1
   }
 )
+
+ic.create(
+  index='user',
+  body={
+    'settings': SETTINGS,
+    'mappings': MAPPINGS_2
+  }
+)
+
+# Throw in a couple confirmed earnings to test payout
+es.index(index='user', doc_type='payout_data', body={
+    "username": "DLmW4utjzP7ML8iVyoQQHB1vVsCCPPnezi",
+    "confirmed_earnings": 2700
+})
+es.index(index='user', doc_type='payout_data', body={
+    "username": "DLmW4utjzP7ML8iVyoQQHB1vVsCCPPnezz",
+    "confirmed_earnings": 2300
+})
 
 es.index(index='p_stats', doc_type='round_time', body={'seconds': 1200})
 es.index(index='p_stats', doc_type='hash_rate', body={'hashrate':1800000})
@@ -62,16 +93,4 @@ for i in range(0,288):
 
 ic.flush('p_hashrate,minute_shares')
 
-
-# res = es.index(index="eric", doc_type='share', id=3, body=doc)
-# print(res['ok'])
-#
-# # res = es.get(index="eric", doc_type='share', id='ez6-Q2daTiquOVOMIY_cvA')
-# # print(res['_source'])
-# #
 es.indices.refresh(index="minute_shares")
-#
-# res = es.search(index="eric", body={"query": {"match_all": {}}})
-# print("Got %d Hits:" % res['hits']['total'])
-# for hit in res['hits']['hits']:
-#     print("%(timestamp)s %(block)s" % hit["_source"])
