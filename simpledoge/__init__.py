@@ -14,6 +14,7 @@ root = os.path.abspath(os.path.dirname(__file__) + '/../')
 
 db = SQLAlchemy()
 
+
 def create_app(config='/config.yml'):
     # initialize our flask application
     app = Flask(__name__, static_folder='../static', static_url_path='/static')
@@ -38,6 +39,9 @@ def create_app(config='/config.yml'):
 
     # register all our plugins
     db.init_app(app)
+
+    from .tasks import celery
+    celery.conf.update(app.config)
 
     # Route registration
     # =========================================================================

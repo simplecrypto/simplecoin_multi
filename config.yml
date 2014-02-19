@@ -2,6 +2,9 @@ private:
     Testing: true
     SQLALCHEMY_DATABASE_URI: postgresql://simpledoge:testing@localhost:5432/simpledoge
     SECRET_KEY: 'sdfgljksdflg'
+    BROKER_URL: ''
+    CELERY_IMPORTS: ['simpledoge.tasks']
+    CELERY_ACCEPT_CONTENT: ['pickle', 'json', 'msgpack', 'yaml']
 public:
-    DEBUG: True
+    DEBUG: false
 

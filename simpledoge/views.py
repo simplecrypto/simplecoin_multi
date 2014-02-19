@@ -10,6 +10,7 @@ main = Blueprint('main', __name__)
 def home():
     return render_template('home.html')
 
+
 @main.route("/nav_stats")
 def nav_stats():
     es = Elasticsearch()
@@ -17,6 +18,7 @@ def nav_stats():
 
     nav_stats = [(r['_source']) for r in res['hits']['hits']]
     return jsonify(nav_stats=nav_stats)
+
 
 @main.route("/pool_stats")
 def pool_stats():
@@ -37,9 +39,9 @@ def pool_stats():
 
 
 @main.route("/<address>")
-
 def view_resume(address=None):
     return render_template('user_stats.html', username=address)
+
 
 @main.route("/<address>/stats")
 def address_stats(address=None):

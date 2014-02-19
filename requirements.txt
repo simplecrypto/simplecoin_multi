@@ -9,3 +9,4 @@ psycopg2==2.5.2
 elasticsearch
 diff-match-patch
 msgpack-python
+celery
