@@ -15,6 +15,8 @@ class Block(base):
     total_value = db.Column(db.BigInteger)
     # Associated transaction fees
     transaction_fees = db.Column(db.BigInteger)
+    # total going to pool from fees
+    fees = db.Column(db.BigInteger)
     bits = db.Column(db.String(8))
     # have payments been generated for it?
     processed = db.Column(db.Boolean)
@@ -30,6 +32,13 @@ class Block(base):
         db.session.add(block)
         db.session.flush()
         return block
+
+    def get_last_share(self):
+        """ Fetches the last share that was entered directly before this block
+        """
+        return (Share.query.
+                filter(Share.found_at < self.found_at).
+                order_by(Share.found_at).first())
 
 
 class Share(base):

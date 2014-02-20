@@ -5,6 +5,9 @@ private:
     BROKER_URL: ''
     CELERY_IMPORTS: ['simpledoge.tasks']
     CELERY_ACCEPT_CONTENT: ['pickle', 'json', 'msgpack', 'yaml']
+    # the multiplier used on the last n shares to keep for counting share contributions
+    last_n: 2
+    fee: 1
 public:
     DEBUG: false
 
