@@ -1,119 +1,19 @@
 {% extends "base.html" %}
 {% block body %}
 
-
 <script>
 $(document).ready(function() {
+  generate_graph("/pool_stats", ".pool-stats");
 
-  calculate_hash = function(hashPer5Min) {
-    return ((Math.pow(2, 16) * hashPer5Min)/300)/1000000;
-  }
-
-  var margin = {top: 20, right: 125, bottom: 30, left: 70},
-      width = 960 - margin.left - margin.right,
-      height = 300 - margin.top - margin.bottom;
-
-  var color_hash = [
-            ["Five minute Avg", "steelblue"]
-          ]
-
-  var x = d3.time.scale()
-      .range([0, width]);
-
-  var y = d3.scale.linear()
-      .range([height, 0]);
-
-  var xAxis = d3.svg.axis()
-      .scale(x)
-      .orient("bottom");
-
-  var yAxis = d3.svg.axis()
-      .scale(y)
-      .orient("left");
-
-  var line = d3.svg.line()
-      .interpolate("basis")
-      .x(function(d) { return x(d.time); })
-      .y(function(d) { return y(d.shares); });
-
-  var svg = d3.select(".pool-stats").append("svg")
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
-    .append("g")
-      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-  d3.json("/pool_stats", function(error, data) {
-    data['p_stats'].forEach(function(d) {
-
-      d.time = new Date(d[0] * 1000);
-      d.shares = calculate_hash(d[1]);
+  //  Action stats form based on input val
+    $('#statsform').submit(function(){
+      var address = $('#inputAddress').val();
+      $(this).attr('action', "/" + address);
     });
-
-    x.domain(d3.extent(data['p_stats'], function(d) { return d.time; }));
-    y.domain([0, d3.max(data['p_stats'], function(d) { return d.shares*1.2; })]);
-
-    svg.append("g")
-        .attr("class", "x axis")
-        .attr("transform", "translate(0," + height + ")")
-        .call(xAxis)
-
-    svg.append("g")
-        .attr("class", "y axis")
-        .call(yAxis)
-      .append("text")
-        .attr("transform", "rotate(-90)")
-        .attr("y", -60)
-        .attr("dy", ".71em")
-        .style("text-anchor", "end")
-        .text("MHash/sec");
-
-    svg.append("path")
-        .datum(data['p_stats'])
-        .attr("class", "line")
-        .attr("d", line);
-
-    // add legend
-    var legend = svg.append("g")
-      .attr("class", "legend")
-      .attr("height", 100)
-      .attr("width", 100)
-      .attr('transform', 'translate(-20,50)')
-
-      legend
-        .selectAll('rect')
-        .data(color_hash)
-        .enter()
-        .append("rect")
-      .attr("x",  width + 57)
-        .attr("y", function(d, i){ return i *  20;})
-      .attr("width", 10)
-      .attr("height", 10)
-      .style("fill", function(d) {
-          var color = d[1];
-          return color;
-        })
-
-      legend.selectAll('text')
-        .data(color_hash)
-        .enter()
-        .append("text")
-      .attr("x", width + 70)
-        .attr("y", function(d, i){ return i *  20 + 9;})
-      .text(function(d) {
-          var text = d[0];
-          return text;
-        });
-
-  });
-
-  {# Action stats form based on input val #}
-  $('#statsform').submit(function(){
-    var address = $('#inputAddress').val();
-    $(this).attr('action', "/" + address);
-  });
 
 });
 </script>
+
 
 <div class="container">
 
@@ -205,13 +105,6 @@ $(document).ready(function() {
           </div>
         </div>
       </div>
-  </div>
-
-  <div class="row" style="padding-top:30px;padding-bottom:20px;">
-    <div class="col-lg-8 col-lg-offset-2 text-center">
-      <small>Donate to the devs: DOGE DRhevw3qkAjmAjyNkSyXh2kxvrXuxktmyD
-        <br>Check out a helper library for building your own pool on <a href="https://github.com/icook/cryptokit">Github</a>.</small>
-    </div>
   </div>
 
 

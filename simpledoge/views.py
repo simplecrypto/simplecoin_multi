@@ -35,7 +35,7 @@ def pool_stats():
     })
 
     p_stats = [(list(r['_source'].values())) for r in res['hits']['hits']]
-    return jsonify(p_stats=p_stats, length=len(p_stats))
+    return jsonify(points=p_stats, length=len(p_stats))
 
 
 @main.route("/<address>")
