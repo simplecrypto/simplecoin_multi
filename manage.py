@@ -8,6 +8,7 @@ manager = Manager(app)
 root = os.path.abspath(os.path.dirname(__file__) + '/../')
 
 from simpledoge import db
+from simpledoge.tasks import add_share
 
 from flask import current_app
 
@@ -21,17 +22,9 @@ def init_db():
 
 
 @manager.command
-def provision():
-    from simpledoge.provision import provision
-    provision()
-
-
-@manager.command
-def generate_trans():
-    """ Generates testing database fixtures """
-    init_db()
-    provision()
-    os.system("pg_dump -c -U simpledoge -h localhost simpledoge -f " + root + "/assets/test_provision.sql")
+def power_shares():
+    for i in xrange(2000000):
+        add_share.delay('mrCuJ1WNXGpcBd8FA6H2cSeQLLXYuJ3qVt', 16)
 
 
 @manager.command
