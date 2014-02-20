@@ -1,107 +1,95 @@
 from celery import Celery
-from sqlalchemy import func
 from simpledoge import db
-from simpledoge.models import RoundShare, Block, User
+from simpledoge.models import Share, Block, OneMinuteShare
+from datetime import datetime
+from cryptokit import bits_to_shares
 
-celery = Celery('tasks', broker='amqp://guest@localhost//')
+import logging
+
+logger = logging.getLogger('tasks')
+celery = Celery('simpledoge')
 
 
-@celery.task
-def add_round_share(for_block, found_by, share_value):
+@celery.task(bind=True)
+def add_share(self, user, shares):
     """
-    add_round_share: Adds a round share to postgresql
+    Adds a round share to postgresql
 
-    for_block should be an existing block id or a block instance
-
-    found_by should be a username/wallet address
-
-    share_value should be an integer representation of n1 shares
-
+    user: should be a username/wallet address
+    shares: should be an integer representation of n1 shares
     """
-
-    if isinstance(for_block, Block):
-        for_block = for_block.id
-    elif type(for_block) == int:
-        pass
-    else:
-        raise TypeError
-
-    RoundShare.create(for_block=for_block, found_by=found_by, share_value=share_value)
+    try:
+        Share.create(user=user, shares=shares)
+        db.session.commit()
+    except Exception as exc:
+        logger.error("Unhandled exception in add share", exc_info=True)
+        db.session.rollback()
+        raise self.retry(exc=exc)
 
 
-@celery.task
-def new_round():
+@celery.task(bind=True)
+def add_block(self, user, height, total_value, transaction_fees, bits):
     """
-    Add new block
-    """
+    Insert postgresql a block & blockchain data
 
-    return Block.create()
-
-
-@celery.task
-def complete_block(finished_block, block_found_by, blockheight, network_value, transaction_fees):
-    """
-    complete_block: Update postgresql w/ block & blockchain data
-
-    finished_block should be a block instance or an existing block id
-
-    block_found_by should be a username/wallet address
-
-    blockheight should be the height of the given block in the blockchain
-
-    network_value should be an integer representation of the value of the
+    user: should be a username/wallet address of who found block
+    height: should be the height of the given block in the blockchain
+    total_value: should be an integer representation of the value of the
                   newly discovered block. E.G.
                   DOGE = 2364681.04976814
                   network_value = 236468104976814
 
-    transaction_fees should be an integer amount awarded due to transactions
+    transaction_fees: should be an integer amount awarded due to transactions
                      handled by the block. E.G.
                      transaction fees on new block = 6.5
                      transaction_fees = 650000000
-
     """
-
-    if isinstance(finished_block, Block):
-        pass
-    elif type(finished_block) == int:
-        finished_block = Block.query.filter_by(id=finished_block).one()
-    else:
-        raise TypeError
-
-    Block.complete(finished_block,
-                   found_by=block_found_by,
-                   blockheight=blockheight,
-                   network_value=network_value,
-                   transaction_fees=transaction_fees)
-
-@celery.task
-def compact_round_shares(block):
-
-    if isinstance(block, Block):
-        pass
-    elif type(block) == int:
-        block = Block.query.filter_by(id=block).one()
-    else:
-        raise TypeError
-
-    users = db.session.query(func.distinct(RoundShare.found_by))
-    print(users)
-    # for user in users:
-    #     db.session.query.filter_by(RoundShares.found_by = user).(RoundShares.found_at)
+    try:
+        Block.create(user, height, total_value, transaction_fees, bits)
+        db.session.commit()
+    except Exception as exc:
+        logger.error("Unhandled exception in add_block", exc_info=True)
+        db.session.rollback()
+        raise self.retry(exc=exc)
 
 
+@celery.task(bind=True)
+def add_one_minute(self, user, shares, minute):
+    """
+    Adds a new single minute entry for a user
+
+    minute: timestamp (int)
+    shares: number of shares recieved over the timespan
+    user: string of the user
+    """
+    try:
+        minute = (minute // 60) * 60
+        OneMinuteShare.create(user, shares, datetime.fromtimestamp(minute))
+        db.session.commit()
+    except Exception as exc:
+        logger.error("Unhandled exception in add_one_minute", exc_info=True)
+        db.session.rollback()
+        raise self.retry(exc=exc)
 
 
+@celery.task(bind=True)
+def cleanup(self):
+    """
+    Finds all the shares that will no longer be used and removes them from
+    the database.
+    """
+    try:
+        # find the oldest un-processed block
+        block = Block.query.filter_by(processed=False).order_by(Block.height).first()
+        if block is None:
+            block = Block.query.order_by(Block.height).first()
+            if block is None:
+                return
 
-
-
-
-    
-
-
-
-
-
-
-
-
+        #minute = (minute // 60) * 60
+        #OneMinuteShare.create(user, shares, datetime.fromtimestamp(minute))
+        #db.session.commit()
+    except Exception as exc:
+        logger.error("Unhandled exception in add_one_minute", exc_info=True)
+        db.session.rollback()
+        raise self.retry(exc=exc)

@@ -1,17 +1,14 @@
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
-
 from jinja2 import FileSystemLoader
 
 import logging
 import six
 import os
 import yaml
-import sqlalchemy
 
 
 root = os.path.abspath(os.path.dirname(__file__) + '/../')
-
 db = SQLAlchemy()
 
 
@@ -45,8 +42,7 @@ def create_app(config='/config.yml'):
 
     # Route registration
     # =========================================================================
-    from . import api, views, models
-    app.register_blueprint(api.api, url_prefix='/api')
+    from . import views, models
     app.register_blueprint(views.main)
 
     return app
