@@ -1,6 +1,8 @@
 from datetime import datetime
-from . import db
 from simpledoge.model_lib import base
+from sqlalchemy.schema import CheckConstraint
+
+from . import db
 
 
 class Block(base):
@@ -8,9 +10,11 @@ class Block(base):
     height = db.Column(db.Integer, primary_key=True)
     # User who discovered block
     user = db.Column(db.String)
-    found_at = db.Column(db.DateTime, default=datetime.utcnow())
+    found_at = db.Column(db.DateTime, default=datetime.utcnow)
     # Is block now orphaned?
-    orphan = db.Column(db.Boolean)
+    orphan = db.Column(db.Boolean, default=False)
+    # Is the block matured?
+    mature = db.Column(db.Boolean, default=False)
     # Block value (does not include transaction fees recieved)
     total_value = db.Column(db.BigInteger)
     # Associated transaction fees
@@ -18,42 +22,99 @@ class Block(base):
     # total going to pool from fees
     fees = db.Column(db.BigInteger)
     bits = db.Column(db.String(8))
+    # the last share id that was processed when the block was entered.
+    # used as a marker for calculating last n shares
+    last_share_id = db.Column(db.BigInteger, db.ForeignKey('share.id'))
+    last_share = db.relationship('Share', foreign_keys=[last_share_id])
     # have payments been generated for it?
-    processed = db.Column(db.Boolean)
+    processed = db.Column(db.Boolean, default=False)
 
     @classmethod
     def create(cls, user, height, total_value, transaction_fees, bits):
+        share = Share.query.order_by(Share.id.desc()).first()
         block = cls(user=user,
                     height=height,
                     total_value=total_value,
                     transaction_fees=transaction_fees,
-                    bits=bits)
+                    bits=bits,
+                    last_share=share)
         # add and flush
         db.session.add(block)
         db.session.flush()
         return block
 
-    def get_last_share(self):
-        """ Fetches the last share that was entered directly before this block
-        """
-        return (Share.query.
-                filter(Share.found_at < self.found_at).
-                order_by(Share.found_at).first())
-
 
 class Share(base):
     """ This class generates a table containing every share accepted for a
     round """
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.BigInteger, primary_key=True)
     user = db.Column(db.String)
     shares = db.Column(db.Integer)
-    found_at = db.Column(db.DateTime, default=datetime.utcnow())
 
     @classmethod
     def create(cls, user, shares):
         share = cls(user=user, shares=shares)
         db.session.add(share)
         return share
+
+
+class CoinTransaction(base):
+    txid = db.Column(db.String, primary_key=True)
+    confirmed = db.Column(db.Boolean, default=False)
+
+    @classmethod
+    def create(cls, txid):
+        trans = cls(txid=txid)
+        db.session.add(trans)
+        return trans
+
+    @classmethod
+    def from_serial_transaction(cls, transactions):
+        """ Doesn't actually make a cointransaction object, simply creates a
+        transaction on the coinserver and returns the new transaction id. """
+        return '19a7032bfb457e824571ab649517751a7796006307a2c4a671c54837b0f4f326'
+
+
+class Transaction(base):
+    """ An aggregation of payouts that correspond to an actual network
+    transaction """
+    id = db.Column(db.Integer, primary_key=True)
+    user = db.Column(db.String)
+    amount = db.Column(db.BigInteger, CheckConstraint('amount>0'))
+    sent = db.Column(db.Boolean, default=False)
+    txid = db.Column(db.String, db.ForeignKey('coin_transaction.txid'))
+    coin_transaction = db.relationship('CoinTransaction')
+
+    @classmethod
+    def create(cls, user, amount):
+        payout = cls(user=user, amount=amount)
+        db.session.add(payout)
+        return payout
+
+    @classmethod
+    def serialize_pending(cls):
+        transactions = Transaction.query.filter_by(coin_transaction=None)
+        struct = [{'id': t.id, 'amount': t.amount, 'user': t.user}
+                  for t in transactions]
+        transactions.update({Transaction.sent: True})
+        return struct
+
+
+class Payout(base):
+    """ Represents a users payout for a single round """
+    blockheight = db.Column(db.Integer, db.ForeignKey('block.height'),
+                            primary_key=True)
+    block = db.relationship('Block', foreign_keys=[blockheight])
+    user = db.Column(db.String, primary_key=True)
+    amount = db.Column(db.BigInteger, CheckConstraint('amount>0'))
+    transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id'))
+    transaction = db.relationship('Transaction', foreign_keys=[transaction_id])
+
+    @classmethod
+    def create(cls, user, amount, block):
+        payout = cls(user=user, amount=amount, block=block)
+        db.session.add(payout)
+        return payout
 
 
 class OneMinuteShare(base):

@@ -1,6 +1,8 @@
-from flask import Flask
+from flask import Flask, current_app
 from flask.ext.sqlalchemy import SQLAlchemy
 from jinja2 import FileSystemLoader
+from werkzeug.local import LocalProxy
+from bitcoinrpc.proxy import AuthServiceProxy
 
 import logging
 import six
@@ -10,6 +12,8 @@ import yaml
 
 root = os.path.abspath(os.path.dirname(__file__) + '/../')
 db = SQLAlchemy()
+coinserv = LocalProxy(
+    lambda: getattr(current_app, 'rpc_connection', None))
 
 
 def create_app(config='/config.yml'):
@@ -25,6 +29,13 @@ def create_app(config='/config.yml'):
     config_vars = dict(private + public)
     for key, val in config_vars.items():
         app.config[key] = val
+
+    app.rpc_connection = AuthServiceProxy(
+        "http://{0}:{1}@{2}:{3}/"
+        .format(app.config['coinserv']['username'],
+                app.config['coinserv']['password'],
+                app.config['coinserv']['address'],
+                app.config['coinserv']['port']))
 
     # add the debug toolbar if we're in debug mode...
     if app.config['DEBUG']:

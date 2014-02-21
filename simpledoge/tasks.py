@@ -1,7 +1,7 @@
 from flask import current_app
 from celery import Celery
 from simpledoge import db
-from simpledoge.models import Share, Block, OneMinuteShare
+from simpledoge.models import Share, Block, OneMinuteShare, Payout, Transaction
 from datetime import datetime
 from cryptokit import bits_to_shares
 from pprint import pformat
@@ -75,6 +75,22 @@ def add_one_minute(self, user, shares, minute):
 
 
 @celery.task(bind=True)
+def new_block(self, blockheight):
+    """
+    Notification that a new block height has been reached.
+    """
+    try:
+        (Payout.query.
+         filter(Payout.block <= (blockheight - 120)).
+         update({Payout.mature: True}))
+        db.session.commit()
+    except Exception as exc:
+        logger.error("Unhandled exception in new_block", exc_info=True)
+        db.session.rollback()
+        raise self.retry(exc=exc)
+
+
+@celery.task(bind=True)
 def cleanup(self, simulate=False):
     """
     Finds all the shares that will no longer be used and removes them from
@@ -91,6 +107,7 @@ def cleanup(self, simulate=False):
                      filter_by(processed=True).
                      order_by(Block.height.desc()).first())
             if block is None:
+                logger.debug("No block found, exiting...")
                 return
 
         mult = int(current_app.config['last_n'])
@@ -100,18 +117,21 @@ def cleanup(self, simulate=False):
         shares = (bits_to_shares(block.bits) * mult) * 2
         id_diff = shares // 16
         # compute the id which earlier ones are safe to delete
-        stale_id = block.get_last_share().id - id_diff
+        stale_id = block.last_share.id - id_diff
         if simulate:
             print("Share for block computed: {}".format(shares // 2))
             print("Share total margin computed: {}".format(shares))
             print("Id diff computed: {}".format(id_diff))
             print("Stale ID computed: {}".format(stale_id))
             exit(0)
-        else:
+        elif stale_id > 0:
+            logger.info("Cleaning all shares older than {}".format(stale_id))
             # delete all shares that are sufficiently old
             Share.query.filter(Share.id < stale_id).delete(
                 synchronize_session=False)
             db.session.commit()
+        else:
+            logger.info("Not cleaning anything, stale id less than zero")
     except Exception as exc:
         logger.error("Unhandled exception in cleanup", exc_info=True)
         db.session.rollback()
@@ -119,11 +139,40 @@ def cleanup(self, simulate=False):
 
 
 @celery.task(bind=True)
+def gen_transactions(self):
+    minimum_payout = current_app.config['minimum_payout']
+    #shares = (db.session.query(Payout.user, Payout.block, func.sum(Payout.amount)).
+    #          filter(Payout.transaction_id == None).
+    #          join(Payout.block, aliased=True).
+    #          group_by(Payout.user).
+    #          having(func.sum(Payout.amount) > minimum_payout).all())
+    payouts = (Payout.query.filter_by(transaction=None).
+               join(Payout.block, aliased=True).filter_by(mature=True))
+
+    users = {}
+    for payout in payouts:
+        users.setdefault(payout.user, {'amount': 0, 'payouts': []})
+        users[payout.user]['amount'] += payout.amount
+        users[payout.user]['payouts'].append(payout)
+
+    for user, vals in users.iteritems():
+        if vals['amount'] < minimum_payout:
+            continue
+
+        # create a new transaction for the user
+        transaction = Transaction.create(user, vals['amount'])
+        # link the payouts to it
+        for payout in vals['payouts']:
+            payout.transaction = transaction
+
+    db.session.commit()
+
+
+@celery.task(bind=True)
 def payout(self, simulate=False):
     """
     Calculates payouts for users from share records for found blocks.
     """
-    from sqlalchemy.orm import load_only
     try:
         if simulate:
             logger.setLevel(logging.DEBUG)
@@ -133,20 +182,22 @@ def payout(self, simulate=False):
                  filter_by(processed=False).
                  order_by(Block.height).first())
         if block is None:
+            logger.debug("No block found, exiting...")
             return
-        logger.debug("Processing block id {}".format(block.id))
+
+        logger.debug("Processing block height {}".format(block.height))
 
         mult = int(current_app.config['last_n'])
         # take our standard share count times two for a safe margin. divide
         # by 16 to get the number of rows, since a rows minimum share count
         # is 16
         total_shares = (bits_to_shares(block.bits) * mult)
+        logger.debug("Looking for up to {} total shares".format(total_shares))
         remain = total_shares
-        start = block.get_last_share().id
+        start = block.last_share.id
         logger.debug("Identified last matching share id as {}".format(start))
         user_shares = {}
-        for share in Share.query.filter(Share.id <= start).options(
-                load_only("shares", "user")).yield_per(100):
+        for share in Share.query.filter(Share.id <= start).yield_per(100):
             user_shares.setdefault(share.user, 0)
             if remain > share.shares:
                 user_shares[share.user] += share.shares
@@ -155,6 +206,13 @@ def payout(self, simulate=False):
                 user_shares[share.user] += remain
                 remain = 0
                 break
+
+        # if we found less than n, use what we found as the total
+        total_shares -= remain
+        logger.debug("Found {} shares".format(total_shares))
+        if simulate:
+            logger.debug("Share distribution:\n {}"
+                         .format(pformat(user_shares)))
 
         # Calculate the portion going to the miners by truncating the
         # fractional portions and giving the remainder to the pool owner
@@ -176,7 +234,7 @@ def payout(self, simulate=False):
             accrued += user_shares[user]
 
         logger.debug("Total accrued after trunated iteration {}; {}%"
-                     .format(accrued, (accrued / distribute_amnt) * 100))
+                     .format(accrued, (accrued / float(distribute_amnt)) * 100))
         # loop over the dictionary indefinitely until we've distributed
         # all the remaining funds
         while accrued < distribute_amnt:
@@ -188,13 +246,15 @@ def payout(self, simulate=False):
                     break
 
         assert accrued == distribute_amnt
+        logger.debug("Successfully distributed all fees among {} users"
+                     .format(len(user_shares)))
 
         if simulate:
-            logger.debug("Share distribution: {}".format(pformat(user_shares)))
+            logger.debug("Share distribution:\n {}".format(pformat(user_shares)))
             db.session.rollback()
         else:
             db.session.commit()
     except Exception as exc:
-        logger.error("Unhandled exception in cleanup", exc_info=True)
+        logger.error("Unhandled exception in payout", exc_info=True)
         db.session.rollback()
         raise self.retry(exc=exc)
