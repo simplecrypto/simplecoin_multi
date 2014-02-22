@@ -53,7 +53,8 @@ def create_app(config='/config.yml'):
 
     # Route registration
     # =========================================================================
-    from . import views, models
+    from . import views, models, api
     app.register_blueprint(views.main)
+    app.register_blueprint(api.api, url_prefix='/api')
 
     return app

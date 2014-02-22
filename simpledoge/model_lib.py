@@ -11,6 +11,8 @@ class BaseMapper(object):
     query_class = BaseQuery
     query = None
 
+    standard_join = []
+
 
 # setup our base mapper and database metadata
 metadata = db.MetaData()
