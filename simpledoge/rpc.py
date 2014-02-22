@@ -1,5 +1,4 @@
 import requests
-import yaml
 import os
 import six
 import logging
@@ -9,7 +8,7 @@ import argparse
 from flask import current_app
 from urlparse import urljoin
 from itsdangerous import TimedSerializer, BadData
-from bitcoinrpc.proxy import JSONRPCException
+from bitcoinrpc.authproxy import JSONRPCException
 
 from .models import CoinTransaction
 from . import create_app, coinserv
