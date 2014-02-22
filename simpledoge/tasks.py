@@ -5,7 +5,7 @@ from simpledoge.models import Share, Block, OneMinuteShare, Payout, Transaction,
 from datetime import datetime
 from cryptokit import bits_to_shares
 from pprint import pformat
-from bitcoinrpc.authproxy import JSONRPCException
+from bitcoinrpc import CoinRPCException
 
 import logging
 
@@ -28,7 +28,7 @@ def update_coin_transaction(self):
                 t = coinserv.gettransaction(tx.id)
                 if t.get('confirmations', 0) >= 6:
                     tx.confirmed = True
-            except JSONRPCException:
+            except CoinRPCException:
                 tx.confirmed = False
 
         db.session.commit()
@@ -53,7 +53,7 @@ def update_block_state(self):
             # Check to see if the block hash exists in the block chain
             try:
                 coinserv.getblock(block.hash)
-            except JSONRPCException:
+            except CoinRPCException:
                 block.orphan = True
             # Check to see if the block is matured & not orphaned
             if blockheight-120 > block.height & block.orphan is False:

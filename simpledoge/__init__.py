@@ -2,7 +2,7 @@ from flask import Flask, current_app
 from flask.ext.sqlalchemy import SQLAlchemy
 from jinja2 import FileSystemLoader
 from werkzeug.local import LocalProxy
-from bitcoinrpc.authproxy import AuthServiceProxy
+from bitcoinrpc import AuthServiceProxy
 
 import logging
 import six
