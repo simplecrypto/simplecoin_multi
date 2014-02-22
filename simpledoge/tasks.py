@@ -5,7 +5,7 @@ from simpledoge.models import Share, Block, OneMinuteShare, Payout, Transaction,
 from datetime import datetime
 from cryptokit import bits_to_shares
 from pprint import pformat
-from bitcoinrpc.proxy import JSONRPCException
+from bitcoinrpc.authproxy import JSONRPCException
 
 import logging
 

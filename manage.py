@@ -10,7 +10,7 @@ manager = Manager(app)
 
 root = os.path.abspath(os.path.dirname(__file__) + '/../')
 
-from bitcoinrpc.proxy import AuthServiceProxy
+from bitcoinrpc.authproxy import AuthServiceProxy
 from simpledoge import db
 from simpledoge.tasks import add_share, cleanup, payout, gen_transactions
 from simpledoge.models import Payout, Block
