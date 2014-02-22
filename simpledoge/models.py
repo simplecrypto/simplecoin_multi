@@ -22,23 +22,26 @@ class Block(base):
     transaction_fees = db.Column(db.BigInteger)
     # total going to pool from fees
     fees = db.Column(db.BigInteger)
-    bits = db.Column(db.String(8))
+    bits = db.Column(db.String(8), nullable=False)
     # the last share id that was processed when the block was entered.
     # used as a marker for calculating last n shares
     last_share_id = db.Column(db.BigInteger, db.ForeignKey('share.id'))
     last_share = db.relationship('Share', foreign_keys=[last_share_id])
     # have payments been generated for it?
     processed = db.Column(db.Boolean, default=False)
+    # the hash of the block for orphan checking
+    hash = db.Column(db.String, nullable=False)
 
     @classmethod
-    def create(cls, user, height, total_value, transaction_fees, bits):
+    def create(cls, user, height, total_value, transaction_fees, bits, hash):
         share = Share.query.order_by(Share.id.desc()).first()
         block = cls(user=user,
                     height=height,
                     total_value=total_value,
                     transaction_fees=transaction_fees,
                     bits=bits,
-                    last_share=share)
+                    last_share=share,
+                    hash=hash)
         # add and flush
         db.session.add(block)
         db.session.flush()

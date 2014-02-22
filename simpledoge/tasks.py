@@ -84,7 +84,8 @@ def add_share(self, user, shares):
 
 
 @celery.task(bind=True)
-def add_block(self, user, height, total_value, transaction_fees, bits):
+def add_block(self, user, height, total_value, transaction_fees, bits,
+              hash_hex):
     """
     Insert postgresql a block & blockchain data
 
@@ -101,7 +102,8 @@ def add_block(self, user, height, total_value, transaction_fees, bits):
                      transaction_fees = 650000000
     """
     try:
-        Block.create(user, height, total_value, transaction_fees, bits)
+        Block.create(user, height, total_value, transaction_fees, bits,
+                     hash_hex)
         db.session.commit()
     except Exception as exc:
         logger.error("Unhandled exception in add_block", exc_info=True)
