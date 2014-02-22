@@ -133,10 +133,14 @@ def new_block(self, blockheight):
     """
     Notification that a new block height has been reached.
     """
+    logger.info("Recieved notice of new block height {}".format(blockheight))
+    if not isinstance(blockheight, int):
+        logger.error("Invalid block height submitted, must be integer")
+    mature_height = blockheight - 120
     try:
-        (Payout.query.
-         filter(Payout.block < (blockheight - 120)).
-         update({Payout.mature: True}))
+        (Block.query.
+         filter(Block.height < mature_height).
+         update({Block.mature: True}))
         db.session.commit()
     except Exception as exc:
         logger.error("Unhandled exception in new_block", exc_info=True)
