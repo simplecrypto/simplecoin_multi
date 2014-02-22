@@ -135,7 +135,7 @@ def new_block(self, blockheight):
     """
     try:
         (Payout.query.
-         filter(Payout.block <= (blockheight - 120)).
+         filter(Payout.block < (blockheight - 120)).
          update({Payout.mature: True}))
         db.session.commit()
     except Exception as exc:
