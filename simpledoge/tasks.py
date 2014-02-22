@@ -140,6 +140,7 @@ def new_block(self, blockheight):
     try:
         (Block.query.
          filter(Block.height < mature_height).
+         filter_by(mature=False).
          update({Block.mature: True}))
         db.session.commit()
     except Exception as exc:
