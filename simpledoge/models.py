@@ -62,6 +62,7 @@ class Share(base):
 class CoinTransaction(base):
     txid = db.Column(db.String, primary_key=True)
     confirmed = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     @classmethod
     def create(cls, txid):

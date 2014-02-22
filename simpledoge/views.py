@@ -1,9 +1,10 @@
-from flask import (render_template, Blueprint, jsonify, current_app, request,
-                   abort)
+import calendar
+import time
 from itsdangerous import TimedSerializer
+from flask import current_app, request, render_template, Blueprint, abort, jsonify
 
+from .models import Transaction, CoinTransaction, OneMinuteShare
 from . import db
-from .models import Transaction, CoinTransaction
 
 
 main = Blueprint('main', __name__)
@@ -11,6 +12,7 @@ main = Blueprint('main', __name__)
 
 @main.route("/")
 def home():
+
     return render_template('home.html')
 
 
@@ -74,39 +76,30 @@ def nav_stats():
 @main.route("/pool_stats")
 def pool_stats():
 
-    es = Elasticsearch()
-    res = es.search(index="p_hashrate", size="288", body={
-        "query": {
-            "match_all": {}
-        },
-        "sort": {
-            "time": "desc"
-        }
+    minutes = db.session.query(OneMinuteShare).filter_by(user="pool")
+    data = {calendar.timegm(minute.minute.utctimetuple()): minute.shares
+            for minute in minutes}
+    day_ago = ((int(time.time()) - (60 * 60 * 24)) // 60) * 60
+    out = [(i, data.get(i) or 0)
+           for i in xrange(day_ago, day_ago + (1440 * 60), 60)]
 
-    })
-
-    p_stats = [(list(r['_source'].values())) for r in res['hits']['hits']]
-    return jsonify(points=p_stats, length=len(p_stats))
+    return jsonify(points=out, length=len(out))
 
 
 @main.route("/<address>")
 def view_resume(address=None):
+
+
     return render_template('user_stats.html', username=address)
 
 
 @main.route("/<address>/stats")
 def address_stats(address=None):
-    es = Elasticsearch()
-    res = es.search(index="minute_shares", size="1440", fields="time,shares", body={
-        "query": {
-            "term": {
-                'username':address
-            }
+    minutes = db.session.query(OneMinuteShare).filter_by(user=address)
+    data = {calendar.timegm(minute.minute.utctimetuple()): minute.shares
+            for minute in minutes}
+    day_ago = ((int(time.time()) - (60 * 60 * 24)) // 60) * 60
+    out = [(i, data.get(i) or 0)
+           for i in xrange(day_ago, day_ago + (1440 * 60), 60)]
 
-        },
-        "sort": {
-            "time": "desc"
-        }
-    })
-    min_shares = [(r['fields']['time'], r['fields']['shares']) for r in res['hits']['hits']]
-    return jsonify(points=min_shares, length=len(min_shares))
+    return jsonify(points=out, length=len(out))

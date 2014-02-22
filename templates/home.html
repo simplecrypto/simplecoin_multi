@@ -47,10 +47,12 @@ $(document).ready(function() {
   ================================================== -->
 
         <div class="well well-lg">
-          <h3>Get started mining:</h3>
-          <p>Use stratum+tcp://stratum.simpledoge.com Port:3333</p>
-          <p>cgminer -o stratum+tcp://stratum.simpledoge.com:3333 -u YourDogeAddress -p x -I 9 </p>
-          <p>bfgminer -o stratum+tcp://stratum.simpledoge.com:3333 -O YourDogeAddress </p>
+          <h3>Quick start for mining:</h3>
+          <p>URL: stratum+tcp://stratum.simpledoge.com</p>
+          <p>Port:3333</p>
+          <p>Username: Your doge address</p>
+          <p>Password: anything</p>
+          <p>cgminer -o stratum+tcp://stratum.simpledoge.com:3333 -u YourDogeAddress -p x -I 13 </p>
         </div>
       </div>
 
@@ -71,18 +73,6 @@ $(document).ready(function() {
       </div>
   </div>
 
-
-  <!-- Pool stats
-  ================================================== -->
-  <div class="row row-header">
-      <div class="col-lg-12">
-        <div class="pool-stats">
-          <h2>Pool Hashrate</h2>
-
-        </div>
-      </div>
-  </div>
-
   <!-- User stats
   ================================================== -->
   <div class="row row-header" style="padding-top:50px;">
@@ -98,11 +88,23 @@ $(document).ready(function() {
                     <input type="text" class="form-control" id="inputAddress" placeholder="Doge Address">
                     <span class="help-block">Paste your Doge address for quick access to individualized stats</span>
                   </div>
-                  <button type="submit" class="btn btn-primary">Go</button>
+                  <button type="submit" class="btn btn-default">Go</button>
                 </div>
               </fieldset>
             </form>
           </div>
+        </div>
+      </div>
+  </div>
+
+
+  <!-- Pool stats
+  ================================================== -->
+  <div class="row row-header">
+      <div class="col-lg-12">
+        <div class="pool-stats">
+          <h2>Pool Hashrate</h2>
+
         </div>
       </div>
   </div>

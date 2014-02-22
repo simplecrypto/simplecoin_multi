@@ -72,7 +72,7 @@ generate_graph = function(request_url, append_to) {
     .append("g")
       .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
   var hour_line = [];
-  var hour_total = 0, minute = 0;
+  var minute = 0;
   var hour_avg_list = [], hour_avg_val = 0;
   d3.json(request_url, function(error, data) {
     data['points'].forEach(function(d,i) {
@@ -80,40 +80,24 @@ generate_graph = function(request_url, append_to) {
       d.time = new Date(d[0] * 1000);
       d.shares = +y_scale(d[1]);
 
-//    build an avg line from last hour's data
+//          build an avg line from last hour's data
+//    push current shares to a list
       hour_avg_list.push(d.shares);
-      if (i > 58) {
-//        build avg from hour_avg_list
-          hour_avg_list.forEach(function(d) {
-              hour_avg_val += d;
-          });
-//        build a new list containing 1 hour averages
-          hour_line.push([d.time, hour_avg_val/60]);
-          hour_avg_val = 0;
-//        Pop off first item in list to keep it at 60
-          hour_avg_list.shift();
+//    build avg from hour_avg_list
+      hour_avg_list.forEach(function(d) {
+          hour_avg_val += d;
+      });
+//    build a new list containing 1 hour averages
+      if (i<1381) {
+        hour_line.push([d.time, hour_avg_val/60]);
       }
+      hour_avg_val = 0;
+//    Pop off first item in list to keep it at 60
+      hour_avg_list.shift();
 
-//      Every 60 minutes add a new data point from avg shares
-//      if (i != 0) {
-//          minute = i%60;
-//          if (minute == 0) {
-//              hour_line.push([d.time, (hour_total+ d.shares)/60]);
-//              hour_total=0;
-//          } else {
-//              hour_total += d.shares;
-////            Catch the last few minutes
-//              if (i == data['length']-1) {
-//                  hour_line.push([d.time, (hour_total+ d.shares)/minute]);
-//              }
-//          }
-//      } else {
-////        Avoid a /0
-//          hour_total += d.shares;
-//      }
     });
 
-    var yaxis_text = generate_y_text(d3.max(data['points'][0]));
+    var yaxis_text = generate_y_text(d3.max(data['points'], function(d) { return +d[1]; }));
 
     x.domain(d3.extent(data['points'], function(d) { return d.time; }));
     y.domain([0, d3.max(data['points'], function(d) { return d.shares*1.1; })]);

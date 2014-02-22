@@ -1,15 +1,69 @@
 from flask import current_app
 from celery import Celery
-from simpledoge import db
-from simpledoge.models import Share, Block, OneMinuteShare, Payout, Transaction
+from simpledoge import db, coinserv
+from simpledoge.models import Share, Block, OneMinuteShare, Payout, Transaction, CoinTransaction
 from datetime import datetime
 from cryptokit import bits_to_shares
 from pprint import pformat
+from bitcoinrpc.proxy import JSONRPCException
 
 import logging
 
 logger = logging.getLogger('tasks')
 celery = Celery('simpledoge')
+
+
+@celery.task(bind=True)
+def update_coin_transaction(self):
+    """
+    Loops through all immature transactions
+    """
+    try:
+        # Select all unconfirmed transactions
+        unconfirmed = (CoinTransaction.query.filter_by(confirmed=False))
+        blockheight = coinserv.getblockcount()
+        for tx in unconfirmed:
+            # Check to see if the transaction hash exists in the block chain
+            try:
+                t = coinserv.gettransaction(tx.id)
+                if t.get('confirmations', 0) >= 6:
+                    tx.confirmed = True
+            except JSONRPCException:
+                tx.confirmed = False
+
+        db.session.commit()
+    except Exception as exc:
+        logger.error("Unhandled exception in update block status", exc_info=True)
+        db.session.rollback()
+        raise self.retry(exc=exc)
+
+
+@celery.task(bind=True)
+def update_block_state(self):
+    """
+    Loops through all immature and non-orphaned blocks.
+    First checks to see if blocks are orphaned,
+    then it checks to see if they are now matured.
+    """
+    try:
+        # Select all immature & non-orphaned blocks
+        immature = (Block.query.filter_by(mature=False, orphan=False))
+        blockheight = coinserv.getblockcount()
+        for block in immature:
+            # Check to see if the block hash exists in the block chain
+            try:
+                coinserv.getblock(block.hash)
+            except JSONRPCException:
+                block.orphan = True
+            # Check to see if the block is matured & not orphaned
+            if blockheight-120 > block.height & block.orphan is False:
+                block.mature = True
+
+        db.session.commit()
+    except Exception as exc:
+        logger.error("Unhandled exception in update block status", exc_info=True)
+        db.session.rollback()
+        raise self.retry(exc=exc)
 
 
 @celery.task(bind=True)
