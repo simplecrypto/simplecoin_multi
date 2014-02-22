@@ -1,8 +1,9 @@
+from flask import current_app
 from datetime import datetime
 from simpledoge.model_lib import base
 from sqlalchemy.schema import CheckConstraint
 
-from . import db
+from . import db, coinserv
 
 
 class Block(base):
@@ -71,8 +72,17 @@ class CoinTransaction(base):
     @classmethod
     def from_serial_transaction(cls, transactions):
         """ Doesn't actually make a cointransaction object, simply creates a
-        transaction on the coinserver and returns the new transaction id. """
-        return '19a7032bfb457e824571ab649517751a7796006307a2c4a671c54837b0f4f326'
+        transaction on the coinserver and returns the new transaction id. 
+        Uses the wallet_pass to unlock the wallet on the coinserver and 
+        sends the funds from pool_address account. """
+        current_app.logger.debug("Setting tx fee: %s" % coinserv.settxfee(1))
+        wallet = coinserv.walletpassphrase(
+            current_app.config['coinserv']['wallet_pass'], 10)
+        current_app.logger.debug("Unlocking wallet: %s" % wallet)
+        recip = {r['user']: r['amount'] / float(100000000) for r in transactions}
+        current_app.logger.debug("Sending to recip: " + str(recip))
+        return coinserv.sendmany(current_app.config['coinserv']['account'],
+                                 recip)
 
 
 class Transaction(base):

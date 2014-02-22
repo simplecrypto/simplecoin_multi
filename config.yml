@@ -17,5 +17,7 @@ private:
         address: 127.0.0.1
         username: litecoin
         password: testing
+        wallet_pass: testing
+        account: pool_address
 public:
     DEBUG: true

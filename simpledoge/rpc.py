@@ -31,6 +31,8 @@ class RPCClient(object):
                  max_age=5):
         self.root = os.path.abspath(os.path.dirname(__file__) + root_suffix)
         self.config = current_app.config
+        del current_app.logger.handlers[0]
+        current_app.logger.addHandler(ch)
 
         self.serializer = TimedSerializer(self.config['rpc_signature'])
         self.max_age = max_age
@@ -66,10 +68,16 @@ class RPCClient(object):
 
         transactions = self.post('get_transactions')
         txids = [t['id'] for t in transactions]
+        logger.debug("Recieved {} transactions from the server".format(len(txids)))
+        if not len(txids):
+            logger.debug("No transactions to process..")
+            return
         try:
             coin_txid = CoinTransaction.from_serial_transaction(transactions)
-        except Exception:
-            logger.warn("Error creating transactions server side", exc_info=True)
+        except Exception as e:
+            logger.warn(getattr(e, 'error'))
+            logger.warn("Error creating transactions server side, rolling back"
+                        "sent data...", exc_info=True)
             if self.post('confirm_transactions', data={'action': 'reset',
                                                        'txids': txids}):
                 logger.info("Recieved success response from the server.")
