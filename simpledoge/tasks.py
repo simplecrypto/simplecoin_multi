@@ -21,7 +21,6 @@ def update_coin_transaction(self):
     try:
         # Select all unconfirmed transactions
         unconfirmed = (CoinTransaction.query.filter_by(confirmed=False))
-        blockheight = coinserv.getblockcount()
         for tx in unconfirmed:
             # Check to see if the transaction hash exists in the block chain
             try:
@@ -50,6 +49,7 @@ def update_block_state(self):
         immature = (Block.query.filter_by(mature=False, orphan=False))
         blockheight = coinserv.getblockcount()
         for block in immature:
+            logger.info(block)
             # Check to see if the block hash exists in the block chain
             try:
                 coinserv.getblock(block.hash)

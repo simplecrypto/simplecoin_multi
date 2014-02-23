@@ -45,7 +45,7 @@ generate_graph = function(request_url, append_to) {
       .range([0, width]);
 
   var y = d3.scale.linear()
-      .range([height, 0]);
+      .range([height-1, 0]);
 
   var xAxis = d3.svg.axis()
       .scale(x)
@@ -53,6 +53,7 @@ generate_graph = function(request_url, append_to) {
 
   var yAxis = d3.svg.axis()
       .scale(y)
+      .ticks(8)
       .orient("left");
 
   var line = d3.svg.line()
@@ -88,13 +89,13 @@ generate_graph = function(request_url, append_to) {
           hour_avg_val += d;
       });
 //    build a new list containing 1 hour averages
-      if (i<1381) {
+      if (i>58) {
         hour_line.push([d.time, hour_avg_val/60]);
-      }
+
       hour_avg_val = 0;
 //    Pop off first item in list to keep it at 60
       hour_avg_list.shift();
-
+      }
     });
 
     var yaxis_text = generate_y_text(d3.max(data['points'], function(d) { return +d[1]; }));
@@ -106,6 +107,11 @@ generate_graph = function(request_url, append_to) {
         .attr("class", "x axis")
         .attr("transform", "translate(0," + height + ")")
         .call(xAxis)
+       .append("text")
+        .attr("x", width+10)
+        .attr("y", -3)
+        .attr("dy", ".71em")
+        .text("GMT Time");
 
     svg.append("g")
         .attr("class", "y axis")
@@ -158,6 +164,17 @@ generate_graph = function(request_url, append_to) {
           var text = d[0];
           return text;
         });
+
+    // Draw Y-axis grid lines
+    svg.selectAll("line.y")
+      .data(y.ticks(8))
+      .enter().append("line")
+      .attr("class", "y")
+      .attr("x1", 0)
+      .attr("x2", 765)
+      .attr("y1", y)
+      .attr("y2", y)
+      .style("stroke", "#555");
 
 //    svg.append("svg:circle")
 //        .datum(hour_line)

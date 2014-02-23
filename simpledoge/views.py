@@ -1,4 +1,3 @@
-import calendar
 import time
 from itsdangerous import TimedSerializer
 from flask import current_app, request, render_template, Blueprint, abort, jsonify
@@ -66,18 +65,14 @@ def confirm_transactions():
 
 @main.route("/nav_stats")
 def nav_stats():
-    es = Elasticsearch()
-    res = es.search(index="p_stats", size="5", body={})
-
-    nav_stats = [(r['_source']) for r in res['hits']['hits']]
-    return jsonify(nav_stats=nav_stats)
+    return jsonify()
 
 
 @main.route("/pool_stats")
 def pool_stats():
 
     minutes = db.session.query(OneMinuteShare).filter_by(user="pool")
-    data = {calendar.timegm(minute.minute.utctimetuple()): minute.shares
+    data = {time.mktime(minute.minute.utctimetuple()): minute.shares
             for minute in minutes}
     day_ago = ((int(time.time()) - (60 * 60 * 24)) // 60) * 60
     out = [(i, data.get(i) or 0)
@@ -96,7 +91,7 @@ def view_resume(address=None):
 @main.route("/<address>/stats")
 def address_stats(address=None):
     minutes = db.session.query(OneMinuteShare).filter_by(user=address)
-    data = {calendar.timegm(minute.minute.utctimetuple()): minute.shares
+    data = {time.mktime(minute.minute.utctimetuple()): minute.shares
             for minute in minutes}
     day_ago = ((int(time.time()) - (60 * 60 * 24)) // 60) * 60
     out = [(i, data.get(i) or 0)
