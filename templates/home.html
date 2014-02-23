@@ -14,38 +14,36 @@ $(document).ready(function() {
 });
 </script>
 
-
 <div class="container">
+    <div class="row page-header">
 
+  <!-- Alerts
+  ================================================== -->
+
+    {% if alerts  %}
+      {% for alert in alerts %}
+      <div class="alert alert-dismissable alert-{{ alert['severity'] }}">
+        <button type="button" class="close" data-dismiss="alert">×</button>
+        <h4>{{ alert['title'] }} - <span class="text-muted small" style="color:#fff;">{{ alert['date'] }}</span></h4>
+        <p>{{ alert['body'] }}</p>
+      </div>
+      {% endfor %}
+    {% endif %}
 
   <!-- Img
   ================================================== -->
 
-    <div class="row page-header">
+
       <div class="col-lg-5">
         <div class="text-center">
           <img src="static/img/doge-miner.jpg" width="450">
         </div>
       </div>
 
-  <!-- About
+  <!-- Quick started
   ================================================== -->
 
       <div class="col-lg-7">
-        <div>
-          <h2 class="no-margin-top" style="padding-bottom: 10px;">About Simple Doge</h2>
-          <h4>No registration required!</h4>
-          <h4>1% Fees</h4>
-          <h4>
-            Custom python pool server. Much new. Very speed.
-          </h4>
-          <h4></h4>
-        </div>
-        <br>
-
-  <!-- Get started
-  ================================================== -->
-
         <div class="well well-lg">
           <h3>Quick start for mining:</h3>
           <p>URL: stratum+tcp://stratum.simpledoge.com</p>
@@ -58,19 +56,49 @@ $(document).ready(function() {
 
     </div>
 
+  <!-- News/Announcements
+  ================================================== -->
+
+  <div class="row row-header">
+    <div class="col-lg-8">
+
+      {% for new in news %}
+      <div class="panel panel-default">
+        <div class="panel-heading">{{ new['title']|safe }} <span class="text-muted pull-right">{{ new['date']|safe }}</span></div>
+        <div class="panel-body">
+          <p>{{ new['body']|safe }}</p>
+        </div>
+      </div>
+      {% endfor %}
+
+    </div>
+
 
   <!-- New users
   ================================================== -->
-  <div class="row row-header">
-      <div class="col-lg-12">
-        <div class="">
-          <h2>New to Cryptocurrency?</h2>
-          <br>
-          <h4>Check out a detailed step-by-step guide on <a href="http://www.reddit.com/r/dogemining/wiki/index/mining_guide" target="_blank">Reddit</a></h4>
-          <br>
-          <h4>To get started mining on the pool just set your miner to use your dogecoin address as the username</h4>
+
+    <div class="col-lg-4">
+
+      <div class="panel panel-default">
+        <div class="panel-heading">New to Cryptocurrency?</div>
+        <div class="panel-body">
+          Check out a detailed step-by-step guide on <a href="http://www.reddit.com/r/dogemining/wiki/index/mining_guide" target="_blank">Reddit</a>.
         </div>
       </div>
+
+  <!-- About
+  ================================================== -->
+
+      <div class="panel panel-default">
+        <div class="panel-heading">About Simple Doge</div>
+        <div class="panel-body">
+          <p>No registration required!</p>
+          <p>1% Fees</p>
+          <p>Custom python pool server. Much new. Very speed.</p>
+        </div>
+      </div>
+
+    </div>
   </div>
 
   <!-- User stats
@@ -108,9 +136,5 @@ $(document).ready(function() {
         </div>
       </div>
   </div>
-
-
-
-
 </div>
 {% endblock %}

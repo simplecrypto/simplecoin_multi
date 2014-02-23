@@ -1,0 +1,6 @@
+- title: Just lanuched!
+  date: 2/23/2014
+  body: |
+    Simple Doge is now live! We've built an entire mining server from scratch, check it out on
+    <a href="http://github.com/icook/powerpool/">github</a>. Please feel free to throw some hashing power our way,
+    but its still pretty green so make sure to have a backup pool.

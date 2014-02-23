@@ -1,9 +1,10 @@
 import time
+import yaml
 from itsdangerous import TimedSerializer
 from flask import current_app, request, render_template, Blueprint, abort, jsonify
 
 from .models import Transaction, CoinTransaction, OneMinuteShare
-from . import db
+from . import db, root
 
 
 main = Blueprint('main', __name__)
@@ -11,8 +12,9 @@ main = Blueprint('main', __name__)
 
 @main.route("/")
 def home():
-
-    return render_template('home.html')
+    news = yaml.load(open(root + '/static/yaml/news.yaml'))
+    alerts = yaml.load(open(root + '/static/yaml/alerts.yaml'))
+    return render_template('home.html', news=news, alerts=alerts)
 
 
 @main.route("/get_transactions", methods=['POST'])
