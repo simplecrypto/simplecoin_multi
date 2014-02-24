@@ -12,24 +12,11 @@ generate_graph = function(request_url, append_to) {
   }
 //Calculate a value to return for the y-scale, in khash or mhash
   var y_scale = function(max_hash) {
-      var yscale = (calculate_hash(max_hash) );
-      if(yscale < 1000) {
-          yscale = yscale
-      } else if (yscale > 1000) {
-          yscale = yscale/1000
-      }
-      return yscale
+      return (calculate_hash(max_hash))/1000
   }
 //Calculate a value to return for the y-axis text, khash or mhash
   var generate_y_text = function(max_hash) {
-      var yaxis_text;
-      if((calculate_hash(max_hash) < 1000)) {
-          yaxis_text = "KHashes/sec"
-      } else {
-          yaxis_text = "MHashes/sec"
-      }
-
-      return yaxis_text
+      return "MHashes/sec"
   }
 
   var margin = {top: 20, right: 125, bottom: 30, left: 70},
@@ -96,9 +83,10 @@ generate_graph = function(request_url, append_to) {
       hour_avg_list.shift();
 
       } else {
-//      if there isn't yet 60 values, look ahead
+//      if there isn't yet 60 values, look ahead and do a flat avg
 //      this hack needs to be reworked to the whole line
         var g=1;
+        hour_avg_val = 0;
         while (g<60) {
             hour_avg_val += +y_scale(data['points'][g][1]);
             g++;
