@@ -19,7 +19,7 @@ generate_graph = function(request_url, append_to) {
       return "MHashes/sec"
   }
 
-  var margin = {top: 20, right: 125, bottom: 30, left: 70},
+  var margin = {top: 20, right: 125, bottom: 40, left: 70},
       width = 960 - margin.left - margin.right,
       height = 300 - margin.top - margin.bottom;
 
@@ -44,7 +44,6 @@ generate_graph = function(request_url, append_to) {
       .orient("left");
 
   var line = d3.svg.line()
-      .interpolate("basis")
       .x(function(d) {
           return x(d.time); })
       .y(function(d) { return y(d.shares); });
@@ -106,8 +105,8 @@ generate_graph = function(request_url, append_to) {
         .attr("transform", "translate(0," + height + ")")
         .call(xAxis)
        .append("text")
-        .attr("x", width+10)
-        .attr("y", -3)
+        .attr("x", width-70)
+        .attr("y", +30)
         .attr("dy", ".71em")
         .text("GMT Time");
 
