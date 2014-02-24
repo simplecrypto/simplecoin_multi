@@ -1,5 +1,6 @@
 from flask import Flask, current_app
 from flask.ext.sqlalchemy import SQLAlchemy
+from flask.ext.cache import Cache
 from jinja2 import FileSystemLoader
 from werkzeug.local import LocalProxy
 from bitcoinrpc import AuthServiceProxy
@@ -12,6 +13,7 @@ import yaml
 
 root = os.path.abspath(os.path.dirname(__file__) + '/../')
 db = SQLAlchemy()
+cache = Cache()
 coinserv = LocalProxy(
     lambda: getattr(current_app, 'rpc_connection', None))
 
@@ -47,6 +49,7 @@ def create_app(config='/config.yml'):
 
     # register all our plugins
     db.init_app(app)
+    cache.init_app(app, config={'CACHE_TYPE': 'simple'})
 
     from .tasks import celery
     celery.conf.update(app.config)

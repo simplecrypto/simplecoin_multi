@@ -3,6 +3,7 @@ git+https://github.com/icook/python-bitcoinrpc.git
 Flask==0.10.1
 Flask-SQLAlchemy==1.0
 Flask-Script==0.6.6
+Flask-Cache
 PyYAML==3.10
 SQLAlchemy==0.9.1
 Werkzeug==0.9.4

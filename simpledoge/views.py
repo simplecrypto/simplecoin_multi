@@ -1,10 +1,13 @@
 import time
 import yaml
+import datetime
 from itsdangerous import TimedSerializer
-from flask import current_app, request, render_template, Blueprint, abort, jsonify
+from flask import (current_app, request, render_template, Blueprint, abort,
+                   jsonify, g)
+from sqlalchemy.sql import func
 
-from .models import Transaction, CoinTransaction, OneMinuteShare, Block
-from . import db, root
+from .models import Transaction, CoinTransaction, OneMinuteShare, Block, Share
+from . import db, root, cache
 
 
 main = Blueprint('main', __name__)
@@ -65,9 +68,17 @@ def confirm_transactions():
     return s.dumps(True)
 
 
-@main.route("/nav_stats")
-def nav_stats():
-    return jsonify()
+@main.before_request
+def add_pool_stats():
+    g.pool_stats = get_frontpage_data()
+
+
+@cache.cached(timeout=60, key_prefix='get_total_n1')
+def get_frontpage_data():
+    shares = db.session.query(func.sum(Share.shares)).scalar()
+    last_dt = Block.query.order_by(Block.height).first().found_at
+    last_dt = (datetime.datetime.utcnow() - last_dt).total_seconds()
+    return shares, last_dt
 
 
 @main.route("/pool_stats")
@@ -86,8 +97,6 @@ def pool_stats():
 @main.route("/<address>")
 def view_resume(address=None):
     blocks = db.session.query(Block).limit(10)
-
-
     return render_template('user_stats.html', username=address, blocks=blocks)
 
 

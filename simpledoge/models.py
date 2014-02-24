@@ -85,8 +85,8 @@ class CoinTransaction(base):
     @classmethod
     def from_serial_transaction(cls, transactions):
         """ Doesn't actually make a cointransaction object, simply creates a
-        transaction on the coinserver and returns the new transaction id. 
-        Uses the wallet_pass to unlock the wallet on the coinserver and 
+        transaction on the coinserver and returns the new transaction id.
+        Uses the wallet_pass to unlock the wallet on the coinserver and
         sends the funds from pool_address account. """
         current_app.logger.debug("Setting tx fee: %s" % coinserv.settxfee(1))
         wallet = coinserv.walletpassphrase(
