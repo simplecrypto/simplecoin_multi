@@ -20,7 +20,7 @@
   <script>
     $(document).ready(function() {
       var shares, hashrate, seconds, khashpersec, shares_per_sec;
-      {# Grab new pool stats #}
+      {# Grab new pool stats 
       $.ajax({
         dataType: "json",
         url: "/nav_stats",
@@ -53,7 +53,7 @@
 
         $('.odometer.hashes').text(Math.round(khashpersec));
       },1000);
-
+      #}
     });
   </script>
 </head>
@@ -68,6 +68,7 @@
         <img src="static/img/dogecoin.png" width="24">
         Simple Doge - No registration required
         </a>
+        <!--
         <div style="float:right;">
           <p>
 
@@ -76,6 +77,7 @@
             Round Shares: <span class="odometer shares">0</span>
           </p>
         </div>
+        -->
       </div>
     </div>
   </div>
