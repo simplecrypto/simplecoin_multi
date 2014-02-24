@@ -42,7 +42,7 @@ generate_graph = function(request_url, append_to) {
           ]
 
   var x = d3.time.scale()
-      .range([0, width]);
+      .range([1, width]);
 
   var y = d3.scale.linear()
       .range([height-1, 0]);
@@ -90,12 +90,22 @@ generate_graph = function(request_url, append_to) {
       });
 //    build a new list containing 1 hour averages
       if (i>58) {
-        hour_line.push([d.time, hour_avg_val/60]);
+        hour_line.push([d.time, hour_avg_val/60])
 
-      hour_avg_val = 0;
 //    Pop off first item in list to keep it at 60
       hour_avg_list.shift();
+
+      } else {
+//      if there isn't yet 60 values, look ahead
+//      this hack needs to be reworked to the whole line
+        var g=1;
+        while (g<60) {
+            hour_avg_val += +y_scale(data['points'][g][1]);
+            g++;
+        }
+        hour_line.push([d.time, hour_avg_val/60]);
       }
+      hour_avg_val = 0;
     });
 
     var yaxis_text = generate_y_text(d3.max(data['points'], function(d) { return +d[1]; }));
