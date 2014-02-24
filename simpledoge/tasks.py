@@ -1,12 +1,14 @@
 from flask import current_app
 from celery import Celery
 from simpledoge import db, coinserv
-from simpledoge.models import Share, Block, OneMinuteShare, Payout, Transaction, CoinTransaction
+from simpledoge.models import (Share, Block, OneMinuteShare, Payout,
+                               Transaction, CoinTransaction)
 from datetime import datetime
 from cryptokit import bits_to_shares
 from pprint import pformat
 from bitcoinrpc import CoinRPCException
 
+import sqlalchemy
 import logging
 
 logger = logging.getLogger('tasks')
@@ -122,7 +124,12 @@ def add_one_minute(self, user, shares, minute):
     """
     try:
         minute = (minute // 60) * 60
-        OneMinuteShare.create(user, shares, datetime.fromtimestamp(minute))
+        try:
+            OneMinuteShare.create(user, shares, datetime.fromtimestamp(minute))
+        except sqlalchemy.exc.IntegrityError:
+            share = OneMinuteShare.query.filter_by(
+                user=user, minute=datetime.fromtimestamp(minute))
+            share.shares += shares
         db.session.commit()
     except Exception as exc:
         logger.error("Unhandled exception in add_one_minute", exc_info=True)
