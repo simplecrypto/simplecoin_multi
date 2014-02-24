@@ -2,6 +2,7 @@ from flask import current_app
 from datetime import datetime
 from simpledoge.model_lib import base
 from sqlalchemy.schema import CheckConstraint
+from cryptokit import bits_to_difficulty
 
 from . import db, coinserv
 
@@ -11,7 +12,10 @@ class Block(base):
     height = db.Column(db.Integer, primary_key=True)
     # User who discovered block
     user = db.Column(db.String)
+    # When block was found
     found_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # # Time started on block
+    # time_started = db.Column(db.DateTime)
     # Is block now orphaned?
     orphan = db.Column(db.Boolean, default=False)
     # Is the block matured?
@@ -22,6 +26,7 @@ class Block(base):
     transaction_fees = db.Column(db.BigInteger)
     # total going to pool from fees
     fees = db.Column(db.BigInteger)
+    # Difficulty of block when solved
     bits = db.Column(db.String(8), nullable=False)
     # the last share id that was processed when the block was entered.
     # used as a marker for calculating last n shares
@@ -46,6 +51,10 @@ class Block(base):
         db.session.add(block)
         db.session.flush()
         return block
+
+    @property
+    def difficulty(self):
+        return bits_to_difficulty(self.bits)
 
 
 class Share(base):

@@ -3,7 +3,7 @@ import yaml
 from itsdangerous import TimedSerializer
 from flask import current_app, request, render_template, Blueprint, abort, jsonify
 
-from .models import Transaction, CoinTransaction, OneMinuteShare
+from .models import Transaction, CoinTransaction, OneMinuteShare, Block
 from . import db, root
 
 
@@ -85,9 +85,10 @@ def pool_stats():
 
 @main.route("/<address>")
 def view_resume(address=None):
+    blocks = db.session.query(Block).limit(10)
 
 
-    return render_template('user_stats.html', username=address)
+    return render_template('user_stats.html', username=address, blocks=blocks)
 
 
 @main.route("/<address>/stats")

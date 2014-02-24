@@ -16,5 +16,49 @@ $(document).ready(function() {
     <p><a href="{{ username }}/stats">stats</a></p>
     <p class="awesome"></p>
   </div>
+
+
+  <div class="bs-example table-responsive">
+    <table class="table table-striped table-hover ">
+      <thead>
+        <tr>
+          <th>Block age</th>
+          <th>Shares</th>
+          <th>Round Duration</th>
+          <th>Payout</th>
+          <th>Difficulty</th>
+          <th>Solved by</th>
+          <th>Block Hash</th>
+          <th>Blockheight</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="active">
+          <th>Block age</th>
+          <th>Shares</th>
+          <th>Round Duration</th>
+          <th>Expected Payout (est)</th>
+          <th>Difficulty</th>
+          <th>Solved by</th>
+          <th>Block Hash</th>
+          <th>Blockheight</th>
+        </tr>
+        {% for block in blocks %}
+        <tr>
+          <th>Block age</th>
+          <th>Shares</th>
+          <th>Round Duration</th>
+          <th>{{ (block.total_value/100000000) | round(2) }}</th>
+          <th>{{ block.difficulty| round(4) }}</th>
+          <th>{{ block.user }}</th>
+          <th><a href="https://dogechain.info/block/{{ block.hash }}">{{ block.hash|truncate(9, True) }}</a></th>
+          <th>{{ block.height }}</th>
+        </tr>
+        {% endfor %}
+
+      </tbody>
+    </table>
+  </div>
 </div>
+
 {% endblock %}
