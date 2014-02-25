@@ -1,5 +1,5 @@
 from flask import current_app
-from datetime import datetime
+from datetime import datetime, time
 from simpledoge.model_lib import base
 from sqlalchemy.schema import CheckConstraint
 from cryptokit import bits_to_difficulty
@@ -57,6 +57,10 @@ class Block(base):
     @property
     def difficulty(self):
         return bits_to_difficulty(self.bits)
+
+    @property
+    def duration(self):
+        return time.mktime(self.found_at - self.time_started)
 
 
 class Share(base):

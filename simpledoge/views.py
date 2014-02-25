@@ -15,9 +15,10 @@ main = Blueprint('main', __name__)
 
 @main.route("/")
 def home():
+    blocks = db.session.query(Block).limit(10)
     news = yaml.load(open(root + '/static/yaml/news.yaml'))
     alerts = yaml.load(open(root + '/static/yaml/alerts.yaml'))
-    return render_template('home.html', news=news, alerts=alerts)
+    return render_template('home.html', news=news, alerts=alerts, blocks=blocks)
 
 
 @main.route("/get_transactions", methods=['POST'])
@@ -75,15 +76,14 @@ def add_pool_stats():
 
 @cache.cached(timeout=60, key_prefix='get_total_n1')
 def get_frontpage_data():
-    shares = db.session.query(func.sum(Share.shares)).scalar()
-    last_dt = Block.query.order_by(Block.height.desc()).first().found_at
-    last_dt = (datetime.datetime.utcnow() - last_dt).total_seconds()
+    block = Block.query.order_by(Block.height.desc()).first()
+    shares = db.session.query(func.sum(Share.shares)).filter(Share.id > block.last_share_id).scalar()
+    last_dt = (datetime.datetime.utcnow() - block.found_at).total_seconds()
     return shares, last_dt
 
 
 @main.route("/pool_stats")
 def pool_stats():
-
     minutes = db.session.query(OneMinuteShare).filter_by(user="pool")
     data = {time.mktime(minute.minute.utctimetuple()): minute.shares
             for minute in minutes}
@@ -95,9 +95,17 @@ def pool_stats():
 
 
 @main.route("/<address>")
-def view_resume(address=None):
-    blocks = db.session.query(Block).limit(10)
-    return render_template('user_stats.html', username=address, blocks=blocks)
+def user_dashboard(address=None):
+    block = Block.query.order_by(Block.height.desc()).first()
+    user_shares = db.session.query(func.sum(Share.shares))\
+        .filter_by(user=address)\
+        .filter(Share.id > block.last_share_id)\
+        .scalar()
+    current_difficulty = 1057
+    return render_template('user_stats.html',
+                           username=address,
+                           user_shares=user_shares,
+                           current_difficulty=current_difficulty)
 
 
 @main.route("/<address>/stats")

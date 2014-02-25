@@ -3,62 +3,80 @@
 
 <script>
 $(document).ready(function() {
+  var last_minute = 0;
   generate_graph("{{ username }}/stats", ".awesome");
+  setTimeout(function(){
+
+    var shares, hashrate, seconds, mhashpersec, shares_per_sec, user_shares, est_payout, total_user_hashes, round_reward;
+
+    round_reward = 250000;
+    user_shares = {{ user_shares }};
+    total_user_hashes = user_shares * Math.pow(2, 16);
+
+    var hashes_to_solve = {{ current_difficulty }}*Math.pow(2, 32);
+    var percentage_value = total_user_hashes/hashes_to_solve;
+    est_payout = (percentage_value * round_reward)*.99;
+    console.log(total_user_hashes);
+    seconds = 60000;
+    hashrate = Math.pow(2, 16) * last_min;
+    mhashpersec = (hashrate / seconds) / 1000000;
+
+    setInterval(function(){
+      $('.odometer.hashrate').text(Math.round(mhashpersec*1000)/1000);
+      $('.odometer.usershares').text(Math.round(user_shares));
+      $('.odometer.estpayout').text(Math.round(est_payout));
+    },1000);
+
+
+},1000);
+
 });
 </script>
 
 
 
-<a href="/">Home</a>
 <div class="container">
   <div class="row page-header">
     <h2>User Stats - {{ username }}</h2>
-    <p><a href="{{ username }}/stats">stats</a></p>
+
+    <div class="col-lg-3">
+      <div class="panel panel-default">
+        <div class="panel-body">
+          Round Shares: <span class="odometer usershares">0</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3">
+      <div class="panel panel-default">
+        <div class="panel-body">
+          Est round payout: <span class="odometer estpayout">0</span> DOGE
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3">
+      <div class="panel panel-default">
+        <div class="panel-body">
+          Hashrate: <span class="odometer hashrate">0</span> MHashes/sec
+        </div>
+      </div>
+    </div>
+{#    <div class="col-lg-3">#}
+{#      <div class="panel panel-default">#}
+{#        <div class="panel-body">#}
+{#          Unconfirmed balance:#}
+{#        </div>#}
+{#      </div>#}
+{#    </div>#}
+{#    <div class="col-lg-3">#}
+{#      <div class="panel panel-default">#}
+{#        <div class="panel-body">#}
+{#          Balance:#}
+{#        </div>#}
+{#      </div>#}
+{#    </div>#}
     <p class="awesome"></p>
   </div>
 
-
-  <div class="bs-example table-responsive">
-    <table class="table table-striped table-hover ">
-      <thead>
-        <tr>
-          <th>Block age</th>
-          <th>Shares</th>
-          <th>Round Duration</th>
-          <th>Payout</th>
-          <th>Difficulty</th>
-          <th>Solved by</th>
-          <th>Block Hash</th>
-          <th>Blockheight</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr class="active">
-          <th>Block age</th>
-          <th>Shares</th>
-          <th>Round Duration</th>
-          <th>Expected Payout (est)</th>
-          <th>Difficulty</th>
-          <th>Solved by</th>
-          <th>Block Hash</th>
-          <th>Blockheight</th>
-        </tr>
-        {% for block in blocks %}
-        <tr>
-          <th>Block age</th>
-          <th>Shares</th>
-          <th>Round Duration</th>
-          <th>{{ (block.total_value/100000000) | round(2) }}</th>
-          <th>{{ block.difficulty| round(4) }}</th>
-          <th>{{ block.user }}</th>
-          <th><a href="https://dogechain.info/block/{{ block.hash }}">{{ block.hash|truncate(9, True) }}</a></th>
-          <th>{{ block.height }}</th>
-        </tr>
-        {% endfor %}
-
-      </tbody>
-    </table>
-  </div>
 </div>
 
 {% endblock %}

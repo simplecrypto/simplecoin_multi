@@ -62,6 +62,7 @@ generate_graph = function(request_url, append_to) {
   var minute = 0;
   var hour_avg_list = [], hour_avg_val = 0;
   d3.json(request_url, function(error, data) {
+    last_min = data['points'][1439][1];
     data['points'].forEach(function(d,i) {
 
       d.time = new Date(d[0] * 1000);
@@ -181,6 +182,4 @@ generate_graph = function(request_url, append_to) {
 //        .attr("r", 4.5);
 
   });
-
-
 }
