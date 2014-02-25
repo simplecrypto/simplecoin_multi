@@ -3,28 +3,28 @@
 
 <script>
 $(document).ready(function() {
-  var last_minute = 0;
+  var last_5min = 0;
   generate_graph("{{ username }}/stats", ".awesome");
   setTimeout(function(){
 
-    var shares, hashrate, seconds, mhashpersec, shares_per_sec, user_shares, est_payout, total_user_hashes, round_reward;
+    var shares, hashrate, seconds, mhashpersec, shares_per_sec, user_shares, est_payout,
+        total_user_hashes, round_reward, hashes_to_solve, percentage_value;
 
     round_reward = 250000;
     user_shares = {{ user_shares }};
     total_user_hashes = user_shares * Math.pow(2, 16);
 
-    var hashes_to_solve = {{ current_difficulty }}*Math.pow(2, 32);
-    var percentage_value = total_user_hashes/hashes_to_solve;
+    hashes_to_solve = {{ current_difficulty }}*Math.pow(2, 32);
+    percentage_value = total_user_hashes/hashes_to_solve;
     est_payout = (percentage_value * round_reward)*.99;
-    console.log(total_user_hashes);
     seconds = 60000;
-    hashrate = Math.pow(2, 16) * last_min;
-    mhashpersec = (hashrate / seconds) / 1000000;
+    hashrate = Math.pow(2, 16) * window.last_5min;
+    mhashpersec = (hashrate / seconds) / 1000;
 
     setInterval(function(){
       $('.odometer.hashrate').text(Math.round(mhashpersec*1000)/1000);
       $('.odometer.usershares').text(Math.round(user_shares));
-      $('.odometer.estpayout').text(Math.round(est_payout));
+      $('.odometer.estpayout').text(Math.round(est_payout*100)/100);
     },1000);
 
 
@@ -56,7 +56,7 @@ $(document).ready(function() {
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body">
-          Hashrate: <span class="odometer hashrate">0</span> MHashes/sec
+          5 min hashrate: <span class="odometer hashrate">0</span> MHashes/sec
         </div>
       </div>
     </div>

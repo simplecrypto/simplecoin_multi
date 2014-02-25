@@ -1,5 +1,6 @@
 from flask import current_app
 from datetime import datetime, time
+from sqlalchemy import func
 from simpledoge.model_lib import base
 from sqlalchemy.schema import CheckConstraint
 from cryptokit import bits_to_difficulty
@@ -62,6 +63,10 @@ class Block(base):
     def duration(self):
         return time.mktime(self.found_at - self.time_started)
 
+    @property
+    def shares(self):
+        shares_since = db.session.query(func.sum(Share.shares)).filter(Share.id > self.last_share_id).scalar()
+        shares_after_next = db.session.query(func.sum(Share.shares)).filter(Share.id > self.last_share_id).scalar()
 
 class Share(base):
     """ This class generates a table containing every share accepted for a

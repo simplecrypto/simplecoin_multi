@@ -62,7 +62,16 @@ generate_graph = function(request_url, append_to) {
   var minute = 0;
   var hour_avg_list = [], hour_avg_val = 0;
   d3.json(request_url, function(error, data) {
-    last_min = data['points'][1439][1];
+
+//  quick hack here to shoot a five min avg to user stats w/o querying server
+    var h = 1, five_min=0;
+    while (h<6) {
+        five_min += +data['points'][1439-h][1];
+        h++;
+    }
+    last_5min =five_min/5
+
+
     data['points'].forEach(function(d,i) {
 
       d.time = new Date(d[0] * 1000);

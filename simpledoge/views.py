@@ -77,7 +77,7 @@ def add_pool_stats():
 @cache.cached(timeout=60, key_prefix='get_total_n1')
 def get_frontpage_data():
     block = Block.query.order_by(Block.height.desc()).first()
-    shares = db.session.query(func.sum(Share.shares)).filter(Share.id > block.last_share_id).scalar()
+    shares = db.session.query(func.sum(Share.shares)).filter(Share.id > block.last_share_id).scalar() or 0
     last_dt = (datetime.datetime.utcnow() - block.found_at).total_seconds()
     return shares, last_dt
 

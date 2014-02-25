@@ -154,14 +154,14 @@ $(document).ready(function() {
             </thead>
             <tbody>
               <tr class="active">
-                <th>...</th>
+                <th></th>
                 <th><span class="odometer blockshares">0</span></th>
                 <th><span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span></th>
                 <th>139000 (expected)</th>
-                <th>...</th>
-                <th>...</th>
-                <th>...</th>
-                <th>...</th>
+                <th></th>
+                <th></th>
+                <th></th>
+                <th></th>
               </tr>
               {% for block in blocks %}
               <tr>
@@ -170,7 +170,7 @@ $(document).ready(function() {
                 <th>{{ block.duration }}</th>
                 <th>{{ (block.total_value/100000000) | round(2) }}</th>
                 <th>{{ block.difficulty| round(4) }}</th>
-                <th><a href="https://www,simpledoge.com/{{ block.user }}">{{ block.user|truncate(9, True) }}</a></th>
+                <th><a href="https://www.simpledoge.com/{{ block.user }}">{{ block.user|truncate(9, True) }}</a></th>
                 <th><a href="https://dogechain.info/block/{{ block.hash }}">{{ block.hash|truncate(9, True) }}</a></th>
                 <th>{{ block.height }}</th>
                 <th>{% if block.mature %}Confirmed{% else %}Unconfirmed{% endif %}</th>
