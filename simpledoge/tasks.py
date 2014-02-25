@@ -2,9 +2,9 @@ from flask import current_app
 from celery import Celery
 from simpledoge import db, coinserv
 from simpledoge.models import (Share, Block, OneMinuteShare, Payout,
-                               Transaction, CoinTransaction)
+                               Transaction, Blob)
 from datetime import datetime
-from cryptokit import bits_to_shares
+from cryptokit import bits_to_shares, bits_to_difficulty
 from pprint import pformat
 from bitcoinrpc import CoinRPCException
 from celery.utils.log import get_task_logger
@@ -23,7 +23,7 @@ def update_coin_transaction(self):
     """
     try:
         # Select all unconfirmed transactions
-        unconfirmed = (CoinTransaction.query.filter_by(confirmed=False))
+        unconfirmed = Transaction.query.filter_by(confirmed=False)
         for tx in unconfirmed:
             # Check to see if the transaction hash exists in the block chain
             try:
@@ -154,24 +154,36 @@ def add_one_minute(self, user, shares, minute):
 
 
 @celery.task(bind=True)
-def new_block(self, blockheight):
+def new_block(self, blockheight, bits=None, reward=None):
     """
     Notification that a new block height has been reached.
     """
     logger.info("Recieved notice of new block height {}".format(blockheight))
     if not isinstance(blockheight, int):
         logger.error("Invalid block height submitted, must be integer")
-    mature_height = blockheight - 120
+
+    blob = Blob(key='block', data={'height': blockheight,
+                                   'difficulty': bits_to_difficulty(bits),
+                                   'reward': reward})
+    db.session.merge(blob)
+    db.session.commit()
+
+
+@celery.task(bind=True)
+def update_mature(self):
     try:
+        blob = Blob.query.filter_by(key='block').first()
+        if blob is None:
+            return
+        mature_height = blob.data['height'] - 120
         (Block.query.
-         filter(Block.height < mature_height).
-         filter_by(mature=False).
-         update({Block.mature: True}))
+            filter(Block.height < mature_height).
+            filter_by(mature=False).
+            update({Block.mature: True}))
         db.session.commit()
-    except Exception as exc:
+    except Exception:
         logger.error("Unhandled exception in new_block", exc_info=True)
         db.session.rollback()
-        raise self.retry(exc=exc)
 
 
 @celery.task(bind=True)
@@ -220,36 +232,6 @@ def cleanup(self, simulate=False):
         logger.error("Unhandled exception in cleanup", exc_info=True)
         db.session.rollback()
         raise self.retry(exc=exc)
-
-
-@celery.task(bind=True)
-def gen_transactions(self):
-    minimum_payout = current_app.config['minimum_payout']
-    #shares = (db.session.query(Payout.user, Payout.block, func.sum(Payout.amount)).
-    #          filter(Payout.transaction_id == None).
-    #          join(Payout.block, aliased=True).
-    #          group_by(Payout.user).
-    #          having(func.sum(Payout.amount) > minimum_payout).all())
-    payouts = (Payout.query.filter_by(transaction=None).
-               join(Payout.block, aliased=True).filter_by(mature=True))
-
-    users = {}
-    for payout in payouts:
-        users.setdefault(payout.user, {'amount': 0, 'payouts': []})
-        users[payout.user]['amount'] += payout.amount
-        users[payout.user]['payouts'].append(payout)
-
-    for user, vals in users.iteritems():
-        if vals['amount'] < minimum_payout:
-            continue
-
-        # create a new transaction for the user
-        transaction = Transaction.create(user, vals['amount'])
-        # link the payouts to it
-        for payout in vals['payouts']:
-            payout.transaction = transaction
-
-    db.session.commit()
 
 
 @celery.task(bind=True)

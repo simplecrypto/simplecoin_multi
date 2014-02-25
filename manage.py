@@ -12,7 +12,7 @@ root = os.path.abspath(os.path.dirname(__file__) + '/../')
 
 from bitcoinrpc.authproxy import AuthServiceProxy
 from simpledoge import db
-from simpledoge.tasks import add_share, cleanup, payout, gen_transactions
+from simpledoge.tasks import add_share, cleanup, payout
 from simpledoge.models import Payout, Block
 from flask import current_app, _request_ctx_stack
 
@@ -48,11 +48,6 @@ def cleanup_cmd(simulate):
 def payout_cmd(simulate):
     simulate = simulate != "0"
     payout(simulate=simulate)
-
-
-@manager.command
-def gen_transactions_cmd():
-    gen_transactions()
 
 
 @manager.command

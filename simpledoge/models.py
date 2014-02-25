@@ -2,9 +2,17 @@ from flask import current_app
 from datetime import datetime, timedelta
 from simpledoge.model_lib import base
 from sqlalchemy.schema import CheckConstraint
+from sqlalchemy.dialects.postgresql import JSON
 from cryptokit import bits_to_difficulty
 
 from . import db, coinserv
+
+
+class Blob(base):
+    """ Used to store misc single value blobs of data, such as the current
+    block height and difficulty. """
+    key = db.Column(db.String, primary_key=True)
+    data = db.Column(JSON, default=dict)
 
 
 class Block(base):
@@ -79,7 +87,7 @@ class Share(base):
         return share
 
 
-class CoinTransaction(base):
+class Transaction(base):
     txid = db.Column(db.String, primary_key=True)
     confirmed = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -106,31 +114,6 @@ class CoinTransaction(base):
                                  recip)
 
 
-class Transaction(base):
-    """ An aggregation of payouts that correspond to an actual network
-    transaction """
-    id = db.Column(db.Integer, primary_key=True)
-    user = db.Column(db.String)
-    amount = db.Column(db.BigInteger, CheckConstraint('amount>0'))
-    sent = db.Column(db.Boolean, default=False)
-    txid = db.Column(db.String, db.ForeignKey('coin_transaction.txid'))
-    coin_transaction = db.relationship('CoinTransaction')
-
-    @classmethod
-    def create(cls, user, amount):
-        payout = cls(user=user, amount=amount)
-        db.session.add(payout)
-        return payout
-
-    @classmethod
-    def serialize_pending(cls):
-        transactions = Transaction.query.filter_by(coin_transaction=None)
-        struct = [{'id': t.id, 'amount': t.amount, 'user': t.user}
-                  for t in transactions]
-        transactions.update({Transaction.sent: True})
-        return struct
-
-
 class Payout(base):
     """ Represents a users payout for a single round """
     blockheight = db.Column(db.Integer, db.ForeignKey('block.height'),
@@ -138,7 +121,7 @@ class Payout(base):
     block = db.relationship('Block', foreign_keys=[blockheight])
     user = db.Column(db.String, primary_key=True)
     amount = db.Column(db.BigInteger, CheckConstraint('amount>0'))
-    transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id'))
+    transaction_id = db.Column(db.String, db.ForeignKey('transaction.txid'))
     transaction = db.relationship('Transaction', foreign_keys=[transaction_id])
 
     @classmethod

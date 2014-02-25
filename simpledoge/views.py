@@ -6,7 +6,7 @@ from flask import (current_app, request, render_template, Blueprint, abort,
                    jsonify, g)
 from sqlalchemy.sql import func
 
-from .models import Transaction, CoinTransaction, OneMinuteShare, Block, Share, Payout
+from .models import Transaction, OneMinuteShare, Block, Share, Payout
 from . import db, root, cache
 
 
