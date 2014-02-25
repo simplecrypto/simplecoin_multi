@@ -15,7 +15,7 @@ class Block(base):
     # When block was found
     found_at = db.Column(db.DateTime, default=datetime.utcnow)
     # # Time started on block
-    # time_started = db.Column(db.DateTime)
+    time_started = db.Column(db.DateTime, nullable=False)
     # Is block now orphaned?
     orphan = db.Column(db.Boolean, default=False)
     # Is the block matured?
@@ -38,7 +38,8 @@ class Block(base):
     hash = db.Column(db.String, nullable=False)
 
     @classmethod
-    def create(cls, user, height, total_value, transaction_fees, bits, hash):
+    def create(cls, user, height, total_value, transaction_fees, bits, hash,
+               time_started):
         share = Share.query.order_by(Share.id.desc()).first()
         block = cls(user=user,
                     height=height,
@@ -46,7 +47,8 @@ class Block(base):
                     transaction_fees=transaction_fees,
                     bits=bits,
                     last_share=share,
-                    hash=hash)
+                    hash=hash,
+                    time_started=time_started)
         # add and flush
         db.session.add(block)
         db.session.flush()

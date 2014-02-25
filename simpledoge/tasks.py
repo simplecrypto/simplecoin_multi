@@ -7,11 +7,12 @@ from datetime import datetime
 from cryptokit import bits_to_shares
 from pprint import pformat
 from bitcoinrpc import CoinRPCException
+from celery.utils.log import get_task_logger
 
 import sqlalchemy
 import logging
 
-logger = logging.getLogger('tasks')
+logger = get_task_logger(__name__)
 celery = Celery('simpledoge')
 
 
@@ -103,9 +104,22 @@ def add_block(self, user, height, total_value, transaction_fees, bits,
                      transaction fees on new block = 6.5
                      transaction_fees = 650000000
     """
+    logger.warn(
+        "Recieved an add block notification!\nUser: {}\nHeight: {}\n"
+        "Total Height: {}\nTransaction Fees: {}\nBits: {}\nHash Hex: {}"
+        .format(user, height, total_value, transaction_fees, bits, hash_hex))
     try:
+        last_block = Block.query.order_by(Block.height.desc()).first()
+        if not last_block:
+            first_min_share = OneMinuteShare.query.first()
+            if first_min_share:
+                time_started = first_min_share.minute
+            else:
+                time_started = datetime.datetime.utcnow()
+        else:
+            time_started = last_block.found_at
         Block.create(user, height, total_value, transaction_fees, bits,
-                     hash_hex)
+                     hash_hex, time_started=time_started)
         db.session.commit()
     except Exception as exc:
         logger.error("Unhandled exception in add_block", exc_info=True)
@@ -126,7 +140,7 @@ def add_one_minute(self, user, shares, minute):
         minute = (minute // 60) * 60
         try:
             OneMinuteShare.create(user, shares, datetime.fromtimestamp(minute))
-	    db.session.commit()
+            db.session.commit()
         except sqlalchemy.exc.IntegrityError:
             db.session.rollback()
             share = OneMinuteShare.query.filter_by(
