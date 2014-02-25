@@ -111,10 +111,10 @@ def add_block(self, user, height, total_value, transaction_fees, bits,
         "Total Height: {}\nTransaction Fees: {}\nBits: {}\nHash Hex: {}"
         .format(user, height, total_value, transaction_fees, bits, hash_hex))
     try:
+        last = last_block_share_id()
         block = Block.create(user, height, total_value, transaction_fees, bits,
                              hash_hex, time_started=last_block_time())
-        db.session.commit()
-        last = last_block_share_id()
+        db.session.flush()
         count = (db.session.query(func.sum(Share.shares)).
                  filter(Share.id > last).
                  filter(Share.id < block.last_share_id).scalar())
@@ -161,9 +161,9 @@ def new_block(self, blockheight, bits=None, reward=None):
     if not isinstance(blockheight, int):
         logger.error("Invalid block height submitted, must be integer")
 
-    blob = Blob(key='block', data={'height': blockheight,
-                                   'difficulty': bits_to_difficulty(bits),
-                                   'reward': reward})
+    blob = Blob(key='block', data={'height': str(blockheight),
+                                   'difficulty': str(bits_to_difficulty(bits)),
+                                   'reward': str(reward)})
     db.session.merge(blob)
     db.session.commit()
 

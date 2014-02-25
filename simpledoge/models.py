@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from simpledoge.model_lib import base
 from sqlalchemy.schema import CheckConstraint
-from sqlalchemy.dialects.postgresql import JSON
+from sqlalchemy.dialects.postgresql import HSTORE
 from cryptokit import bits_to_difficulty
 
 from . import db
@@ -11,7 +11,7 @@ class Blob(base):
     """ Used to store misc single value blobs of data, such as the current
     block height and difficulty. """
     key = db.Column(db.String, primary_key=True)
-    data = db.Column(JSON, default=dict)
+    data = db.Column(HSTORE, default=dict)
 
 
 class Block(base):
