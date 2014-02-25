@@ -3,15 +3,16 @@ import logging
 import random
 
 from flask.ext.script import Manager, Shell
-from simpledoge import create_app
+from flask.ext.migrate import Migrate, MigrateCommand
+from simpledoge import create_app, db
 
 app = create_app()
 manager = Manager(app)
+migrate = Migrate(app, db)
 
 root = os.path.abspath(os.path.dirname(__file__) + '/../')
 
 from bitcoinrpc.authproxy import AuthServiceProxy
-from simpledoge import db
 from simpledoge.tasks import add_share, cleanup, payout
 from simpledoge.models import Payout, Block
 from flask import current_app, _request_ctx_stack
@@ -77,6 +78,7 @@ def make_context():
     return dict(app=app,
                 conn=conn)
 manager.add_command("shell", Shell(make_context=make_context))
+manager.add_command('db', MigrateCommand)
 
 
 @manager.command
