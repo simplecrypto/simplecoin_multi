@@ -141,7 +141,7 @@ $(document).ready(function() {
           <table class="table table-striped table-hover ">
             <thead>
               <tr>
-                <th>Found</th>
+                <th>Age</th>
                 <th>Shares</th>
                 <th>Round Duration</th>
                 <th>Payout</th>
@@ -154,19 +154,20 @@ $(document).ready(function() {
             </thead>
             <tbody>
               <tr class="active">
-                <th></th>
+                <th>Current</th>
                 <th><span class="odometer blockshares">0</span></th>
                 <th><span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span></th>
-                <th>139000 (expected)</th>
-                <th></th>
-                <th></th>
-                <th></th>
-                <th></th>
+                <th>{{ current_block.data['reward'] }}</th>
+                <th>{{ current_block.data['difficulty'] }}</th>
+                <th>...</th>
+                <th>...</th>
+                <th>{{ current_block.data['height'] }}</th>
+                <th>In progress</th>
               </tr>
               {% for block in blocks %}
               <tr>
                 <th>{{ block.found_at | time_ago }}</th>
-                <th>Shares</th>
+                <th>{{ block.shares_to_solve }}</th>
                 <th>{{ block.duration }}</th>
                 <th>{{ (block.total_value/100000000) | round(2) }}</th>
                 <th>{{ block.difficulty| round(4) }}</th>

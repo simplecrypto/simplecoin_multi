@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 
 from setuptools import setup, find_packages
-from pip.req import parse_requirements
-
-install_reqs = parse_requirements("requirements.txt")
-reqs = [str(ir.req) for ir in install_reqs]
 
 setup(name='simpledoge',
       version='0.2.0',
@@ -12,7 +8,6 @@ setup(name='simpledoge',
       author='Eric Cook',
       author_email='eric@simpload.com',
       url='http://www.simpledoge.com',
-      install_requires=reqs,
       entry_points={
           'console_scripts': [
               'sd_rpc = simpledoge.rpc:entry'

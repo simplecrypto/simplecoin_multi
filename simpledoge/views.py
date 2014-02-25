@@ -6,7 +6,7 @@ from flask import (current_app, request, render_template, Blueprint, abort,
                    jsonify, g)
 from sqlalchemy.sql import func
 
-from .models import Transaction, OneMinuteShare, Block, Share, Payout, last_block_share_id, last_block_time
+from .models import Transaction, OneMinuteShare, Block, Share, Payout, last_block_share_id, last_block_time, Blob
 from . import db, root, cache
 
 
@@ -15,10 +15,11 @@ main = Blueprint('main', __name__)
 
 @main.route("/")
 def home():
+    current_block = db.session.query(Blob).filter_by(key="block").first()
     blocks = db.session.query(Block).limit(10)
     news = yaml.load(open(root + '/static/yaml/news.yaml'))
     alerts = yaml.load(open(root + '/static/yaml/alerts.yaml'))
-    return render_template('home.html', news=news, alerts=alerts, blocks=blocks)
+    return render_template('home.html', news=news, alerts=alerts, blocks=blocks, current_block=current_block)
 
 
 @main.route("/get_payouts", methods=['POST'])
@@ -63,17 +64,28 @@ def confirm_transactions():
 @main.before_request
 def add_pool_stats():
     g.pool_stats = get_frontpage_data()
+    
+    additional_seconds = (datetime.datetime.utcnow() - g.pool_stats[2]).total_seconds()
+    ratio = g.pool_stats[0]/g.pool_stats[1]
+    additional_shares = ratio * additional_seconds
+    g.pool_stats[0] += additional_shares
+    g.pool_stats[1] += additional_seconds
 
 
 @cache.cached(timeout=60, key_prefix='get_total_n1')
 def get_frontpage_data():
+
     # A bit inefficient, but oh well... Make it better later...
     last_share_id = last_block_share_id()
     last_found_at = last_block_time()
+    dt = datetime.datetime.utcnow()
+    five_min = (OneMinuteShare.query.filter_by(user='pool')
+                .order_by(OneMinuteShare.minute.desc())
+                .limit(5))
+    five_min = sum([min.shares for min in five_min])
     shares = db.session.query(func.sum(Share.shares)).filter(Share.id > last_share_id).scalar() or 0
     last_dt = (datetime.datetime.utcnow() - last_found_at).total_seconds()
-    return shares, last_dt
-
+    return [shares, last_dt, dt, five_min]
 
 @main.route("/pool_stats")
 def pool_stats():
@@ -89,18 +101,30 @@ def pool_stats():
 
 @main.route("/<address>")
 def user_dashboard(address=None):
+
+    total_earned = db.session.query(func.sum(Payout.amount)).filter_by(user=address).scalar() or 0
+    total_paid = Payout.query.filter_by(user=address).join(Payout.transaction, aliased=True).filter_by(confirmed=True)
+    total_paid = sum([tx.amount for tx in total_paid])
+    balance = total_earned - total_paid
+    unconfirmed_balance = Payout.query.filter_by(user=address).join(Payout.block, aliased=True).filter_by(mature=False)
+    unconfirmed_balance = sum([payout.amount for payout in unconfirmed_balance])
+
+
     payouts = db.session.query(Payout).filter_by(user=address).limit(20)
-    block = Block.query.order_by(Block.height.desc()).first()
-    user_shares = db.session.query(func.sum(Share.shares))\
-        .filter_by(user=address)\
-        .filter(Share.id > block.last_share_id)\
-        .scalar()
-    current_difficulty = 1057
+    last_share_id = last_block_share_id()
+    user_shares = db.session.query(func.sum(Share.shares)).filter(Share.id > last_share_id, Share.user == address).scalar() or 0
+
+    current_difficulty = db.session.query(Blob).filter_by(key="block").first().data['difficulty']
     return render_template('user_stats.html',
                            username=address,
                            user_shares=user_shares,
                            current_difficulty=current_difficulty,
-                           payouts=payouts)
+                           payouts=payouts,
+                           round_reward=250000,
+                           total_earned=total_earned,
+                           total_paid=total_paid,
+                           balance=balance,
+                           unconfirmed_balance=unconfirmed_balance)
 
 
 @main.route("/<address>/stats")

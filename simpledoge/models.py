@@ -27,7 +27,7 @@ class Block(base):
     orphan = db.Column(db.Boolean, default=False)
     # Is the block matured?
     mature = db.Column(db.Boolean, default=False)
-    # Block value (does not include transaction fees recieved)
+    # Total shares that were required to solve the block
     shares_to_solve = db.Column(db.BigInteger)
     # Block value (does not include transaction fees recieved)
     total_value = db.Column(db.BigInteger)

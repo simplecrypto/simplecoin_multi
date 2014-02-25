@@ -24,8 +24,8 @@
       shares = {{ g.pool_stats[0] }};
 
       seconds = {{ g.pool_stats[1] }};
-      hashrate = Math.pow(2, 16) * shares;
-      khashpersec = (hashrate / seconds) / 1000;
+      hashrate = Math.pow(2, 16) * {{ g.pool_stats[3] }};
+      khashpersec = (hashrate / 240) / 1000;
       shares_per_sec = (shares / seconds);
 
       function n(n){

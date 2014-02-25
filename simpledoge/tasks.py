@@ -138,12 +138,12 @@ def add_one_minute(self, user, shares, minute):
     try:
         minute = (minute // 60) * 60
         try:
-            OneMinuteShare.create(user, shares, datetime.fromtimestamp(minute))
+            OneMinuteShare.create(user, shares, datetime.utcfromtimestamp(minute))
             db.session.commit()
         except sqlalchemy.exc.IntegrityError:
             db.session.rollback()
             share = OneMinuteShare.query.filter_by(
-                user=user, minute=datetime.fromtimestamp(minute)).one()
+                user=user, minute=datetime.utcfromtimestamp(minute)).one()
             share.shares += shares
             db.session.commit()
     except Exception as exc:

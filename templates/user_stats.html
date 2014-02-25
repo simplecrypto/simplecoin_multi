@@ -7,16 +7,15 @@ $(document).ready(function() {
   generate_graph("{{ username }}/stats", ".awesome");
   setTimeout(function(){
 
-    var shares, hashrate, seconds, mhashpersec, shares_per_sec, user_shares, est_payout,
-        total_user_hashes, round_reward, hashes_to_solve, percentage_value;
+    var hashrate, seconds, mhashpersec, user_shares, est_payout,
+        round_reward, shares_to_solve, percentage_value;
 
-    round_reward = 250000;
+    round_reward = {{ round_reward }};
     user_shares = {{ user_shares }};
-    total_user_hashes = user_shares * Math.pow(2, 16);
 
-    hashes_to_solve = {{ current_difficulty }}*Math.pow(2, 32);
-    percentage_value = total_user_hashes/hashes_to_solve;
-    est_payout = (percentage_value * round_reward)*.99;
+    shares_to_solve = {{ current_difficulty }}*Math.pow(2, 16);
+    percentage_value = user_shares/shares_to_solve;
+    est_payout = ((percentage_value * round_reward))*.99;
 
     seconds = 60000;
     hashrate = Math.pow(2, 16) * window.last_5min;
@@ -25,7 +24,7 @@ $(document).ready(function() {
     setInterval(function(){
       $('.odometer.hashrate').text(Math.round(mhashpersec*1000)/1000);
       $('.odometer.usershares').text(Math.round(user_shares));
-      $('.odometer.estpayout').text(Math.round(est_payout*100)/100);
+      $('.odometer.estpayout').text(Math.round(est_payout*1000000)/1000000);
     },1000);
 
 
@@ -71,24 +70,31 @@ $(document).ready(function() {
   <div class="row row-header" style="padding-top:50px;">
     <h2>Account</h2>
     <br>
-    <div class="col-lg-4">
+    <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          Unconfirmed balance:
+          Balance: {{ balance }}
         </div>
       </div>
     </div>
-    <div class="col-lg-4">
+    <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          Balance:
+          Unconfirmed balance: {{ unconfirmed_balance }}
         </div>
       </div>
     </div>
-    <div class="col-lg-4">
+    <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          Total Paid:
+          Total earned: {{ total_earned }}
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3">
+      <div class="panel panel-default">
+        <div class="panel-body text-center">
+          Total paid: {{ total_paid }}
         </div>
       </div>
     </div>
