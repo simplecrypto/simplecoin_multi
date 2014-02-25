@@ -6,7 +6,7 @@ from flask import (current_app, request, render_template, Blueprint, abort,
                    jsonify, g)
 from sqlalchemy.sql import func
 
-from .models import Transaction, CoinTransaction, OneMinuteShare, Block, Share
+from .models import Transaction, CoinTransaction, OneMinuteShare, Block, Share, Payout
 from . import db, root, cache
 
 
@@ -96,6 +96,7 @@ def pool_stats():
 
 @main.route("/<address>")
 def user_dashboard(address=None):
+    payouts = db.session.query(Payout).filter_by(user=address).limit(20)
     block = Block.query.order_by(Block.height.desc()).first()
     user_shares = db.session.query(func.sum(Share.shares))\
         .filter_by(user=address)\
@@ -105,7 +106,8 @@ def user_dashboard(address=None):
     return render_template('user_stats.html',
                            username=address,
                            user_shares=user_shares,
-                           current_difficulty=current_difficulty)
+                           current_difficulty=current_difficulty,
+                           payouts=payouts)
 
 
 @main.route("/<address>/stats")
