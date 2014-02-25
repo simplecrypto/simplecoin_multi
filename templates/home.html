@@ -171,7 +171,7 @@ $(document).ready(function() {
                 <th>{{ block.duration }}</th>
                 <th>{{ (block.total_value/100000000) | round(2) }}</th>
                 <th>{{ block.difficulty| round(4) }}</th>
-                <th><a href="https://www.simpledoge.com/{{ block.user }}">{{ block.user|truncate(9, True) }}</a></th>
+                <th><a href="/{{ block.user }}">{{ block.user|truncate(9, True) }}</a></th>
                 <th><a href="https://dogechain.info/block/{{ block.hash }}">{{ block.hash|truncate(9, True) }}</a></th>
                 <th>{{ block.height }}</th>
                 <th>{% if block.mature %}Confirmed{% else %}Unconfirmed{% endif %}</th>

@@ -16,10 +16,11 @@ main = Blueprint('main', __name__)
 @main.route("/")
 def home():
     current_block = db.session.query(Blob).filter_by(key="block").first()
-    blocks = db.session.query(Block).limit(10)
+    blocks = db.session.query(Block).order_by(Block.height.desc()).limit(10)
     news = yaml.load(open(root + '/static/yaml/news.yaml'))
     alerts = yaml.load(open(root + '/static/yaml/alerts.yaml'))
-    return render_template('home.html', news=news, alerts=alerts, blocks=blocks, current_block=current_block)
+    return render_template('home.html', news=news, alerts=alerts, blocks=blocks,
+                           current_block=current_block)
 
 
 @main.route("/get_payouts", methods=['POST'])
@@ -29,8 +30,10 @@ def get_payouts():
     s = TimedSerializer(current_app.config['rpc_signature'])
     s.loads(request.data)
 
+    payouts = (Payout.query.filter_by(transaction_id=None).
+               join(Payout.transaction, aliased=True).filter_by(confirmed=True))
     struct = [(p.user, p.amount, p.id)
-              for p in Payout.query.filter_by(transaction_id=None)]
+              for p in payouts]
     return s.dumps(struct)
 
 
@@ -64,7 +67,7 @@ def confirm_transactions():
 @main.before_request
 def add_pool_stats():
     g.pool_stats = get_frontpage_data()
-    
+
     additional_seconds = (datetime.datetime.utcnow() - g.pool_stats[2]).total_seconds()
     ratio = g.pool_stats[0]/g.pool_stats[1]
     additional_shares = ratio * additional_seconds
@@ -87,6 +90,7 @@ def get_frontpage_data():
     last_dt = (datetime.datetime.utcnow() - last_found_at).total_seconds()
     return [shares, last_dt, dt, five_min]
 
+
 @main.route("/pool_stats")
 def pool_stats():
     minutes = db.session.query(OneMinuteShare).filter_by(user="pool")
@@ -101,14 +105,18 @@ def pool_stats():
 
 @main.route("/<address>")
 def user_dashboard(address=None):
-
-    total_earned = db.session.query(func.sum(Payout.amount)).filter_by(user=address).scalar() or 0
-    total_paid = Payout.query.filter_by(user=address).join(Payout.transaction, aliased=True).filter_by(confirmed=True)
+    total_earned = (db.session.query(func.sum(Payout.amount)).
+                    filter_by(user=address).scalar() or 0)
+    total_paid = (Payout.query.filter_by(user=address).
+                  join(Payout.transaction, aliased=True).
+                  filter_by(confirmed=True))
     total_paid = sum([tx.amount for tx in total_paid])
     balance = total_earned - total_paid
-    unconfirmed_balance = Payout.query.filter_by(user=address).join(Payout.block, aliased=True).filter_by(mature=False)
+    unconfirmed_balance = (Payout.query.filter_by(user=address).
+                           join(Payout.block, aliased=True).
+                           filter_by(mature=False))
     unconfirmed_balance = sum([payout.amount for payout in unconfirmed_balance])
-
+    balance -= unconfirmed_balance
 
     payouts = db.session.query(Payout).filter_by(user=address).limit(20)
     last_share_id = last_block_share_id()

@@ -1,6 +1,15 @@
+- title: Big stats upgrade and improved monitoring!
+  date: 2/25/2014
+  body: |
+      After running for a few days the pool server is doing well with no major
+      hiccups, and should be ready for more hashing power! Stats have been
+      upgraded significantly to show you upcoming blocks, past payouts,
+      estimated future payouts and more. To do this, we had to wipe all previous
+      statistics, however <b>all shares accumulated are still safe</b>.
 - title: Just lanuched!
   date: 2/23/2014
   body: |
-    Simple Doge is now live! We've built an entire mining server from scratch, check it out on
-    <a href="http://github.com/icook/powerpool/">github</a>. Please feel free to throw some hashing power our way,
-    but its still pretty green so make sure to have a backup pool.
+    Simple Doge is now live! We've built an entire mining server from scratch,
+    check it out on <a href="http://github.com/icook/powerpool/">github</a>.
+    Please feel free to throw some hashing power our way, but its still pretty
+    green so make sure to have a backup pool.

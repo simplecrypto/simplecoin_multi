@@ -73,21 +73,21 @@ $(document).ready(function() {
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          Balance: {{ balance }}
+          Balance: {{ balance / 100000000 }}
         </div>
       </div>
     </div>
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          Unconfirmed balance: {{ unconfirmed_balance }}
+          Unconfirmed balance: {{ unconfirmed_balance / 100000000 }}
         </div>
       </div>
     </div>
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          Total earned: {{ total_earned }}
+          Total earned: {{ total_earned / 100000000 }}
         </div>
       </div>
     </div>
@@ -104,7 +104,7 @@ $(document).ready(function() {
           <thead>
             <tr>
               <th>Time</th>
-              <th>Shares</th>
+              <th>Shares Contributed</th>
               <th>Amount</th>
               <th>Blockheight</th>
               <th>TX id</th>
@@ -115,11 +115,11 @@ $(document).ready(function() {
             {% for payout in payouts %}
             <tr>
               <th>{{ payout.block.found_at | time_ago }}</th>
-              <th>{{ payout.block.shares }}</th>
+              <th>{{ payout.shares }}</th>
               <th>{{ payout.amount }}</th>
               <th>{{ payout.blockheight }}</th>
               <th>{{ payout.transaction_id }}</th>
-              <th>{% if block.mature %}Confirmed{% else %}Unconfirmed{% endif %}</th>
+              <th>{% if payout.block.mature %}Confirmed{% else %}Unconfirmed{% endif %}</th>
             </tr>
             {% endfor %}
 
