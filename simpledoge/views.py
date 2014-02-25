@@ -6,7 +6,7 @@ from flask import (current_app, request, render_template, Blueprint, abort,
                    jsonify, g)
 from sqlalchemy.sql import func
 
-from .models import Transaction, OneMinuteShare, Block, Share, Payout
+from .models import Transaction, OneMinuteShare, Block, Share, Payout, last_block_share_id, last_block_time
 from . import db, root, cache
 
 
@@ -67,9 +67,11 @@ def add_pool_stats():
 
 @cache.cached(timeout=60, key_prefix='get_total_n1')
 def get_frontpage_data():
-    block = Block.query.order_by(Block.height.desc()).first()
-    shares = db.session.query(func.sum(Share.shares)).filter(Share.id > block.last_share_id).scalar() or 0
-    last_dt = (datetime.datetime.utcnow() - block.found_at).total_seconds()
+    # A bit inefficient, but oh well... Make it better later...
+    last_share_id = last_block_share_id()
+    last_found_at = last_block_time()
+    shares = db.session.query(func.sum(Share.shares)).filter(Share.id > last_share_id).scalar() or 0
+    last_dt = (datetime.datetime.utcnow() - last_found_at).total_seconds()
     return shares, last_dt
 
 

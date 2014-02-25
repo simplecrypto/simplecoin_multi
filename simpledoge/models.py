@@ -1,11 +1,10 @@
-from flask import current_app
 from datetime import datetime, timedelta
 from simpledoge.model_lib import base
 from sqlalchemy.schema import CheckConstraint
 from sqlalchemy.dialects.postgresql import JSON
 from cryptokit import bits_to_difficulty
 
-from . import db, coinserv
+from . import db
 
 
 class Blob(base):
@@ -28,6 +27,8 @@ class Block(base):
     orphan = db.Column(db.Boolean, default=False)
     # Is the block matured?
     mature = db.Column(db.Boolean, default=False)
+    # Block value (does not include transaction fees recieved)
+    shares_to_solve = db.Column(db.BigInteger)
     # Block value (does not include transaction fees recieved)
     total_value = db.Column(db.BigInteger)
     # Associated transaction fees
@@ -72,6 +73,24 @@ class Block(base):
         formatted_time = str(timedelta(seconds=seconds))
         return formatted_time
 
+
+def last_block_time():
+    last_block = Block.query.order_by(Block.height.desc()).first()
+    if not last_block:
+        first_min_share = OneMinuteShare.query.first()
+        if first_min_share:
+            return first_min_share.minute
+        else:
+            return datetime.utcnow()
+    else:
+        return last_block.found_at
+
+
+def last_block_share_id():
+    last_block = Block.query.order_by(Block.height.desc()).first()
+    if not last_block:
+        return 0
+    return last_block.last_share_id
 
 
 class Share(base):

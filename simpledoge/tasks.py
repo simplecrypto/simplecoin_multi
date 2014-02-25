@@ -1,8 +1,10 @@
 from flask import current_app
 from celery import Celery
 from simpledoge import db, coinserv
-from simpledoge.models import (Share, Block, OneMinuteShare, Payout,
-                               Transaction, Blob)
+from simpledoge.models import (
+    Share, Block, OneMinuteShare, Payout, Transaction, Blob, last_block_time,
+    last_block_share_id)
+from sqlalchemy.sql import func
 from datetime import datetime
 from cryptokit import bits_to_shares, bits_to_difficulty
 from pprint import pformat
@@ -52,14 +54,14 @@ def update_block_state(self):
         immature = (Block.query.filter_by(mature=False, orphan=False))
         blockheight = coinserv.getblockcount()
         for block in immature:
-            logger.info(block)
+            logger.info("Checking block height: {}".format(block.height))
             # Check to see if the block hash exists in the block chain
             try:
                 coinserv.getblock(block.hash)
             except CoinRPCException:
                 block.orphan = True
             # Check to see if the block is matured & not orphaned
-            if blockheight-120 > block.height & block.orphan is False:
+            if (blockheight - 120 > block.height) and block.orphan is False:
                 block.mature = True
 
         db.session.commit()
@@ -109,17 +111,14 @@ def add_block(self, user, height, total_value, transaction_fees, bits,
         "Total Height: {}\nTransaction Fees: {}\nBits: {}\nHash Hex: {}"
         .format(user, height, total_value, transaction_fees, bits, hash_hex))
     try:
-        last_block = Block.query.order_by(Block.height.desc()).first()
-        if not last_block:
-            first_min_share = OneMinuteShare.query.first()
-            if first_min_share:
-                time_started = first_min_share.minute
-            else:
-                time_started = datetime.datetime.utcnow()
-        else:
-            time_started = last_block.found_at
-        Block.create(user, height, total_value, transaction_fees, bits,
-                     hash_hex, time_started=time_started)
+        block = Block.create(user, height, total_value, transaction_fees, bits,
+                             hash_hex, time_started=last_block_time())
+        db.session.commit()
+        last = last_block_share_id()
+        count = (db.session.query(func.sum(Share.shares)).
+                 filter(Share.id > last).
+                 filter(Share.id < block.last_share_id).scalar())
+        block.shares_to_solve = count
         db.session.commit()
     except Exception as exc:
         logger.error("Unhandled exception in add_block", exc_info=True)
