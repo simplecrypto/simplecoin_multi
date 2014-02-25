@@ -293,34 +293,34 @@ def payout(self, simulate=False):
         # of fractional pieces the total accrued wont equal the disitrubte_amnt
         # so we will distribute that round robin the miners in dictionary order
         accrued = 0
-        # somewhat risky, but we're going to modify the dictoinary in place
-        # for minor memory concerns...
+        user_payouts = {}
         for user, share_count in user_shares.iteritems():
-            user_shares[user] = (share_count * distribute_amnt) // total_shares
-            accrued += user_shares[user]
+            user_payouts.setdefault(share.user, 0)
+            user_payouts[user] = (share_count * distribute_amnt) // total_shares
+            accrued += user_payouts[user]
 
         logger.debug("Total accrued after trunated iteration {}; {}%"
                      .format(accrued, (accrued / float(distribute_amnt)) * 100))
         # loop over the dictionary indefinitely until we've distributed
         # all the remaining funds
         while accrued < distribute_amnt:
-            for key in user_shares:
-                user_shares[key] += 1
+            for key in user_payouts:
+                user_payouts[key] += 1
                 accrued += 1
                 # exit if we've exhausted
                 if accrued >= distribute_amnt:
                     break
 
         assert accrued == distribute_amnt
-        logger.debug("Successfully distributed all fees among {} users"
-                     .format(len(user_shares)))
+        logger.info("Successfully distributed all rewards among {} users"
+                     .format(len(user_payouts)))
 
         if simulate:
-            logger.debug("Share distribution:\n {}".format(pformat(user_shares)))
+            logger.debug("Share distribution:\n {}".format(pformat(user_payouts)))
             db.session.rollback()
         else:
-            for user, amount in user_shares.iteritems():
-                Payout.create(user, amount, block)
+            for user, amount in user_payouts.iteritems():
+                Payout.create(user, amount, block, user_shares[user])
             block.processed = True
             db.session.commit()
     except Exception as exc:

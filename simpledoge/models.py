@@ -125,6 +125,7 @@ class Payout(base):
     blockheight = db.Column(db.Integer, db.ForeignKey('block.height'))
     block = db.relationship('Block', foreign_keys=[blockheight])
     user = db.Column(db.String)
+    shares = db.Column(db.BigInteger)
     amount = db.Column(db.BigInteger, CheckConstraint('amount>0'))
     transaction_id = db.Column(db.String, db.ForeignKey('transaction.txid'))
     transaction = db.relationship('Transaction', foreign_keys=[transaction_id])
@@ -133,8 +134,8 @@ class Payout(base):
     )
 
     @classmethod
-    def create(cls, user, amount, block):
-        payout = cls(user=user, amount=amount, block=block)
+    def create(cls, user, amount, block, shares):
+        payout = cls(user=user, amount=amount, block=block, shares=shares)
         db.session.add(payout)
         return payout
 
