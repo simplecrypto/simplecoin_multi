@@ -5,12 +5,13 @@ import logging
 import sys
 import argparse
 
+from time import sleep
 from flask import current_app
 from urlparse import urljoin
 from itsdangerous import TimedSerializer, BadData
 from bitcoinrpc.authproxy import JSONRPCException
 
-from .models import CoinTransaction
+from .coinserv_cmds import payout_many
 from . import create_app, coinserv
 
 
@@ -65,30 +66,56 @@ class RPCClient(object):
     def proc_trans(self):
         self.poke_rpc()
 
-        transactions = self.post('get_transactions')
-        txids = [t['id'] for t in transactions]
-        logger.debug("Recieved {} transactions from the server".format(len(txids)))
-        if not len(txids):
-            logger.debug("No transactions to process..")
+        payouts = self.post('get_payouts')
+        pids = [t[2] for t in payouts]
+        logger.debug("Recieved {} transactions from the server"
+                     .format(len(pids)))
+        if not len(pids):
+            logger.debug("No payouts to process..")
             return
-        try:
-            coin_txid = CoinTransaction.from_serial_transaction(transactions)
-        except Exception as e:
-            logger.warn(getattr(e, 'error'))
-            logger.warn("Error creating transactions server side, rolling back"
-                        "sent data...", exc_info=True)
-            if self.post('confirm_transactions', data={'action': 'reset',
-                                                       'txids': txids}):
-                logger.info("Recieved success response from the server.")
-            else:
-                logger.error("Server returned failure response")
-        else:
-            data = {'action': 'confirm', 'coin_txid': coin_txid, 'txids': txids}
-            logger.debug("Sending data back to confirm_transactions: " + str(data))
-            if self.post('confirm_transactions', data=data):
-                logger.info("Recieved success response from the server.")
-            else:
-                logger.error("Server returned failure response")
+
+        # builds two dictionaries, one that tracks the total payouts to a user,
+        # and another that tracks all the payout ids (pids) giving that amount
+        # to the user
+        totals = {}
+        pids = {}
+        for user, amount, id in payouts:
+            totals.setdefault(user, 0)
+            totals[user] += amount
+            pids.setdefault(user, [])
+            pids[user].append(id)
+
+        # identify the users who meet minimum payout and format for sending
+        # to rpc
+        users = {user: amount / float(100000000) for user, amount in totals.iteritems()
+                 if amount > current_app.config['minimum_payout']}
+
+        if len(users) == 0:
+            logger.info("Nobody has a big enough balance to pay out...")
+            return
+
+        # now we have all the users who we're going to send money. build a list
+        # of the pids that will be being paid in this transaction
+        committed_pids = []
+        for user in users:
+            committed_pids.extend(pids[user])
+
+        # now actually pay them
+        coin_txid = payout_many(users)
+        logger.debug("Got {} as txid for payout!".format(coin_txid))
+
+        data = {'coin_txid': coin_txid, 'pids': committed_pids}
+        logger.debug("Sending data back to confirm_payouts: " + str(data))
+        while True:
+            try:
+                if self.post('confirm_payouts', data=data):
+                    logger.info("Recieved success response from the server.")
+                else:
+                    logger.error("Server returned failure response")
+            except Exception:
+                logger.error("Error recieved, press enter to retry",
+                             exc_info=True)
+                raw_input()
 
 
 def entry():
@@ -118,7 +145,7 @@ def entry():
         try:
             getattr(interface, args.action)(**kwargs)
         except requests.exceptions.ConnectionError:
-            logger.error("Couldn't connect to remote server")
+            logger.error("Couldn't connect to remote server", exc_info=True)
         except JSONRPCException as e:
             logger.error("Recieved exception from rpc server: {}"
                          .format(getattr(e, 'error')))

@@ -21,19 +21,19 @@ def home():
     return render_template('home.html', news=news, alerts=alerts, blocks=blocks)
 
 
-@main.route("/get_transactions", methods=['POST'])
-def get_transactions():
+@main.route("/get_payouts", methods=['POST'])
+def get_payouts():
     """ Used by remote procedure call to retrieve a list of transactions to
     be processed. Transaction information is signed for safety. """
     s = TimedSerializer(current_app.config['rpc_signature'])
     s.loads(request.data)
 
-    struct = Transaction.serialize_pending()
-    db.session.commit()
+    struct = [(p.user, p.amount, p.id)
+              for p in Payout.query.filter_by(transaction_id=None)]
     return s.dumps(struct)
 
 
-@main.route("/confirm_transactions", methods=['POST'])
+@main.route("/confirm_payouts", methods=['POST'])
 def confirm_transactions():
     """ Used as a response from an rpc payout system. This will either reset
     the sent status of a list of transactions upon failure on the remote side,
@@ -45,27 +45,18 @@ def confirm_transactions():
 
     # basic checking of input
     try:
-        assert 'action' in data
-        assert data['action'] in ['reset', 'confirm']
-        if data['action'] == 'confirm':
-            assert len(data['coin_txid']) == 64
-        assert isinstance(data['txids'], list)
-        for id in data['txids']:
+        assert len(data['coin_txid']) == 64
+        assert isinstance(data['pids'], list)
+        for id in data['pids']:
             assert isinstance(id, int)
     except AssertionError:
         abort(400)
 
-    if data['action'] == 'confirm':
-        coin_trans = CoinTransaction.create(data['coin_txid'])
-        vals = {Transaction.txid: coin_trans.txid}
-        db.session.flush()
-    else:
-        vals = {Transaction.sent: False}
-    Transaction.query.filter(Transaction.id.in_(data['txids'])).update(
-        vals, synchronize_session=False)
+    coin_trans = Transaction.create(data['coin_txid'])
 
+    Payout.query.filter(Payout.id.in_(data['pids'])).update(
+        {Payout.transaction_id: coin_trans.txid}, synchronize_session=False)
     db.session.commit()
-
     return s.dumps(True)
 
 

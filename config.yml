@@ -7,9 +7,11 @@ private:
     CELERY_ACCEPT_CONTENT: ['pickle', 'json', 'msgpack', 'yaml']
     # the multiplier used on the last n shares to keep for counting share contributions
     last_n: 2
-    fee: 1
+    fee: 0.001
     # min payout amount in satoshi, 500 full coins...
-    minimum_payout: 500000000000
+    #minimum_payout: 50000000000
+    # 5 coins, for testnet testing
+    minimum_payout: 500000000
     rpc_signature: 6a7e6f4284467488d2de9f70454f493f2fbe41ffc2c8d8c42a686abd80ef6faf23f2dc886fa3724e0dcb9fe3bb9c490249872b92d53108986b6f84aed5a333788a6a3fdf99185759fe3313d24e50ccbac2e64345e8fa6975237769cb2c5ea5b014de97c68ba5b1855914365364f6a0fa8d47a699c942edaa3cd7aca5fd2c7cdbc51333b1ac2f8996760906afc396a4e2c0f8ce48fb4d7754de0f2c348d5581427178e07da7690ce4d114c840434e6964cf542c004f71d5de1971f8c9d23fe2ef29da07d90e1521c424edda1d24e0054b3194e5d9a9fc4d9fb9c5546655dc842ef5cd8eb1e25039157c7c3602583a04f33bfee1159f1f53a436c24ff352b0c111
     url: http://localhost:9400/
     coinserv:

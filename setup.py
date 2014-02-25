@@ -7,7 +7,7 @@ install_reqs = parse_requirements("requirements.txt")
 reqs = [str(ir.req) for ir in install_reqs]
 
 setup(name='simpledoge',
-      version='0.1.0',
+      version='0.2.0',
       description='Dogecoin mining with no registration required.',
       author='Eric Cook',
       author_email='eric@simpload.com',

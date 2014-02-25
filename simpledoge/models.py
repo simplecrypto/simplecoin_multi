@@ -73,6 +73,7 @@ class Block(base):
         return formatted_time
 
 
+
 class Share(base):
     """ This class generates a table containing every share accepted for a
     round """
@@ -98,31 +99,19 @@ class Transaction(base):
         db.session.add(trans)
         return trans
 
-    @classmethod
-    def from_serial_transaction(cls, transactions):
-        """ Doesn't actually make a cointransaction object, simply creates a
-        transaction on the coinserver and returns the new transaction id.
-        Uses the wallet_pass to unlock the wallet on the coinserver and
-        sends the funds from pool_address account. """
-        current_app.logger.debug("Setting tx fee: %s" % coinserv.settxfee(1))
-        wallet = coinserv.walletpassphrase(
-            current_app.config['coinserv']['wallet_pass'], 10)
-        current_app.logger.debug("Unlocking wallet: %s" % wallet)
-        recip = {r['user']: r['amount'] / float(100000000) for r in transactions}
-        current_app.logger.debug("Sending to recip: " + str(recip))
-        return coinserv.sendmany(current_app.config['coinserv']['account'],
-                                 recip)
-
 
 class Payout(base):
     """ Represents a users payout for a single round """
-    blockheight = db.Column(db.Integer, db.ForeignKey('block.height'),
-                            primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
+    blockheight = db.Column(db.Integer, db.ForeignKey('block.height'))
     block = db.relationship('Block', foreign_keys=[blockheight])
-    user = db.Column(db.String, primary_key=True)
+    user = db.Column(db.String)
     amount = db.Column(db.BigInteger, CheckConstraint('amount>0'))
     transaction_id = db.Column(db.String, db.ForeignKey('transaction.txid'))
     transaction = db.relationship('Transaction', foreign_keys=[transaction_id])
+    __table_args__ = (
+        db.UniqueConstraint("user", "blockheight"),
+    )
 
     @classmethod
     def create(cls, user, amount, block):

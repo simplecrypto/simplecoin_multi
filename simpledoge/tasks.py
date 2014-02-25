@@ -241,6 +241,7 @@ def payout(self, simulate=False):
     """
     try:
         if simulate:
+            logger.debug("Running in simulate mode, no commit will be performed")
             logger.setLevel(logging.DEBUG)
 
         # find the oldest un-processed block
@@ -319,6 +320,9 @@ def payout(self, simulate=False):
             logger.debug("Share distribution:\n {}".format(pformat(user_shares)))
             db.session.rollback()
         else:
+            for user, amount in user_shares.iteritems():
+                Payout.create(user, amount, block)
+            block.processed = True
             db.session.commit()
     except Exception as exc:
         logger.error("Unhandled exception in payout", exc_info=True)
