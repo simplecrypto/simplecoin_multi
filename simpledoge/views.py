@@ -53,7 +53,7 @@ def confirm_transactions():
         abort(400)
 
     coin_trans = Transaction.create(data['coin_txid'])
-
+    db.session.flush()
     Payout.query.filter(Payout.id.in_(data['pids'])).update(
         {Payout.transaction_id: coin_trans.txid}, synchronize_session=False)
     db.session.commit()

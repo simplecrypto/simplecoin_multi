@@ -110,6 +110,7 @@ class RPCClient(object):
             try:
                 if self.post('confirm_payouts', data=data):
                     logger.info("Recieved success response from the server.")
+                    break
                 else:
                     logger.error("Server returned failure response")
             except Exception:
