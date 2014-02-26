@@ -77,7 +77,7 @@ class Block(base):
 def last_block_time():
     last_block = Block.query.order_by(Block.height.desc()).first()
     if not last_block:
-        first_min_share = OneMinuteShare.order_by(OneMinuteShare.minute.desc()).query.first()
+        first_min_share = OneMinuteShare.query.order_by(OneMinuteShare.minute.desc()).first()
         if first_min_share:
             return first_min_share.minute
         else:
