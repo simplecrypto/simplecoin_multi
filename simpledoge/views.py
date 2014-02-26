@@ -92,18 +92,6 @@ def get_frontpage_data():
     return [shares, last_dt, dt, five_min]
 
 
-@main.route("/pool_stats")
-def pool_stats():
-    minutes = db.session.query(OneMinuteShare).filter_by(user="pool")
-    data = {time.mktime(minute.minute.utctimetuple()): minute.shares
-            for minute in minutes}
-    day_ago = ((int(time.time()) - (60 * 60 * 24)) // 60) * 60
-    out = [(i, data.get(i) or 0)
-           for i in xrange(day_ago, day_ago + (1440 * 60), 60)]
-
-    return jsonify(points=out, length=len(out))
-
-
 @main.route("/<address>")
 def user_dashboard(address=None):
     total_earned = (db.session.query(func.sum(Payout.amount)).
