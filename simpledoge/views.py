@@ -83,13 +83,13 @@ def get_frontpage_data():
     last_share_id = last_block_share_id()
     last_found_at = last_block_time()
     dt = datetime.datetime.utcnow()
-    five_min = (OneMinuteShare.query.filter_by(user='pool')
+    ten_min = (OneMinuteShare.query.filter_by(user='pool')
                 .order_by(OneMinuteShare.minute.desc())
-                .limit(5))
-    five_min = sum([min.shares for min in five_min])
+                .limit(10))
+    ten_min = sum([min.shares for min in ten_min])
     shares = db.session.query(func.sum(Share.shares)).filter(Share.id > last_share_id).scalar() or 0
     last_dt = (datetime.datetime.utcnow() - last_found_at).total_seconds()
-    return [shares, last_dt, dt, five_min]
+    return [shares, last_dt, dt, ten_min]
 
 
 @main.route("/<address>")

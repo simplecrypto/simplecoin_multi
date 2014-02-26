@@ -19,13 +19,13 @@
   <Script src="static/js/bootstrap.min.js"></Script>
   <script>
     $(document).ready(function() {
-      var shares, hashrate, seconds, khashpersec, shares_per_sec;
+      var shares, ten_min_hashrate, seconds, khashpersec, shares_per_sec;
       {# Grab new pool stats #}
       shares = {{ g.pool_stats[0] }};
 
       seconds = {{ g.pool_stats[1] }};
-      hashrate = Math.pow(2, 16) * {{ g.pool_stats[3] }};
-      khashpersec = (hashrate / 240) / 1000;
+      ten_min_hashrate = Math.pow(2, 16) * {{ g.pool_stats[3] }};
+      khashpersec = (ten_min_hashrate / 600) / 1000;
       shares_per_sec = (shares / seconds);
 
       function n(n){
