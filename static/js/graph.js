@@ -64,12 +64,12 @@ generate_graph = function(request_url, append_to) {
   d3.json(request_url, function(error, data) {
 
 //  quick hack here to shoot a five min avg to user stats w/o querying server
-    var h = 1, five_min=0;
-    while (h<6) {
-        five_min += +data['points'][1439-h][1];
+    var h = 1, ten_min=0;
+    while (h<11) {
+        ten_min += +data['points'][1440-h][1];
         h++;
     }
-    last_5min =five_min/5
+    window.last_10min =ten_min/5
 
 
     data['points'].forEach(function(d,i) {
@@ -118,7 +118,7 @@ generate_graph = function(request_url, append_to) {
         .attr("x", width-70)
         .attr("y", +30)
         .attr("dy", ".71em")
-        .text("GMT Time");
+        .text("Time");
 
     svg.append("g")
         .attr("class", "y axis")

@@ -1,3 +1,4 @@
+import calendar
 import time
 import yaml
 import datetime
@@ -138,7 +139,7 @@ def user_dashboard(address=None):
 @main.route("/<address>/stats")
 def address_stats(address=None):
     minutes = db.session.query(OneMinuteShare).filter_by(user=address)
-    data = {time.mktime(minute.minute.utctimetuple()): minute.shares
+    data = {calendar.timegm(minute.minute.utctimetuple()): minute.shares
             for minute in minutes}
     day_ago = ((int(time.time()) - (60 * 60 * 24)) // 60) * 60
     out = [(i, data.get(i) or 0)
