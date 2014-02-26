@@ -4,8 +4,7 @@
       After running for a few days the pool server is doing well with no major
       hiccups, and should be ready for more hashing power! Stats have been
       upgraded significantly to show you upcoming blocks, past payouts,
-      estimated future payouts and more. To do this, we had to wipe all previous
-      statistics, however <b>all shares accumulated are still safe</b>.
+      estimated future payouts and more.
 - title: Just lanuched!
   date: 2/23/2014
   body: |

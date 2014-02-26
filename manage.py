@@ -14,7 +14,7 @@ root = os.path.abspath(os.path.dirname(__file__) + '/../')
 
 from bitcoinrpc.authproxy import AuthServiceProxy
 from simpledoge.tasks import add_share, cleanup, payout
-from simpledoge.models import Payout, Block
+from simpledoge.models import Payout, Block, OneMinuteShare
 from flask import current_app, _request_ctx_stack
 
 root = logging.getLogger()
@@ -64,6 +64,18 @@ def fake_payout():
         for address in addresses:
             if 0 == random.randint(0, 1):
                 Payout.create(address, random.randint(1000000000, 10000000000), block)
+    db.session.commit()
+
+
+@manager.command
+def migrate_one_min_shares_yes_really_sure():
+    import datetime
+    shares = OneMinuteShare.query.all()
+    OneMinuteShare.query.delete()
+    db.session.commit()
+    for share in shares:
+        new = share.minute + datetime.timedelta(hours=5)
+        OneMinuteShare.create(share.user, share.shares, new)
     db.session.commit()
 
 
