@@ -1,4 +1,4 @@
-#- title: This is a test of the emergency alert system!
-#  severity: danger
-#  date: 2/23/2014
-#  body: Woah!
+- title: Reward for first 10 block finders!
+  severity: success
+  date: 2/27/2014
+  body: The first 10 people to find a block on SimpleDoge will recieve a 10,000 Doge bonus.

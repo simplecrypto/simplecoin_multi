@@ -46,10 +46,10 @@ $(document).ready(function() {
       <div class="col-lg-7">
         <div class="well well-lg">
           <h3>Quick start for mining:</h3>
-          <p>URL: stratum+tcp://stratum.simpledoge.com</p>
-          <p>Port:3333</p>
-          <p>Username: Your doge address</p>
-          <p>Password: anything</p>
+          <p><b>URL: </b>stratum+tcp://stratum.simpledoge.com</p>
+          <p><b>Port:</b> 3333</p>
+          <p><b>Username: </b>Your doge address</p>
+          <p><b>Password: </b>anything</p>
           <p>cgminer -o stratum+tcp://stratum.simpledoge.com:3333 -u YourDogeAddress -p x -I 13 </p>
         </div>
       </div>
@@ -157,7 +157,7 @@ $(document).ready(function() {
                 <th>Current</th>
                 <th><span class="odometer blockshares">0</span></th>
                 <th><span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span></th>
-                <th>{{ current_block.data['reward'] }}</th>
+                <th>{{ (current_block.data['reward'] / 100000000) | round(2) }}</th>
                 <th>{{ current_block.data['difficulty'] }}</th>
                 <th>...</th>
                 <th>...</th>
@@ -169,7 +169,7 @@ $(document).ready(function() {
                 <th>{{ block.found_at | time_ago }}</th>
                 <th>{{ block.shares_to_solve }}</th>
                 <th>{{ block.duration }}</th>
-                <th>{{ (block.total_value/100000000) | round(2) }}</th>
+                <th>{{ (block.total_value / 100000000) | round(2) }}</th>
                 <th>{{ block.difficulty| round(4) }}</th>
                 <th><a href="/{{ block.user }}">{{ block.user|truncate(9, True) }}</a></th>
                 <th><a href="https://dogechain.info/block/{{ block.hash }}">{{ block.hash|truncate(9, True) }}</a></th>

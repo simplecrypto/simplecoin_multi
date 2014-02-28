@@ -17,6 +17,7 @@ main = Blueprint('main', __name__)
 @main.route("/")
 def home():
     current_block = db.session.query(Blob).filter_by(key="block").first()
+    current_block.data['reward'] = int(current_block.data['reward'])
     blocks = db.session.query(Block).order_by(Block.height.desc()).limit(10)
     news = yaml.load(open(root + '/static/yaml/news.yaml'))
     alerts = yaml.load(open(root + '/static/yaml/alerts.yaml'))
