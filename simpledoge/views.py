@@ -88,6 +88,7 @@ def add_pool_stats():
     additional_shares = ratio * additional_seconds
     g.pool_stats[0] += additional_shares
     g.pool_stats[1] += additional_seconds
+    g.current_difficulty = db.session.query(Blob).filter_by(key="block").first().data['difficulty']
 
 
 @cache.cached(timeout=60, key_prefix='get_total_n1')
@@ -154,8 +155,6 @@ def user_dashboard(address=None):
                    filter(Share.id > last_share_id, Share.user == address).
                    scalar() or 0)
 
-    current_difficulty = db.session.query(Blob).filter_by(key="block").first().data['difficulty']
-
     # reorganize/create the recently viewed
     recent = session.get('recent_users', [])
     if address in recent:
@@ -166,7 +165,6 @@ def user_dashboard(address=None):
     return render_template('user_stats.html',
                            username=address,
                            user_shares=user_shares,
-                           current_difficulty=current_difficulty,
                            payouts=payouts,
                            round_reward=250000,
                            total_earned=earned,

@@ -24,6 +24,7 @@
       shares = {{ g.pool_stats[0] }};
 
       seconds = {{ g.pool_stats[1] }};
+      shares_to_solve = {{ g.current_difficulty }} * Math.pow(2, 16);
       ten_min_hashrate = Math.pow(2, 16) * {{ g.pool_stats[3] }};
       khashpersec = (ten_min_hashrate / 600) / 1000;
       shares_per_sec = (shares / seconds);
@@ -50,6 +51,7 @@
         $('.hours').text(hours);
 
         $('.odometer.hashes').text(Math.round(khashpersec));
+        $('.odometer.luck').text(Math.round( (additional_shares / shares_to_solve) * 10000) / 100);
       },1000);
     });
   </script>
@@ -67,7 +69,8 @@
         <h4 class="stats">
           Pool Hashrate: <span class="odometer hashes">0</span> Khash/second |
           Round Time: <span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span> |
-          Round Shares: <span class="odometer shares">0</span>
+          Round Shares: <span class="odometer shares">0</span> |
+          Round Luck: <span class="odometer luck">0</span>%
         </h4>
       </div>
       <div class="navbar navbar-default">

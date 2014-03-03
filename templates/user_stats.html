@@ -13,9 +13,9 @@ $(document).ready(function() {
     round_reward = {{ round_reward }};
     user_shares = {{ user_shares }};
 
-    shares_to_solve = {{ current_difficulty }}*Math.pow(2, 16);
-    percentage_value = user_shares/shares_to_solve;
-    est_payout = ((percentage_value * round_reward))*.99;
+    shares_to_solve = {{ g.current_difficulty }} * Math.pow(2, 16);
+    percentage_value = user_shares / shares_to_solve;
+    est_payout = ((percentage_value * round_reward)) * .99;
 
     seconds = 60000;
     hashrate = Math.pow(2, 16) * window.last_10min;
