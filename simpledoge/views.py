@@ -16,12 +16,23 @@ main = Blueprint('main', __name__)
 
 @main.route("/")
 def home():
+    news = yaml.load(open(root + '/static/yaml/news.yaml'))
+    alerts = yaml.load(open(root + '/static/yaml/alerts.yaml'))
+    return render_template('home.html', news=news, alerts=alerts)
+
+
+@main.route("/news")
+def news():
+    news = yaml.load(open(root + '/static/yaml/news.yaml'))
+    return render_template('news.html', news=news)
+
+
+@main.route("/pool_stats")
+def pool_stats():
     current_block = db.session.query(Blob).filter_by(key="block").first()
     current_block.data['reward'] = int(current_block.data['reward'])
     blocks = db.session.query(Block).order_by(Block.height.desc()).limit(10)
-    news = yaml.load(open(root + '/static/yaml/news.yaml'))
-    alerts = yaml.load(open(root + '/static/yaml/alerts.yaml'))
-    return render_template('home.html', news=news, alerts=alerts, blocks=blocks,
+    return render_template('pool_stats.html', blocks=blocks,
                            current_block=current_block)
 
 

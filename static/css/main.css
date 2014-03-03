@@ -1,10 +1,23 @@
+body {
+  font-size:15px;
+}
+
 h3 {
   margin-top:5px;
 }
 
+.nav li a {
+  padding: 15px;
+}
+
+.panel-default>.panel-heading {
+  font-size:16pt;
+  font-weight:bold;
+}
+
 .page-header {
-  padding-top:40px;
   padding-bottom:50px;
+  margin-top:10px;
 }
 
 .row-header {
@@ -20,6 +33,10 @@ h3 {
 }
 .no-margin-top {
   margin-top:0;
+}
+.nav-justified > li:first-child > a {
+border-left: 0;
+border-radius: 5px 0 0 5px;
 }
 
 
