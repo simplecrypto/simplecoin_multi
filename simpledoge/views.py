@@ -122,13 +122,20 @@ def total_earned(user):
     return (db.session.query(func.sum(Payout.amount)).
             filter_by(user=user).scalar() or 0)
 
+@cache.memoize(timeout=60)
+def total_paid(user):
+    total_p = (Payout.query.filter_by(user=user).
+              join(Payout.transaction, aliased=True).
+              filter_by(confirmed=True))
+    return sum([tx.amount for tx in total_p])
+
 
 @main.route("/charity")
 def charity_view():
     charities = []
     for info in current_app.config['aliases']:
         info['hashes_per_min'] = ((2 ** 16) * last_10_shares(info['address'])) / 600
-        info['total_earned'] = total_earned(info['address'])
+        info['total_paid'] = total_paid(info['address'])
         charities.append(info)
     return render_template('charity.html', charities=charities)
 

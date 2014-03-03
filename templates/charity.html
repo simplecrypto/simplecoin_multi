@@ -22,7 +22,7 @@ URL: http://stratum.simpledoge.com:3333
               <th>Alias</th>
               <th>Address</th>
               <th>Last 10 min hashrate</th>
-              <th>Dogecoin collected</th>
+              <th>Dogecoin donated</th>
             </tr>
           </thead>
           <tbody>
@@ -34,7 +34,7 @@ URL: http://stratum.simpledoge.com:3333
                   {{ charity.address }}</a>
                   <a href="/{{ charity.address }}">[stats]</a></th>
               <th>{{ (charity.hashes_per_min / 1000) | round(2) }} KH/s</th>
-              <th>{{ (charity.total_earned / 100000000) | round(2) }}</th>
+              <th>{{ (charity.total_paid / 100000000) | round(2) }}</th>
             </tr>
             {% endfor %}
           </tbody>
