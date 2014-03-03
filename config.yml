@@ -27,18 +27,23 @@ private:
         - name: Dogecoin Foundation General Fund
           address: DJ7zB7c5BsB9UJLy1rKQtY7c6CQfGiaRLM
           url: http://foundation.dogecoin.com/roadmap
+          alias: dogefoundation
         - name: The League Against AIDS
           url: http://www.leagueagainstaids.com/index2.html
           address: DRsyFLRwYpggbMNnkyTFYHW2uvLchqRmVD
+          alias: leagueagainst
         - name: Edwards Center
           url: http://www.leagueagainstaids.com/index2.html
           address: DRz7iTh5aYdr3MVjEXUA8Bfh1QerLq2m7u
+          alias: edwardscenter
         - name: Lucie's Place
           url: http://www.luciesplace.org/
           address: DNuakKH8cg5AjZzwfpnLWc1papDp3tUJ7q
+          alias: luciesplace
         - name: Shiba Scout Rescue
           url: http://www.shibascoutrescue.com/
           address: D5MGiMCmxkpJkLBhKe9oN7h49X3t81e3kp
+          alias: shibascout
 
 public:
     DEBUG: true

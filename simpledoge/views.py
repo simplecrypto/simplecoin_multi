@@ -93,17 +93,20 @@ def get_frontpage_data():
     return [shares, last_dt, dt, ten_min]
 
 
-@cache.cached(timeout=60, key_prefix='last_10_shares')
+@cache.memoize(timeout=60)
 def last_10_shares(user):
-    return (db.session.query(func.sum(OneMinuteShare.shares)).
-            filter_by(user=address).
-            limit(10).order_by(OneMinuteShare.minute.desc()).scalar())
+    minutes = (OneMinuteShare.query.
+               filter_by(user=user).order_by(OneMinuteShare.minute.desc()).
+               limit(10))
+    if minutes:
+        return sum([min.shares for min in minutes])
+    return 0
 
 
-@cache.cached(timeout=60, key_prefix='total_earned')
+@cache.memoize(timeout=60)
 def total_earned(user):
     return (db.session.query(func.sum(Payout.amount)).
-            filter_by(user=address).scalar() or 0)
+            filter_by(user=user).scalar() or 0)
 
 
 @main.route("/charity")
@@ -113,17 +116,18 @@ def charity_view():
         info['hashes_per_min'] = ((2 ** 16) * last_10_shares(info['address'])) / 600
         info['total_earned'] = total_earned(info['address'])
         charities.append(info)
-    return info
+    return render_template('charity.html',
+                           charities=charities)
 
 
 @main.route("/<address>")
 def user_dashboard(address=None):
-    total_earned = total_earned(address)
+    earned = total_earned(address)
     total_paid = (Payout.query.filter_by(user=address).
                   join(Payout.transaction, aliased=True).
                   filter_by(confirmed=True))
     total_paid = sum([tx.amount for tx in total_paid])
-    balance = total_earned - total_paid
+    balance = earned - total_paid
     unconfirmed_balance = (Payout.query.filter_by(user=address).
                            join(Payout.block, aliased=True).
                            filter_by(mature=False))
@@ -141,7 +145,7 @@ def user_dashboard(address=None):
                            current_difficulty=current_difficulty,
                            payouts=payouts,
                            round_reward=250000,
-                           total_earned=total_earned,
+                           total_earned=earned,
                            total_paid=total_paid,
                            balance=balance,
                            unconfirmed_balance=unconfirmed_balance)
@@ -150,8 +154,8 @@ def user_dashboard(address=None):
 @main.route("/<address>/stats")
 def address_stats(address=None):
     minutes = (db.session.query(OneMinuteShare).
-               filter_by(user=address).
-               limit(1440).order_by(OneMinuteShare.minute.desc()))
+               filter_by(user=address).order_by(OneMinuteShare.minute.desc()).
+               limit(1440))
     data = {calendar.timegm(minute.minute.utctimetuple()): minute.shares
             for minute in minutes}
     day_ago = ((int(time.time()) - (60 * 60 * 24)) // 60) * 60
