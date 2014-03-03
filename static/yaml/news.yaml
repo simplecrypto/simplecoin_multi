@@ -3,7 +3,8 @@
   body: |
       SimpleDoge now allows you to mine with an aliased username to donate your
       earnings directly to charity! For more information, see our <a
-      href="/charity">charity</a> page.
+      href="/charity">charity</a> page. A few stats bugs have also been patched
+      with this update.
 - title: Big stats upgrade and improved monitoring!
   date: 2/25/2014
   body: |

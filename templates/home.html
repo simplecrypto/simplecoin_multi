@@ -1,6 +1,15 @@
 {% extends "base.html" %}
 {% block body %}
 {% set active_page = "home" %}
+<script>
+$(document).ready(function() {
+  //  Action stats form based on input val
+    $('#statsform').submit(function(){
+      var address = $('#inputAddress').val();
+      $(this).attr('action', "/" + address);
+    });
+});
+</script>
 <div class="container">
     <div class="row page-header">
 
