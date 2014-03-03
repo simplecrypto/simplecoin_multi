@@ -22,9 +22,9 @@ $(document).ready(function() {
     mhashpersec = (hashrate / seconds) / 1000;
 
     setInterval(function(){
-      $('.odometer.hashrate').text(Math.round(mhashpersec*1000)/1000);
+      $('.odometer.hashrate').text(Math.round(mhashpersec * 1000) / 1000);
       $('.odometer.usershares').text(Math.round(user_shares));
-      $('.odometer.estpayout').text(Math.round(est_payout*1000000)/1000000);
+      $('.odometer.estpayout').text(Math.round(est_payout * 1000000) / 1000000);
     },1000);
 
 
