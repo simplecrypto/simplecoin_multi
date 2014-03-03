@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block body %}
 {% set active_page = "home" %}
+{% block body %}
 <script>
 $(document).ready(function() {
   //  Action stats form based on input val
@@ -10,116 +10,97 @@ $(document).ready(function() {
     });
 });
 </script>
-<div class="container">
-    <div class="row page-header">
+<!-- Alerts ================================================== -->
+{% if alerts  %}
+  {% for alert in alerts %}
+  <div class="alert alert-dismissable alert-{{ alert['severity'] }}">
+    <button type="button" class="close" data-dismiss="alert">×</button>
+    <h4>{{ alert['title'] }} -
+      <span class="text-muted small" style="color:#fff;">
+        {{ alert['date'] }}
+      </span>
+    </h4>
+    <p>{{ alert['body'] }}</p>
+  </div>
+  {% endfor %}
+{% endif %}
 
-  <!-- Alerts
-  ================================================== -->
-
-    {% if alerts  %}
-      {% for alert in alerts %}
-      <div class="alert alert-dismissable alert-{{ alert['severity'] }}">
-        <button type="button" class="close" data-dismiss="alert">×</button>
-        <h4>{{ alert['title'] }} - <span class="text-muted small" style="color:#fff;">{{ alert['date'] }}</span></h4>
-        <p>{{ alert['body'] }}</p>
-      </div>
-      {% endfor %}
-    {% endif %}
-
-  <!-- Img
-  ================================================== -->
-
-
-      <div class="col-lg-5">
-        <div class="text-center">
-          <img src="static/img/doge-miner.jpg" width="450">
-        </div>
-      </div>
-
-  <!-- Quick started
-  ================================================== -->
-
-      <div class="col-lg-7">
-        <div class="well well-lg">
-          <h3>Quick start for mining:</h3>
-          <p><b>URL: </b>stratum+tcp://stratum.simpledoge.com</p>
-          <p><b>Port:</b> 3333</p>
-          <p><b>Username: </b>Your doge address</p>
-          <p><b>Password: </b>anything</p>
-          <p>cgminer -o stratum+tcp://stratum.simpledoge.com:3333 -u YourDogeAddress -p x -I 13 </p>
-        </div>
-      </div>
-
-    </div>
-
-  <!-- News/Announcements
-  ================================================== -->
-
-  <div class="row row-header">
-    <div class="col-lg-8">
-
-      {% for new in news %}
-      <div class="panel panel-default">
-        <div class="panel-heading">{{ new['title']|safe }} <span class="text-muted pull-right">{{ new['date']|safe }}</span></div>
-        <div class="panel-body">
-          <p>{{ new['body']|safe }}</p>
-        </div>
-      </div>
-      {% endfor %}
-
-    </div>
-
-
-  <!-- New users
-  ================================================== -->
-
-    <div class="col-lg-4">
-
-      <div class="panel panel-default">
-        <div class="panel-heading">New to Cryptocurrency?</div>
-        <div class="panel-body">
-          Check out a detailed step-by-step guide on <a href="http://www.reddit.com/r/dogemining/wiki/index/mining_guide" target="_blank">Reddit</a>.
-        </div>
-      </div>
-
-  <!-- About
-  ================================================== -->
-
-      <div class="panel panel-default">
-        <div class="panel-heading">About Simple Doge</div>
-        <div class="panel-body">
-          <p>No registration required!</p>
-          <p>1% Fees</p>
-          <p>Custom python pool server. Much new. Very speed.</p>
-          <p>Payouts are PPLNS after a minimum of 500 Doge</p>
-        </div>
-      </div>
-
+<!-- Img ================================================== -->
+<div class="row row-header">
+  <div class="col-lg-5">
+    <div class="text-center">
+      <img src="static/img/doge-miner.jpg" width="450">
     </div>
   </div>
 
-  <!-- User stats
-  ================================================== -->
-  <div class="row row-header" style="padding-top:50px;">
-      <div class="col-lg-12">
-        <div class="col-lg-8 col-lg-offset-2">
-          <div class="well">
-            <form class="bs-example form-horizontal" id="statsform">
-              <fieldset>
-                <legend>Personal stats available at http://simpledoge.com/YourDogeAddress</legend>
-                <div class="form-group">
-                  <label for="inputAddress" class="col-lg-2 control-label">Address</label>
-                  <div class="col-lg-8">
-                    <input type="text" class="form-control" id="inputAddress" placeholder="Doge Address">
-                    <span class="help-block">Paste your Doge address for quick access to individualized stats</span>
-                  </div>
-                  <button type="submit" class="btn btn-default">Go</button>
-                </div>
-              </fieldset>
-            </form>
-          </div>
-        </div>
-      </div>
+<!-- Quick started ================================================== -->
+  <div class="col-lg-7">
+    <div class="well well-lg">
+      <h3>Quick start for mining:</h3>
+      <p><b>URL: </b>stratum+tcp://stratum.simpledoge.com</p>
+      <p><b>Port:</b> 3333</p>
+      <p><b>Username: </b>Your doge address</p>
+      <p><b>Password: </b>anything</p>
+      <p>cgminer -o stratum+tcp://stratum.simpledoge.com:3333 -u YourDogeAddress -p x -I 13 </p>
+    </div>
   </div>
+</div>
+<br />
+
+<!-- News/Announcements ================================================== -->
+<div class="row row-header">
+  <div class="col-lg-8">
+    {% for new in news %}
+    <div class="panel panel-default">
+      <div class="panel-heading">{{ new['title']|safe }} <span class="text-muted pull-right">{{ new['date']|safe }}</span></div>
+      <div class="panel-body">
+        <p>{{ new['body']|safe }}</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+<!-- New users ================================================== -->
+  <div class="col-lg-4">
+    <div class="panel panel-default">
+      <div class="panel-heading">New to Cryptocurrency?</div>
+      <div class="panel-body">
+        Check out a detailed step-by-step guide on <a href="http://www.reddit.com/r/dogemining/wiki/index/mining_guide" target="_blank">Reddit</a>.
+      </div>
+    </div>
+
+<!-- About ================================================== -->
+    <div class="panel panel-default">
+      <div class="panel-heading">About Simple Doge</div>
+      <div class="panel-body">
+        <p>No registration required!</p>
+        <p>1% Fees</p>
+        <p>Custom python pool server. Much new. Very speed.</p>
+        <p>Payouts are PPLNS after a minimum of 500 Doge</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- User stats
+================================================== -->
+<div class="row row-header" style="padding-top:40px;">
+    <div class="col-lg-8 col-lg-offset-2">
+      <div class="well">
+        <form class="bs-example form-horizontal" id="statsform">
+          <fieldset>
+            <legend>Personal stats available at http://simpledoge.com/YourDogeAddress</legend>
+            <div class="form-group">
+              <label for="inputAddress" class="col-lg-2 control-label">Address</label>
+              <div class="col-lg-8">
+                <input type="text" class="form-control" id="inputAddress" placeholder="Doge Address">
+                <span class="help-block">Paste your Doge address for quick access to individualized stats</span>
+              </div>
+              <button type="submit" class="btn btn-default">Go</button>
+            </div>
+          </fieldset>
+        </form>
+      </div>
+    </div>
 </div>
 {% endblock %}

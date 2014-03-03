@@ -1,5 +1,15 @@
 body {
   font-size:15px;
+  color: #FAFAFA;
+}
+
+.btn-default {
+  background-color: #3E4853;
+}
+
+.text-muted {
+  color: #8392A0;
+  font-weight:300;
 }
 
 h3 {
@@ -12,7 +22,7 @@ h3 {
 
 .panel-default>.panel-heading {
   font-size:16pt;
-  font-weight:bold;
+  font-weight:400;
 }
 
 .page-header {
@@ -21,8 +31,14 @@ h3 {
 }
 
 .row-header {
-  border-bottom:1px solid #1c1e22;
-  padding-bottom:50px;
+  border-bottom:1px solid #424E5A;
+  padding-bottom:40px;
+}
+
+.stats {
+  float:right;
+  padding: 30px 0px 20px 0px;
+  vertical-align: top !important;
 }
 
 .padding-top {
@@ -35,8 +51,14 @@ h3 {
   margin-top:0;
 }
 .nav-justified > li:first-child > a {
-border-left: 0;
-border-radius: 5px 0 0 5px;
+  border-left: 0;
+  border-radius: 5px 0 0 5px;
+}
+
+.navbar-default .navbar-nav>li>a {
+  color: #fff;
+  font-weight: 300;
+  font-size:18px;
 }
 
 

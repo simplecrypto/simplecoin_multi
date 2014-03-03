@@ -8,7 +8,7 @@
   <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
 
   <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css" rel="stylesheet">
-  <link href="//netdna.bootstrapcdn.com/bootswatch/3.1.1/slate/bootstrap.min.css" rel="stylesheet">
+  <link href="//netdna.bootstrapcdn.com/bootswatch/3.1.1/superhero/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/main.css">
   <link rel="stylesheet" href="/static/css/odometer-theme-default.css" />
   <script src="//code.jquery.com/jquery-2.1.0.min.js"></script>
@@ -56,27 +56,29 @@
 </head>
 <body>
   <div class="container">
-    <div class="clearfix" style="padding: 10px 0px 10px 0px;">
-      <h1 style="float:left; font-size:51px;">
-        <a style=" text-decoration: none;" href="/">
-          <img src="static/img/dogecoin.png" width="64">
-          Simple Doge
-        </a>
-      </h1>
-      <h4 style="float:right; padding: 30px 0px 20px 0px;">
-        Pool Hashrate: <span class="odometer hashes">0</span> Khash/second |
-        Round Time: <span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span> |
-        Round Shares: <span class="odometer shares">0</span>
-      </h4>
-    </div>
-    <div class="navbar navbar-default nav-header">
-      <div class="navbar-collapse collapse navbar-responsive-collapse">
-        <ul class="nav nav-justified">
-          <li{% if active_page == "home" %} class="active"{% endif %}><a href="/">Home</a></li>
-          <li{% if active_page == "news" %} class="active"{% endif %}><a href="/news">News</a></li>
-          <li{% if active_page == "pool_stats" %} class="active"{% endif %}><a href="/pool_stats">Pool Stats</a></li>
-          <li{% if active_page == "chartiy" %} class="active"{% endif %}><a href="/charity">Charity</a></li>
-        </ul>
+    <div class="row">
+      <div class="clearfix" style="padding: 10px 0px 10px 0px;">
+        <h1 style="float:left; font-size:51px;">
+          <a style=" text-decoration: none;" href="/">
+            <img src="static/img/dogecoin.png" width="64" style="padding-bottom: 5px;">
+            Simple Doge
+          </a>
+        </h1>
+        <h4 class="stats">
+          Pool Hashrate: <span class="odometer hashes">0</span> Khash/second |
+          Round Time: <span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span> |
+          Round Shares: <span class="odometer shares">0</span>
+        </h4>
+      </div>
+      <div class="navbar navbar-default">
+        <div class="navbar-collapse collapse navbar-responsive-collapse">
+          <ul class="nav navbar-nav">
+            <li{% if active_page == "home" %} class="active"{% endif %}><a href="/">Home</a></li>
+            <li{% if active_page == "news" %} class="active"{% endif %}><a href="/news">News</a></li>
+            <li{% if active_page == "pool_stats" %} class="active"{% endif %}><a href="/pool_stats">Pool Stats</a></li>
+            <li{% if active_page == "charity" %} class="active"{% endif %}><a href="/charity">Charity</a></li>
+          </ul>
+        </div>
       </div>
     </div>
     {% block body %}
