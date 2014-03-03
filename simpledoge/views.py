@@ -2,12 +2,14 @@ import calendar
 import time
 import yaml
 import datetime
+
 from itsdangerous import TimedSerializer
 from flask import (current_app, request, render_template, Blueprint, abort,
-                   jsonify, g)
+                   jsonify, g, session)
 from sqlalchemy.sql import func
 
-from .models import Transaction, OneMinuteShare, Block, Share, Payout, last_block_share_id, last_block_time, Blob
+from .models import (Transaction, OneMinuteShare, Block, Share, Payout,
+                     last_block_share_id, last_block_time, Blob)
 from . import db, root, cache
 
 
@@ -127,12 +129,13 @@ def charity_view():
         info['hashes_per_min'] = ((2 ** 16) * last_10_shares(info['address'])) / 600
         info['total_earned'] = total_earned(info['address'])
         charities.append(info)
-    return render_template('charity.html',
-                           charities=charities)
+    return render_template('charity.html', charities=charities)
 
 
 @main.route("/<address>")
 def user_dashboard(address=None):
+    if len(address) != 34:
+        abort(404)
     earned = total_earned(address)
     total_paid = (Payout.query.filter_by(user=address).
                   join(Payout.transaction, aliased=True).
@@ -147,9 +150,19 @@ def user_dashboard(address=None):
 
     payouts = db.session.query(Payout).filter_by(user=address).limit(20)
     last_share_id = last_block_share_id()
-    user_shares = db.session.query(func.sum(Share.shares)).filter(Share.id > last_share_id, Share.user == address).scalar() or 0
+    user_shares = (db.session.query(func.sum(Share.shares)).
+                   filter(Share.id > last_share_id, Share.user == address).
+                   scalar() or 0)
 
     current_difficulty = db.session.query(Blob).filter_by(key="block").first().data['difficulty']
+
+    # reorganize/create the recently viewed
+    recent = session.get('recent_users', [])
+    if address in recent:
+        recent.remove(address)
+    recent.insert(0, address)
+    session['recent_users'] = recent[:10]
+
     return render_template('user_stats.html',
                            username=address,
                            user_shares=user_shares,

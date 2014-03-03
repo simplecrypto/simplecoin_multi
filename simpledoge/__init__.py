@@ -6,6 +6,7 @@ from werkzeug.local import LocalProxy
 from bitcoinrpc import AuthServiceProxy
 from datetime import datetime
 
+import subprocess
 import logging
 import six
 import os
@@ -51,6 +52,11 @@ def create_app(config='/config.yml'):
     # register all our plugins
     db.init_app(app)
     cache.init_app(app, config={'CACHE_TYPE': 'simple'})
+
+    # try and get the git information
+    output = subprocess.check_output("git show -s --format='%ci %h'", shell=True).strip().rsplit(" ", 1)
+    app.config['hash'] = output[1]
+    app.config['revdate'] = output[0]
 
     # filters for jinja
     @app.template_filter('time_ago')

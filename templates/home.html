@@ -100,6 +100,12 @@ $(document).ready(function() {
             </div>
           </fieldset>
         </form>
+        {% if 'recent_users' in session %}
+          <h4>Recently Visited Stats:</h4>
+          {% for address in session['recent_users'] %}
+          <a href="/{{ address }}">{{ address }}</a>
+          {% endfor %}
+        {% endif %}
       </div>
     </div>
 </div>
