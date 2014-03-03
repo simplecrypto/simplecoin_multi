@@ -22,6 +22,7 @@ $(document).ready(function() {
           <tr>
             <th>Age</th>
             <th>Shares</th>
+            <th>Luck</th>
             <th>Round Duration</th>
             <th>Payout</th>
             <th>Difficulty</th>
@@ -35,6 +36,7 @@ $(document).ready(function() {
         <tr class="active">
           <th>Current</th>
           <th><span class="odometer blockshares">0</span></th>
+          <th><span class="odometer blockluck">0</span>%</th>
           <th><span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span></th>
           <th>{{ (current_block.data['reward'] / 100000000) | round(2) }}</th>
           <th>{{ current_block.data['difficulty'] }}</th>
@@ -47,6 +49,7 @@ $(document).ready(function() {
         <tr>
           <th>{{ block.found_at | time_ago }}</th>
           <th>{{ block.shares_to_solve }}</th>
+          <th>{{ ((block.shares_to_solve / (block.difficulty * (2 ** 16))) * 100) | round(1) }} %</th>
           <th>{{ block.duration }}</th>
           <th>{{ (block.total_value / 100000000) | round(2) }}</th>
           <th>{{ block.difficulty| round(4) }}</th>

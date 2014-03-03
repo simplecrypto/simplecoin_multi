@@ -51,7 +51,8 @@
         $('.hours').text(hours);
 
         $('.odometer.hashes').text(Math.round(khashpersec));
-        $('.odometer.luck').text(Math.round( (additional_shares / shares_to_solve) * 10000) / 100);
+        $('.odometer.luck').text(Math.round( (additional_shares / shares_to_solve) * 1000) / 10);
+        $('.odometer.blockluck').text(Math.round( (additional_shares / shares_to_solve) * 1000) / 10);
       },1000);
     });
   </script>
