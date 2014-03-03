@@ -2,13 +2,24 @@
 {% set active_page = "charity" %}
 {% block body %}
 <div class="row page-header">
+  <div class="alert alert-dismissable alert-success">
+    <button type="button" class="close" data-dismiss="alert">×</button>
+    <h4><b>Matched Donations for the next 72 hours up to 50,000 Doge</b> -
+      <span class="text-muted small" style="color:#fff;">
+        3/3/2014
+      </span>
+    </h4>
+    <p>From March 3rd, 11:00 PM GMT to March 6th, 11:00 PM GMT SimpleDoge
+    admins will match 1:1 all Dogecoin that is mined toward any of the charities
+    listed below up to 50,000 Doge.</p>
+  </div>
   <div class="container">
     <h2>Charity Summary Page</h2>
     <div class="col-lg-12">
       <p>SimpleDoge allows you to easily contribute your hashing power directly
       to charities by connecting to our stratum servers with an aliased
-      username. For example, to donate the the Dogecoin Foundation general
-      fund you would use the following connection settings with your miner:</p>
+      username. For example, to donate to the Dogecoin Foundation General
+      Fund you would use the following connection settings with your miner:</p>
       <pre>
 Username: dogefoundation
 Password: [anything you want]
