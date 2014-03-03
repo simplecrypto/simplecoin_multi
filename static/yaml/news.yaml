@@ -1,3 +1,9 @@
+- title: Donate to charity easily with SimpleDoge.
+  date: 3/2/2014
+  body: |
+      SimpleDoge now allows you to mine with an aliased username to donate your
+      earnings directly to charity! For more information, see our <a
+      href="/charity">charity</a> page.
 - title: Big stats upgrade and improved monitoring!
   date: 2/25/2014
   body: |
@@ -5,7 +11,6 @@
       hiccups, and should be ready for more hashing power! Stats have been
       upgraded significantly to show you upcoming blocks, past payouts,
       estimated future payouts and more.
-      <b>Be aware that some stats may still be somewhat off while we work out the kinks. Thanks for your patience.</b>
 - title: Just lanuched!
   date: 2/23/2014
   body: |
