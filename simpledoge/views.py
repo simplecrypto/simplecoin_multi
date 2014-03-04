@@ -109,7 +109,7 @@ def get_frontpage_data():
 
 @cache.memoize(timeout=60)
 def last_10_shares(user):
-    ten_ago = (datetime.datetime.utcnow() - datetime.timedelta(minutes=10)).replace(seconds=0)
+    ten_ago = (datetime.datetime.utcnow() - datetime.timedelta(minutes=10)).replace(second=0)
     minutes = (OneMinuteShare.query.
                filter_by(user=user).filter(OneMinuteShare.minute >= ten_ago).
                order_by(OneMinuteShare.minute.desc()).
