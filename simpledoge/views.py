@@ -196,6 +196,11 @@ def address_stats(address=None):
     return jsonify(points=out, length=len(out))
 
 
+@main.route("/guides")
+@main.route("/guides/")
+def guides_index():
+    return render_template("guides/index.html")
+
 @main.route("/guides/<guide>")
 def guides(guide):
-    return render_template(guide + ".html")
+    return render_template("guides/" + guide + ".html")
