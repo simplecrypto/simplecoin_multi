@@ -194,3 +194,8 @@ def address_stats(address=None):
            for i in xrange(day_ago, day_ago + (1440 * 60), 60)]
 
     return jsonify(points=out, length=len(out))
+
+
+@main.route("/guides/<guide>")
+def guides(guide):
+    return render_template(guide + ".html")
