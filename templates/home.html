@@ -92,7 +92,7 @@ $(document).ready(function() {
 <!-- News/Announcements ================================================== -->
 <div class="row row-header">
   <div class="col-lg-12">
-    {% for new in news %}
+    {% for new in news[:3] %}
     <div class="panel panel-default">
       <div class="panel-heading">{{ new['title']|safe }} <span class="text-muted pull-right">{{ new['date']|safe }}</span></div>
       <div class="panel-body">
