@@ -11,31 +11,87 @@ $(document).ready(function() {
 });
 </script>
 <!-- Img ================================================== -->
-<div class="row row-header">
+<div class="row">
   <div class="col-lg-5">
     <div class="text-center">
       <img src="static/img/doge-miner.jpg" width="450">
+    </div>
+    <div class="well well-lg well-clear">
+      <h3>New to Cryptocurrency?</h3>
+    Check out a detailed step-by-step guide on <a href="http://www.reddit.com/r/dogemining/wiki/index/mining_guide" target="_blank">Reddit</a>,
+    or look at some of our <a href="/guides/">guides</a>.
     </div>
   </div>
 
 <!-- Quick started ================================================== -->
   <div class="col-lg-7">
-    <div class="well well-lg">
+    <div class="well well-lg" style="padding-right:30px;">
       <h3>Quick start for mining:</h3>
       <h4><b>No registration required, payouts go to the address used as username.</b></h4>
-      <p><b>URL: </b>stratum+tcp://stratum.simpledoge.com</p>
-      <p><b>Port:</b> 3333</p>
-      <p><b>Username: </b>Your doge address</p>
-      <p><b>Password: </b>anything</p>
-      <p>cgminer -o stratum+tcp://stratum.simpledoge.com:3333 -u YourDogeAddress -p x -I 13 </p>
+      <ol>
+          <li>Configure your stratum client with the information below:
+      <pre><small><b>URL: </b>stratum+tcp://stratum.simpledoge.com
+<b>Port:</b> 3333
+<b>Username: </b>[Your doge address]
+<b>Password: </b>anything
+
+<b>cgminer example:</b>
+./cgminer -o stratum+tcp://stratum.simpledoge.com:3333 -u [YourDogeAddress] -p x -I 13</small></pre>
+          </li>
+          <li>Check your stats and estimated payout by entering your Doge address below:</li>
+        </ol>
+        <div class="form-group">
+        <form class="bs-example form-horizontal" style="padding-left:55px;" id="statsform">
+          <fieldset>
+            <div class="form-group">
+              <div class="col-lg-9" style="padding:0px;">
+                <input type="text" class="form-control" id="inputAddress" placeholder="Doge Address">
+                <span class="help-block">
+                    Paste your Doge address for quick access to individualized stats.
+                    {% if 'recent_users' in session %}
+                      <h4>Recently Visited Stats:</h4>
+                      {% for address in session['recent_users'][:2] %}
+                      <p><a href="/{{ address }}"><h4>{{ address }}</h4></a></p>
+                      {% endfor %}
+                    {% endif %}
+                </span>
+              </div>
+              <button type="submit" class="btn btn-default">View Stats</button>
+            </div>
+          </fieldset>
+        </form>
+        </div>
     </div>
   </div>
 </div>
-<br />
+<div class="row">
+  <div class="col-md-4">
+    <div class="well well-lg" style="height: 180px;">
+      <h3>No registration</h3>
+      Unlike most pools, simple Doge doesn't require, or even provide, registration. Simply connect to our stratum servers with your dogecoin address. 
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="well well-lg" style="height: 180px;">
+      <h3>Secure</h3>
+      No registration means no chance for your credentials to become compromised,
+      because you don't have any!
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="well well-lg" style="height: 180px;">
+      <h3>Automatic Payout</h3>
+      Payouts will be processed automatically once your address balance reaches 500 Doge. Payouts are computed using PPLNS with a 1% fee.
+    </div>
+  </div>
 
+</div>
+
+<br>
+<h2>News</h2>
 <!-- News/Announcements ================================================== -->
 <div class="row row-header">
-  <div class="col-lg-8">
+  <div class="col-lg-12">
     {% for new in news %}
     <div class="panel panel-default">
       <div class="panel-heading">{{ new['title']|safe }} <span class="text-muted pull-right">{{ new['date']|safe }}</span></div>
@@ -45,55 +101,5 @@ $(document).ready(function() {
     </div>
     {% endfor %}
   </div>
-
-<!-- New users ================================================== -->
-  <div class="col-lg-4">
-    <div class="panel panel-default">
-      <div class="panel-heading">New to Cryptocurrency?</div>
-      <div class="panel-body">
-        Check out a detailed step-by-step guide on <a href="http://www.reddit.com/r/dogemining/wiki/index/mining_guide" target="_blank">Reddit</a>.
-      </div>
-    </div>
-
-<!-- About ================================================== -->
-    <div class="panel panel-default">
-      <div class="panel-heading">About Simple Doge</div>
-      <div class="panel-body">
-        <p>No registration required!</p>
-        <p>1% Fees</p>
-        <p>Custom python pool server. Much new. Very speed.</p>
-        <p>Payouts are PPLNS after a minimum of 500 Doge</p>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- User stats
-================================================== -->
-<div class="row row-header" style="padding-top:40px;">
-    <div class="col-lg-8 col-lg-offset-2">
-      <div class="well">
-        <form class="bs-example form-horizontal" id="statsform">
-          <fieldset>
-            <legend>Personal stats available at http://simpledoge.com/YourDogeAddress</legend>
-            <div class="form-group">
-              <label for="inputAddress" class="col-lg-2 control-label">Address</label>
-              <div class="col-lg-8">
-                <input type="text" class="form-control" id="inputAddress" placeholder="Doge Address">
-                <span class="help-block">Paste your Doge address for quick access to individualized stats</span>
-              </div>
-              <button type="submit" class="btn btn-default">Go</button>
-            </div>
-          </fieldset>
-        </form>
-        {% if 'recent_users' in session %}
-          <h4>Recently Visited Stats:</h4>
-          {% for address in session['recent_users'] %}
-          <a href="/{{ address }}">{{ address }}</a>
-          <br>
-          {% endfor %}
-        {% endif %}
-      </div>
-    </div>
 </div>
 {% endblock %}
