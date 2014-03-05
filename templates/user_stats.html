@@ -8,23 +8,31 @@ $(document).ready(function() {
   setTimeout(function(){
 
     var hashrate, seconds, mhashpersec, user_shares, est_payout,
-        round_reward, shares_to_solve, percentage_value;
+        round_reward, shares_to_solve, percentage_value, dogerate, day_shares;
 
     round_reward = {{ round_reward }};
     user_shares = {{ user_shares }};
 
+    {# Calculate est round payout  #}
     shares_to_solve = {{ g.current_difficulty }} * Math.pow(2, 16);
     percentage_value = user_shares / shares_to_solve;
     est_payout = ((percentage_value * round_reward)) * .99;
 
+    {# Calculate mhashes/sec  #}
     seconds = 60000;
     hashrate = Math.pow(2, 16) * window.last_10min;
     mhashpersec = (hashrate / seconds) / 1000;
+
+    {# Calculate est doge per day  #}
+    day_shares = (window.last_10min * 6 * 24);
+    percentage_value = day_shares / shares_to_solve;
+    dogerate = ((percentage_value * round_reward)) * .99;
 
     setInterval(function(){
       $('.odometer.hashrate').text(Math.round(mhashpersec * 1000) / 1000);
       $('.odometer.usershares').text(Math.round(user_shares));
       $('.odometer.estpayout').text(Math.round(est_payout * 1000000) / 1000000);
+      $('.odometer.dogerate').text(Math.round(dogerate * 1000) / 1000);
     },1000);
 
 
@@ -39,24 +47,31 @@ $(document).ready(function() {
   <div class="row page-header">
     <h2>User Stats - {{ username }}</h2>
     <br>
-    <div class="col-lg-4">
+    <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          Round Shares: <span class="odometer usershares">0</span>
+          <small>Round Shares:</small> <br><p></p><h4><span class="odometer usershares">0</span> Shares</h4>
         </div>
       </div>
     </div>
-    <div class="col-lg-4">
+    <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          Est round payout: <span class="odometer estpayout">0</span> DOGE
+          <small>Est round payout:</small> <br><p></p><span class="odometer estpayout">0</span> DOGE
         </div>
       </div>
     </div>
-    <div class="col-lg-4">
+    <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          10 min hashrate: <span class="odometer hashrate">0</span> MHashes/sec
+          <small>10 min hashrate:</small> <br><p></p><span class="odometer hashrate">0</span> MHashes/sec
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3">
+      <div class="panel panel-default">
+        <div class="panel-body text-center">
+          <small>Est Doge/day:</small> <br><p></p><span class="odometer dogerate">0</span> Doge/day
         </div>
       </div>
     </div>
@@ -73,28 +88,28 @@ $(document).ready(function() {
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          Balance: {{ balance / 100000000 }}
+          Balance: <br><p></p>{{ balance / 100000000 }}
         </div>
       </div>
     </div>
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          Unconfirmed balance: {{ unconfirmed_balance / 100000000 }}
+          Unconfirmed balance: <br><p></p>{{ unconfirmed_balance / 100000000 }}
         </div>
       </div>
     </div>
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          Total earned: {{ total_earned / 100000000 }}
+          Total earned: <br><p></p>{{ total_earned / 100000000 }}
         </div>
       </div>
     </div>
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          Total paid: {{ total_paid }}
+          Total paid: <br><p></p>{{ total_paid }}
         </div>
       </div>
     </div>
