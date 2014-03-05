@@ -108,3 +108,8 @@ g.axis {
   background: yellow;
   box-shadow: 2px 2px 1px #888;
 }
+
+.odometer {
+    line-height: 18px !important;
+    vertical-align: top !important;
+}

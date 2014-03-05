@@ -191,7 +191,7 @@ def address_stats(address=None):
                limit(1441))
     data = {calendar.timegm(minute.minute.utctimetuple()): minute.shares
             for minute in minutes}
-    day_ago = ((int(time.time()) - ((60 * 60 * 24)) // 60) * 60) - 60
+    day_ago = (((int(time.time()) - (60 * 60 * 24)) // 60) * 60) - 60
     out = [(i, data.get(i) or 0)
            for i in xrange(day_ago, day_ago + (1440 * 60), 60)]
 

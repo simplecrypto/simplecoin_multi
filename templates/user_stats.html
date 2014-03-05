@@ -50,28 +50,28 @@ $(document).ready(function() {
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          <small>Round Shares:</small> <br><p></p><h4><span class="odometer usershares">0</span> Shares</h4>
+          <small>Round Shares:</small> <br><h4><p><span class="odometer usershares"></span></p></h4>
         </div>
       </div>
     </div>
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          <small>Est round payout:</small> <br><p></p><span class="odometer estpayout">0</span> DOGE
+          <small>Est round payout:</small> <br><h4><p><span class="odometer estpayout"></span> Doge</p></h4>
         </div>
       </div>
     </div>
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          <small>10 min hashrate:</small> <br><p></p><span class="odometer hashrate">0</span> MHashes/sec
+          <small>10 min hashrate:</small> <br><h4><p><span class="odometer hashrate"></span> MHashes/sec</p></h4>
         </div>
       </div>
     </div>
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          <small>Est Doge/day:</small> <br><p></p><span class="odometer dogerate">0</span> Doge/day
+          <small>Doge/day (Est. from 10 min hashrate):</small> <br><h4><p><span class="odometer dogerate"></span> D</p></h4>
         </div>
       </div>
     </div>
@@ -88,28 +88,28 @@ $(document).ready(function() {
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          Balance: <br><p></p>{{ balance / 100000000 }}
+          <small>Balance:</small> <br><h4><p>{{ balance / 100000000 }}</p></h4>
         </div>
       </div>
     </div>
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          Unconfirmed balance: <br><p></p>{{ unconfirmed_balance / 100000000 }}
+          <small>Unconfirmed balance:</small> <br><h4><p>{{ unconfirmed_balance / 100000000 }}</p></h4>
         </div>
       </div>
     </div>
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          Total earned: <br><p></p>{{ total_earned / 100000000 }}
+          <small>Total earned:</small> <br><h4><p>{{ total_earned / 100000000 }}</p></h4>
         </div>
       </div>
     </div>
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          Total paid: <br><p></p>{{ total_paid }}
+          <small>Total paid:</small> <br><h4><p>{{ total_paid }}</p></h4>
         </div>
       </div>
     </div>
