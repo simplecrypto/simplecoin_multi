@@ -19,8 +19,7 @@ main = Blueprint('main', __name__)
 @main.route("/")
 def home():
     news = yaml.load(open(root + '/static/yaml/news.yaml'))
-    alerts = yaml.load(open(root + '/static/yaml/alerts.yaml'))
-    return render_template('home.html', news=news, alerts=alerts)
+    return render_template('home.html', news=news)
 
 
 @main.route("/news")
@@ -89,6 +88,9 @@ def add_pool_stats():
     g.pool_stats[0] += additional_shares
     g.pool_stats[1] += additional_seconds
     g.current_difficulty = db.session.query(Blob).filter_by(key="block").first().data['difficulty']
+
+    alerts = yaml.load(open(root + '/static/yaml/alerts.yaml'))
+    g.alerts = alerts
 
 
 @cache.cached(timeout=60, key_prefix='get_total_n1')

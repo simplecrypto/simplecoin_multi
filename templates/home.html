@@ -10,21 +10,6 @@ $(document).ready(function() {
     });
 });
 </script>
-<!-- Alerts ================================================== -->
-{% if alerts  %}
-  {% for alert in alerts %}
-  <div class="alert alert-dismissable alert-{{ alert['severity'] }}">
-    <button type="button" class="close" data-dismiss="alert">×</button>
-    <h4>{{ alert['title'] }} -
-      <span class="text-muted small" style="color:#fff;">
-        {{ alert['date'] }}
-      </span>
-    </h4>
-    <p>{{ alert['body'] }}</p>
-  </div>
-  {% endfor %}
-{% endif %}
-
 <!-- Img ================================================== -->
 <div class="row row-header">
   <div class="col-lg-5">
