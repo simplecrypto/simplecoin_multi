@@ -24,7 +24,7 @@ $(document).ready(function() {
     mhashpersec = (hashrate / seconds) / 1000;
 
     {# Calculate est doge per day  #}
-    day_shares = (window.last_10min * 6 * 24);
+    day_shares = (window.last_10min * 60 * 24);
     percentage_value = day_shares / shares_to_solve;
     dogerate = ((percentage_value * round_reward)) * .99;
 
