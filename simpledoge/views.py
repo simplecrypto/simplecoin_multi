@@ -9,7 +9,8 @@ from flask import (current_app, request, render_template, Blueprint, abort,
 from sqlalchemy.sql import func
 
 from .models import (Transaction, OneMinuteShare, Block, Share, Payout,
-                     last_block_share_id, last_block_time, Blob)
+                     last_block_share_id, last_block_time, Blob, FiveMinuteShare,
+                     OneHourShare)
 from . import db, root, cache
 
 
@@ -185,18 +186,41 @@ def user_dashboard(address=None):
 
 
 @main.route("/<address>/stats")
-def address_stats(address=None):
-    minutes = (db.session.query(OneMinuteShare).
-               filter_by(user=address).order_by(OneMinuteShare.time.desc()).
-               limit(1440))
+@main.route("/<address>/stats/<window>")
+def address_stats(address=None, window="hour"):
+    # store all the raw data of we've grabbed
     workers = {}
-    for m in minutes:
+
+    def get_typ(typ):
+        # grab the correctly sized slices
+        grab = datetime.datetime.utcnow() - typ.window
+        return (db.session.query(typ).filter_by(user=address).
+                filter(typ.time >= grab))
+
+    def compress_typ(typ):
+        for slc in get_typ(typ):
+            slice_dt = typ.upper.floor_time(slc.time)
+            stamp = calendar.timegm(slice_dt.utctimetuple())
+            workers.setdefault(slc.worker, {})
+            workers[slc.worker].setdefault(stamp, 0)
+            workers[slc.worker][stamp] += slc.value
+
+    if window == "hour":
+        typ = OneMinuteShare
+    elif window == "day":
+        compress_typ(OneMinuteShare)
+        typ = FiveMinuteShare
+    elif window == "month":
+        compress_typ(FiveMinuteShare)
+        typ = OneHourShare
+
+    for m in get_typ(typ):
         stamp = calendar.timegm(m.time.utctimetuple())
         workers.setdefault(m.worker, {})
         workers[m.worker][stamp] = m.value
-    end = (int(time.time()) // 60) * 60
-    start = end - (60 * 60)
-    step = 60
+    step = typ.slice_seconds
+    end = ((int(time.time()) - 60) // step) * step
+    start = end - typ.window.total_seconds()
 
     return jsonify(start=start, end=end, step=step, workers=workers)
 
