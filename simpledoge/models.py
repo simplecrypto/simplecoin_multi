@@ -81,9 +81,9 @@ class Block(base):
 def last_block_time():
     last_block = Block.query.order_by(Block.height.desc()).first()
     if not last_block:
-        first_min_share = OneMinuteShare.query.order_by(OneMinuteShare.minute).first()
+        first_min_share = OneMinuteShare.query.order_by(OneMinuteShare.time).first()
         if first_min_share:
-            return first_min_share.minute
+            return first_min_share.time
         else:
             return datetime.utcnow()
     else:
@@ -152,14 +152,14 @@ class TimeSlice(AbstractConcreteBase, base):
     value = db.Column(db.Integer)
 
     @classmethod
-    def create(cls, user, value, time, worker=""):
+    def create(cls, user, value, time, worker):
         dt = cls.floor_time(time)
-        slc = cls(user=user, value=value, time=dt, worker="")
+        slc = cls(user=user, value=value, time=dt, worker=worker)
         db.session.add(slc)
         return slc
 
     @classmethod
-    def add_value(cls, user, value, time, worker=""):
+    def add_value(cls, user, value, time, worker):
         dt = cls.floor_time(time)
         slc = cls.query.with_lockmode('update').filter_by(
             user=user, time=dt, worker=worker).one()

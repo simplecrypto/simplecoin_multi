@@ -126,7 +126,8 @@ def add_block(self, user, height, total_value, transaction_fees, bits,
 
 
 @celery.task(bind=True)
-def add_one_minute(self, user, shares, minute, worker=None):
+def add_one_minute(self, user, valid_shares, minute, worker='', dup_shares=0,
+                   low_diff_shares=0, stale_shares=0):
     """
     Adds a new single minute entry for a user
 
@@ -136,11 +137,11 @@ def add_one_minute(self, user, shares, minute, worker=None):
     """
     try:
         try:
-            OneMinuteShare.create(user, shares, minute, worker)
+            OneMinuteShare.create(user, valid_shares, minute, worker)
             db.session.commit()
         except sqlalchemy.exc.IntegrityError:
             db.session.rollback()
-            OneMinuteShare.add_shares(user, shares, minute, worker)
+            OneMinuteShare.add_shares(user, valid_shares, minute, worker)
             db.session.commit()
     except Exception as exc:
         logger.error("Unhandled exception in add_one_minute", exc_info=True)

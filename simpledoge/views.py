@@ -101,9 +101,9 @@ def get_frontpage_data():
     last_found_at = last_block_time()
     dt = datetime.datetime.utcnow()
     ten_min = (OneMinuteShare.query.filter_by(user='pool')
-                .order_by(OneMinuteShare.minute.desc())
+                .order_by(OneMinuteShare.time.desc())
                 .limit(10))
-    ten_min = sum([min.shares for min in ten_min])
+    ten_min = sum([min.value for min in ten_min])
     shares = db.session.query(func.sum(Share.shares)).filter(Share.id > last_share_id).scalar() or 0
     last_dt = (datetime.datetime.utcnow() - last_found_at).total_seconds()
     return [shares, last_dt, dt, ten_min]
@@ -113,11 +113,11 @@ def get_frontpage_data():
 def last_10_shares(user):
     ten_ago = (datetime.datetime.utcnow() - datetime.timedelta(minutes=10)).replace(second=0)
     minutes = (OneMinuteShare.query.
-               filter_by(user=user).filter(OneMinuteShare.minute >= ten_ago).
-               order_by(OneMinuteShare.minute.desc()).
+               filter_by(user=user).filter(OneMinuteShare.time >= ten_ago).
+               order_by(OneMinuteShare.time.desc()).
                limit(10))
     if minutes:
-        return sum([min.shares for min in minutes])
+        return sum([min.value for min in minutes])
     return 0
 
 
@@ -187,21 +187,25 @@ def user_dashboard(address=None):
 @main.route("/<address>/stats")
 def address_stats(address=None):
     minutes = (db.session.query(OneMinuteShare).
-               filter_by(user=address).order_by(OneMinuteShare.minute.desc()).
-               limit(1441))
-    data = {calendar.timegm(minute.minute.utctimetuple()): minute.shares
-            for minute in minutes}
-    day_ago = (((int(time.time()) - (60 * 60 * 24)) // 60) * 60) - 60
-    out = [(i, data.get(i) or 0)
-           for i in xrange(day_ago, day_ago + (1440 * 60), 60)]
+               filter_by(user=address).order_by(OneMinuteShare.time.desc()).
+               limit(1440))
+    workers = {}
+    for m in minutes:
+        stamp = calendar.timegm(m.time.utctimetuple())
+        workers.setdefault(m.worker, {})
+        workers[m.worker][stamp] = m.value
+    end = (int(time.time()) // 60) * 60
+    start = end - (60 * 60 * 24)
+    step = 60
 
-    return jsonify(points=out, length=len(out))
+    return jsonify(start=start, end=end, step=step, workers=workers)
 
 
 @main.route("/guides")
 @main.route("/guides/")
 def guides_index():
     return render_template("guides/index.html")
+
 
 @main.route("/guides/<guide>")
 def guides(guide):
