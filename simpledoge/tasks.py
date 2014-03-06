@@ -3,9 +3,8 @@ from celery import Celery
 from simpledoge import db, coinserv
 from simpledoge.models import (
     Share, Block, OneMinuteShare, Payout, Transaction, Blob, last_block_time,
-    last_block_share_id)
+    last_block_share_id, FiveMinuteShare)
 from sqlalchemy.sql import func
-from datetime import datetime
 from cryptokit import bits_to_shares, bits_to_difficulty
 from pprint import pformat
 from bitcoinrpc import CoinRPCException
@@ -127,7 +126,7 @@ def add_block(self, user, height, total_value, transaction_fees, bits,
 
 
 @celery.task(bind=True)
-def add_one_minute(self, user, shares, minute):
+def add_one_minute(self, user, shares, minute, worker=None):
     """
     Adds a new single minute entry for a user
 
@@ -136,15 +135,12 @@ def add_one_minute(self, user, shares, minute):
     user: string of the user
     """
     try:
-        minute = (minute // 60) * 60
         try:
-            OneMinuteShare.create(user, shares, datetime.utcfromtimestamp(minute))
+            OneMinuteShare.create(user, shares, minute, worker)
             db.session.commit()
         except sqlalchemy.exc.IntegrityError:
             db.session.rollback()
-            share = OneMinuteShare.query.filter_by(
-                user=user, minute=datetime.utcfromtimestamp(minute)).one()
-            share.shares += shares
+            OneMinuteShare.add_shares(user, shares, minute, worker)
             db.session.commit()
     except Exception as exc:
         logger.error("Unhandled exception in add_one_minute", exc_info=True)
@@ -313,7 +309,7 @@ def payout(self, simulate=False):
 
         assert accrued == distribute_amnt
         logger.info("Successfully distributed all rewards among {} users"
-                     .format(len(user_payouts)))
+                    .format(len(user_payouts)))
 
         if simulate:
             logger.debug("Share distribution:\n {}".format(pformat(user_payouts)))
@@ -327,3 +323,15 @@ def payout(self, simulate=False):
         logger.error("Unhandled exception in payout", exc_info=True)
         db.session.rollback()
         raise self.retry(exc=exc)
+
+
+@celery.task(bind=True)
+def compress_minute(self):
+    OneMinuteShare.compress()
+    db.session.commit()
+
+
+@celery.task(bind=True)
+def compress_five_minute(self):
+    FiveMinuteShare.compress()
+    db.session.commit()

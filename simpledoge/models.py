@@ -1,6 +1,10 @@
+import calendar
+import logging
+
 from datetime import datetime, timedelta
 from simpledoge.model_lib import base
 from sqlalchemy.schema import CheckConstraint
+from sqlalchemy.ext.declarative import AbstractConcreteBase
 from sqlalchemy.dialects.postgresql import HSTORE
 from cryptokit import bits_to_difficulty
 
@@ -140,19 +144,121 @@ class Payout(base):
         return payout
 
 
-class OneMinuteShare(base):
-    """ This class stores a users accepted n1 shares for a 1min period.  This
-    data is generated from summarizing data in the round shares table. """
+class TimeSlice(AbstractConcreteBase, base):
     user = db.Column(db.String, primary_key=True)
     # datetime floored to the minute
-    minute = db.Column(db.DateTime, primary_key=True)
-    # n1 share count for the minute
-    shares = db.Column(db.Integer)
+    time = db.Column(db.DateTime, primary_key=True)
+    worker = db.Column(db.String, primary_key=True)
+    value = db.Column(db.Integer)
 
     @classmethod
-    def create(cls, user, shares, minute):
-        minute_share = cls(user=user,
-                           shares=shares,
-                           minute=minute)
-        db.session.add(minute_share)
-        return minute_share
+    def create(cls, user, value, time, worker=""):
+        dt = cls.floor_time(time)
+        slc = cls(user=user, value=value, time=dt, worker="")
+        db.session.add(slc)
+        return slc
+
+    @classmethod
+    def add_value(cls, user, value, time, worker=""):
+        dt = cls.floor_time(time)
+        slc = cls.query.with_lockmode('update').filter_by(
+            user=user, time=dt, worker=worker).one()
+        slc.value += value
+
+    @classmethod
+    def floor_time(cls, time):
+        """ Changes an integer timestamp to the minute for which it falls in.
+        Allows abstraction of create and add share logic for each time slice
+        object. """
+        if isinstance(time, datetime):
+            time = calendar.timegm(time.utctimetuple())
+        return datetime.utcfromtimestamp(
+            (time // cls.slice_seconds) * cls.slice_seconds)
+
+    @classmethod
+    def compress(cls):
+        """ Moves statistics that are past the `window` time into the next
+        time slice size, effectively compressing the data. """
+        # get the minute shares that are old enough to be compressed and
+        # deleted
+        recent = datetime.utcnow() - cls.window
+        # the five minute slice currently being processed
+        current_slice = None
+        # dictionary of lists keyed by user
+        users = {}
+
+        def create_upper():
+            # add a time slice for each user in this pending period
+            for (user, worker), slices in users.iteritems():
+                total = sum([slc.value for slc in slices])
+
+                # put it in the database
+                upper = cls.upper.query.filter_by(user=user, time=current_slice).with_lockmode('update').first()
+                # wasn't in the db? create it
+                if not upper:
+                    upper = cls.upper.create(user, total, current_slice, worker)
+                # was in the db? add the shares for each worker, and
+                # increment total share count
+                else:
+                    upper.value += total
+
+                for slc in slices:
+                    db.session.delete(slc)
+
+        # traverse minute shares that are old enough in time order
+        for slc in (cls.query.filter(cls.time <= recent).
+                    order_by(cls.time)):
+            slice_time = cls.upper.floor_time(slc.time)
+
+            if current_slice is None:
+                current_slice = slice_time
+
+            # we've encountered the next time slice, so commit the pending one
+            if slice_time != current_slice:
+                logging.debug("Processing slice " + str(current_slice))
+                create_upper()
+                users.clear()
+                current_slice = slice_time
+
+            # add the one min shares for this user the list of pending shares
+            # to be grouped together
+            key = (slc.user, slc.worker)
+            users.setdefault(key, [])
+            users[key].append(slc)
+
+        create_upper()
+
+
+class OneHourShare(TimeSlice):
+    __tablename__ = 'one_hour_share'
+    window = timedelta(days=30)
+    slice = timedelta(hours=1)
+    slice_seconds = slice.total_seconds()
+    __mapper_args__ = {
+        'polymorphic_identity': 'one_hour_share',
+        'concrete': True
+    }
+
+
+class FiveMinuteShare(TimeSlice):
+    __tablename__ = 'five_minute_share'
+    window = timedelta(days=1)
+    slice = timedelta(minutes=5)
+    slice_seconds = slice.total_seconds()
+    upper = OneHourShare
+    __mapper_args__ = {
+        'polymorphic_identity': 'five_minute_share',
+        'concrete': True
+    }
+
+
+class OneMinuteShare(TimeSlice):
+    __tablename__ = 'one_minute_share'
+    window = timedelta(hours=1)
+    slice = timedelta(minutes=1)
+    slice_seconds = slice.total_seconds()
+    upper = FiveMinuteShare
+    __mapper_args__ = {
+        'polymorphic_identity': 'one_minute_share',
+        'concrete': True
+    }
