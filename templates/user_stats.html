@@ -4,7 +4,25 @@
 <script>
 $(document).ready(function() {
 
-  d3.json('/static/js/stackedAreaData.json', function(data) {
+  d3.json('/{{ username }}/stats', function(data) {
+    clean_data = [];
+    start = data.start;
+    end = data.end;
+    step = data.step;
+    for (var key in data.workers) {
+      var worker = data.workers[key];
+      var values = []
+      for (var i = start; i < end; i += step) {
+        if (i in worker)
+          values.push([i * 1000, worker[i]]);
+        else
+          values.push([i * 1000, 0]);
+      }
+      if (key == "")
+        key = "[unnamed]";
+      clean_data.push({key: key, seriesIndex: 0, values: values});
+    }
+    console.log(clean_data);
     nv.addGraph(function() {
       var chart = nv.models.stackedAreaChart()
                     .margin({right: 100})
@@ -25,7 +43,7 @@ $(document).ready(function() {
           .tickFormat(d3.format(',.2f'));
 
       d3.select('#chart svg')
-        .datum(data)
+        .datum(clean_data)
         .call(chart);
 
       nv.utils.windowResize(chart.update);

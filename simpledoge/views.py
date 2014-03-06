@@ -195,7 +195,7 @@ def address_stats(address=None):
         workers.setdefault(m.worker, {})
         workers[m.worker][stamp] = m.value
     end = (int(time.time()) // 60) * 60
-    start = end - (60 * 60 * 24)
+    start = end - (60 * 60)
     step = 60
 
     return jsonify(start=start, end=end, step=step, workers=workers)
