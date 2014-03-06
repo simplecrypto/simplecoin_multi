@@ -64,6 +64,7 @@
 
 .nvtooltip.x-nvtooltip,
 .nvtooltip.y-nvtooltip {
+
   padding: 8px;
 }
 
@@ -777,5 +778,13 @@ Interactive Layer
 
 .nvd3 .nv-series > circle {
     stroke:#fff !important;
+
+}
+.nvd3 .nv-series.disabled > circle {
     fill:#fff !important;
+    fill-opacity: 100;
+}
+
+.nvtooltip table {
+    color:#000;
 }
