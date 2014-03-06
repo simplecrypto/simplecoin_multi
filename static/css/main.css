@@ -69,6 +69,15 @@ p.guide {
   background:none;
 }
 
+a.contact {
+  color:#FAFAFA;
+  text-decoration:none !important;
+}
+
+a.contact:hover div {
+  background-color:#4e5d6c;
+}
+
 
 /* User stats styling */
 
