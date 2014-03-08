@@ -39,7 +39,7 @@ generate_graph = function(request_url, date_format, user) {
       for (var key in data.workers) {
         var worker = data.workers[key];
         var values = []
-        for (var i = start; i < end; i += step) {
+        for (var i = start; i <= end; i += step) {
 
           if (i in worker) {
             values.push([i * 1000, worker[i]]);

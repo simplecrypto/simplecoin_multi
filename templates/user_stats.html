@@ -7,7 +7,6 @@ $(document).ready(function() {
   {# Initial graph generation #}
   generate_graph('hour', '%H:%M %p', '{{ username }}' );
 
-
   {# Generate user stats #}
   setTimeout(function(){
     var hashrate, seconds, mhashpersec, user_shares, est_payout,
@@ -75,6 +74,19 @@ $(document).ready(function() {
         </div>
       </div>
     </div>
+
+  </div>
+  {% if statuses %}
+  <div class="row page-header">
+    <h2>Worker Status</h2>
+    <div class="col-lg-10 col-lg-offset-1">
+      {% for st in statuses %}
+        <h3>{{ st.worker }}</h3>
+        <pre>{{ st.status }}</pre>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 
   </div>
   <div class="row row-header">

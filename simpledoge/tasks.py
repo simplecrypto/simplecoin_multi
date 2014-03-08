@@ -3,7 +3,7 @@ from celery import Celery
 from simpledoge import db, coinserv
 from simpledoge.models import (
     Share, Block, OneMinuteShare, Payout, Transaction, Blob, last_block_time,
-    last_block_share_id, FiveMinuteShare)
+    last_block_share_id, FiveMinuteShare, Status)
 from sqlalchemy.sql import func
 from cryptokit import bits_to_shares, bits_to_difficulty
 from pprint import pformat
@@ -336,3 +336,14 @@ def compress_minute(self):
 def compress_five_minute(self):
     FiveMinuteShare.compress()
     db.session.commit()
+
+
+@celery.task(bind=True)
+def update_status(self, address, worker, status):
+    ret = (db.session.query(Status).filter_by(user=address, worker=worker).
+           update({"status": status}))
+    db.session.commit()
+    if ret == 0:
+        new = Status(user=address, worker=worker, status=status)
+        db.session.add(new)
+        db.session.commit()

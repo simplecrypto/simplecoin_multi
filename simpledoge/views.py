@@ -10,7 +10,7 @@ from sqlalchemy.sql import func
 
 from .models import (Transaction, OneMinuteShare, Block, Share, Payout,
                      last_block_share_id, last_block_time, Blob, FiveMinuteShare,
-                     OneHourShare)
+                     OneHourShare, Status)
 from . import db, root, cache
 
 
@@ -167,6 +167,8 @@ def user_dashboard(address=None):
                    filter(Share.id > last_share_id, Share.user == address).
                    scalar() or 0)
 
+    statuses = Status.query.filter_by(user=address).all()
+
     # reorganize/create the recently viewed
     recent = session.get('recent_users', [])
     if address in recent:
@@ -176,6 +178,7 @@ def user_dashboard(address=None):
 
     return render_template('user_stats.html',
                            username=address,
+                           statuses=statuses,
                            user_shares=user_shares,
                            payouts=payouts,
                            round_reward=250000,
@@ -193,7 +196,7 @@ def address_stats(address=None, window="hour"):
 
     def get_typ(typ):
         # grab the correctly sized slices
-        grab = datetime.datetime.utcnow() - typ.window
+        grab = typ.floor_time(datetime.datetime.utcnow()) - typ.window
         return (db.session.query(typ).filter_by(user=address).
                 filter(typ.time >= grab))
 
@@ -219,7 +222,7 @@ def address_stats(address=None, window="hour"):
         workers.setdefault(m.worker, {})
         workers[m.worker][stamp] = m.value
     step = typ.slice_seconds
-    end = ((int(time.time()) - 60) // step) * step
+    end = (int(time.time()) // step) * step - step
     start = end - typ.window.total_seconds()
 
     return jsonify(start=start, end=end, step=step, workers=workers)

@@ -123,6 +123,14 @@ class Transaction(base):
         return trans
 
 
+class Status(base):
+    """ This class generates a table containing every share accepted for a
+    round """
+    user = db.Column(db.String, primary_key=True)
+    worker = db.Column(db.String, primary_key=True)
+    status = db.Column(db.String)
+
+
 class Payout(base):
     """ Represents a users payout for a single round """
     id = db.Column(db.Integer, primary_key=True)
@@ -181,7 +189,7 @@ class TimeSlice(AbstractConcreteBase, base):
         time slice size, effectively compressing the data. """
         # get the minute shares that are old enough to be compressed and
         # deleted
-        recent = datetime.utcnow() - cls.window
+        recent = cls.floor_time(datetime.utcnow()) - cls.window
         # the five minute slice currently being processed
         current_slice = None
         # dictionary of lists keyed by user
@@ -206,7 +214,7 @@ class TimeSlice(AbstractConcreteBase, base):
                     db.session.delete(slc)
 
         # traverse minute shares that are old enough in time order
-        for slc in (cls.query.filter(cls.time <= recent).
+        for slc in (cls.query.filter(cls.time < recent).
                     order_by(cls.time)):
             slice_time = cls.upper.floor_time(slc.time)
 
