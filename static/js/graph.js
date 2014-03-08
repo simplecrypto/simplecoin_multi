@@ -1,194 +1,102 @@
-generate_graph = function(request_url, append_to) {
-
-//    request_url = json endpoint to grab data from
-//    append_to = a class or id to append the graph to
-//    Expects to find a dictionary containing the key 'points'
-//    'points' should contain a list of lists.
-
-//Calculate the hash rate based on the number of diff-1 shares generated in a minute
-  var calculate_hash = function(sharesPerMin) {
-    var khashes = ((Math.pow(2, 16) * sharesPerMin)/60)/1000;
-    return khashes
-  }
-//Calculate a value to return for the y-scale, in khash or mhash
-  var y_scale = function(max_hash) {
-      return (calculate_hash(max_hash))/1000
-  }
-//Calculate a value to return for the y-axis text, khash or mhash
-  var generate_y_text = function(max_hash) {
-      return "MHashes/sec"
-  }
-
-  var margin = {top: 20, right: 125, bottom: 40, left: 70},
-      width = 960 - margin.left - margin.right,
-      height = 300 - margin.top - margin.bottom;
-
-  var color_hash = [
-            ["One minute Avg", "steelblue"],
-            ["1 Hour Avg", "red"]
-          ]
-
-  var x = d3.time.scale()
-      .range([1, width]);
-
-  var y = d3.scale.linear()
-      .range([height-1, 0]);
-
-  var xAxis = d3.svg.axis()
-      .scale(x)
-      .orient("bottom");
-
-  var yAxis = d3.svg.axis()
-      .scale(y)
-      .ticks(8)
-      .orient("left");
-
-  var line = d3.svg.line()
-      .x(function(d) {
-          return x(d.time); })
-      .y(function(d) { return y(d.shares); });
-
-  var hourAverageLine = d3.svg.line()
-      .interpolate("basis")
-      .x(function(d) { return x(d[0]); })
-      .y(function(d) { return y(d[1]); });
-
-  var svg = d3.select(append_to).append("svg")
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
-    .append("g")
-      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-  var hour_line = [];
-  var minute = 0;
-  var hour_avg_list = [], hour_avg_val = 0;
-  d3.json(request_url, function(error, data) {
-
-//  quick hack here to shoot a five min avg to user stats w/o querying server
-    var h = 1, ten_min = 0;
-    while (h < 11) {
-        ten_min += +data['points'][1440-h][1];
-        h++;
+generate_graph = function(request_url, date_format, user) {
+  //Calculate the hash rate based on the number of diff-1 shares generated in a minute
+    var calculate_hash = function(sharesPerMin) {
+      var khashes = ((Math.pow(2, 16) * sharesPerMin)/60)/1000;
+      return khashes
     }
-    window.last_10min = ten_min / 10;
+  //Calculate a value to return for the y-scale, in khash or mhash
+    var y_scale = function(max_hash) {
+        return (calculate_hash(max_hash))/1000
+    }
+  //Calculate a value to return for the y-axis text, khash or mhash
+    var generate_y_text = function(max_hash) {
+        return "MHashes/sec"
+    }
 
+  //Swap classes on nav tabs
+  $('.tab').click(function () {
+    $('.tab').removeClass('active')
+    $(this).addClass('active')
+  })
 
-    data['points'].forEach(function(d,i) {
-
-      d.time = new Date(d[0] * 1000);
-      d.shares = +y_scale(d[1]);
-
-//          build an avg line from last hour's data
-//    push current shares to a list
-      hour_avg_list.push(d.shares);
-//    build avg from hour_avg_list
-      hour_avg_list.forEach(function(d) {
-          hour_avg_val += d;
-      });
-//    build a new list containing 1 hour averages
-      if (i>58) {
-        hour_line.push([d.time, hour_avg_val/60])
-
-//    Pop off first item in list to keep it at 60
-      hour_avg_list.shift();
-
-      } else {
-//      if there isn't yet 60 values, look ahead and do a flat avg
-//      this hack needs to be reworked to the whole line
-        var g=1;
-        hour_avg_val = 0;
-        while (g<60) {
-            hour_avg_val += +y_scale(data['points'][g][1]);
-            g++;
-        }
-        hour_line.push([d.time, hour_avg_val/60]);
-      }
-      hour_avg_val = 0;
-    });
-
-    var yaxis_text = generate_y_text(d3.max(data['points'], function(d) { return +d[1]; }));
-
-    x.domain(d3.extent(data['points'], function(d) { return d.time; }));
-    y.domain([0, d3.max(data['points'], function(d) { return d.shares*1.1; })]);
-
-    svg.append("g")
-        .attr("class", "x axis")
-        .attr("transform", "translate(0," + height + ")")
-        .call(xAxis)
-       .append("text")
-        .attr("x", width-70)
-        .attr("y", +30)
-        .attr("dy", ".71em")
-        .text("Time");
-
-    svg.append("g")
-        .attr("class", "y axis")
-        .call(yAxis)
-      .append("text")
-        .attr("transform", "rotate(-90)")
-        .attr("y", -60)
-        .attr("dy", ".71em")
-        .style("text-anchor", "end")
-        .text(yaxis_text);
-
-    svg.append("path")
-        .datum(data['points'])
-        .attr("class", "line")
-        .attr("d", line);
-
-    svg.append("path")
-        .datum(hour_line)
-        .attr("class", "line2")
-        .attr("d", hourAverageLine);
-
-    // add legend
-    var legend = svg.append("g")
-      .attr("class", "legend")
-      .attr("height", 100)
-      .attr("width", 100)
-      .attr('transform', 'translate(-20,50)')
-
-      legend
-        .selectAll('rect')
-        .data(color_hash)
-        .enter()
-        .append("rect")
-      .attr("x",  width + 57)
-        .attr("y", function(d, i){ return i *  20;})
-      .attr("width", 10)
-      .attr("height", 10)
-      .style("fill", function(d) {
-          var color = d[1];
-          return color;
-        })
-
-      legend.selectAll('text')
-        .data(color_hash)
-        .enter()
-        .append("text")
-      .attr("x", width + 70)
-        .attr("y", function(d, i){ return i *  20 + 9;})
-      .text(function(d) {
-          var text = d[0];
-          return text;
-        });
-
-    // Draw Y-axis grid lines
-    svg.selectAll("line.y")
-      .data(y.ticks(8))
-      .enter().append("line")
-      .attr("class", "y")
-      .attr("x1", 0)
-      .attr("x2", 765)
-      .attr("y1", y)
-      .attr("y2", y)
-      .style("stroke", "#555");
-
-//    svg.append("svg:circle")
-//        .datum(hour_line)
-//        .style("fill", "red")
-//        .attr("cx", hourAverageLine[0])
-//        .attr("cy", hourAverageLine[1])
-//        .attr("r", 4.5);
-
+  //Swap graph time period
+  $(".tab a")
+  .on("click", function() {
+    var $anchor = $(this);
+    clean_data = [];
+    $('#chart img').show()
+    generate_data($anchor.attr('data-target'), $anchor.attr('data-format'), user);
   });
+
+  var clean_data = [];
+  var last_10min = 0;
+  generate_data = function(request_url, date_format, user) {
+    d3.json('/' + user + '/stats/' + request_url, function(data) {
+
+      start = data.start;
+      end = data.end;
+      step = data.step;
+      for (var key in data.workers) {
+        var worker = data.workers[key];
+        var values = []
+        for (var i = start; i < end; i += step) {
+
+          if (i in worker) {
+            values.push([i * 1000, worker[i]]);
+            //If this is an hour loop build a total value for last 10min
+            if (i >= (end - (10 * step)) &&  request_url == 'hour') {
+              last_10min += worker[i];
+            }
+          } else {
+            values.push([i * 1000, 0]);
+          }
+        }
+
+        if (key == "")
+          key = "[unnamed]";
+          clean_data.push({key: key, seriesIndex: 0, values: values});
+      }
+
+      //after iteration /10 to get avg
+      if (request_url == 'hour') {
+        window.last_10min = last_10min / 10;
+      }
+
+      //Actually generate/regenerate the graph here
+      nv.addGraph(window.generate_graph = function() {
+        var chart = nv.models.stackedAreaChart()
+                      .margin({right: 100})
+                      .x(function(d) { return d[0] })   //We can modify the data accessor functions...
+                      .y(function(d) { return +y_scale(d[1]) })   //...in case your data is formatted differently.
+                      .useInteractiveGuideline(true)    //Tooltips which show all data points. Very nice!
+                      .transitionDuration(500)
+                      .showControls(true)       //Allow user to choose 'Stacked', 'Stream', 'Expanded' mode.
+                      .clipEdge(true);
+
+        // Format x-axis labels with custom function.
+        chart.xAxis
+            .tickFormat(function(d) { return d3.time.format(date_format)(new Date(d)) })
+            .scale(d3.time.scale())
+            .axisLabel('Time')
+            .axisLabelDistance(30);;
+
+        chart.yAxis
+            .tickFormat(d3.format(',.2f'))
+            .axisLabel('MHash/sec')
+            .axisLabelDistance(30);
+
+        d3.select('#chart svg')
+          .datum(clean_data)
+          .call(chart);
+
+        $('#chart img').hide()
+
+        nv.utils.windowResize(chart.update);
+      });
+    });
+  }
+
+  // Initial graph generation
+  generate_data(request_url, date_format, user);
+
 }

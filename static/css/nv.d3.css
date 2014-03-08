@@ -770,14 +770,14 @@ Interactive Layer
 }
 
 .nvd3 .nv-series {
-    stroke:#fff;
+    stroke:#EBEBEB;
 }
 .nvd3.nv-axis {
-    stroke:#fff;
+    stroke:#EBEBEB;
 }
 
 .nvd3 .nv-series > circle {
-    stroke:#fff !important;
+    stroke:#FAFAFA !important;
 
 }
 .nvd3 .nv-series.disabled > circle {
