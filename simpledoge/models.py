@@ -1,5 +1,6 @@
 import calendar
 import logging
+import json
 
 from datetime import datetime, timedelta
 from simpledoge.model_lib import base
@@ -148,6 +149,10 @@ class Status(base):
     worker = db.Column(db.String, primary_key=True)
     status = db.Column(db.String)
     time = db.Column(db.DateTime)
+
+    @property
+    def parsed_status(self):
+        return json.loads(self.status)
 
 
 class Payout(base):

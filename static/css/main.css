@@ -131,3 +131,7 @@ g.axis {
 .too-damn-bright {
     opacity: .80;
 }
+
+.worker-table th {
+    text-align: center;
+}
