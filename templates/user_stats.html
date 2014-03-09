@@ -155,7 +155,7 @@ $(document).ready(function() {
               <th>{{ payout.amount }}</th>
               <th>{{ payout.blockheight }}</th>
               <th>{{ payout.transaction_id }}</th>
-              <th>{% if payout.block.mature %}Confirmed{% else %}Unconfirmed{% endif %}</th>
+              <th>{{ payout.block.status }}</th>
             </tr>
             {% endfor %}
 

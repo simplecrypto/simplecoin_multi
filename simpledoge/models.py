@@ -50,6 +50,14 @@ class Block(base):
     # have payments been generated for it?
     processed = db.Column(db.Boolean, default=False)
 
+    @property
+    def status(self):
+        if self.mature:
+            return "Mature"
+        if self.orphan:
+            return "Orphan"
+        return "Unconfirmed"
+
     @classmethod
     def create(cls, user, height, total_value, transaction_fees, bits, hash,
                time_started):

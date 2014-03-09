@@ -67,7 +67,7 @@ $(document).ready(function() {
           <th><a href="/{{ block.user }}">{{ block.user|truncate(9, True) }}</a></th>
           <th><a href="https://dogechain.info/block/{{ block.hash }}">{{ block.hash|truncate(9, True) }}</a></th>
           <th>{{ block.height }}</th>
-          <th>{% if block.mature %}Confirmed{% else %}Unconfirmed{% endif %}</th>
+          <th>{{ block.status }}</th>
         </tr>
         {% endfor %}
 

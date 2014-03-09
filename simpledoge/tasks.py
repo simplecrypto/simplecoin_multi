@@ -56,12 +56,23 @@ def update_block_state(self):
             logger.info("Checking block height: {}".format(block.height))
             # Check to see if the block hash exists in the block chain
             try:
-                coinserv.getblock(block.hash)
+                output = coinserv.getblock(block.hash)
+                logger.debug("Confirms: {}; Height diff: {}"
+                             .format(output['confirmations'],
+                                     blockheight - block.height))
             except CoinRPCException:
+                logger.info("Block {}:{} not in coin database, assume orphan!"
+                            .format(block.height, block.hash))
                 block.orphan = True
-            # Check to see if the block is matured & not orphaned
-            if (blockheight - 120 > block.height) and block.orphan is False:
-                block.mature = True
+            else:
+                if output['confirmations'] > 120:
+                    logger.info("Block {}:{} meets 120 confirms, mark mature"
+                                .format(block.height, block.hash))
+                    block.mature = True
+                elif (blockheight - block.height) > 120 and output['confirmations'] < 120:
+                    logger.info("Block {}:{} 120 height ago, but not enough confirms. Marking orphan."
+                                .format(block.height, block.hash))
+                    block.orphan = True
 
         db.session.commit()
     except Exception as exc:
@@ -163,23 +174,6 @@ def new_block(self, blockheight, bits=None, reward=None):
                                    'reward': str(reward)})
     db.session.merge(blob)
     db.session.commit()
-
-
-@celery.task(bind=True)
-def update_mature(self):
-    try:
-        blob = Blob.query.filter_by(key='block').first()
-        if blob is None:
-            return
-        mature_height = blob.data['height'] - 120
-        (Block.query.
-            filter(Block.height < mature_height).
-            filter_by(mature=False).
-            update({Block.mature: True}))
-        db.session.commit()
-    except Exception:
-        logger.error("Unhandled exception in new_block", exc_info=True)
-        db.session.rollback()
 
 
 @celery.task(bind=True)
@@ -339,7 +333,7 @@ def compress_five_minute(self):
 
 
 @celery.task(bind=True)
-def update_status(self, address, worker, status):
+def update_status(self, address, worker, status, timestamp):
     ret = (db.session.query(Status).filter_by(user=address, worker=worker).
            update({"status": status}))
     db.session.commit()
