@@ -10,7 +10,9 @@ $(document).ready(function() {
     });
 });
 </script>
+
 <!-- Img ================================================== -->
+
 <div class="row">
   <div class="col-lg-5">
     <div class="text-center">
@@ -24,7 +26,8 @@ $(document).ready(function() {
     </div>
   </div>
 
-<!-- Quick started ================================================== -->
+<!-- Quick start ================================================== -->
+
   <div class="col-lg-7">
     <div class="well well-lg" style="padding-right:30px;">
       <h3>Quick start for mining:</h3>
@@ -65,6 +68,9 @@ $(document).ready(function() {
     </div>
   </div>
 </div>
+
+<!-- Why Simple Doge rocks ================================================== -->
+
 <div class="row">
   <div class="col-md-4">
     <div class="well well-lg" style="height: 180px;">
@@ -87,6 +93,9 @@ $(document).ready(function() {
     </div>
   </div>
 </div>
+
+<!-- Contact us ================================================== -->
+
 <div class="row">
   <div class="col-lg-3 text-center">
       <h2><i class="fa fa-bullhorn"></i> &nbsp;Contact us</h2>
@@ -128,18 +137,22 @@ $(document).ready(function() {
     </a>
   </div>
 </div>
-<h2>News</h2>
+
 <!-- News/Announcements ================================================== -->
+
+<h2>News</h2>
 <div class="row row-header">
   <div class="col-lg-12">
     {% for new in news[:3] %}
     <div class="panel panel-default">
-      <div class="panel-heading">{{ new['title']|safe }} <span class="text-muted pull-right">{{ new['date']|safe }}</span></div>
+      <div class="panel-heading">{{ new['title']|safe }}
+        <span class="text-muted pull-right">{{ new['date']|safe }}</span>
+      </div>
       <div class="panel-body">
         <p>{{ new['body']|safe }}</p>
       </div>
-      {% endfor %}
     </div>
+    {% endfor %}
   </div>
 </div>
 {% endblock %}
