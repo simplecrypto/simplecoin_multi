@@ -20,7 +20,9 @@ class Blob(base):
 
 class Block(base):
     """ This class stores metadata on all blocks found by the pool """
-    height = db.Column(db.Integer, primary_key=True)
+    # the hash of the block for orphan checking
+    hash = db.Column(db.String, primary_key=True)
+    height = db.Column(db.Integer, nullable=False)
     # User who discovered block
     user = db.Column(db.String)
     # When block was found
@@ -47,8 +49,6 @@ class Block(base):
     last_share = db.relationship('Share', foreign_keys=[last_share_id])
     # have payments been generated for it?
     processed = db.Column(db.Boolean, default=False)
-    # the hash of the block for orphan checking
-    hash = db.Column(db.String, nullable=False)
 
     @classmethod
     def create(cls, user, height, total_value, transaction_fees, bits, hash,
@@ -79,6 +79,8 @@ class Block(base):
 
 
 def last_block_time():
+    """ Retrieves the last time a block was solved using progressively less
+    accurate methods. Essentially used to calculate round time. """
     last_block = Block.query.order_by(Block.height.desc()).first()
     if not last_block:
         first_min_share = OneMinuteShare.query.order_by(OneMinuteShare.time).first()
@@ -134,15 +136,15 @@ class Status(base):
 class Payout(base):
     """ Represents a users payout for a single round """
     id = db.Column(db.Integer, primary_key=True)
-    blockheight = db.Column(db.Integer, db.ForeignKey('block.height'))
-    block = db.relationship('Block', foreign_keys=[blockheight])
+    blockhash = db.Column(db.String, db.ForeignKey('block.hash'))
+    block = db.relationship('Block', foreign_keys=[blockhash])
     user = db.Column(db.String)
     shares = db.Column(db.BigInteger)
-    amount = db.Column(db.BigInteger, CheckConstraint('amount>0'))
+    amount = db.Column(db.BigInteger, CheckConstraint('amount>0', 'min_payout_amount'))
     transaction_id = db.Column(db.String, db.ForeignKey('transaction.txid'))
     transaction = db.relationship('Transaction', foreign_keys=[transaction_id])
     __table_args__ = (
-        db.UniqueConstraint("user", "blockheight"),
+        db.UniqueConstraint("user", "blockhash"),
     )
 
     @classmethod

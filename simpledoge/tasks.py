@@ -91,7 +91,7 @@ def add_share(self, user, shares):
 def add_block(self, user, height, total_value, transaction_fees, bits,
               hash_hex):
     """
-    Insert postgresql a block & blockchain data
+    Insert a block & blockchain data
 
     user: should be a username/wallet address of who found block
     height: should be the height of the given block in the blockchain
@@ -116,7 +116,7 @@ def add_block(self, user, height, total_value, transaction_fees, bits,
         db.session.flush()
         count = (db.session.query(func.sum(Share.shares)).
                  filter(Share.id > last).
-                 filter(Share.id < block.last_share_id).scalar())
+                 filter(Share.id <= block.last_share_id).scalar()) or 128
         block.shares_to_solve = count
         db.session.commit()
     except Exception as exc:
