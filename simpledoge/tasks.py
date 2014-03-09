@@ -141,7 +141,7 @@ def add_one_minute(self, user, valid_shares, minute, worker='', dup_shares=0,
             db.session.commit()
         except sqlalchemy.exc.IntegrityError:
             db.session.rollback()
-            OneMinuteShare.add_shares(user, valid_shares, minute, worker)
+            OneMinuteShare.add_value(user, valid_shares, minute, worker)
             db.session.commit()
     except Exception as exc:
         logger.error("Unhandled exception in add_one_minute", exc_info=True)
