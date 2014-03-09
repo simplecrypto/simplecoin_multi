@@ -82,14 +82,22 @@ def last_block_time():
     """ Retrieves the last time a block was solved using progressively less
     accurate methods. Essentially used to calculate round time. """
     last_block = Block.query.order_by(Block.height.desc()).first()
-    if not last_block:
-        first_min_share = OneMinuteShare.query.order_by(OneMinuteShare.time).first()
-        if first_min_share:
-            return first_min_share.time
-        else:
-            return datetime.utcnow()
-    else:
+    if last_block:
         return last_block.found_at
+
+    hour = OneHourShare.query.order_by(OneHourShare.time).first()
+    if hour:
+        return hour.time
+
+    five = FiveMinuteShare.query.order_by(FiveMinuteShare.time).first()
+    if five:
+        return five.time
+
+    minute = OneMinuteShare.query.order_by(OneMinuteShare.time).first()
+    if minute:
+        return minute.time
+
+    return datetime.utcnow()
 
 
 def last_block_share_id():
