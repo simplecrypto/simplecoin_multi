@@ -1,3 +1,5 @@
+config.yml
+
 *.py[cod]
 *.swp
 *.swo

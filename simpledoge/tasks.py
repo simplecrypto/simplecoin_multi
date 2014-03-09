@@ -12,6 +12,7 @@ from celery.utils.log import get_task_logger
 
 import sqlalchemy
 import logging
+import datetime
 
 logger = get_task_logger(__name__)
 celery = Celery('simpledoge')
@@ -334,10 +335,11 @@ def compress_five_minute(self):
 
 @celery.task(bind=True)
 def update_status(self, address, worker, status, timestamp):
+    dt = datetime.datetime.utcfromtimestamp(timestamp)
     ret = (db.session.query(Status).filter_by(user=address, worker=worker).
-           update({"status": status}))
+           update({"status": status, "time": dt}))
     db.session.commit()
     if ret == 0:
-        new = Status(user=address, worker=worker, status=status)
+        new = Status(user=address, worker=worker, status=status, time=dt)
         db.session.add(new)
         db.session.commit()

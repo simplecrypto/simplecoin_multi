@@ -83,6 +83,7 @@ $(document).ready(function() {
       {% for st in statuses %}
         <h3>{{ st.worker }}</h3>
         <pre>{{ st.status }}</pre>
+        <i>Recieved {{ st.time | time_ago }}</i>
       {% endfor %}
     </div>
   </div>

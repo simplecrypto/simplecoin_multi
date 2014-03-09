@@ -81,8 +81,6 @@ def create_app(config='/config.yml'):
             return ''
 
         if day_diff == 0:
-            if second_diff < 10:
-                return "just now"
             if second_diff < 60:
                 return str(second_diff) + " seconds ago"
             if second_diff < 120:

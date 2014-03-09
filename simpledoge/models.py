@@ -147,6 +147,7 @@ class Status(base):
     user = db.Column(db.String, primary_key=True)
     worker = db.Column(db.String, primary_key=True)
     status = db.Column(db.String)
+    time = db.Column(db.DateTime)
 
 
 class Payout(base):
