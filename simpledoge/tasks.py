@@ -10,6 +10,7 @@ from pprint import pformat
 from bitcoinrpc import CoinRPCException
 from celery.utils.log import get_task_logger
 
+import json
 import sqlalchemy
 import logging
 import datetime
@@ -323,23 +324,41 @@ def payout(self, simulate=False):
 
 @celery.task(bind=True)
 def compress_minute(self):
-    OneMinuteShare.compress()
-    db.session.commit()
+    try:
+        OneMinuteShare.compress()
+        db.session.commit()
+    except Exception:
+        logger.error("Unhandled exception in compress_minute", exc_info=True)
+        db.session.rollback()
 
 
 @celery.task(bind=True)
 def compress_five_minute(self):
-    FiveMinuteShare.compress()
-    db.session.commit()
+    try:
+        FiveMinuteShare.compress()
+        db.session.commit()
+    except Exception:
+        logger.error("Unhandled exception in compress_five_minute", exc_info=True)
+        db.session.rollback()
 
 
 @celery.task(bind=True)
-def update_status(self, address, worker, status, timestamp):
-    dt = datetime.datetime.utcfromtimestamp(timestamp)
-    ret = (db.session.query(Status).filter_by(user=address, worker=worker).
-           update({"status": status, "time": dt}))
-    db.session.commit()
-    if ret == 0:
-        new = Status(user=address, worker=worker, status=status, time=dt)
-        db.session.add(new)
-        db.session.commit()
+def agent_receive(self, address, worker, typ, payload, timestamp):
+    try:
+        if typ == 'status':
+            dt = datetime.datetime.utcfromtimestamp(timestamp)
+            ret = (db.session.query(Status).filter_by(user=address, worker=worker).
+                   update({"status": json.dumps(payload), "time": dt}))
+            db.session.commit()
+            # if the update affected nothing. this happend a minority of the
+            # time
+            if ret == 0:
+                new = Status(user=address, worker=worker,
+                             status=json.dumps(payload), time=dt)
+                db.session.add(new)
+                db.session.commit()
+        else:
+            pass
+    except Exception:
+        logger.error("Unhandled exception in update_status", exc_info=True)
+        db.session.rollback()
