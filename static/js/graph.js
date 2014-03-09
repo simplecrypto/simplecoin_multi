@@ -1,12 +1,12 @@
 generate_graph = function(request_url, date_format, user) {
   //Calculate the hash rate based on the number of diff-1 shares generated in a minute
-    var calculate_hash = function(sharesPerMin) {
-      var khashes = ((Math.pow(2, 16) * sharesPerMin)/60)/1000;
+    var calculate_hash = function(sharesPerMin, seconds) {
+      var khashes = ((Math.pow(2, 16) * sharesPerMin)/seconds)/1000;
       return khashes
     }
   //Calculate a value to return for the y-scale, in khash or mhash
-    var y_scale = function(max_hash) {
-        return (calculate_hash(max_hash))/1000
+    var y_scale = function(max_hash, seconds) {
+        return (calculate_hash(max_hash, seconds))/1000
     }
   //Calculate a value to return for the y-axis text, khash or mhash
     var generate_y_text = function(max_hash) {
@@ -57,9 +57,16 @@ generate_graph = function(request_url, date_format, user) {
           clean_data.push({key: key, seriesIndex: 0, values: values});
       }
 
-      //after iteration /10 to get avg
+      //set seconds to determine hashrate by
+      var seconds = 0;
       if (request_url == 'hour') {
+        //convenient place to get avg after iteration
         window.last_10min = last_10min / 10;
+        seconds = 60;
+      } else if (request_url == 'day') {
+        seconds = 300;
+      } else if (request_url == 'month') {
+        seconds = 3600;
       }
 
       //Actually generate/regenerate the graph here
@@ -67,7 +74,7 @@ generate_graph = function(request_url, date_format, user) {
         var chart = nv.models.stackedAreaChart()
                       .margin({right: 100})
                       .x(function(d) { return d[0] })   //We can modify the data accessor functions...
-                      .y(function(d) { return +y_scale(d[1]) })   //...in case your data is formatted differently.
+                      .y(function(d) { return +y_scale(d[1], seconds) })   //...in case your data is formatted differently.
                       .useInteractiveGuideline(true)    //Tooltips which show all data points. Very nice!
                       .transitionDuration(500)
                       .showControls(true)       //Allow user to choose 'Stacked', 'Stream', 'Expanded' mode.
