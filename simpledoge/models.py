@@ -2,6 +2,7 @@ import calendar
 import logging
 import json
 
+from collections import namedtuple
 from datetime import datetime, timedelta
 from simpledoge.model_lib import base
 from sqlalchemy.schema import CheckConstraint
@@ -233,16 +234,15 @@ class TimeSlice(AbstractConcreteBase, base):
 
         def create_upper():
             # add a time slice for each user in this pending period
-            for (user, worker), slices in users.iteritems():
+            for key, slices in users.iteritems():
                 total = sum([slc.value for slc in slices])
 
                 # put it in the database
-                upper = cls.upper.query.filter_by(user=user, worker=worker, time=current_slice).with_lockmode('update').first()
+                upper = cls.upper.query.filter_by(time=current_slice, **key._asdict()).with_lockmode('update').first()
                 # wasn't in the db? create it
                 if not upper:
-                    upper = cls.upper.create(user, total, current_slice, worker)
-                # was in the db? add the shares for each worker, and
-                # increment total share count
+                    dt = cls.floor_time(current_slice)
+                    upper = cls.upper(time=dt, value=total, **key._asdict())
                 else:
                     upper.value += total
 
@@ -266,11 +266,15 @@ class TimeSlice(AbstractConcreteBase, base):
 
             # add the one min shares for this user the list of pending shares
             # to be grouped together
-            key = (slc.user, slc.worker)
+            key = slc.make_key()
             users.setdefault(key, [])
             users[key].append(slc)
 
         create_upper()
+
+    key = namedtuple('Key', ['user', 'worker'])
+    def make_key(self):
+        return self.key(user=self.user, worker=self.worker)
 
 
 class OneHourShare(TimeSlice):
