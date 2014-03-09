@@ -98,6 +98,11 @@ generate_graph = function(request_url, date_format, user) {
 
         $('#chart img').hide()
 
+        //Hack to update chart when click event occurs
+        $(".nv-stackedAreaChart").on("click", function() {
+            chart.update();
+        });
+
         nv.utils.windowResize(chart.update);
       });
     });
