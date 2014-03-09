@@ -67,6 +67,7 @@ p.guide {
 
 .well-clear {
   background:none;
+  margin-bottom:0px;
 }
 
 a.contact {
@@ -125,4 +126,8 @@ g.axis {
 .odometer {
     line-height: 18px !important;
     vertical-align: top !important;
+}
+
+.too-damn-bright {
+    opacity: .80;
 }
