@@ -37,34 +37,37 @@ $(document).ready(function() {
             <small>
               <pre><b>URL: </b>stratum+tcp://stratum.simpledoge.com
 <b>Port:</b> 3333
-<b>Username: </b>[Your doge address]
+<b>Username: </b>[Your doge wallet address].[Worker Name]
 <b>Password: </b>anything
-<b>cgminer example:</b> ./cgminer -o stratum+tcp://stratum.simpledoge.com:3333 -u [YourDogeAddress] -p x -I 13</pre>
+<b>cgminer example:</b> ./cgminer -o stratum+tcp://stratum.simpledoge.com:3333 -u DRhevw3qkAjmAjyNkSyXh2kxvrXuxktmyD.worker1 -p x -I 13</pre>
             </small>
           </li>
           <li>Check your stats and estimated payout by entering your Doge address below:</li>
+          <div class="form-group">
+            <form class="bs-example form-horizontal" id="statsform">
+              <fieldset>
+                <div class="form-group">
+                  <div class="col-lg-9">
+                    <input type="text" class="form-control" id="inputAddress" placeholder="Doge Address">
+                    <span class="help-block">
+                        Paste your Doge address for quick access to individualized stats.
+                        {% if 'recent_users' in session %}
+                          <h4>Recently Visited Stats:</h4>
+                          {% for address in session['recent_users'][:2] %}
+                          <p><a href="/{{ address }}"><h4>{{ address }}</h4></a></p>
+                          {% endfor %}
+                        {% endif %}
+                    </span>
+                  </div>
+                  <button type="submit" class="btn btn-default">View Stats</button>
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <li>Setup advanced stats to track GPU temps and actual hashrate with
+            <a href="https://github.com/icook/ppagent">Powerpool Agent</a></li>
+
         </ol>
-        <div class="form-group">
-        <form class="bs-example form-horizontal" style="padding-left:55px;" id="statsform">
-          <fieldset>
-            <div class="form-group">
-              <div class="col-lg-9" style="padding:0px;">
-                <input type="text" class="form-control" id="inputAddress" placeholder="Doge Address">
-                <span class="help-block">
-                    Paste your Doge address for quick access to individualized stats.
-                    {% if 'recent_users' in session %}
-                      <h4>Recently Visited Stats:</h4>
-                      {% for address in session['recent_users'][:2] %}
-                      <p><a href="/{{ address }}"><h4>{{ address }}</h4></a></p>
-                      {% endfor %}
-                    {% endif %}
-                </span>
-              </div>
-              <button type="submit" class="btn btn-default">View Stats</button>
-            </div>
-          </fieldset>
-        </form>
-        </div>
     </div>
   </div>
 </div>
@@ -98,13 +101,13 @@ $(document).ready(function() {
 
 <div class="row">
   <div class="col-lg-3 text-center">
-      <h2><i class="fa fa-bullhorn"></i> &nbsp;Contact us</h2>
+      <h2><i class="fa fa-bullhorn too-damn-bright"></i> &nbsp;Contact us</h2>
   </div>
   <div class="col-lg-2">
     <a href="https://kiwiirc.com/client/irc.freenode.net/#simpledoge" class="contact" target="_blank">
       <div class="well well-clear text-center">
         <h3>
-          <i class="fa fa-comments"></i> &nbsp;IRC
+          <i class="fa fa-comments too-damn-bright"></i> &nbsp;IRC
         </h3>
       </div>
     </a>
@@ -113,7 +116,7 @@ $(document).ready(function() {
     <a href="http://www.reddit.com/r/simpledoge" class="contact" target="_blank">
       <div class="well well-clear text-center">
         <h3>
-          <img alt="Reddit" src="/static/img/reddit.png" width="30" height="30"/> &nbsp;Reddit
+          <img alt="Reddit" src="/static/img/reddit.png" class="too-damn-bright" width="30" height="30"/> &nbsp;Reddit
         </h3>
       </div>
     </a>
@@ -122,7 +125,7 @@ $(document).ready(function() {
     <a href="https://github.com/ericecook/simpledoge/issues" class="contact" target="_blank">
       <div class="well well-clear text-center">
         <h3>
-          <i class="fa fa-github"></i> &nbsp;Github
+          <i class="fa fa-github too-damn-bright"></i> &nbsp;Github
         </h3>
       </div>
     </a>
@@ -131,7 +134,7 @@ $(document).ready(function() {
     <a href="mailto:simpledogepool@gmail.com" class="contact">
       <div class="well well-clear text-center">
         <h3>
-          <i class="fa fa-envelope"></i> &nbsp;Email
+          <i class="fa fa-envelope too-damn-bright"></i> &nbsp;Email
         </h3>
       </div>
     </a>
