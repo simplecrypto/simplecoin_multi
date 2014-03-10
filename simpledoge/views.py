@@ -137,6 +137,12 @@ def total_paid(user):
     return sum([tx.amount for tx in total_p])
 
 
+@main.route("/exc_test")
+def exception():
+    raise Exception()
+    return ""
+
+
 @main.route("/charity")
 def charity_view():
     charities = []
