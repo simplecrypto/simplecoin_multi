@@ -54,9 +54,15 @@ def create_app(config='/config.yml'):
     cache.init_app(app, config={'CACHE_TYPE': 'simple'})
 
     # try and get the git information
-    output = subprocess.check_output("git show -s --format='%ci %h'", shell=True).strip().rsplit(" ", 1)
-    app.config['hash'] = output[1]
-    app.config['revdate'] = output[0]
+    try:
+        output = subprocess.check_output("git show -s --format='%ci %h'",
+                                         shell=True).strip().rsplit(" ", 1)
+        app.config['hash'] = output[1]
+        app.config['revdate'] = output[0]
+    # celery won't work with this, so set some default
+    except Exception:
+        app.config['hash'] = ''
+        app.config['revdate'] = ''
 
     # filters for jinja
     @app.template_filter('time_ago')
