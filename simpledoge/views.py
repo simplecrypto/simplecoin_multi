@@ -136,6 +136,19 @@ def total_paid(user):
               filter_by(confirmed=True))
     return sum([tx.amount for tx in total_p])
 
+@cache.memoize(timeout=600)
+def user_summary():
+    """ Returns all users that contributed shares to the last round """
+    return (db.session.query(func.sum(Share.shares), Share.user).
+            group_by(Share.user).filter(Share.id > last_block_share_id()).all())
+
+
+@main.route("/share_summary")
+def summary_page():
+    users = user_summary()
+    users = sorted(users, key=lambda x: x[0], reverse=True)
+    return render_template('share_summary.html', users=users)
+
 
 @main.route("/exc_test")
 def exception():
