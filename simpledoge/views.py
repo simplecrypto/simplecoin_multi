@@ -139,6 +139,7 @@ def total_paid(user):
 
 @main.route("/exc_test")
 def exception():
+    current_app.logger.warn("Exception test!")
     raise Exception()
     return ""
 
@@ -253,6 +254,11 @@ def address_stats(address=None, window="hour"):
 
     return jsonify(start=start, end=end, step=step, workers=workers)
 
+
+@main.errorhandler(Exception)
+def handle_error(error):
+    current_app.logger.exception(error)
+    return render_template("500.html")
 
 @main.route("/guides")
 @main.route("/guides/")

@@ -34,6 +34,13 @@ def create_app(config='/config.yml'):
     for key, val in config_vars.items():
         app.config[key] = val
 
+    logger = logging.getLogger()
+    hdlr = logging.FileHandler(app.config.get('log_file', 'webserver.log'))
+    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+    hdlr.setFormatter(formatter)
+    app.logger.addHandler(hdlr)
+    app.logger.setLevel(logging.INFO)
+
     app.rpc_connection = AuthServiceProxy(
         "http://{0}:{1}@{2}:{3}/"
         .format(app.config['coinserv']['username'],
