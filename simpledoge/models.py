@@ -225,7 +225,7 @@ class TimeSlice(AbstractConcreteBase, base):
                 total = sum([slc.value for slc in slices])
 
                 # put it in the database
-                upper = cls.upper.query.filter_by(user=user, time=current_slice).with_lockmode('update').first()
+                upper = cls.upper.query.filter_by(user=user, worker=worker, time=current_slice).with_lockmode('update').first()
                 # wasn't in the db? create it
                 if not upper:
                     upper = cls.upper.create(user, total, current_slice, worker)
