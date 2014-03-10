@@ -103,8 +103,9 @@ def get_frontpage_data():
     last_found_at = last_block_time()
     dt = datetime.datetime.utcnow()
     ten_min = (OneMinuteShare.query.filter_by(user='pool')
-                .order_by(OneMinuteShare.time.desc())
-                .limit(10))
+               .filter(OneMinuteShare.time >= datetime.datetime.utcnow() - datetime.timedelta(seconds=600))
+               .order_by(OneMinuteShare.time.desc())
+               .limit(10))
     ten_min = sum([min.value for min in ten_min])
     shares = db.session.query(func.sum(Share.shares)).filter(Share.id > last_share_id).scalar() or 0
     last_dt = (datetime.datetime.utcnow() - last_found_at).total_seconds()
