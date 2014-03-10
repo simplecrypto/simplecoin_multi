@@ -169,7 +169,7 @@ def user_dashboard(address=None):
                    filter(Share.id > last_share_id, Share.user == address).
                    scalar() or 0)
 
-    statuses = Status.query.filter_by(user=address).all()
+    statuses = Status.query.filter_by(user=address).order_by(Status.worker.asc()).all()
 
     # reorganize/create the recently viewed
     recent = session.get('recent_users', [])
