@@ -154,6 +154,10 @@ class Status(base):
     def parsed_status(self):
         return json.loads(self.status)
 
+    @property
+    def pretty_json(self):
+        return json.dumps(json.loads(self.status), indent=4, sort_keys=True)
+
 
 class Payout(base):
     """ Represents a users payout for a single round """

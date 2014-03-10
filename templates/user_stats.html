@@ -93,7 +93,7 @@ $(document).ready(function() {
                 </tr>
               </thead>
               <tbody>
-              {% for gpu in  st.parsed_status['gpus'] %}
+              {% for gpu in st.parsed_status['gpus'] %}
                 <tr>
                   <th>{{ loop.index0 }}</th>
                   <th {% if gpu.hash == 0 %}class="warning"{% endif %}>{{ (gpu.hash*1000)|round|int }}</th>
@@ -102,6 +102,7 @@ $(document).ready(function() {
               {% endfor %}
               </tbody>
             </table>
+            <div style="text-align:right;"><a href="/{{ username }}/{{ st.worker }}/details" style=" color:#fafafa;"><i>Details</i></a></div>
         </div>
       {% endfor %}
     </div>

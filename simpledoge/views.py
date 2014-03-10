@@ -153,6 +153,16 @@ def charity_view():
     return render_template('charity.html', charities=charities)
 
 
+@main.route("/<address>/<worker>/details")
+def worker_detail(address, worker):
+    status = Status.query.filter_by(user=address, worker=worker).first()
+    if status:
+        output = status.pretty_json
+    else:
+        output = "Not available"
+    return render_template('status_detail.html', status=output)
+
+
 @main.route("/<address>")
 def user_dashboard(address=None):
     if len(address) != 34:
