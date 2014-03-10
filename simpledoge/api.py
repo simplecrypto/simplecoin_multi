@@ -2,7 +2,7 @@ from flask import Blueprint, current_app, jsonify
 from lever import (API, LeverException)
 from pprint import pformat
 
-from .models import Block, Share, Transaction, Payout, OneMinuteShare
+from .models import Block, Share, Transaction, Payout, OneMinuteShare, Status
 from . import db
 
 import six
@@ -84,8 +84,13 @@ class TransactionAPI(APIBase):
     model = Transaction
 
 
+class StatusAPI(APIBase):
+    model = Status
+
+
 BlockAPI.register(api, '/block')
 PayoutAPI.register(api, '/payout')
 OneMinuteShareAPI.register(api, '/onemin')
 ShareAPI.register(api, '/share')
 TransactionAPI.register(api, '/transaction')
+StatusAPI.register(api, '/status')
