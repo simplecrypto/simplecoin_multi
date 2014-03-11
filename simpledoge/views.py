@@ -168,6 +168,8 @@ def charity_view():
 
 
 @main.route("/<address>/<worker>/details")
+@main.route("/<address>/details", defaults={'worker': ''})
+@main.route("/<address>//details", defaults={'worker': ''})
 def worker_detail(address, worker):
     status = Status.query.filter_by(user=address, worker=worker).first()
     if status:
