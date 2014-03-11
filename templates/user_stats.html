@@ -96,7 +96,7 @@ $(document).ready(function() {
               {% for gpu in st.parsed_status['gpus'] %}
                 <tr>
                   <th>{{ loop.index0 }}</th>
-                  <th {% if gpu.hash == 0 %}class="warning"{% endif %}>{{ (gpu.get('hash', 0)*1000)|round|int }}</th>
+                  <th {% if gpu.hash == 0 %}class="warning"{% endif %}>{{ (gpu.get('Total MH', 0)*1000)|round|int }}</th>
                   <th {% if gpu.temp > 90 %}class="danger"{% endif %}>{{ gpu.temp }}</th>
                 </tr>
               {% endfor %}
