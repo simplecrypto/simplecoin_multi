@@ -1,3 +1,12 @@
+- title: Bug squashing the new release
+  date: 3/11/2014
+  body: |
+      The following bugs have been fixed since the release:
+      <ul>
+        <li>Details view for workers would show not found if your worker didn't have a name</li>
+        <li>Multiple worker displays were not being converted from the hour display to day display correctly, causing workers accepted shares to look disproportionate.</li>
+        <li>Graphs would sometimes show a minute when there was no data for it yet, causing a dip at the end of the graph to 0</li>
+      </ul>
 - title: New graphs w/ worker stats. Track your actual gpu temps and hashrate!
   date: 3/9/2014
   body: |
