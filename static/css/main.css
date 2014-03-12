@@ -3,6 +3,14 @@ body {
   color: #FAFAFA;
 }
 
+body a {
+    font-weight:400;
+}
+
+.no-padding {
+    padding:0px;
+}
+
 .btn-default {
   background-color: #3E4853;
 }
