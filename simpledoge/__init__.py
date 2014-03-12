@@ -20,7 +20,7 @@ coinserv = LocalProxy(
     lambda: getattr(current_app, 'rpc_connection', None))
 
 
-def create_app(config='/config.yml'):
+def create_app(config='/config.yml', celery=False):
     # initialize our flask application
     app = Flask(__name__, static_folder='../static', static_url_path='/static')
 
@@ -33,13 +33,6 @@ def create_app(config='/config.yml'):
     config_vars = dict(private + public)
     for key, val in config_vars.items():
         app.config[key] = val
-
-    logger = logging.getLogger()
-    hdlr = logging.FileHandler(app.config.get('log_file', 'webserver.log'))
-    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-    hdlr.setFormatter(formatter)
-    app.logger.addHandler(hdlr)
-    app.logger.setLevel(logging.INFO)
 
     app.rpc_connection = AuthServiceProxy(
         "http://{0}:{1}@{2}:{3}/"
@@ -60,16 +53,24 @@ def create_app(config='/config.yml'):
     db.init_app(app)
     cache.init_app(app, config={'CACHE_TYPE': 'simple'})
 
-    # try and get the git information
-    try:
-        output = subprocess.check_output("git show -s --format='%ci %h'",
-                                         shell=True).strip().rsplit(" ", 1)
-        app.config['hash'] = output[1]
-        app.config['revdate'] = output[0]
-    # celery won't work with this, so set some default
-    except Exception:
-        app.config['hash'] = ''
-        app.config['revdate'] = ''
+    if not celery:
+        logger = logging.getLogger()
+        hdlr = logging.FileHandler(app.config.get('log_file', 'webserver.log'))
+        formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+        hdlr.setFormatter(formatter)
+        app.logger.addHandler(hdlr)
+        app.logger.setLevel(logging.INFO)
+
+        # try and get the git information
+        try:
+            output = subprocess.check_output("git show -s --format='%ci %h'",
+                                            shell=True).strip().rsplit(" ", 1)
+            app.config['hash'] = output[1]
+            app.config['revdate'] = output[0]
+        # celery won't work with this, so set some default
+        except Exception:
+            app.config['hash'] = ''
+            app.config['revdate'] = ''
 
     # filters for jinja
     @app.template_filter('time_ago')

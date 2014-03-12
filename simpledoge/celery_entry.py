@@ -4,7 +4,7 @@ from celery.bin.worker import main
 from flask import current_app
 
 
-app = create_app()
+app = create_app(celery=True)
 celery.config_from_object('celeryconfig')
 
 with app.app_context():
