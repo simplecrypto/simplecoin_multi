@@ -154,9 +154,17 @@ class Status(base):
     def parsed_status(self):
         return json.loads(self.status)
 
+    def pretty_json(self, gpu=0):
+        print type(gpu)
+        return json.dumps(json.loads(self.status)['gpus'][gpu], indent=4, sort_keys=True)
+
     @property
-    def pretty_json(self):
-        return json.dumps(json.loads(self.status), indent=4, sort_keys=True)
+    def stale(self):
+        ten_min_ago = datetime.utcnow() - timedelta(minutes=10)
+        if ten_min_ago >= self.time:
+            return True
+        else:
+            return False
 
 
 class Payout(base):

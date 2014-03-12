@@ -39,6 +39,15 @@ $(document).ready(function() {
 
   },1000);
 
+  $('.table > tbody > tr').click(function() {
+    // row was clicked
+    var jqxhr = $.ajax($(this).attr('data-url') )
+    .always(function(data) {
+      $('pre#modal-json').html(data['output']);
+      $('#myModal').modal()
+    });
+
+  });
 });
 </script>
 
@@ -74,35 +83,63 @@ $(document).ready(function() {
         </div>
       </div>
     </div>
-
   </div>
   {% if statuses %}
   <div class="row page-header">
     <h2>Worker Status</h2>
     <br>
-    <div class="col-lg-12">
+    <div class="col-lg-10 col-lg-offset-1 col-md-12 col-sm-12 col-xs-12">
       {% for st in statuses %}
-        <div class="col-lg-3">
-          <h3>{{ st.worker }}<small style="font-weight: 300; font-size:14px;"> - <i>Updated {{ st.time | time_ago }}</i></small></h3>
-            <table class="table table-striped table-hover table-responsive worker-table">
+        <div class="table-responsive">
+          <h3 style="padding-left:10px;">
+            {% if st.worker %}{{ st.worker }}{% else %}[Unnamed]
+              <small style="font-size:14px;color:#ff0000;">
+                Warning, multiple unnamed workers will do wonky things!
+              </small>
+          {% endif %}
+          {% if st.stale == True %}
+            <small style="font-size:14px;color:#EEA236;"> hasn't reported in for 10 min!</small>
+          {% else %}
+            <small style=" font-size:14px;font-weight:300;"> <i>Updated {{ st.time | time_ago }}</i></small>
+          {% endif %}
+          </h3>
+            <table class="table table-striped table-hover worker-table">
               <thead>
                 <tr>
                   <th>GPU</th>
                   <th>KHash/sec</th>
+                  <th>WUE</th>
+                  <th>Accepted/Rejected(%)</th>
                   <th>Temperature</th>
+                  <th>Fan Speed</th>
+                  <th>Core/Memory Clock</th>
                 </tr>
               </thead>
               <tbody>
               {% for gpu in st.parsed_status['gpus'] %}
-                <tr>
+                <tr data-url="/{{ username }}/{{ st.worker }}/details/{{ loop.index0 }}">
                   <th>{{ loop.index0 }}</th>
                   <th {% if (gpu.get('MHS av', 0)*1000) == 0 %}class="warning"{% endif %}>{{ (gpu.get('MHS av', 0)*1000)|round|int }}</th>
-                  <th {% if gpu.temp > 90 %}class="danger"{% endif %}>{{ gpu.temp }}</th>
+                  <th>{{ ( ((gpu.get('Utility', 0)*(gpu.get('Last Share Difficulty', 0))) /
+                  (gpu.get('MHS av', 0.0001)*1000) ) * 100 ) | round(1) }}%</th>
+                  {% set accepted = gpu.get('Accepted', 0) %}
+                  <th>
+                    {{ accepted }} / {{ gpu.get('Rejected', 0) }}
+                    {% if accepted != 0 %}
+                      &nbsp;({{ ((accepted - gpu.get('Rejected', 0)) / accepted)*100 }}%)
+                  {% else %}
+                    (0)
+                  {% endif %}
+
+                  </th>
+
+                  <th {% if gpu.get('temp', 0) > 90 %}class="danger"{% endif %}>{{ gpu.get('temp', 0) }}</th>
+                  <th>{{ gpu.get('Fan Percent', 0) }}%</th>
+                  <th>{{ gpu.get('GPU Clock', 0) }}/{{ gpu.get('Memory Clock', 0) }}</th>
                 </tr>
               {% endfor %}
               </tbody>
             </table>
-            <div style="text-align:right;"><a href="/{{ username }}/{{ st.worker }}/details" style=" color:#fafafa;"><i>Details</i></a></div>
         </div>
       {% endfor %}
     </div>
@@ -155,8 +192,8 @@ $(document).ready(function() {
     </div>
     {% if payouts %}
     <div class="col-lg-12">
-      <div class="bs-example">
-        <table class="table table-striped table-hover table-responsive">
+      <div class="bs-example table-responsive">
+        <table class="table table-striped table-hover">
           <thead>
             <tr>
               <th>Time</th>
@@ -187,5 +224,24 @@ $(document).ready(function() {
     <div class="text-center"><h3>No payouts for this user yet</h3></div>
     {% endif %}
   </div>
+
+
+<!-- Modal -->
+<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h4 class="modal-title" id="myModalLabel">GPU Details</h4>
+      </div>
+      <div class="modal-body">
+        <pre id="modal-json"></pre>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 {% endblock %}

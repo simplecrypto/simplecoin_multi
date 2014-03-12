@@ -167,16 +167,16 @@ def charity_view():
     return render_template('charity.html', charities=charities)
 
 
-@main.route("/<address>/<worker>/details")
-@main.route("/<address>/details", defaults={'worker': ''})
-@main.route("/<address>//details", defaults={'worker': ''})
-def worker_detail(address, worker):
+@main.route("/<address>/<worker>/details/<int:gpu>")
+@main.route("/<address>/details/<int:gpu>", defaults={'worker': ''})
+@main.route("/<address>//details/<int:gpu>", defaults={'worker': ''})
+def worker_detail(address, worker, gpu):
     status = Status.query.filter_by(user=address, worker=worker).first()
     if status:
-        output = status.pretty_json
+        output = status.pretty_json(gpu)
     else:
         output = "Not available"
-    return render_template('status_detail.html', status=output)
+    return jsonify(output=output)
 
 
 @main.route("/<address>")
