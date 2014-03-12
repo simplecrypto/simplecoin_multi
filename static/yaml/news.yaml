@@ -1,3 +1,10 @@
+- title: Windows release for PPAgent!
+  date: 3/12/2014
+  body: |
+      We just pushed up a windows binary for PPAgent, get it
+      <a href="https://github.com/icook/ppagent/releases">here</a>. We also have improved web stats with more information
+      as requested by <a href="http://www.reddit.com/user/latusthegoat">/u/latusthegoat</a>(thanks!), including things
+      like WUE, accepted/rejected shares, fan speed, clocks speeds and HW errors.
 - title: Bug squashing the new release
   date: 3/11/2014
   body: |

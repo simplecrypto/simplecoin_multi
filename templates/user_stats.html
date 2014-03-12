@@ -123,6 +123,7 @@ $(document).ready(function() {
                     <th>KHash/sec</th>
                     <th>WUE</th>
                     <th>Accepted/Rejected(%)</th>
+                    <th>HW Errors</th>
                     <th>Temperature</th>
                     <th>Fan Speed</th>
                     <th>Core/Memory Clock</th>
@@ -143,9 +144,8 @@ $(document).ready(function() {
                     {% else %}
                       (0)
                     {% endif %}
-
                     </th>
-
+                    <th>{{ gpu.get('Hardware Errors', 0) }}</th>
                     <th {% if gpu.get('temp', 0) > 90 %}class="danger"{% endif %}>{{ gpu.get('temp', 0) }}</th>
                     <th>{{ gpu.get('Fan Percent', 0) }}%</th>
                     <th>{{ gpu.get('GPU Clock', 0) }}/{{ gpu.get('Memory Clock', 0) }}</th>
