@@ -343,6 +343,17 @@ def compress_five_minute(self):
 
 
 @celery.task(bind=True)
+def remove_old_statuses(self):
+    try:
+        ten_hour_ago = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
+        statuses = Status.query.filter(Status.time < ten_hour_ago).delete()
+        db.session.commit()
+    except Exception:
+        logger.error("Unhandled exception in remove_old_statuses", exc_info=True)
+        db.session.rollback()
+
+
+@celery.task(bind=True)
 def agent_receive(self, address, worker, typ, payload, timestamp):
     try:
         if typ == 'status':
