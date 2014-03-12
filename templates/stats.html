@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% set active_page = "stats" %}
+{% block body %}
+<script>
+$(document).ready(function() {
+  //  Action stats form based on input val
+    $('#statsform').submit(function(){
+      var address = $('#inputAddress').val();
+      $(this).attr('action', "/" + address);
+    });
+});
+</script>
+<h3>Aren't mining with us yet? <a href="/">Look at the quickstart guide.</a></h3>
+<br />
+<div class="form-group">
+  <form class="bs-example form-horizontal" id="statsform">
+    <fieldset>
+      <div class="form-group">
+        <div class="col-lg-9">
+          <input type="text" class="form-control" id="inputAddress" placeholder="Paste your Doge address for quick access to individualized stats.">
+          <span class="help-block">
+              {% if 'recent_users' in session %}
+                <h4>Recently Visited Stats:</h4>
+                {% for address in session['recent_users'] %}
+                <p><a href="/{{ address }}"><h4>{{ address }}</h4></a></p>
+                {% endfor %}
+              {% endif %}
+          </span>
+        </div>
+        <button type="submit" class="btn btn-default">View Stats</button>
+      </div>
+    </fieldset>
+  </form>
+</div>
+{% endblock %}

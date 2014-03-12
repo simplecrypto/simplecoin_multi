@@ -143,6 +143,11 @@ def user_summary():
             group_by(Share.user).filter(Share.id > last_block_share_id()).all())
 
 
+@main.route("/stats")
+def user_stats():
+    return render_template('stats.html')
+
+
 @main.route("/share_summary")
 def summary_page():
     users = user_summary()
