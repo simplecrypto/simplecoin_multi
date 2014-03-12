@@ -135,3 +135,15 @@ g.axis {
 .worker-table th {
     text-align: center;
 }
+
+.worker-table {
+        margin-bottom:30px;
+}
+
+.collapse-button {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 100;
+    font-weight: bold;
+}

@@ -39,15 +39,21 @@ $(document).ready(function() {
 
   },1000);
 
-  $('.table > tbody > tr').click(function() {
+  $('table.table > tbody > tr').bind( "click", function() {
     // row was clicked
     var jqxhr = $.ajax($(this).attr('data-url') )
     .always(function(data) {
       $('pre#modal-json').html(data['output']);
       $('#myModal').modal()
     });
-
   });
+
+  $('div.collapse-button').bind( "click", function() {
+      $(this).text(function(i,old){
+          return old=='[ - ]' ?  '[ + ]' : '[ - ]';
+      });
+  });
+
 });
 </script>
 
@@ -90,62 +96,69 @@ $(document).ready(function() {
     <br>
     <div class="col-lg-10 col-lg-offset-1 col-md-12 col-sm-12 col-xs-12">
       {% for st in statuses %}
-        <div class="table-responsive">
-          <h3 style="padding-left:10px;">
-            {% if st.worker %}{{ st.worker }}{% else %}[Unnamed]
-              <small style="font-size:14px;color:#ff0000;">
-                Warning, multiple unnamed workers will do wonky things!
-              </small>
+        <div class="table-responsive  bs-component" style="position:relative;">
+          <div class="well well-sm" style="margin-bottom:5px;">
+            <b>{{ st.worker }}</b>
+          {% if not st.worker %}
+            {# Show a warning about unnamed workers #}
+            <small style="font-size:14px;color:#ff0000;font-weight:400;">
+              Multiple unnamed workers will do wonky things!
+            </small>
           {% endif %}
           {% if st.stale == True %}
-            <small style="font-size:14px;color:#EEA236;"> hasn't reported in for 10 min!</small>
+            {# if stale then show a warning + toggle button #}
+            <small colspan="3" style="font-size:14px;color:#EEA236;"> last reported in {{ st.time | time_ago }}!</small>
+            <div class="btn btn-primary btn-xs collapse-button" data-toggle="collapse" data-target="#demo{{ loop.index0 }}">
+              [ + ]
+            </div>
           {% else %}
-            <small style=" font-size:14px;font-weight:300;"> <i>Updated {{ st.time | time_ago }}</i></small>
+            <small colspan="3" style=" font-size:14px;font-weight:300;"> <i>Updated {{ st.time | time_ago }}</i></small>
           {% endif %}
-          </h3>
-            <table class="table table-striped table-hover worker-table">
-              <thead>
-                <tr>
-                  <th>GPU</th>
-                  <th>KHash/sec</th>
-                  <th>WUE</th>
-                  <th>Accepted/Rejected(%)</th>
-                  <th>Temperature</th>
-                  <th>Fan Speed</th>
-                  <th>Core/Memory Clock</th>
-                </tr>
-              </thead>
-              <tbody>
-              {% for gpu in st.parsed_status['gpus'] %}
-                <tr data-url="/{{ username }}/{{ st.worker }}/details/{{ loop.index0 }}">
-                  <th>{{ loop.index0 }}</th>
-                  <th {% if (gpu.get('MHS av', 0)*1000) == 0 %}class="warning"{% endif %}>{{ (gpu.get('MHS av', 0)*1000)|round|int }}</th>
-                  <th>{{ ( ((gpu.get('Utility', 0)*(gpu.get('Last Share Difficulty', 0))) /
-                  (gpu.get('MHS av', 0.0001)*1000) ) * 100 ) | round(1) }}%</th>
-                  {% set accepted = gpu.get('Accepted', 0) %}
-                  <th>
-                    {{ accepted }} / {{ gpu.get('Rejected', 0) }}
-                    {% if accepted != 0 %}
-                      &nbsp;({{ ((accepted - gpu.get('Rejected', 0)) / accepted)*100 }}%)
-                  {% else %}
-                    (0)
-                  {% endif %}
+          </div>
+            <div id="demo{{ loop.index0 }}" class="collapse{% if st.stale == False %} in{% endif %}">
+              <table class="table table-striped table-hover worker-table">
+                <thead>
+                  <tr>
+                    <th>GPU</th>
+                    <th>KHash/sec</th>
+                    <th>WUE</th>
+                    <th>Accepted/Rejected(%)</th>
+                    <th>Temperature</th>
+                    <th>Fan Speed</th>
+                    <th>Core/Memory Clock</th>
+                  </tr>
+                </thead>
+                <tbody>
+                {% for gpu in st.parsed_status['gpus'] %}
+                  <tr data-url="/{{ username }}/{{ st.worker }}/details/{{ loop.index0 }}">
+                    <th>{{ loop.index0 }}</th>
+                    <th {% if (gpu.get('MHS av', 0)*1000) == 0 %}class="warning"{% endif %}>{{ (gpu.get('MHS av', 0)*1000)|round|int }}</th>
+                    <th>{{ ( ((gpu.get('Utility', 0)*(gpu.get('Last Share Difficulty', 0))) /
+                    (gpu.get('MHS av', 0.0001)*1000) ) * 100 ) | round(1) }}%</th>
+                    {% set accepted = gpu.get('Accepted', 0) %}
+                    <th>
+                      {{ accepted }} / {{ gpu.get('Rejected', 0) }}
+                      {% if accepted != 0 %}
+                        &nbsp;({{ ((accepted - gpu.get('Rejected', 0)) / accepted)*100 }}%)
+                    {% else %}
+                      (0)
+                    {% endif %}
 
-                  </th>
+                    </th>
 
-                  <th {% if gpu.get('temp', 0) > 90 %}class="danger"{% endif %}>{{ gpu.get('temp', 0) }}</th>
-                  <th>{{ gpu.get('Fan Percent', 0) }}%</th>
-                  <th>{{ gpu.get('GPU Clock', 0) }}/{{ gpu.get('Memory Clock', 0) }}</th>
-                </tr>
-              {% endfor %}
-              </tbody>
-            </table>
-        </div>
+                    <th {% if gpu.get('temp', 0) > 90 %}class="danger"{% endif %}>{{ gpu.get('temp', 0) }}</th>
+                    <th>{{ gpu.get('Fan Percent', 0) }}%</th>
+                    <th>{{ gpu.get('GPU Clock', 0) }}/{{ gpu.get('Memory Clock', 0) }}</th>
+                  </tr>
+                {% endfor %}
+                </tbody>
+              </table>
+            </div>
+</div>
       {% endfor %}
     </div>
   </div>
   {% endif %}
-
   <div class="row row-header">
     <div class="col-lg-10 col-lg-offset-1">
         <ul class="nav nav-tabs">
