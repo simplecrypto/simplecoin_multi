@@ -96,12 +96,12 @@
     {% for alert in g.alerts %}
     <div class="alert alert-dismissable alert-{{ alert['severity'] }}">
       <button type="button" class="close" data-dismiss="alert">×</button>
-      <h4>{{ alert['title'] }} -
+      <h4>{{ alert['title']|safe }} -
         <span class="text-muted small" style="color:#fff;">
           {{ alert['date'] }}
         </span>
       </h4>
-      <p>{{ alert['body'] }}</p>
+      <p>{{ alert['body']|safe }}</p>
     </div>
     {% endfor %}
   {% endif %}
