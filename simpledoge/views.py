@@ -89,7 +89,11 @@ def add_pool_stats():
     additional_shares = ratio * additional_seconds
     g.pool_stats[0] += additional_shares
     g.pool_stats[1] += additional_seconds
-    g.current_difficulty = db.session.query(Blob).filter_by(key="block").first().data['difficulty']
+    blobs = Blob.query.filter(Blob.key.in_(("block", "server"))).all()
+    block = [b for b in blobs if b.key == "block"][0]
+    server = [b for b in blobs if b.key == "server"][0]
+    g.current_difficulty = block.data['difficulty']
+    g.worker_count = server.data['stratum_clients']
 
     alerts = yaml.load(open(root + '/static/yaml/alerts.yaml'))
     g.alerts = alerts
