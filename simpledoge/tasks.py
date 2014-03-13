@@ -10,6 +10,7 @@ from pprint import pformat
 from bitcoinrpc import CoinRPCException
 from celery.utils.log import get_task_logger
 
+import requests
 import json
 import sqlalchemy
 import logging
@@ -373,3 +374,21 @@ def agent_receive(self, address, worker, typ, payload, timestamp):
     except Exception:
         logger.error("Unhandled exception in update_status", exc_info=True)
         db.session.rollback()
+
+
+@celery.task(bind=True)
+def server_status(self):
+    """
+    Periodic pull update of server stats
+    """
+    try:
+        req = requests.get(current_app.config['monitor_addr'])
+        data = req.json()
+    except Exception:
+        output = {'stratum_clients': 0, 'agent_clients': 0}
+    else:
+        output = {'stratum_clients': data['stratum_clients'],
+                  'agent_clients': data['agent_clients']}
+    blob = Blob(key='server', data={k: str(v) for k, v in output.iteritems()})
+    db.session.merge(blob)
+    db.session.commit()

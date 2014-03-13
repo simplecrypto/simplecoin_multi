@@ -18,4 +18,8 @@ CELERYBEAT_SCHEDULE = {
         'task': 'simpledoge.tasks.update_block_state',
         'schedule': timedelta(minutes=5),
     },
+    'update_block_state': {
+        'task': 'simpledoge.tasks.server_status',
+        'schedule': timedelta(minutes=2),
+    },
 }
