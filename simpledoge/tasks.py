@@ -381,10 +381,12 @@ def server_status(self):
     """
     Periodic pull update of server stats
     """
+    mon_addr = current_app.config['monitor_addr']
     try:
-        req = requests.get(current_app.config['monitor_addr'])
+        req = requests.get(mon_addr)
         data = req.json()
-    except Exception:
+    except Exception as e:
+        logger.warn("Couldn't connect to internal monitor at {}".format(mon_addr))
         output = {'stratum_clients': 0, 'agent_clients': 0}
     else:
         output = {'stratum_clients': data['stratum_clients'],
