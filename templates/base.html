@@ -21,7 +21,7 @@
   <script src="/static/js/bootstrap.min.js"></Script>
   <script>
     $(document).ready(function() {
-      var shares, ten_min_hashrate, seconds, khashpersec, shares_per_sec;
+      var shares, ten_min_hashrate, seconds, khashpersec, shares_per_sec, luck;
       {# Grab new pool stats #}
       shares = {{ g.pool_stats[0] }};
 
@@ -39,11 +39,17 @@
 
 
       setInterval(function(){
+
         seconds += 1;
         additional_shares = shares_per_sec * seconds
         y = seconds%60
         minutes = n(Math.floor(seconds/60)%60);
         hours = n(Math.floor(seconds/3600));
+
+        luck = (shares_to_solve / additional_shares) * 1000;
+        if (luck > 9999) {
+          luck = 9999;
+        }
 
         $('.odometer.shares').text(Math.round(additional_shares));
         $('.odometer.blockshares').text(Math.round(additional_shares));
@@ -52,9 +58,9 @@
         $('.seconds').text(n(y));
         $('.hours').text(hours);
 
-        $('.odometer.hashes').text(Math.round(khashpersec)/1000);
-        $('.odometer.luck').text(Math.round( (additional_shares / shares_to_solve) * 1000) / 10);
-        $('.odometer.blockluck').text(Math.round( (additional_shares / shares_to_solve) * 1000) / 10);
+        $('.odometer.hashes').text(Math.round(khashpersec/100)/10);
+        $('.odometer.luck').text(Math.round(luck) / 10);
+        $('.odometer.blockluck').text(Math.round(luck) / 10);
       },1000);
     });
   </script>
