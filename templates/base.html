@@ -68,21 +68,28 @@
 <body>
   <div class="container">
     <div class="row">
-      <div class="clearfix" style="padding: 10px 0px 10px 0px;">
-        <h1 style="float:left; font-size:51px;">
-          <a style=" text-decoration: none;" href="/">
-            <img src="/static/img/dogecoin.png" width="64" style="padding-bottom: 5px;">
-            Simple Doge
-          </a>
-        </h1>
-        <h5 class="stats">
-            <strong>Pool Hashrate</strong>: <span class="odometer hashes">0</span> Mhash/second |
-            <strong>Round Time</strong>: <span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span> |
-            <strong>Round Shares</strong>: <span class="odometer shares">0</span> |
-            <strong>Round Luck</strong>: <span class="odometer luck">0</span>% |
-            <strong>Active Workers</strong>: {{ g.worker_count }}
-        </h5>
-      </div>
+
+        <div class="col-md-5">
+
+          <h1 style="font-size:51px;">
+            <a style=" text-decoration: none;" href="/">
+              <img src="/static/img/dogecoin.png" width="64" style="padding-bottom: 5px;">
+              Simple Doge
+            </a>
+          </h1>
+        </div>
+        <div class="col-md-7">
+          <h5 class="stats">
+              <strong>Pool&nbsp;Hashrate</strong>: <span class="odometer hashes">0</span> Mhash/second |
+              <strong>Round&nbsp;Time</strong>: <span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span> |
+              <strong>Round&nbsp;Shares</strong>: <span class="odometer shares">0</span> |
+              <strong>Round&nbsp;Luck</strong>: <span class="odometer luck">0</span>% |
+              <strong>Active&nbsp;Workers</strong>: {{ g.worker_count }}
+          </h5>
+        </div>
+
+    </div>
+    <div class="row">
       <div class="navbar navbar-default">
         <div class="navbar-collapse navbar-responsive-collapse">
           <ul class="nav navbar-nav">

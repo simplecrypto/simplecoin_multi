@@ -44,9 +44,7 @@ h3 {
 }
 
 .stats {
-  float:right;
   padding: 30px 0px 20px 0px;
-  vertical-align: top !important;
 }
 
 .padding-top {
