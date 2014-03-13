@@ -1,3 +1,13 @@
+- title: First DDOS, we must be doing something right
+  date: 3/13/2014
+  body: |
+      At approx 10:06 am GMT our servers were hit with a ~1gbps DDOS. This was enough to cause Digital Ocean to null route our IP.
+      We immediately began moving our server to OVH, who is well
+      known for their excellent DDOS prevention. During the move we experienced ~2.5 hours of downtime while we rebuilt the server, including copying the 
+      doge blockchain and our database. No shares were lost. We recommend everyone sets a backup pool if you don't
+      have one already. No need for you guys to lose hashes. One plus side is that
+      we moved to a waay beefier server, far more than we are using, so enjoy the snappy web performance :D
+      
 - title: Windows release for PPAgent!
   date: 3/12/2014
   body: |
