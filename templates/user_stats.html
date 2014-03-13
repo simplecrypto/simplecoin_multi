@@ -135,8 +135,12 @@ $(document).ready(function() {
                   <tr data-url="/{{ username }}/{{ st.worker }}/details/{{ loop.index0 }}">
                     <th>{{ loop.index0 }}</th>
                     <th {% if (gpu.get('MHS av', 0)*1000) == 0 %}class="warning"{% endif %}>{{ (gpu.get('MHS av', 0)*1000)|round|int }}</th>
-                    <th>{{ ( ((gpu.get('Utility', 0)*(gpu.get('Last Share Difficulty', 0))) /
+                    <th>{% if ( (gpu.get('Utility', 0))*(gpu.get('Last Share Difficulty', 0)) ) == 0 or (gpu.get('MHS av', 0.0001) == 0) %}
+                      -/-
+                      {% else %}
+                      {{ ( ((gpu.get('Utility', 0)*(gpu.get('Last Share Difficulty', 0))) /
                     (gpu.get('MHS av', 0.0001)*1000) ) * 100 ) | round(1) }}%</th>
+                    {% endif %}
                     {% set accepted = gpu.get('Accepted', 0) %}
                     <th>
                       {{ accepted }} / {{ gpu.get('Rejected', 0) }}
