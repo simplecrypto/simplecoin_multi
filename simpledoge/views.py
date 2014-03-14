@@ -47,7 +47,7 @@ def get_payouts():
     s.loads(request.data)
 
     payouts = (Payout.query.filter_by(transaction_id=None).
-               join(Payout.transaction, aliased=True).filter_by(confirmed=True))
+               join(Payout.block, aliased=True).filter_by(mature=True))
     struct = [(p.user, p.amount, p.id)
               for p in payouts]
     return s.dumps(struct)
