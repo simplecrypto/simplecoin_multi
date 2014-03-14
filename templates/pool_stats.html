@@ -11,6 +11,47 @@ $(document).ready(function() {
 });
 </script>
 
+  <div class="row page-header">
+    <h2 style="word-wrap:break-word;">Pool Stats</h2>
+    <br>
+    <div class="col-lg-3">
+      <div class="panel panel-default">
+        <div class="panel-body text-center">
+          <small>Active&nbsp;Workers:</small> <br><h4><p><span>{{ g.worker_count }}</span></p></h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3">
+      <div class="panel panel-default">
+        <div class="panel-body text-center">
+          <small>10 min hashrate:</small> <br><h4><p><span class="odometer phashrate">...</span> MHashes/sec</p></h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3">
+      <div class="panel panel-default">
+        <div class="panel-body text-center">
+          <small>Accepted/Rejected shares (%):</small> <br><h4><p><span class="odometer efficiency">...</span></p></h4>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3">
+      <div class="panel panel-default">
+        <div class="panel-body text-center">
+          <small>Est. shares this round:</small> <br><h4><p><span>{{ ((g.current_difficulty)|float * (2**16))|round|int }}</span></p></h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3">
+      <div class="panel panel-default">
+        <div class="panel-body text-center">
+          <small>Est. round time:</small> <br><h4><p><span>{{ (((g.current_difficulty)|float * (2**16))|round|int)/ }}</span></p></h4>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="row row-header">
     <div class="col-lg-12">
       <h2>Pool Hashrate</h2>

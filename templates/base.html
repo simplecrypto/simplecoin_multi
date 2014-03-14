@@ -69,6 +69,7 @@
         $('.remaining_hours').text(remaining_hours);
 
         $('.odometer.hashes').text(numberWithCommas(Math.round(khashpersec/100)/10));
+        $('.odometer.phashrate').text(numberWithCommas(Math.round(khashpersec/100)/10));
         $('.odometer.luck').text(numberWithCommas(Math.round(luck) / 10));
         $('.odometer.blockluck').text(numberWithCommas(Math.round(luck) / 10));
       },1000);
