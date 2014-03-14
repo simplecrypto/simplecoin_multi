@@ -1,3 +1,23 @@
+- title: Steady growth and several updates
+  date: 3/14/2014
+  body: |
+      <div class="col-md-2">
+      <a href="http://www.troll.me/images2/i-would-be-so-happy/if-we-could-finish-this-block-i-would-be-so-happy.jpg">
+      <img style="width:150px;" class="media-object" src="http://www.troll.me/images2/i-would-be-so-happy/if-we-could-finish-this-block-i-would-be-so-happy.jpg" alt="I would be so happy">
+      </a>
+      </div>
+      <div class="col-md-9">
+      The top right pool stats have been tweaked.
+      <ul>
+      <li>you'll notice that the pool luck now counts downwards. This makes
+      much more sense intuitively.</li>
+      <li>MHash/sec now rounds to the nearest .1</li>
+      <li>We've added a pool worker count</li>
+      </ul>
+      We've fixed a bug on the stats page that was caused by an occasional divide by 0 error. doh.<br>
+      If theres a feature or stat you'd like to see drop us a line in IRC. We'll be doing more promoting tomorrow to try and
+      get the hashrate to a high enough level to payout at least once a day. 
+      </div>
 - title: First DDOS, we must be doing something right
   date: 3/13/2014
   body: |
@@ -7,7 +27,6 @@
       doge blockchain and our database. No shares were lost. We recommend everyone sets a backup pool if you don't
       have one already. No need for you guys to lose hashes. One plus side is that
       we moved to a waay beefier server, far more than we are using, so enjoy the snappy web performance :D
-      
 - title: Windows release for PPAgent!
   date: 3/12/2014
   body: |
