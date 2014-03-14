@@ -407,7 +407,8 @@ def agent_receive(self, address, worker, typ, payload, timestamp):
         elif typ == 'hashrate':
             for i, value in enumerate(payload):
                 if value:
-                    inject_device_stat(OneMinuteHashrate, i, value)
+                    # multiply by a million to turn megahashes to hashes
+                    inject_device_stat(OneMinuteHashrate, i, value * 1000000)
         db.session.commit()
     except Exception:
         logger.error("Unhandled exception in update_status", exc_info=True)
