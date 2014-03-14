@@ -60,7 +60,7 @@ $(document).ready(function() {
         <tr>
           <th>{{ block.found_at | time_ago }}</th>
           <th>{{ block.shares_to_solve }}</th>
-          <th>{{ ((block.shares_to_solve / (block.difficulty * (2 ** 16))) * 100) | round(1) }} %</th>
+          <th>{{ ( ((block.difficulty * (2 ** 16))/block.shares_to_solve ) * 100) | round(1) }} %</th>
           <th>{{ block.duration }}</th>
           <th>{{ (block.total_value / 100000000) | round(2) }}</th>
           <th>{{ block.difficulty| round(4) }}</th>

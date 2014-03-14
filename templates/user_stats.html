@@ -40,7 +40,7 @@ $(document).ready(function() {
 
   },1000);
 
-  $('table.table > tbody > tr').bind( "click", function() {
+  $('table.worker-table > tbody > tr').bind( "click", function() {
     // row was clicked
     var jqxhr = $.ajax($(this).attr('data-url') )
     .always(function(data) {
@@ -227,10 +227,10 @@ $(document).ready(function() {
             <tr>
               <th>{{ payout.block.found_at | time_ago }}</th>
               <th>{{ payout.shares }}</th>
-              <th>{{ payout.amount }}</th>
-              <th>{{ payout.blockheight }}</th>
-              <th>{{ payout.transaction_id }}</th>
-              <th>{{ payout.block.status }}</th>
+              <th>{{ payout.amount/100000000|round(2) }}</th>
+              <th>{{ payout.block.height }}</th>
+              <th><a href="https://dogechain.info/tx/{{ payout.transaction_id}}">{{ payout.transaction_id|truncate(15, True) }}</a></th>
+              <th>{% if payout.transaction.confirmed == True %}Confirmed {% else %} Unconfirmed{% endif %}</th>
             </tr>
             {% endfor %}
 
