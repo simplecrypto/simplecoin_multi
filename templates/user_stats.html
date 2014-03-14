@@ -65,28 +65,41 @@ $(document).ready(function() {
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          <small>Round Shares:</small> <br><h4><p><span class="odometer usershares">...</span></p></h4>
+          <small>Round Shares:</small>&nbsp;
+          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                       title="Total shares sumbitted this round"></i>
+          <br><h4><p><span class="odometer usershares">...</span></p></h4>
         </div>
       </div>
     </div>
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          <small>Est round payout:</small> <br><h4><p><span class="odometer estpayout">...</span> &ETH;</p></h4>
+          <small>Est round payout:</small>&nbsp;
+          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                       title="Payout estimate based on PPS (the pool pays out in PPLNS! This is just a estimate),
+                        assumes a 250k reward"></i>
+          <br><h4><p><span class="odometer estpayout">...</span> &ETH;</p></h4>
         </div>
       </div>
     </div>
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          <small>10 min hashrate:</small> <br><h4><p><span class="odometer hashrate">...</span> MHashes/sec</p></h4>
+          <small>10 min hashrate:</small>
+          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                       title="Your average hashrate over the last 10 minutes"></i>
+          <br><h4><p><span class="odometer hashrate">...</span> MHashes/sec</p></h4>
         </div>
       </div>
     </div>
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          <small>Doge/day (Est. from 10 min hashrate):</small> <br><h4><p><span class="odometer dogerate">...</span> &ETH;</p></h4>
+          <small>Doge/day (Est. from 10 min hashrate):</small>
+          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                       title="Daily payout estimate based on a 250k reward and 100% round luck. Actual payout will be different!"></i>
+          <br><h4><p><span class="odometer dogerate">...</span> &ETH;</p></h4>
         </div>
       </div>
     </div>
@@ -116,6 +129,7 @@ $(document).ready(function() {
             <small colspan="3" style=" font-size:14px;font-weight:300;"> <i>Updated {{ st.time | time_ago }}</i></small>
           {% endif %}
           </div>
+            {# Worker's miner stats #}
             <div id="demo{{ loop.index0 }}" class="collapse{% if st.stale == False %} in{% endif %}">
               <table class="table table-striped table-hover worker-table">
                 <thead>
@@ -183,28 +197,40 @@ $(document).ready(function() {
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          <small>Balance:</small> <br><h4><p>{{ balance / 100000000 }}</p></h4>
+          <small>Balance:</small>
+          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                       title="Current unpaid balance"></i>
+          <br><h4><p>{{ balance / 100000000 }} &ETH;</p></h4>
         </div>
       </div>
     </div>
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          <small>Unconfirmed balance:</small> <br><h4><p>{{ unconfirmed_balance / 100000000 }}</p></h4>
+          <small>Unconfirmed balance:</small>
+          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                       title="Newly solved block earnings, rewards not yet confirmed"></i>
+          <br><h4><p>{{ unconfirmed_balance / 100000000 }} &ETH;</p></h4>
         </div>
       </div>
     </div>
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          <small>Total earned:</small> <br><h4><p>{{ (total_earned / 100000000)|round(2) }}</p></h4>
+          <small>Total earned:</small>
+          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                       title="Total ever earned by this address"></i>
+          <br><h4><p>{{ (total_earned / 100000000)|round(2) }} &ETH;</p></h4>
         </div>
       </div>
     </div>
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          <small>Total paid:</small> <br><h4><p>{{ (total_paid / 100000000)|round(2)}}</p></h4>
+          <small>Total paid:</small>
+          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                       title="Total paid out to this address"></i>
+          <br><h4><p>{{ (total_paid / 100000000)|round(2)}} &ETH;</p></h4>
         </div>
       </div>
     </div>
@@ -216,7 +242,7 @@ $(document).ready(function() {
             <tr>
               <th>Time</th>
               <th>Shares Contributed</th>
-              <th>Amount</th>
+              <th>Amount Earned</th>
               <th>Blockheight</th>
               <th>TX id</th>
               <th>Status</th>
@@ -229,7 +255,7 @@ $(document).ready(function() {
               <th>{{ payout.shares }}</th>
               <th>{{ payout.amount/100000000|round(2) }}</th>
               <th>{{ payout.block.height }}</th>
-              <th><a href="https://dogechain.info/tx/{{ payout.transaction_id}}">{{ payout.transaction_id|truncate(15, True) }}</a></th>
+              <th><a href="https://dogechain.info/tx/{{ payout.transaction_id}}" target="_blank">{{ payout.transaction_id|truncate(15, True) }}</a></th>
               <th>{% if payout.transaction.confirmed == True %}Confirmed {% else %} Unconfirmed{% endif %}</th>
             </tr>
             {% endfor %}
