@@ -63,7 +63,7 @@ class RPCClient(object):
         except JSONRPCException:
             raise RPCException("Coinserver not awake")
 
-    def proc_trans(self):
+    def proc_trans(self, simulate=False):
         self.poke_rpc()
 
         payouts = self.post('get_payouts')
@@ -80,10 +80,14 @@ class RPCClient(object):
         totals = {}
         pids = {}
         for user, amount, id in payouts:
-            totals.setdefault(user, 0)
-            totals[user] += amount
-            pids.setdefault(user, [])
-            pids[user].append(id)
+            if user.startswith('D'):
+                totals.setdefault(user, 0)
+                totals[user] += amount
+                pids.setdefault(user, [])
+                pids[user].append(id)
+            else:
+                logger.warn("User {} has been excluded due to invalid address"
+                            .format(user))
 
         # identify the users who meet minimum payout and format for sending
         # to rpc
@@ -93,6 +97,11 @@ class RPCClient(object):
         if len(users) == 0:
             logger.info("Nobody has a big enough balance to pay out...")
             return
+
+        if simulate:
+            import pprint
+            pprint.pprint(users)
+            exit(0)
 
         # now we have all the users who we're going to send money. build a list
         # of the pids that will be being paid in this transaction
@@ -125,6 +134,10 @@ def entry():
                         '--log-level',
                         choices=['DEBUG', 'INFO', 'WARN', 'ERROR'],
                         default='WARN')
+    parser.add_argument('-s',
+                        '--simulate',
+                        action='store_true',
+                        default=False)
     subparsers = parser.add_subparsers(title='main subcommands', dest='action')
 
     subparsers.add_parser('proc_trans',

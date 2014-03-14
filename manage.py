@@ -14,7 +14,7 @@ root = os.path.abspath(os.path.dirname(__file__) + '/../')
 
 from bitcoinrpc.authproxy import AuthServiceProxy
 from simpledoge.tasks import add_share, cleanup, payout
-from simpledoge.models import Payout, Block, OneMinuteShare
+from simpledoge.models import Payout, Block, OneMinuteShare, Transaction
 from flask import current_app, _request_ctx_stack
 
 root = logging.getLogger()
@@ -43,6 +43,13 @@ def power_shares():
 def cleanup_cmd(simulate):
     simulate = simulate != "0"
     cleanup(simulate=simulate)
+
+
+@manager.option('-t', '--txid', dest='transaction_id')
+def confirm_trans(transaction_id):
+    trans = Transaction.query.filter_by(txid=transaction_id).first()
+    trans.confirmed = True
+    db.session.commit()
 
 
 @manager.option('-s', '--simulate', dest='simulate', default=True)
