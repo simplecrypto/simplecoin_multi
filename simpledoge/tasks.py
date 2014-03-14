@@ -3,7 +3,8 @@ from celery import Celery
 from simpledoge import db, coinserv
 from simpledoge.models import (
     Share, Block, OneMinuteShare, Payout, Transaction, Blob, last_block_time,
-    last_block_share_id, FiveMinuteShare, Status)
+    last_block_share_id, FiveMinuteShare, Status, OneMinuteReject,
+    OneMinuteTemperature, FiveMinuteReject, OneMinuteHashrate)
 from sqlalchemy.sql import func
 from cryptokit import bits_to_shares, bits_to_difficulty
 from pprint import pformat
@@ -150,14 +151,36 @@ def add_one_minute(self, user, valid_shares, minute, worker='', dup_shares=0,
     shares: number of shares recieved over the timespan
     user: string of the user
     """
-    try:
+    def count_share(typ, amount, user_=user):
+        logger.debug("Adding {} for {} of amount {}"
+                     .format(typ.__name__, user_, amount))
         try:
-            OneMinuteShare.create(user, valid_shares, minute, worker)
+            typ.create(user_, amount, minute, worker)
             db.session.commit()
         except sqlalchemy.exc.IntegrityError:
             db.session.rollback()
-            OneMinuteShare.add_value(user, valid_shares, minute, worker)
+            typ.add_value(user_, amount, minute, worker)
             db.session.commit()
+
+    try:
+        # log their valid shares
+        if valid_shares:
+            count_share(OneMinuteShare, valid_shares)
+
+        # we want to log how much of each type of reject for the whole pool
+        if user == "pool":
+            if low_diff_shares:
+                count_share(OneMinuteReject, low_diff_shares, user_="pool_low_diff")
+            if dup_shares:
+                count_share(OneMinuteReject, dup_shares, user_="pool_dup")
+            if stale_shares:
+                count_share(OneMinuteReject, stale_shares, user_="pool_stale")
+
+        # only log a total reject on a per-user basis
+        else:
+            total_reject = dup_shares + low_diff_shares + stale_shares
+            if total_reject:
+                count_share(OneMinuteReject, total_reject)
     except Exception as exc:
         logger.error("Unhandled exception in add_one_minute", exc_info=True)
         db.session.rollback()
@@ -328,6 +351,8 @@ def payout(self, simulate=False):
 def compress_minute(self):
     try:
         OneMinuteShare.compress()
+        OneMinuteReject.compress()
+        OneMinuteTemperature.compress()
         db.session.commit()
     except Exception:
         logger.error("Unhandled exception in compress_minute", exc_info=True)
@@ -338,6 +363,7 @@ def compress_minute(self):
 def compress_five_minute(self):
     try:
         FiveMinuteShare.compress()
+        FiveMinuteReject.compress()
         db.session.commit()
     except Exception:
         logger.error("Unhandled exception in compress_five_minute", exc_info=True)
@@ -348,7 +374,7 @@ def compress_five_minute(self):
 def remove_old_statuses(self):
     try:
         ten_hour_ago = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
-        statuses = Status.query.filter(Status.time < ten_hour_ago).delete()
+        Status.query.filter(Status.time < ten_hour_ago).delete()
         db.session.commit()
     except Exception:
         logger.error("Unhandled exception in remove_old_statuses", exc_info=True)
@@ -357,21 +383,32 @@ def remove_old_statuses(self):
 
 @celery.task(bind=True)
 def agent_receive(self, address, worker, typ, payload, timestamp):
+    # convert unix timestamp to datetime
+    dt = datetime.datetime.utcfromtimestamp(timestamp)
+
+    def inject_device_stat(cls, device, value):
+        blob = cls(user=address, worker=worker, device=device, value=value,
+                   time=dt)
+        db.session.merge(blob)
+
     try:
         if typ == 'status':
-            dt = datetime.datetime.utcfromtimestamp(timestamp)
             ret = (db.session.query(Status).filter_by(user=address, worker=worker).
                    update({"status": json.dumps(payload), "time": dt}))
-            db.session.commit()
-            # if the update affected nothing. this happend a minority of the
-            # time
+            # if the update affected nothing
             if ret == 0:
                 new = Status(user=address, worker=worker,
                              status=json.dumps(payload), time=dt)
                 db.session.add(new)
-                db.session.commit()
-        else:
-            pass
+        elif typ == 'temp':
+            for i, value in enumerate(payload):
+                if value:
+                    inject_device_stat(OneMinuteTemperature, i, value)
+        elif typ == 'hashrate':
+            for i, value in enumerate(payload):
+                if value:
+                    inject_device_stat(OneMinuteHashrate, i, value)
+        db.session.commit()
     except Exception:
         logger.error("Unhandled exception in update_status", exc_info=True)
         db.session.rollback()
@@ -386,8 +423,9 @@ def server_status(self):
     try:
         req = requests.get(mon_addr)
         data = req.json()
-    except Exception as e:
-        logger.warn("Couldn't connect to internal monitor at {}".format(mon_addr))
+    except Exception:
+        logger.warn("Couldn't connect to internal monitor at {}".format(mon_addr),
+                    exc_info=True)
         output = {'stratum_clients': 0, 'agent_clients': 0}
     else:
         output = {'stratum_clients': data['stratum_clients'],

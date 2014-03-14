@@ -189,13 +189,7 @@ class Payout(base):
         return payout
 
 
-class TimeSlice(AbstractConcreteBase, base):
-    user = db.Column(db.String, primary_key=True)
-    # datetime floored to the minute
-    time = db.Column(db.DateTime, primary_key=True)
-    worker = db.Column(db.String, primary_key=True)
-    value = db.Column(db.Integer)
-
+class SliceMixin(object):
     @classmethod
     def create(cls, user, value, time, worker):
         dt = cls.floor_time(time)
@@ -235,16 +229,17 @@ class TimeSlice(AbstractConcreteBase, base):
         def create_upper():
             # add a time slice for each user in this pending period
             for key, slices in users.iteritems():
-                total = sum([slc.value for slc in slices])
+                new_val = cls.combine(*[slc.value for slc in slices])
 
                 # put it in the database
                 upper = cls.upper.query.filter_by(time=current_slice, **key._asdict()).with_lockmode('update').first()
                 # wasn't in the db? create it
                 if not upper:
                     dt = cls.floor_time(current_slice)
-                    upper = cls.upper(time=dt, value=total, **key._asdict())
+                    upper = cls.upper(time=dt, value=new_val, **key._asdict())
+                    db.session.add(upper)
                 else:
-                    upper.value += total
+                    upper.value = cls.combine(upper.value, new_val)
 
                 for slc in slices:
                     db.session.delete(slc)
@@ -272,27 +267,78 @@ class TimeSlice(AbstractConcreteBase, base):
 
         create_upper()
 
+
+class WorkerTimeSlice(AbstractConcreteBase, SliceMixin, base):
+    """ An time abstracted data sample that pertains to a single worker.
+    Currently used to represent accepted and rejected shares. """
+    user = db.Column(db.String, primary_key=True)
+    time = db.Column(db.DateTime, primary_key=True)
+    worker = db.Column(db.String, primary_key=True)
+    value = db.Column(db.Integer)
+
+    @classmethod
+    def combine(cls, *lst):
+        """ Takes a query list and combines the values. Usually either returns
+        an average or a sum. Can assume at least one item in ql """
+        return sum(lst)
+
     key = namedtuple('Key', ['user', 'worker'])
+
     def make_key(self):
         return self.key(user=self.user, worker=self.worker)
 
 
-class OneHourShare(TimeSlice):
-    __tablename__ = 'one_hour_share'
+class DeviceTimeSlice(AbstractConcreteBase, SliceMixin, base):
+    """ An time abstracted data sample that pertains to a single workers single
+    device.  Currently used to temperature and hashrate. """
+    user = db.Column(db.String, primary_key=True)
+    device = db.Column(db.Integer, primary_key=True)
+    time = db.Column(db.DateTime, primary_key=True)
+    worker = db.Column(db.String, primary_key=True)
+    value = db.Column(db.Integer)
+
+    @classmethod
+    def combine(cls, *lst):
+        """ Takes an iterable and combines the values. Usually either returns
+        an average or a sum. Can assume at least one item in list """
+        return sum(lst) / len(lst)
+
+    key = namedtuple('Key', ['user', 'worker', 'device'])
+
+    def make_key(self):
+        return self.key(user=self.user, worker=self.worker, device=self.device)
+
+
+# Mixin classes the define time windows of generic timeslices
+class OneMinute(object):
+    window = timedelta(hours=1)
+    slice = timedelta(minutes=1)
+    slice_seconds = slice.total_seconds()
+
+
+class OneHour(object):
     window = timedelta(days=30)
     slice = timedelta(hours=1)
     slice_seconds = slice.total_seconds()
+
+
+class FiveMinute(object):
+    window = timedelta(days=1)
+    slice = timedelta(minutes=5)
+    slice_seconds = slice.total_seconds()
+
+
+# All of our accepted share timeslices
+class OneHourShare(WorkerTimeSlice, OneHour):
+    __tablename__ = 'one_hour_share'
     __mapper_args__ = {
         'polymorphic_identity': 'one_hour_share',
         'concrete': True
     }
 
 
-class FiveMinuteShare(TimeSlice):
+class FiveMinuteShare(WorkerTimeSlice, FiveMinute):
     __tablename__ = 'five_minute_share'
-    window = timedelta(days=1)
-    slice = timedelta(minutes=5)
-    slice_seconds = slice.total_seconds()
     upper = OneHourShare
     __mapper_args__ = {
         'polymorphic_identity': 'five_minute_share',
@@ -300,13 +346,90 @@ class FiveMinuteShare(TimeSlice):
     }
 
 
-class OneMinuteShare(TimeSlice):
+class OneMinuteShare(WorkerTimeSlice, OneMinute):
     __tablename__ = 'one_minute_share'
-    window = timedelta(hours=1)
-    slice = timedelta(minutes=1)
-    slice_seconds = slice.total_seconds()
     upper = FiveMinuteShare
     __mapper_args__ = {
         'polymorphic_identity': 'one_minute_share',
+        'concrete': True
+    }
+
+
+# All of our reject time slices
+class OneHourReject(WorkerTimeSlice, OneHour):
+    __tablename__ = 'one_hour_reject'
+    __mapper_args__ = {
+        'polymorphic_identity': 'one_hour_reject',
+        'concrete': True
+    }
+
+
+class FiveMinuteReject(WorkerTimeSlice, FiveMinute):
+    __tablename__ = 'five_minute_reject'
+    upper = OneHourReject
+    __mapper_args__ = {
+        'polymorphic_identity': 'five_minute_reject',
+        'concrete': True
+    }
+
+
+class OneMinuteReject(WorkerTimeSlice, OneMinute):
+    __tablename__ = 'one_minute_reject'
+    upper = FiveMinuteReject
+    __mapper_args__ = {
+        'polymorphic_identity': 'one_minute_reject',
+        'concrete': True
+    }
+
+
+# Temperature time slices
+class OneHourTemperature(DeviceTimeSlice, OneHour):
+    __tablename__ = 'one_hour_temperature'
+    __mapper_args__ = {
+        'polymorphic_identity': 'one_hour_temperature',
+        'concrete': True
+    }
+
+
+class FiveMinuteTemperature(DeviceTimeSlice, FiveMinute):
+    __tablename__ = 'five_minute_temperature'
+    upper = OneHourTemperature
+    __mapper_args__ = {
+        'polymorphic_identity': 'five_minute_temperature',
+        'concrete': True
+    }
+
+
+class OneMinuteTemperature(DeviceTimeSlice, OneMinute):
+    __tablename__ = 'one_minute_temperature'
+    upper = FiveMinuteTemperature
+    __mapper_args__ = {
+        'polymorphic_identity': 'one_minute_temperature',
+        'concrete': True
+    }
+
+# Hashrate timeslices
+class OneHourHashrate(DeviceTimeSlice, OneHour):
+    __tablename__ = 'one_hour_hashrate'
+    __mapper_args__ = {
+        'polymorphic_identity': 'one_hour_hashrate',
+        'concrete': True
+    }
+
+
+class FiveMinuteHashrate(DeviceTimeSlice, FiveMinute):
+    __tablename__ = 'five_minute_hashrate'
+    upper = OneHourHashrate
+    __mapper_args__ = {
+        'polymorphic_identity': 'five_minute_hashrate',
+        'concrete': True
+    }
+
+
+class OneMinuteHashrate(DeviceTimeSlice, OneMinute):
+    __tablename__ = 'one_minute_hashrate'
+    upper = FiveMinuteHashrate
+    __mapper_args__ = {
+        'polymorphic_identity': 'one_minute_hashrate',
         'concrete': True
     }
