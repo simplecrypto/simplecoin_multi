@@ -197,14 +197,14 @@ $(document).ready(function() {
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          <small>Total earned:</small> <br><h4><p>{{ total_earned / 100000000 }}</p></h4>
+          <small>Total earned:</small> <br><h4><p>{{ (total_earned / 100000000)|round(2) }}</p></h4>
         </div>
       </div>
     </div>
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          <small>Total paid:</small> <br><h4><p>{{ total_paid }}</p></h4>
+          <small>Total paid:</small> <br><h4><p>{{ (total_paid / 100000000)|round(2)}}</p></h4>
         </div>
       </div>
     </div>
