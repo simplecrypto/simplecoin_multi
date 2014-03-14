@@ -51,6 +51,7 @@ def update_block_state(self):
     First checks to see if blocks are orphaned,
     then it checks to see if they are now matured.
     """
+    mature_diff = current_app.config['block_mature_confirms']
     try:
         # Select all immature & non-orphaned blocks
         immature = (Block.query.filter_by(mature=False, orphan=False))
@@ -68,11 +69,11 @@ def update_block_state(self):
                             .format(block.height, block.hash))
                 block.orphan = True
             else:
-                if output['confirmations'] > 120:
+                if output['confirmations'] > mature_diff:
                     logger.info("Block {}:{} meets 120 confirms, mark mature"
                                 .format(block.height, block.hash))
                     block.mature = True
-                elif (blockheight - block.height) > 120 and output['confirmations'] < 120:
+                elif (blockheight - block.height) > mature_diff and output['confirmations'] < mature_diff:
                     logger.info("Block {}:{} 120 height ago, but not enough confirms. Marking orphan."
                                 .format(block.height, block.hash))
                     block.orphan = True
