@@ -146,8 +146,12 @@ $(document).ready(function() {
           <div class="table-responsive  bs-component" style="position:relative;padding:9px;">
             <table class="table worker-stats">
               <tr>
-                <td><h4>Accepted Shares: {{ workers[worker]['accepted'] }}</h4></td>
-                <td><h4>Rejected Shares: {{ workers[worker]['rejected'] }}</h4></td>
+                <td><h4>Accepted Shares: {{ workers[worker]['accepted'] }}
+                  <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                       title="Accepted shares over the last 24 hours"></i></h4></td>
+                <td><h4>Rejected Shares: {{ workers[worker]['rejected'] }}
+                  <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                       title="Rejected shares over the last 24 hours"></i></h4></td>
               </tr>
             </table>
           </div>
@@ -157,7 +161,7 @@ $(document).ready(function() {
           {% if st.worker == worker %}
           <div class="table-responsive bs-component worker-table-wrapper">
             <div class="worker-wrapper">
-              <b>{{ st.worker }}</b>
+              <b>{{ st.parsed_status['type'] }} status</b> <small>- PPAgent v.{{ st.parsed_status['v'] }}</small>
             {% if not st.worker %}
               {# Show a warning about unnamed workers #}
               <small style="font-size:14px;color:#ff0000;font-weight:400;">
