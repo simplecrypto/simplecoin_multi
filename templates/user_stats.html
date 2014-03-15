@@ -176,7 +176,7 @@ $(document).ready(function() {
             {% else %}
               {# Not stale - show last updated time #}
               <small colspan="3" style=" font-size:14px;font-weight:300;">
-                <i>Updated {{ st.time | time_ago }}</i></small>
+                <i>Updated {{ dat['status_time'] | time_ago }}</i></small>
               <div class="btn btn-default btn-sm collapse-button"
                    data-toggle="collapse" data-target="#worker-{{ name }}">
                 [ - ]
