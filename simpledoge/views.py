@@ -215,7 +215,7 @@ def user_dashboard(address=None):
     unconfirmed_balance = sum([payout.amount for payout in unconfirmed_balance])
     balance -= unconfirmed_balance
 
-    payouts = db.session.query(Payout).filter_by(user=address).limit(20)
+    payouts = db.session.query(Payout).filter_by(user=address).order_by(Payout.id.desc()).limit(20)
     last_share_id = last_block_share_id()
     user_shares = (db.session.query(func.sum(Share.shares)).
                    filter(Share.id > last_share_id, Share.user == address).
