@@ -311,7 +311,10 @@ $(document).ready(function() {
               <th>{{ payout.shares }}</th>
               <th>{{ payout.amount/100000000|round(2) }}</th>
               <th>{{ payout.block.height }}</th>
-              <th><a href="https://dogechain.info/tx/{{ payout.transaction_id}}" target="_blank">{{ payout.transaction_id|truncate(15, True) }}</a></th>
+              <th>{% if payout.transaction_id %}
+                <a href="https://dogechain.info/tx/{{ payout.transaction_id}}" target="_blank">{{ payout.transaction_id|truncate(15, True) }}</a>
+                {% endif %}
+              </th>
               <th>{% if payout.transaction.confirmed == True %}Confirmed {% else %} Unconfirmed{% endif %}</th>
             </tr>
             {% endfor %}
