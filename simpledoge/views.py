@@ -230,8 +230,6 @@ def user_dashboard(address=None):
                    filter(Share.id > last_share_id, Share.user == address).
                    scalar() or 0)
 
-    statuses = Status.query.filter_by(user=address).order_by(Status.worker.asc()).all()
-
     # reorganize/create the recently viewed
     recent = session.get('recent_users', [])
     if address in recent:
@@ -241,25 +239,32 @@ def user_dashboard(address=None):
 
     # store all the raw data of we're gonna grab
     workers = {}
+    def_worker = {'accepted': 0, 'rejected': 0, 'last_10_shares': 0,
+                  'online': False, 'status': None}
     ten_ago = datetime.datetime.utcnow() - datetime.timedelta(minutes=10)
     for m in get_typ(FiveMinuteShare, address).all() + get_typ(OneMinuteShare, address).all():
-        stamp = calendar.timegm(m.time.utctimetuple())
-        workers.setdefault(m.worker, {'accepted': 0, 'rejected': 0, 'last_10_shares': 0})
+        workers.setdefault(m.worker, def_worker.copy())
         workers[m.worker]['accepted'] += m.value
         if m.time >= ten_ago:
             workers[m.worker]['last_10_shares'] += m.value
 
     for m in get_typ(FiveMinuteReject, address).all() + get_typ(OneMinuteReject, address).all():
-        workers.setdefault(m.worker, {'accepted': 0, 'rejected': 0, 'last_10_shares': 0})
+        workers.setdefault(m.worker, def_worker.copy())
         workers[m.worker]['rejected'] += m.value
 
-    online_workers = workers_online(address)
+    for st in Status.query.filter_by(user=address):
+        workers.setdefault(st.worker, def_worker.copy())
+        workers[st.worker]['status'] = st.parsed_status
+        workers[st.worker]['status_stale'] = st.stale
+        workers[st.worker]['status_time'] = st.time
+
+    for name in workers_online(address):
+        workers.setdefault(name, def_worker.copy())
+        workers[name]['online'] = True
 
     return render_template('user_stats.html',
                            username=address,
-                           statuses=statuses,
                            workers=workers,
-                           online_workers=online_workers,
                            user_shares=user_shares,
                            payouts=payouts,
                            round_reward=250000,
