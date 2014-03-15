@@ -47,8 +47,8 @@
         hours = n(Math.floor(seconds/3600));
 
         luck = (shares_to_solve / additional_shares) * 1000;
-        if (luck > 9999) {
-          luck = 9999;
+        if (luck > 99999) {
+          luck = 99999;
         }
 
         $('.odometer.shares').text(Math.round(additional_shares));
@@ -80,11 +80,22 @@
         </div>
         <div class="col-md-7">
           <h5 class="stats">
-              <strong>Pool&nbsp;Hashrate</strong>:&nbsp;<span class="odometer hashes">0</span> Mhash/second |
-              <strong>Round&nbsp;Time</strong>:&nbsp;<span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span> |
-              <strong>Round&nbsp;Shares</strong>:&nbsp;<span class="odometer shares">0</span> |
-              <strong>Round&nbsp;Luck</strong>:&nbsp;<span class="odometer luck">0</span>% |
-              <strong>Active&nbsp;Workers</strong>:&nbsp;{{ g.worker_count }}
+              <strong data-toggle="tooltip" data-placement="right"
+                title="Total hashrate for the pool, represented in Megahashes per second">Pool&nbsp;Hashrate
+              </strong>:&nbsp;<span class="odometer hashes">0</span> MH/second |
+              <strong data-placement="right"
+                title="Total time since the last block was solved">Round&nbsp;Time
+              </strong>:&nbsp;
+              <span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span> |
+              <strong data-placement="right"
+                title="Total 1 difficulty shares submitted since the last block was solved">Round&nbsp;Shares
+              </strong>:&nbsp;<span class="odometer shares">0</span> |
+              <strong data-placement="right"
+                title="Calculated from (shares expected to solve a block)/(shares currently submitted). This results in a percentage that decreases the unluckier the pool is in finding a block. Additionally, the expected number of shares to solve a block is dependent upon the current difficulty, and so large spikes or drops in difficulty often result in strange jumps in round luck">
+                Round&nbsp;Luck</strong>:&nbsp;<span class="odometer luck">0</span>% |
+              <strong data-placement="right"
+                title="Total active clients mining on Simple Doge">
+                Active&nbsp;Workers</strong>:&nbsp;{{ g.worker_count }}
           </h5>
         </div>
 
