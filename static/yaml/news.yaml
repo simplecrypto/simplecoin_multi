@@ -1,5 +1,12 @@
-- title: Found the first block!
+- title: Second block found, big user stats upgrade!
   date: 3/15/2014
+  body: |
+     Blarg, another small block. This one(22k) was 11x lower than average, the 1.6 update can't get here soon enough. But
+     we have put up a significant update to user stats, you'll notice that you can now view a per worker breakdown, even if you are
+     not running PPAgent. There are some bugs we are working out at the moment(one of them is per worker hashrate), so please bear with
+     us while we tweak things.
+- title: Found the first block!
+  date: 3/14/2014
   body: |
      It was a smallish one, ~72k, but we've run the first payout and you should see your hard earned
      Doge in your account shortly :D We are available in IRC if you have any questions about whats going on. The finder was
@@ -7,7 +14,7 @@
      first winner of our <a href="https://dogechain.info/tx/92bca00d141c3677919cdcaa1c79066f1a4cecc863eace5d9f5fd5039147d3e0">
      10k block finder reward</a> ! Congrats, and thanks for mining with us :D
 - title: Steady growth and several updates
-  date: 3/14/2014
+  date: 3/13/2014
   body: |
       <div class="col-md-2">
       <a href="http://www.troll.me/images2/i-would-be-so-happy/if-we-could-finish-this-block-i-would-be-so-happy.jpg">
