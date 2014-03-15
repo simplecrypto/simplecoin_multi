@@ -58,35 +58,8 @@ def payout_cmd(simulate):
     payout(simulate=simulate)
 
 
-@manager.command
-def fake_payout():
-    addresses = ['mrCuJ1WNXGpcBd8FA6H2cSeQLLXYuJ3qVt',
-                 'mn3gzxzs8WASz8WCr4ZTun2BmHbdEXG2tc',
-                 'mg6pkcz4XdEHeD1ofpKahCAkXbpnKbL1jB',
-                 'mhADrHGjRhp4U4Zjext6QwRJrVM73xvCDn']
-    blockheight = 1000
-    for i in xrange(blockheight):
-        block = Block.create(random.choice(addresses), i, 50000, 5000, '')
-        block.mature = True
-        for address in addresses:
-            if 0 == random.randint(0, 1):
-                Payout.create(address, random.randint(1000000000, 10000000000), block)
-    db.session.commit()
-
-
-@manager.command
-def migrate_one_min_shares_yes_really_sure():
-    import datetime
-    shares = OneMinuteShare.query.all()
-    OneMinuteShare.query.delete()
-    db.session.commit()
-    for share in shares:
-        new = share.minute + datetime.timedelta(hours=5)
-        OneMinuteShare.create(share.user, share.shares, new)
-    db.session.commit()
-
-
 def make_context():
+    """ Setup a coinserver connection fot the shell context """
     app = _request_ctx_stack.top.app
     conn = AuthServiceProxy(
         "http://{0}:{1}@{2}:{3}/"
@@ -94,8 +67,7 @@ def make_context():
                 app.config['coinserv']['password'],
                 app.config['coinserv']['address'],
                 app.config['coinserv']['port']))
-    return dict(app=app,
-                conn=conn)
+    return dict(app=app, conn=conn)
 manager.add_command("shell", Shell(make_context=make_context))
 manager.add_command('db', MigrateCommand)
 
