@@ -75,7 +75,7 @@ $(document).ready(function() {
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          <small>Est round payout:</small>&nbsp;
+          <small>Est. round payout:</small>&nbsp;
           <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                        title="Payout estimate based on PPS (the pool pays out in PPLNS! This is just a estimate),
                         assumes a 250k reward"></i>
@@ -86,7 +86,7 @@ $(document).ready(function() {
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          <small>10 min hashrate:</small>
+          <small>Average hashrate:</small>&nbsp;
           <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                        title="Your average hashrate over the last 10 minutes"></i>
           <br><h4><p><span class="odometer hashrate">...</span> MHashes/sec</p></h4>
@@ -96,41 +96,92 @@ $(document).ready(function() {
     <div class="col-lg-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          <small>Doge/day (Est. from 10 min hashrate):</small>
+          <small>Est. Doge/day:</small>&nbsp;
           <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Daily payout estimate based on a 250k reward and 100% round luck. Actual payout will be different!"></i>
+                       title="An estimate based on your hashrate for the last ten minutes, a 250k reward, and 100% round luck. Actual payout will be different!"></i>
           <br><h4><p><span class="odometer dogerate">...</span> &ETH;</p></h4>
         </div>
       </div>
     </div>
   </div>
-  {% if statuses %}
+  <div class="row row-header">
+    <div class="col-lg-10 col-lg-offset-1">
+        <ul class="nav nav-tabs">
+          <li class="active tab"><a id="hour" data-target="hour" data-format="%M:%S">Hour</a></li>
+          <li class="tab"><a id="day" data-target="day" data-format="%H:%M %p">Day</a></li>
+          <li class="tab"><a id="month" data-target="month" data-format="%m/%d %H:%M">Month</a></li>
+        </ul>
+      <div id="chart" style="height:400px;">
+        <img src="/static/img/712.GIF" style="position:absolute;padding-top:150px;padding-left:400px;"><svg></svg>
+      </div>
+    </div>
+  </div>
+
   <div class="row page-header">
     <h2>Worker Status</h2>
     <br>
+    {% for worker in workers %}
     <div class="col-lg-10 col-lg-offset-1 col-md-12 col-sm-12 col-xs-12">
-      {% for st in statuses %}
-        <div class="table-responsive  bs-component" style="position:relative;">
-          <div class="well well-sm" style="margin-bottom:5px;">
-            <b>{{ st.worker }}</b>
-          {% if not st.worker %}
-            {# Show a warning about unnamed workers #}
-            <small style="font-size:14px;color:#ff0000;font-weight:400;">
-              Multiple unnamed workers will do wonky things!
-            </small>
-          {% endif %}
-          {% if st.stale == True %}
-            {# if stale then show a warning + toggle button #}
-            <small colspan="3" style="font-size:14px;color:#EEA236;"> last reported in {{ st.time | time_ago }}!</small>
-            <div class="btn btn-primary btn-xs collapse-button" data-toggle="collapse" data-target="#demo{{ loop.index0 }}">
-              [ + ]
-            </div>
-          {% else %}
-            <small colspan="3" style=" font-size:14px;font-weight:300;"> <i>Updated {{ st.time | time_ago }}</i></small>
-          {% endif %}
+      <div class="panel panel-default" style="background-color:#243749;">
+        <div class="panel-heading">
+          <h3>
+            <i class="fa fa-circle" style="color:{% if worker in online_workers %}#5BCE00{% else %}#B12627{% endif %}"
+               data-toggle="tooltip" data-placement="right" title="Online"></i>&nbsp;
+            {{ worker }}
+            <span class="pull-right">
+            <small class="text-right" style="padding-left:10px;font-weight:300;">Hashrate:
+              {{ (((workers[worker]['last_10_shares']*65536) / 1000000)/600)|round(3) }}MH/sec
+              <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                       title="Average hashrate over the last ten minutes"></i></small>
+            <small class="text-right" style="padding-left:10px;font-weight:300;">Efficiency:
+              {{ (workers[worker]['accepted'] / ((workers[worker]['accepted'] + workers[worker]['rejected']))
+              *100)|round(2) }}%
+              <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                       title="Computed from accepted/total({{ workers[worker]['accepted'] }}/{{ ((workers[worker]['accepted'] + workers[worker]['rejected'])) }}) shares submitted in the last 24 hours"></i></small>
+            </span>
+          </h3>
+{#          <h6 style="padding-left:25px;margin:0;"><small>Ping: 23ms</small></h6>#}
+        </div>
+        <div class="panel-body" style="padding:0px;">
+          <div class="table-responsive  bs-component" style="position:relative;padding:9px;">
+            <table class="table worker-stats">
+              <tr>
+                <td><h4>Accepted Shares: {{ workers[worker]['accepted'] }}</h4></td>
+                <td><h4>Rejected Shares: {{ workers[worker]['rejected'] }}</h4></td>
+              </tr>
+            </table>
           </div>
+          {# if there are miner status loop through them #}
+          {% if statuses %}
+          {% for st in statuses %}
+          {% if st.worker == worker %}
+          <div class="table-responsive bs-component worker-table-wrapper">
+            <div class="worker-wrapper">
+              <b>{{ st.worker }}</b>
+            {% if not st.worker %}
+              {# Show a warning about unnamed workers #}
+              <small style="font-size:14px;color:#ff0000;font-weight:400;">
+                Multiple unnamed workers will do wonky things!
+              </small>
+            {% endif %}
+            {% if st.stale == True %}
+              {# if stale then show a warning #}
+              <small colspan="3" style="font-size:14px;color:#EEA236;"> last reported in {{ st.time | time_ago }}!</small>
+              <div class="btn btn-default btn-sm collapse-button" data-toggle="collapse" data-target="#worker-{{ worker }}">
+                [ + ]
+              </div>
+            {% else %}
+              {# Not stale - show last updated time #}
+              <small colspan="3" style=" font-size:14px;font-weight:300;">
+                <i>Updated {{ st.time | time_ago }}</i></small>
+              <div class="btn btn-default btn-sm collapse-button"
+                   data-toggle="collapse" data-target="#worker-{{ worker }}">
+                [ - ]
+              </div>
+            {% endif %}
+            </div>
             {# Worker's miner stats #}
-            <div id="demo{{ loop.index0 }}" class="collapse{% if st.stale == False %} in{% endif %}">
+            <div id="worker-{{ worker }}" class="collapse{% if st.stale == False %} in{% endif %}">
               <table class="table table-striped table-hover worker-table">
                 <thead>
                   <tr>
@@ -148,8 +199,12 @@ $(document).ready(function() {
                 {% for gpu in st.parsed_status['gpus'] %}
                   <tr data-url="/{{ username }}/{{ st.worker }}/details/{{ loop.index0 }}">
                     <th>{{ loop.index0 }}</th>
-                    <th {% if (gpu.get('MHS av', 0)*1000) == 0 %}class="warning"{% endif %}>{{ (gpu.get('MHS av', 0)*1000)|round|int }}</th>
-                    <th>{% if ( (gpu.get('Utility', 0))*(gpu.get('Last Share Difficulty', 0)) ) == 0 or (gpu.get('MHS av', 0.0001) == 0) %}
+                    <th {% if (gpu.get('MHS av', 0)*1000) == 0 %}class="warning"{% endif %}>
+                      {{ (gpu.get('MHS av', 0)*1000)|round|int }}
+                    </th>
+                    <th>
+                      {% if ( (gpu.get('Utility', 0))*(gpu.get('Last Share Difficulty', 0)) ) == 0
+                      or (gpu.get('MHS av', 0.0001) == 0) %}
                       -/-
                       {% else %}
                       {{ ( ((gpu.get('Utility', 0)*(gpu.get('Last Share Difficulty', 0))) /
@@ -173,22 +228,23 @@ $(document).ready(function() {
                 </tbody>
               </table>
             </div>
-</div>
-      {% endfor %}
-    </div>
-  </div>
-  {% endif %}
-  <div class="row row-header">
-    <div class="col-lg-10 col-lg-offset-1">
-        <ul class="nav nav-tabs">
-          <li class="active tab"><a id="hour" data-target="hour" data-format="%M:%S">Hour</a></li>
-          <li class="tab"><a id="day" data-target="day" data-format="%H:%M %p">Day</a></li>
-          <li class="tab"><a id="month" data-target="month" data-format="%m/%d %H:%M">Month</a></li>
-        </ul>
-      <div id="chart" style="height:400px;">
-        <img src="/static/img/712.GIF" style="position:absolute;padding-top:150px;padding-left:400px;"><svg></svg>
+          </div>
+          {% endif %}
+          {% endfor %}
+
+          {% else %}
+          {# No recorded workers, suggest using PPAgent           #}
+          <div class="table-responsive bs-component worker-table-wrapper">
+            <div class="worker-wrapper">
+              Setup <a href="http://www.github.com/icook/ppagent/">PPAgent</a> to start reporting cgminer stats directly
+            </div>
+          </div>
+
+          {% endif %}
+        </div>
       </div>
     </div>
+    {% endfor %}
   </div>
 
   <div class="row row-header" style="padding-top:50px;">

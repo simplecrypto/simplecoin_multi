@@ -1,6 +1,6 @@
 import calendar
-import json
 import time
+import requests
 import yaml
 import datetime
 
@@ -11,12 +11,12 @@ from sqlalchemy.sql import func
 
 from .models import (Transaction, OneMinuteShare, Block, Share, Payout,
                      last_block_share_id, last_block_time, Blob, FiveMinuteShare,
-                     OneHourShare, Status)
+                     OneHourShare, Status, FiveMinuteReject, OneMinuteReject)
 from . import db, root, cache
+from simpledoge.utils import compress_typ, get_typ
 
 
 main = Blueprint('main', __name__)
-
 
 @main.route("/")
 def home():
@@ -188,6 +188,17 @@ def worker_detail(address, worker, gpu):
     return jsonify(output=output)
 
 
+@cache.memoize(timeout=120)
+def workers_online(address):
+    """ Returns all workers online for an address """
+    client_mon = current_app.config['monitor_addr']+'client/'+address
+    try:
+        req = requests.get(client_mon)
+        data = req.json()
+    except Exception:
+        return []
+    return [w['worker'] for w in data[address]]
+
 @main.route("/<address>")
 def user_dashboard(address=None):
     if len(address) != 34:
@@ -219,9 +230,27 @@ def user_dashboard(address=None):
     recent.insert(0, address)
     session['recent_users'] = recent[:10]
 
+    # store all the raw data of we're gonna grab
+    workers = {}
+    ten_ago = datetime.datetime.utcnow() - datetime.timedelta(minutes=10)
+    for m in get_typ(FiveMinuteShare, address).all() + get_typ(OneMinuteShare, address).all():
+        stamp = calendar.timegm(m.time.utctimetuple())
+        workers.setdefault(m.worker, {'accepted': 0, 'rejected': 0, 'last_10_shares': 0})
+        workers[m.worker]['accepted'] += m.value
+        if m.time >= ten_ago:
+            workers[m.worker]['last_10_shares'] += m.value
+
+    for m in get_typ(FiveMinuteReject, address).all() + get_typ(OneMinuteReject, address).all():
+        workers.setdefault(m.worker, {'accepted': 0, 'rejected': 0, 'last_10_shares': 0})
+        workers[m.worker]['rejected'] += m.value
+
+    online_workers = workers_online(address)
+
     return render_template('user_stats.html',
                            username=address,
                            statuses=statuses,
+                           workers=workers,
+                           online_workers=online_workers,
                            user_shares=user_shares,
                            payouts=payouts,
                            round_reward=250000,
@@ -237,38 +266,16 @@ def address_stats(address=None, window="hour"):
     # store all the raw data of we've grabbed
     workers = {}
 
-    def get_typ(typ, window=True):
-        """ Gets the latest slices of a specific size. window open toggles
-        whether we limit the query to the window size or not. We disable the
-        window when compressing smaller time slices because if the crontab
-        doesn't run we don't want a gap in the graph. This is caused by a
-        portion of data that should already be compressed not yet being
-        compressed. """
-        # grab the correctly sized slices
-        base = db.session.query(typ).filter_by(user=address)
-        if window is False:
-            return base
-        grab = typ.floor_time(datetime.datetime.utcnow()) - typ.window
-        return base.filter(typ.time >= grab)
-
-    def compress_typ(typ):
-        for slc in get_typ(typ, window=False):
-            slice_dt = typ.upper.floor_time(slc.time)
-            stamp = calendar.timegm(slice_dt.utctimetuple())
-            workers.setdefault(slc.worker, {})
-            workers[slc.worker].setdefault(stamp, 0)
-            workers[slc.worker][stamp] += slc.value
-
     if window == "hour":
         typ = OneMinuteShare
     elif window == "day":
-        compress_typ(OneMinuteShare)
+        compress_typ(OneMinuteShare, address, workers)
         typ = FiveMinuteShare
     elif window == "month":
-        compress_typ(FiveMinuteShare)
+        compress_typ(FiveMinuteShare, address, workers)
         typ = OneHourShare
 
-    for m in get_typ(typ):
+    for m in get_typ(typ, address):
         stamp = calendar.timegm(m.time.utctimetuple())
         workers.setdefault(m.worker, {})
         workers[m.worker][stamp] = m.value

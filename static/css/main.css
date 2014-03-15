@@ -143,13 +143,32 @@ g.axis {
 }
 
 .worker-table {
-        margin-bottom:30px;
+    margin-bottom:0px;
+}
+
+.worker-stats {
+    margin-bottom:0;
+}
+
+.worker-table-wrapper {
+    position:relative;
+    background-color:#243749;
+}
+
+.worker-wrapper {
+    margin-bottom:0px;
+    background-color:#4e5d6c;
+    min-height:20px;
+    padding:19px;
+    width:100%;
 }
 
 .collapse-button {
-    position: absolute;
-    top: 0;
-    right: 0;
+    float:right;
     z-index: 100;
     font-weight: bold;
+    position:relative;
+    top:-4px;
+    left:2px;
+    min-width:42px;"
 }
