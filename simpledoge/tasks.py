@@ -281,7 +281,7 @@ def payout(self, simulate=False):
         start = block.last_share.id
         logger.debug("Identified last matching share id as {}".format(start))
         user_shares = {}
-        for share in Share.query.filter(Share.id <= start).yield_per(100):
+        for share in Share.query.order_by(Share.id.desc()).filter(Share.id <= start).yield_per(100):
             user_shares.setdefault(share.user, 0)
             if remain > share.shares:
                 user_shares[share.user] += share.shares
