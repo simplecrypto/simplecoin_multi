@@ -1,3 +1,12 @@
+- title: Third block found, payout bug occured and fixed :(
+  date: 3/15/2014
+  body: |
+     We got lucky, and the block payout was good too :D time for the bad news, with this last payout we hit a bug with
+     our PPLNS algo. This bug only effected the most recent(3rd) payout, and we've already patched it. Basically, some people were
+     paid out a little extra, some were paid out not quite enough. We've compiled <a href="https://docs.google.com/a/
+     simpload.com/spreadsheet/ccc?key=0AgkBufaWF9yfdGtISjU0ZklvWjZHdGM4aV9FblVuMFE&usp=sharing#gid=0">a list for you
+     guys</a> so you can see what happened. If you have a NEGATIVE total owed, no worries you got overpaid a bit, lucky bonus payout for you :D.
+     If your total owned is POSITIVE we will be sending you a compensating transaction. Sorry for the hassle, this should be a one time deal.
 - title: Second block found, big user stats upgrade!
   date: 3/15/2014
   body: |
