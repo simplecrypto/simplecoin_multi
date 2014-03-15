@@ -93,10 +93,19 @@ def add_pool_stats():
     block = [b for b in blobs if b.key == "block"][0]
     server = [b for b in blobs if b.key == "server"][0]
     g.current_difficulty = block.data['difficulty']
-    g.worker_count = server.data['stratum_clients']
+    g.worker_count = int(server.data['stratum_clients'])
 
     alerts = yaml.load(open(root + '/static/yaml/alerts.yaml'))
     g.alerts = alerts
+
+
+@main.route("/api/pool_stats")
+def pool_stats_api():
+    ret = {}
+    ret['hashrate'] = (g.pool_stats[3] * (2**16)) / 600000
+    ret['workers'] = g.worker_count
+    ret['round_shares'] = round(g.pool_stats[0])
+    return jsonify(**ret)
 
 
 @cache.cached(timeout=60, key_prefix='get_total_n1')
