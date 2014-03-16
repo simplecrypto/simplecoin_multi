@@ -21,7 +21,8 @@
   <script src="/static/js/bootstrap.min.js"></Script>
   <script>
     $(document).ready(function() {
-      var shares, ten_min_hashrate, seconds, khashpersec, shares_per_sec, luck;
+      var shares, ten_min_hashrate, seconds, khashpersec, shares_per_sec, luck,
+          round_time_left, shares_to_solve;
       {# Grab new pool stats #}
       shares = {{ g.pool_stats[0] }};
 
@@ -30,6 +31,7 @@
       ten_min_hashrate = Math.pow(2, 16) * {{ g.pool_stats[3] }};
       khashpersec = (ten_min_hashrate / 600) / 1000;
       shares_per_sec = (shares / seconds);
+      round_time_left = (shares_to_solve/shares_per_sec);
 
       function n(n){
           return n > 9 ? "" + n: "0" + n;
@@ -46,6 +48,12 @@
         minutes = n(Math.floor(seconds/60)%60);
         hours = n(Math.floor(seconds/3600));
 
+        remaining_time = round_time_left - seconds;
+
+        remaining_seconds = Math.floor(remaining_time%60);
+        remaining_minutes = n(Math.floor(remaining_time/60)%60);
+        remaining_hours = n(Math.floor(remaining_time/3600));
+
         luck = (shares_to_solve / additional_shares) * 1000;
         if (luck > 99999) {
           luck = 99999;
@@ -58,6 +66,10 @@
         $('.seconds').text(n(y));
         $('.hours').text(hours);
 
+        $('.remaining_minutes').text(remaining_minutes);
+        $('.remaining_seconds').text(n(remaining_seconds));
+        $('.remaining_hours').text(remaining_hours);
+
         $('.odometer.hashes').text(Math.round(khashpersec/100)/10);
         $('.odometer.luck').text(Math.round(luck) / 10);
         $('.odometer.blockluck').text(Math.round(luck) / 10);
@@ -68,9 +80,7 @@
 <body>
   <div class="container">
     <div class="row">
-
         <div class="col-md-5">
-
           <h1 style="font-size:51px;">
             <a style=" text-decoration: none;" href="/">
               <img src="/static/img/dogecoin.png" width="64" style="padding-bottom: 5px;">
@@ -78,27 +88,38 @@
             </a>
           </h1>
         </div>
-        <div class="col-md-7">
+        <div class="col-md-7 no-padding">
           <h5 class="stats">
+            <div class="col-sm-4">
               <strong data-toggle="tooltip" data-placement="right"
                 title="Total hashrate for the pool, represented in Megahashes per second">Pool&nbsp;Hashrate
-              </strong>:&nbsp;<span class="odometer hashes">0</span> MH/second |
-              <strong data-placement="right"
-                title="Total time since the last block was solved">Round&nbsp;Time
-              </strong>:&nbsp;
-              <span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span> |
-              <strong data-placement="right"
-                title="Total 1 difficulty shares submitted since the last block was solved">Round&nbsp;Shares
-              </strong>:&nbsp;<span class="odometer shares">0</span> |
-              <strong data-placement="right"
-                title="Calculated from (shares expected to solve a block)/(shares currently submitted). This results in a percentage that decreases the unluckier the pool is in finding a block. Additionally, the expected number of shares to solve a block is dependent upon the current difficulty, and so large spikes or drops in difficulty often result in strange jumps in round luck">
-                Round&nbsp;Luck</strong>:&nbsp;<span class="odometer luck">0</span>% |
+              </strong>:&nbsp;<span class="odometer hashes">...</span> MH/sec
+              <br>
               <strong data-placement="right"
                 title="Total active clients mining on Simple Doge">
                 Active&nbsp;Workers</strong>:&nbsp;{{ g.worker_count }}
+            </div>
+            <div class="col-sm-4">
+              <strong data-placement="right"
+                title="Total time since the last block was solved">Round&nbsp;Time
+              </strong>:&nbsp;
+              <span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span>
+              <br>
+              <strong data-placement="right"
+                title="Estimated time remaining until the next block is found. It assumes round luck will be 100% and that difficulty will not change.">
+                Est.&nbsp;Time&nbsp;Left</strong>:&nbsp;<span class="remaining_hours">00</span>:<span class="remaining_minutes">00</span>:<span class="remaining_seconds">00</span>
+            </div>
+            <div class="col-sm-4">
+              <strong data-placement="right"
+                title="Total 1 difficulty shares submitted since the last block was solved">Round&nbsp;Shares
+              </strong>:&nbsp;<span class="odometer shares">...</span>
+              <br>
+              <strong data-placement="right"
+                title="Calculated from (shares expected to solve a block)/(shares currently submitted). This results in a percentage that decreases the unluckier the pool is in finding a block. Additionally, the expected number of shares to solve a block is dependent upon the current difficulty, and so large spikes or drops in difficulty often result in strange jumps in round luck">
+                Round&nbsp;Luck</strong>:&nbsp;<span class="odometer luck">...</span>%
+            </div>
           </h5>
         </div>
-
     </div>
     <div class="row">
       <div class="navbar navbar-default">
