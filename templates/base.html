@@ -42,6 +42,7 @@
 
         seconds += 1;
         additional_shares = shares_per_sec * seconds
+        shares_remaining = shares_to_solve - Math.round(additional_shares);
         y = seconds%60
         minutes = n(Math.floor(seconds/60)%60);
         hours = n(Math.floor(seconds/3600));
@@ -64,14 +65,17 @@
         $('.seconds').text(n(y));
         $('.hours').text(hours);
 
-        $('.remaining_minutes').text(remaining_minutes);
-        $('.remaining_seconds').text(n(remaining_seconds));
-        $('.remaining_hours').text(remaining_hours);
+        // for pool stats page
+        $('.est_remaining_minutes').text(remaining_minutes);
+        $('.est_remaining_seconds').text(n(remaining_seconds));
+        $('.est_remaining_hours').text(remaining_hours);
 
         $('.odometer.hashes').text(numberWithCommas(Math.round(khashpersec/100)/10));
         $('.odometer.phashrate').text(numberWithCommas(Math.round(khashpersec/100)/10));
         $('.odometer.luck').text(numberWithCommas(Math.round(luck) / 10));
         $('.odometer.blockluck').text(numberWithCommas(Math.round(luck) / 10));
+        $('.odometer.remaining_shares').text(numberWithCommas(Math.round(shares_remaining)));
+
       },1000);
 
       {# pass the alert close action to the server to add it to the session #}
