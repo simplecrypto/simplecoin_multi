@@ -258,6 +258,7 @@ def user_dashboard(address=None):
         workers[st.worker]['status'] = st.parsed_status
         workers[st.worker]['status_stale'] = st.stale
         workers[st.worker]['status_time'] = st.time
+        workers[st.worker]['status_version'] = workers[st.worker]['status'].get('v', 'v0.2.0')[1:].split('.')
 
     for name in workers_online(address):
         workers.setdefault(name, def_worker.copy())
@@ -272,7 +273,8 @@ def user_dashboard(address=None):
                            total_earned=earned,
                            total_paid=total_paid,
                            balance=balance,
-                           unconfirmed_balance=unconfirmed_balance)
+                           unconfirmed_balance=unconfirmed_balance,
+                           latest_ppagent=current_app.config['latest_ppagent'])
 
 
 @main.route("/<address>/stats")

@@ -167,6 +167,14 @@ $(document).ready(function() {
                 Multiple unnamed workers will do wonky things!
               </small>
             {% endif %}
+            {% if dat['status_version'] < latest_ppagent %}
+              {# Notice about out of date ppagent #}
+              <a href="https://github.com/icook/ppagent#upgrade">
+                <small style="font-size:14px;color:#ff0000;font-weight:400;">
+                  New version of ppagent available, upgrade here!
+                </small>
+              </a>
+            {% endif %}
             {% if dat['status_stale'] == True %}
               {# if stale then show a warning #}
               <small colspan="3" style="font-size:14px;color:#EEA236;"> last reported in {{ dat['status_time'] | time_ago }}!</small>
