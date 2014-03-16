@@ -34,7 +34,7 @@ $(document).ready(function() {
     setInterval(function(){
       $('.odometer.hashrate').text(Math.round(mhashpersec * 1000) / 1000);
       $('.odometer.usershares').text(Math.round(user_shares));
-      $('.odometer.estpayout').text(Math.round(est_payout * 1000000) / 1000000);
+      $('.odometer.estpayout').text(Math.round(est_payout * 1000) / 1000);
       $('.odometer.dogerate').text(Math.round(dogerate * 1000) / 1000);
     },1000);
 
@@ -62,7 +62,7 @@ $(document).ready(function() {
   <div class="row page-header">
     <h2 style="word-wrap:break-word;">User Stats - {{ username }}</h2>
     <br>
-    <div class="col-lg-3">
+    <div class="col-sm-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
           <small>Round Shares</small>&nbsp;
@@ -72,7 +72,7 @@ $(document).ready(function() {
         </div>
       </div>
     </div>
-    <div class="col-lg-3">
+    <div class="col-sm-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
           <small>Est. Round Payout</small>&nbsp;
@@ -83,7 +83,7 @@ $(document).ready(function() {
         </div>
       </div>
     </div>
-    <div class="col-lg-3">
+    <div class="col-sm-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
           <small>Average Hashrate</small>&nbsp;
@@ -93,7 +93,7 @@ $(document).ready(function() {
         </div>
       </div>
     </div>
-    <div class="col-lg-3">
+    <div class="col-sm-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
           <small>Est. Doge/day</small>&nbsp;
@@ -105,7 +105,7 @@ $(document).ready(function() {
     </div>
   </div>
   <div class="row row-header">
-    <div class="col-lg-10 col-lg-offset-1">
+    <div class="col-lg-12">
         <ul class="nav nav-tabs">
           <li class="active tab"><a id="hour" data-target="hour" data-format="%M:%S">Hour</a></li>
           <li class="tab"><a id="day" data-target="day" data-format="%H:%M %p">Day</a></li>
@@ -140,20 +140,22 @@ $(document).ready(function() {
                        title="Computed from accepted/total({{ dat['accepted'] }}/{{ ((dat['accepted'] + dat['rejected'])) }}) shares submitted in the last 24 hours"></i></small>
             </span>
           </h3>
+          <div class="clearfix"></div>
 {#          <h6 style="padding-left:25px;margin:0;"><small>Ping: 23ms</small></h6>#}
         </div>
         <div class="panel-body" style="padding:0px;">
           <div class="table-responsive  bs-component" style="position:relative;padding:9px;">
-            <table class="table worker-stats">
-              <tr>
-                <td><h4>Accepted Shares: {{ dat['accepted'] }}&nbsp;
-                  <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Accepted shares over the last 24 hours"></i></h4></td>
-                <td><h4>Rejected Shares: {{ dat['rejected'] }}&nbsp;
-                  <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Rejected shares over the last 24 hours"></i></h4></td>
-              </tr>
-            </table>
+            <div class="col-xs-6">
+              <h4>Accepted Shares: {{ dat['accepted'] }}&nbsp;
+                <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                     title="Accepted shares over the last 24 hours"></i></h4>
+            </div>
+            <div class="col-xs-6">
+              <h4>Rejected Shares: {{ dat['rejected'] }}&nbsp;
+                <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                     title="Rejected shares over the last 24 hours"></i></h4>
+            </div>
+            <div class="clearfix"></div>
           </div>
           {# if there are miner status loop through them #}
           {% if dat['status'] %}
@@ -255,10 +257,10 @@ $(document).ready(function() {
     {% endfor %}
   </div>
 
-  <div class="row row-header" style="padding-top:50px;">
+  <div class="row row-header">
     <h2>Account</h2>
     <br>
-    <div class="col-lg-3">
+    <div class="col-sm-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
           <small>Balance</small>&nbsp;
@@ -268,7 +270,7 @@ $(document).ready(function() {
         </div>
       </div>
     </div>
-    <div class="col-lg-3">
+    <div class="col-sm-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
           <small>Unconfirmed balance</small>&nbsp;
@@ -278,7 +280,7 @@ $(document).ready(function() {
         </div>
       </div>
     </div>
-    <div class="col-lg-3">
+    <div class="col-sm-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
           <small>Total earned</small>&nbsp;
@@ -288,7 +290,7 @@ $(document).ready(function() {
         </div>
       </div>
     </div>
-    <div class="col-lg-3">
+    <div class="col-sm-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
           <small>Total paid</small>&nbsp;

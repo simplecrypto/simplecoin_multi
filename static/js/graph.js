@@ -72,7 +72,6 @@ generate_graph = function(request_url, date_format, user) {
       //Actually generate/regenerate the graph here
       nv.addGraph(window.generate_graph = function() {
         var chart = nv.models.stackedAreaChart()
-                      .margin({right: 100})
                       .x(function(d) { return d[0] })   //We can modify the data accessor functions...
                       .y(function(d) { return +y_scale(d[1], seconds) })   //...in case your data is formatted differently.
                       .useInteractiveGuideline(true)    //Tooltips which show all data points. Very nice!
