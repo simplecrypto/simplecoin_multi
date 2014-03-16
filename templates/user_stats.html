@@ -134,8 +134,11 @@ $(document).ready(function() {
               <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                        title="Average hashrate over the last ten minutes based on accepted shares, NOT PPAgent."></i></small>
             <small class="text-right" style="padding-left:10px;font-weight:300;">Efficiency:
-              {{ (dat['accepted'] / ((dat['accepted'] + dat['rejected']))
-              *100)|round(2) }}% &nbsp;
+              {% if dat['accepted'] != 0 or dat['rejected'] != 0 %}
+                {{ (dat['accepted'] / ((dat['accepted'] + dat['rejected'])) * 100) | round(2) }}% &nbsp;
+              {% else %}
+                --
+              {% endif %}
               <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                        title="Computed from accepted/total({{ dat['accepted'] }}/{{ ((dat['accepted'] + dat['rejected'])) }}) shares submitted in the last 24 hours"></i></small>
             </span>
