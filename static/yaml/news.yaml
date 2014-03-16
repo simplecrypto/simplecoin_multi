@@ -1,8 +1,14 @@
-- title: Third block found, payout bug occured and fixed :(
+- title: Upgrade to 1.6 Complete
+  date: 3/16/2014
+  body: |
+      Our mining server just switched over to 1.6 wallet in preparation for the fork. Make sure you 
+      do the same with your local wallet or you won't see our payouts after Monday when the fork
+      occurs.
+- title: Third block found, payout bug occured and fixed.
   date: 3/15/2014
   body: |
-     We got lucky, and the block payout was good too :D time for the bad news, with this last payout we hit a bug with
-     our PPLNS algo. This bug only effected the most recent(3rd) payout, and we've already patched it. Basically, some people were
+     We got lucky, and the block payout was good too! Time for the bad news. With this last payout we hit a bug with
+     our PPLNS algorithm. This bug only effected the most recent (3rd) payout, and we've already patched it. Basically, some people were
      paid out a little extra, some were paid out not quite enough. We've compiled <a href="https://docs.google.com/a/
      simpload.com/spreadsheet/ccc?key=0AgkBufaWF9yfdGtISjU0ZklvWjZHdGM4aV9FblVuMFE&usp=sharing#gid=0">a list for you
      guys</a> so you can see what happened. If you have a NEGATIVE total owed, no worries you got overpaid a bit, lucky bonus payout for you :D.
