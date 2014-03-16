@@ -318,11 +318,11 @@ $(document).ready(function() {
             {% for payout in payouts %}
             <tr>
               <th>{{ payout.block.found_at | time_ago }}</th>
-              <th>{{ payout.shares }}</th>
-              <th>{{ payout.amount/100000000|round(2) }}</th>
-              <th>{{ payout.block.height }}</th>
+              <th>{{ '{:,}'.format(payout.shares) }}</th>
+              <th>{{ '{:,}'.format(payout.amount / 100000000 | round(2)) }}</th>
+              <th>{{ '{:,}'.format(payout.block.height) }}</th>
               <th>{% if payout.transaction_id %}
-                <a href="https://dogechain.info/tx/{{ payout.transaction_id}}" target="_blank">{{ payout.transaction_id|truncate(15, True) }}</a>
+                <a href="https://dogechain.info/tx/{{ payout.transaction_id }}" target="_blank">{{ payout.transaction_id | truncate(15, True) }}</a>
                 {% endif %}
               </th>
               <th>
