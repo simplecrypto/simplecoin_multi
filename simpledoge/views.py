@@ -302,6 +302,11 @@ def address_stats(address=None, window="hour"):
     end = ((int(time.time()) // step) * step) - (step * 2)
     start = end - typ.window.total_seconds() + (step * 2)
 
+    if address == "pool" and '' in workers:
+        print workers
+        workers['Entire Pool'] = workers['']
+        del workers['']
+
     return jsonify(start=start, end=end, step=step, workers=workers)
 
 
