@@ -241,7 +241,7 @@ def user_dashboard(address=None):
     workers = {}
     def_worker = {'accepted': 0, 'rejected': 0, 'last_10_shares': 0,
                   'online': False, 'status': None}
-    ten_ago = datetime.datetime.utcnow() - datetime.timedelta(minutes=10)
+    ten_ago = datetime.datetime.utcnow() - datetime.timedelta(minutes=12)
     for m in get_typ(FiveMinuteShare, address).all() + get_typ(OneMinuteShare, address).all():
         workers.setdefault(m.worker, def_worker.copy())
         workers[m.worker]['accepted'] += m.value
