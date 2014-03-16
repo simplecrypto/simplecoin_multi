@@ -315,7 +315,16 @@ $(document).ready(function() {
                 <a href="https://dogechain.info/tx/{{ payout.transaction_id}}" target="_blank">{{ payout.transaction_id|truncate(15, True) }}</a>
                 {% endif %}
               </th>
-              <th>{% if payout.transaction.confirmed == True %}Confirmed {% else %} Unconfirmed{% endif %}</th>
+              <th>
+                {% if payout.transaction_id %}
+                  {% if payout.transaction.confirmed == True %}
+                    Confirmed
+                  {% else %}
+                    Unconfirmed
+                  {% endif %}
+                {% else %}
+                  -
+                {% endif %}</th>
             </tr>
             {% endfor %}
 
