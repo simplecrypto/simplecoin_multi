@@ -241,11 +241,12 @@ def user_dashboard(address=None):
     workers = {}
     def_worker = {'accepted': 0, 'rejected': 0, 'last_10_shares': 0,
                   'online': False, 'status': None}
-    ten_ago = datetime.datetime.utcnow() - datetime.timedelta(minutes=12)
+    twelve_ago = datetime.datetime.utcnow() - datetime.timedelta(minutes=12)
+    two_ago = datetime.datetime.utcnow() - datetime.timedelta(minutes=2)
     for m in get_typ(FiveMinuteShare, address).all() + get_typ(OneMinuteShare, address).all():
         workers.setdefault(m.worker, def_worker.copy())
         workers[m.worker]['accepted'] += m.value
-        if m.time >= ten_ago:
+        if m.time >= twelve_ago and m.time <= two_ago:
             workers[m.worker]['last_10_shares'] += m.value
 
     for m in get_typ(FiveMinuteReject, address).all() + get_typ(OneMinuteReject, address).all():

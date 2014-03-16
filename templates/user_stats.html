@@ -88,7 +88,7 @@ $(document).ready(function() {
         <div class="panel-body text-center">
           <small>Average Hashrate</small>&nbsp;
           <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Your average hashrate over the last 10 minutes"></i>
+                       title="Your average hashrate over the last 10 minutes based on your accepted shares, NOT PPAgent."></i>
           <br><h4><p><span class="odometer hashrate">...</span> MHashes/sec</p></h4>
         </div>
       </div>
@@ -132,7 +132,7 @@ $(document).ready(function() {
             <small class="text-right" style="padding-left:10px;font-weight:300;">Hashrate:
               {{ (((dat['last_10_shares']*65536) / 1000000)/600)|round(3) }} MH/sec &nbsp;
               <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Average hashrate over the last ten minutes"></i></small>
+                       title="Average hashrate over the last ten minutes based on accepted shares, NOT PPAgent."></i></small>
             <small class="text-right" style="padding-left:10px;font-weight:300;">Efficiency:
               {{ (dat['accepted'] / ((dat['accepted'] + dat['rejected']))
               *100)|round(2) }}% &nbsp;
