@@ -1,3 +1,9 @@
+function numberWithCommas(x) {
+    var parts = x.toString().split(".");
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return parts.join(".");
+}
+
 generate_graph = function(request_url, date_format, user) {
   //Calculate the hash rate based on the number of diff-1 shares generated in a minute
     var calculate_hash = function(sharesPerMin, seconds) {

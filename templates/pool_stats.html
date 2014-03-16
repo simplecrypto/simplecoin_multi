@@ -59,14 +59,14 @@ $(document).ready(function() {
         {% for block in blocks %}
         <tr>
           <th>{{ block.found_at | time_ago }}</th>
-          <th>{{ block.shares_to_solve }}</th>
-          <th>{{ ( ((block.difficulty * (2 ** 16))/block.shares_to_solve ) * 100) | round(1) }} %</th>
+          <th>{{ '{:,}'.format(block.shares_to_solve) }}</th>
+          <th>{{ '{:,}'.format(( ((block.difficulty * (2 ** 16))/block.shares_to_solve ) * 100) | round(1)) }} %</th>
           <th>{{ block.duration }}</th>
           <th>{{ (block.total_value / 100000000) | round(2) }}</th>
-          <th>{{ block.difficulty| round(4) }}</th>
+          <th>{{ '{:,}'.format(block.difficulty| round(4)) }}</th>
           <th><a href="/{{ block.user }}">{{ block.user|truncate(9, True) }}</a></th>
           <th><a href="https://dogechain.info/block/{{ block.hash }}">{{ block.hash|truncate(9, True) }}</a></th>
-          <th>{{ block.height }}</th>
+          <th>{{ '{:,}'.format(block.height) }}</th>
           <th>{{ block.status }}</th>
         </tr>
         {% endfor %}

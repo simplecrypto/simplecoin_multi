@@ -59,8 +59,8 @@
           luck = 99999;
         }
 
-        $('.odometer.shares').text(Math.round(additional_shares));
-        $('.odometer.blockshares').text(Math.round(additional_shares));
+        $('.odometer.shares').text(numberWithCommas(Math.round(additional_shares)));
+        $('.odometer.blockshares').text(numberWithCommas(Math.round(additional_shares)));
 
         $('.minutes').text(minutes);
         $('.seconds').text(n(y));
@@ -70,9 +70,9 @@
         $('.remaining_seconds').text(n(remaining_seconds));
         $('.remaining_hours').text(remaining_hours);
 
-        $('.odometer.hashes').text(Math.round(khashpersec/100)/10);
-        $('.odometer.luck').text(Math.round(luck) / 10);
-        $('.odometer.blockluck').text(Math.round(luck) / 10);
+        $('.odometer.hashes').text(numberWithCommas(Math.round(khashpersec/100)/10));
+        $('.odometer.luck').text(numberWithCommas(Math.round(luck) / 10));
+        $('.odometer.blockluck').text(numberWithCommas(Math.round(luck) / 10));
       },1000);
     });
   </script>

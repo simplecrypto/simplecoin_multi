@@ -32,10 +32,10 @@ $(document).ready(function() {
 
     mhashpersec = (hashrate / seconds) / 1000;
     setInterval(function(){
-      $('.odometer.hashrate').text(Math.round(mhashpersec * 1000) / 1000);
-      $('.odometer.usershares').text(Math.round(user_shares));
-      $('.odometer.estpayout').text(Math.round(est_payout * 1000) / 1000);
-      $('.odometer.dogerate').text(Math.round(dogerate * 1000) / 1000);
+      $('.odometer.hashrate').text(numberWithCommas(Math.round(mhashpersec * 1000) / 1000));
+      $('.odometer.usershares').text(numberWithCommas(Math.round(user_shares)));
+      $('.odometer.estpayout').text(numberWithCommas(Math.round(est_payout * 1000) / 1000));
+      $('.odometer.dogerate').text(numberWithCommas(Math.round(dogerate * 1000) / 1000));
     },1000);
 
   },1000);
@@ -146,12 +146,12 @@ $(document).ready(function() {
         <div class="panel-body" style="padding:0px;">
           <div class="table-responsive  bs-component" style="position:relative;padding:9px;">
             <div class="col-xs-6">
-              <h4>Accepted Shares: {{ dat['accepted'] }}&nbsp;
+              <h4>Accepted Shares: {{ '{:,}'.format(dat['accepted']) }}&nbsp;
                 <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                      title="Accepted shares over the last 24 hours"></i></h4>
             </div>
             <div class="col-xs-6">
-              <h4>Rejected Shares: {{ dat['rejected'] }}&nbsp;
+              <h4>Rejected Shares: {{ '{:,}'.format(dat['rejected']) }}&nbsp;
                 <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                      title="Rejected shares over the last 24 hours"></i></h4>
             </div>
@@ -266,7 +266,7 @@ $(document).ready(function() {
           <small>Balance</small>&nbsp;
           <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                        title="Current unpaid balance"></i>
-          <br><h4><p>{{ balance / 100000000 }} &ETH;</p></h4>
+          <br><h4><p>{{ '{:8,}'.format(balance / 100000000) }} &ETH;</p></h4>
         </div>
       </div>
     </div>
@@ -276,7 +276,7 @@ $(document).ready(function() {
           <small>Unconfirmed balance</small>&nbsp;
           <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                        title="Newly solved block earnings, rewards not yet confirmed"></i>
-          <br><h4><p>{{ unconfirmed_balance / 100000000 }} &ETH;</p></h4>
+          <br><h4><p>{{ '{:8,}'.format(unconfirmed_balance / 100000000) }} &ETH;</p></h4>
         </div>
       </div>
     </div>
@@ -286,7 +286,7 @@ $(document).ready(function() {
           <small>Total earned</small>&nbsp;
           <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                        title="Total ever earned by this address"></i>
-          <br><h4><p>{{ (total_earned / 100000000)|round(2) }} &ETH;</p></h4>
+          <br><h4><p>{{ '{:2,}'.format((total_earned / 100000000) | round(2)) }} &ETH;</p></h4>
         </div>
       </div>
     </div>
@@ -296,7 +296,7 @@ $(document).ready(function() {
           <small>Total paid</small>&nbsp;
           <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                        title="Total paid out to this address"></i>
-          <br><h4><p>{{ (total_paid / 100000000)|round(2)}} &ETH;</p></h4>
+          <br><h4><p>{{ '{:2,}'.format((total_paid / 100000000) | round(2)) }} &ETH;</p></h4>
         </div>
       </div>
     </div>

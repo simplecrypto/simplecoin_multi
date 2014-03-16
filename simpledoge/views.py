@@ -140,7 +140,7 @@ def last_10_shares(user):
 @cache.memoize(timeout=60)
 def total_earned(user):
     return (db.session.query(func.sum(Payout.amount)).
-            filter_by(user=user).scalar() or 0)
+            filter_by(user=user).scalar() or 0.0)
 
 @cache.memoize(timeout=60)
 def total_paid(user):
@@ -217,7 +217,7 @@ def user_dashboard(address=None):
                   join(Payout.transaction, aliased=True).
                   filter_by(confirmed=True))
     total_paid = sum([tx.amount for tx in total_paid])
-    balance = earned - total_paid
+    balance = float(earned) - total_paid
     unconfirmed_balance = (Payout.query.filter_by(user=address).
                            join(Payout.block, aliased=True).
                            filter_by(mature=False))
@@ -303,7 +303,6 @@ def address_stats(address=None, window="hour"):
     start = end - typ.window.total_seconds() + (step * 2)
 
     if address == "pool" and '' in workers:
-        print workers
         workers['Entire Pool'] = workers['']
         del workers['']
 
@@ -314,6 +313,7 @@ def address_stats(address=None, window="hour"):
 def handle_error(error):
     current_app.logger.exception(error)
     return render_template("500.html")
+
 
 @main.route("/guides")
 @main.route("/guides/")
