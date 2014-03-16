@@ -258,7 +258,9 @@ def user_dashboard(address=None):
         workers[st.worker]['status'] = st.parsed_status
         workers[st.worker]['status_stale'] = st.stale
         workers[st.worker]['status_time'] = st.time
-        workers[st.worker]['status_version'] = workers[st.worker]['status'].get('v', 'v0.2.0')[1:].split('.')
+        ver = workers[st.worker]['status'].get('v', '0.2.0').split('.')
+        print ver
+        workers[st.worker]['status_version'] = [int(part) for part in ver]
 
     for name in workers_online(address):
         workers.setdefault(name, def_worker.copy())

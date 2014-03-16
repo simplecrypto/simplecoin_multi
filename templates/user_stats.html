@@ -170,10 +170,10 @@ $(document).ready(function() {
             {% if dat['status_version'] < latest_ppagent %}
               {# Notice about out of date ppagent #}
               <a href="https://github.com/icook/ppagent#upgrade">
-                <small style="font-size:14px;color:#ff0000;font-weight:400;">
+                <small style="font-size:14px;color:#FFD600;font-weight:400;">
                   New version of ppagent available, upgrade here!
                 </small>
-              </a>
+              </a>&nbsp;&nbsp;
             {% endif %}
             {% if dat['status_stale'] == True %}
               {# if stale then show a warning #}
