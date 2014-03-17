@@ -226,9 +226,9 @@ $(document).ready(function() {
                       {{ ( ((gpu.get('Utility', 0)*(gpu.get('Last Share Difficulty', 0))) /
                     (gpu.get('MHS av', 0.0001)*1000) ) * 100 ) | round(1) }}%</th>
                     {% endif %}
-                    {% set accepted = gpu.get('Accepted', 0) %}
+                    {% set accepted = gpu.get('Difficulty Accepted', 0) %}
                     <th>
-                      {{ accepted }} / {{ gpu.get('Rejected', 0) }}
+                      {{ accepted|int }} / {{ gpu.get('Difficulty Rejected', 0)|int }}
                       {% if accepted != 0 %}
                         &nbsp;({{ ((accepted - gpu.get('Rejected', 0)) / accepted)*100 }}%)
                     {% else %}
