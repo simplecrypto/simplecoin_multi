@@ -103,6 +103,7 @@ def add_pool_stats():
 def close_alert(id):
     dismissed_alerts = session.get('dismissed_alerts', [])
     dismissed_alerts.append(id)
+    session['dismissed_alerts'] = dismissed_alerts
     return Response('success')
 
 
