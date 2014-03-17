@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from simpledoge.model_lib import base
 from sqlalchemy.schema import CheckConstraint
 from sqlalchemy.ext.declarative import AbstractConcreteBase
-from sqlalchemy.dialects.postgresql import HSTORE
+from sqlalchemy.dialects.postgresql import HSTORE, ARRAY
 from cryptokit import bits_to_difficulty
 
 from . import db
@@ -166,6 +166,20 @@ class Status(base):
             return True
         else:
             return False
+
+
+class Threshold(base):
+    """ Notification Thresholds for workers """
+    user = db.Column(db.String, primary_key=True)
+    worker = db.Column(db.String, primary_key=True)
+    temp_thresh = db.Column(db.Integer)
+    offline_thresh = db.Column(db.Integer)
+    hashrate_thresh = db.Column(db.Integer)
+    hashrate_trigger = db.Column(db.Boolean, default=False)
+    temp_trigger = db.Column(db.Boolean, default=False)
+    offline_trigger = db.Column(db.Boolean, default=False)
+    green_notif = db.Column(db.Boolean, default=True)
+    emails = db.Column(ARRAY(db.String))
 
 
 class Payout(base):

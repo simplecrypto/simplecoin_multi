@@ -4,7 +4,7 @@ from simpledoge import db, coinserv
 from simpledoge.models import (
     Share, Block, OneMinuteShare, Payout, Transaction, Blob, last_block_time,
     last_block_share_id, FiveMinuteShare, Status, OneMinuteReject,
-    OneMinuteTemperature, FiveMinuteReject, OneMinuteHashrate)
+    OneMinuteTemperature, FiveMinuteReject, OneMinuteHashrate, Threshold)
 from sqlalchemy.sql import func
 from cryptokit import bits_to_shares, bits_to_difficulty
 from pprint import pformat
@@ -392,6 +392,21 @@ def agent_receive(self, address, worker, typ, payload, timestamp):
         db.session.merge(blob)
 
     try:
+        if typ == "threshold":
+            try:
+                thresh = Threshold(
+                    worker=worker,
+                    address=address,
+                    green_notif=not payload.get('no_green_notif', False),
+                    temp_thresh=payload.get('overheat'),
+                    hashrate_thresh=payload.get('lowhashrate'),
+                    offline_thresh=payload.get('offline'),
+                    emails=payload['emails'][:4])
+                db.session.merge(thresh)
+            except KeyError:
+                pass
+            return
+
         if typ == 'status':
             ret = (db.session.query(Status).filter_by(user=address, worker=worker).
                    update({"status": json.dumps(payload), "time": dt}))
@@ -400,7 +415,12 @@ def agent_receive(self, address, worker, typ, payload, timestamp):
                 new = Status(user=address, worker=worker,
                              status=json.dumps(payload), time=dt)
                 db.session.add(new)
-        elif typ == 'temp':
+            return
+
+        # the two status messages can trigger a threshold condition, so we need
+        # to load the thresh
+        thresh = Threshold.query.filter_by(worker=worker, address=address).first()
+        if typ == 'temp':
             for i, value in enumerate(payload):
                 if value:
                     inject_device_stat(OneMinuteTemperature, i, value)
@@ -409,6 +429,9 @@ def agent_receive(self, address, worker, typ, payload, timestamp):
                 if value:
                     # multiply by a million to turn megahashes to hashes
                     inject_device_stat(OneMinuteHashrate, i, value * 1000000)
+        else:
+            logger.warning("Powerpool sent an unkown agent message of type {}"
+                           .format(typ))
         db.session.commit()
     except Exception:
         logger.error("Unhandled exception in update_status", exc_info=True)
