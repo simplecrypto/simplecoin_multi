@@ -6,7 +6,7 @@ import datetime
 
 from itsdangerous import TimedSerializer
 from flask import (current_app, request, render_template, Blueprint, abort,
-                   jsonify, g, session)
+                   jsonify, g, session, Response)
 from sqlalchemy.sql import func
 
 from .models import (Transaction, OneMinuteShare, Block, Share, Payout,
@@ -97,13 +97,14 @@ def add_pool_stats():
 
     alerts = yaml.load(open(root + '/static/yaml/alerts.yaml'))
     g.alerts = alerts
-    
+
 
 @main.route("/close/<int:id>")
 def close_alert(id):
     dismissed_alerts = session.get('dismissed_alerts', [])
     dismissed_alerts.append(id)
-    return jsonify(**dismissed_alerts)
+    return Response('success')
+
 
 @main.route("/api/pool_stats")
 def pool_stats_api():
@@ -147,6 +148,7 @@ def last_10_shares(user):
 def total_earned(user):
     return (db.session.query(func.sum(Payout.amount)).
             filter_by(user=user).scalar() or 0.0)
+
 
 @cache.memoize(timeout=60)
 def total_paid(user):
