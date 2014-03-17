@@ -184,28 +184,51 @@ class Threshold(base):
     emails = db.Column(ARRAY(db.String))
 
     def report_condition(self, message, toggle):
-        send_addr = current_app.config['email_send_address']
-        send_name = current_app.config['email_send_name']
+        send_addr = econf['send_address']
+        send_name = econf['send_name']
+        # get all the events that happened for these addresses in the last hour
+        hour_ago = datetime.utcnow() - timedelta(hours=1)
+        events = (Event.query.filter_by(worker=self.worker, user=self.worker).
+                  filter(Event.address.in_(self.emails)).
+                  filter(Event.time >= hour_ago).all())
 
         try:
-            host = smtplib.SMTP(host=current_app.config['email_server'],
-                                port=current_app.config['email_port'],
-                                local_hostname=current_app.config['email_ehlo'],
-                                timeout=current_app.config['email_timeout'])
-            host.set_debuglevel(current_app.config['email_debug'])
-            if current_app.config['email_tls']:
+            econf = current_app.config['email']
+            host = smtplib.SMTP(
+                host=econf['server'],
+                port=econf['port'],
+                local_hostname=econf['ehlo'],
+                timeout=econf['timeout'])
+            host.set_debuglevel(econf['debug'])
+            if econf['tls']:
                 host.starttls()
-            if current_app.config['email_ehlo']:
+            if econf['ehlo']:
                 host.ehlo()
 
-            host.login(current_app.config['email_username'],
-                       current_app.config['email_password'])
-            host.sendmail(send_addr, to_addr, msg.as_string())
-            host.quit()
-            return True
+            host.login(econf['username'],
+                    econf['password'])
+            email_limit = current_app.config.get('emails_per_hour_cap', 6)
+            for address in emails:
+                count = len([a for a in events if a.address == address])
+                if count <= email_limit:
+                    host.sendmail(send_addr, to_addr, msg.as_string())
+                else:
+                    logger.info("Not sending email to {} because over limit"
+                                .format(address, email_limit))
         except smtplib.SMTPException:
             current_app.logger.warn('Email unable to send', exc_info=True)
             return False
+        else:
+            host.quit()
+
+        return True
+
+
+class Event(base):
+    time = db.Column(db.DateTime, primary_key=True)
+    user = db.Column(db.String, primary_key=True)
+    worker = db.Column(db.String, primary_key=True)
+    address = db.Column(db.String, primary_key=True)
 
 
 class Payout(base):
