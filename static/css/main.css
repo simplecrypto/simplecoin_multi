@@ -85,6 +85,12 @@ a.contact:hover div {
   background-color:#4e5d6c;
 }
 
+/* Stats styling */
+
+#statsform .close {
+  float: left;
+  padding-right: 10px;
+}
 
 /* User stats styling */
 

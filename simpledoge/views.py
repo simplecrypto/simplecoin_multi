@@ -279,6 +279,20 @@ def user_dashboard(address=None):
                            latest_ppagent=current_app.config['latest_ppagent'])
 
 
+@main.route("/<address>/clear")
+def address_clear(address=None):
+    if len(address) != 34:
+        abort(404)
+    
+    # remove address from the recently viewed
+    recent = session.get('recent_users', [])
+    if address in recent:
+        recent.remove(address)
+    session['recent_users'] = recent[:10]
+
+    return jsonify(recent=recent[:10])
+
+
 @main.route("/<address>/stats")
 @main.route("/<address>/stats/<window>")
 def address_stats(address=None, window="hour"):
