@@ -72,6 +72,13 @@
         $('.odometer.luck').text(numberWithCommas(Math.round(luck) / 10));
         $('.odometer.blockluck').text(numberWithCommas(Math.round(luck) / 10));
       },1000);
+
+      {# pass the alert close action to the server to add it to the session #}
+      $('.alert').bind('closed.bs.alert', function () {
+          var id = $(this).attr('data-alert-id');
+          $.get('close/'+id);
+      });
+
     });
   </script>
 </head>
@@ -138,8 +145,10 @@
   <!-- Alerts ================================================== -->
   {% if g.alerts  %}
     {% for alert in g.alerts %}
-    <div class="alert alert-dismissable alert-{{ alert['severity'] }}">
-      <button type="button" class="close" data-dismiss="alert">×</button>
+    {# Check to see if the alert has been dismissed by the user #}
+    {% if not alert['key'] in session['dismissed_alerts'] %}
+    <div data-alert-id={{ alert['key'] }} class="alert alert-dismissable alert-{{ alert['severity'] }}">
+      <button type="button" class="close" data-dismiss="alert" >×</button>
       <h4>{{ alert['title']|safe }} -
         <span class="text-muted small" style="color:#fff;">
           {{ alert['date'] }}
@@ -147,6 +156,7 @@
       </h4>
       <p>{{ alert['body']|safe }}</p>
     </div>
+    {% endif %}
     {% endfor %}
   {% endif %}
 

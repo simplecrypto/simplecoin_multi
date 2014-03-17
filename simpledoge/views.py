@@ -85,7 +85,7 @@ def add_pool_stats():
     g.pool_stats = get_frontpage_data()
 
     additional_seconds = (datetime.datetime.utcnow() - g.pool_stats[2]).total_seconds()
-    ratio = g.pool_stats[0]/g.pool_stats[1]
+    ratio = g.pool_stats[0] / g.pool_stats[1]
     additional_shares = ratio * additional_seconds
     g.pool_stats[0] += additional_shares
     g.pool_stats[1] += additional_seconds
@@ -98,6 +98,14 @@ def add_pool_stats():
     alerts = yaml.load(open(root + '/static/yaml/alerts.yaml'))
     g.alerts = alerts
 
+    # session['dismissed_alerts'] = []
+
+
+@main.route("/close/<int:id>")
+def close_alert(id):
+    dismissed_alerts = session.get('dismissed_alerts', [])
+    dismissed_alerts.append(id)
+    return jsonify(**dismissed_alerts)
 
 @main.route("/api/pool_stats")
 def pool_stats_api():
@@ -259,7 +267,6 @@ def user_dashboard(address=None):
         workers[st.worker]['status_stale'] = st.stale
         workers[st.worker]['status_time'] = st.time
         ver = workers[st.worker]['status'].get('v', '0.2.0').split('.')
-        print ver
         workers[st.worker]['status_version'] = [int(part) for part in ver]
 
     for name in workers_online(address):
