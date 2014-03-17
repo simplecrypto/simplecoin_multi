@@ -97,9 +97,7 @@ def add_pool_stats():
 
     alerts = yaml.load(open(root + '/static/yaml/alerts.yaml'))
     g.alerts = alerts
-
-    # session['dismissed_alerts'] = []
-
+    
 
 @main.route("/close/<int:id>")
 def close_alert(id):
