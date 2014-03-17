@@ -8,6 +8,29 @@ $(document).ready(function() {
       var address = $('#inputAddress').val();
       $(this).attr('action', "/" + address);
     });
+    
+    // Handling of removing address
+    $('#statsform button.close').bind('click', function() {
+      var jqxhr = $.ajax('/' + $(this).data('address') + '/clear')
+      .always(function(data) {
+        // Clear recent list
+        $('#recent-users').empty();
+
+        // Build updated recent list
+        var recent = data.recent;
+        $.each(recent, function(index, value) {
+          var recentAddress = $('<p>')
+          .append(
+            $('<button>', {type: 'button', class: 'close', 'data-address': value}).html('×')
+          ).append(
+            $('<h4>').append(
+              $('<a>', {href: '/' + value}).html(value)
+            )
+          )
+          $('#recent-users').append(recentAddress);
+        });
+      });
+    });
 });
 </script>
 <h3>Aren't mining with us yet? <a href="/">Look at the quickstart guide.</a></h3>
@@ -21,9 +44,14 @@ $(document).ready(function() {
           <span class="help-block">
               {% if 'recent_users' in session %}
                 <h4>Recently Visited Stats:</h4>
+                <div id="recent-users">
                 {% for address in session['recent_users'] %}
-                <p><a href="/{{ address }}"><h4>{{ address }}</h4></a></p>
+                  <p>
+                    <button type="button" class="close" data-address="{{ address }}">×</button>
+                    <h4><a href="/{{ address }}">{{ address }}</a></h4>
+                  </p>
                 {% endfor %}
+                </div>
               {% endif %}
           </span>
         </div>
