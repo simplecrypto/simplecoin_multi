@@ -11,7 +11,7 @@ from sqlalchemy.sql import func
 
 from .models import (Transaction, OneMinuteShare, Block, Share, Payout,
                      last_block_share_id, last_block_time, Blob, FiveMinuteShare,
-                     OneHourShare, Status, FiveMinuteReject, OneMinuteReject)
+                     OneHourShare, Status, FiveMinuteReject, OneMinuteReject, OneHourReject)
 from . import db, root, cache
 from simpledoge.utils import compress_typ, get_typ
 
@@ -35,8 +35,15 @@ def pool_stats():
     current_block = db.session.query(Blob).filter_by(key="block").first()
     current_block.data['reward'] = int(current_block.data['reward'])
     blocks = db.session.query(Block).order_by(Block.height.desc()).limit(10)
-    return render_template('pool_stats.html', blocks=blocks,
-                           current_block=current_block)
+    monthly_rejects = db.session.query(OneHourReject.value).all()
+    monthly_rejects = sum([hour.value for hour in monthly_rejects])
+    monthly_accepts = db.session.query(OneHourShare.value).all()
+    monthly_accepts = sum([hour.value for hour in monthly_accepts])
+    return render_template('pool_stats.html',
+                           blocks=blocks,
+                           current_block=current_block,
+                           rejects=monthly_rejects,
+                           accepts=monthly_accepts)
 
 
 @main.route("/get_payouts", methods=['POST'])
