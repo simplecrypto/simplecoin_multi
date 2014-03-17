@@ -10,7 +10,7 @@ $(document).ready(function() {
     });
     
     // Handling of removing address
-    $('#statsform button.close').bind('click', function() {
+    $('#statsform').on('click', 'button.close', function() {
       var jqxhr = $.ajax('/' + $(this).data('address') + '/clear')
       .always(function(data) {
         // Clear recent list
