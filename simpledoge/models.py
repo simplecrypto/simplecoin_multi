@@ -175,11 +175,37 @@ class Threshold(base):
     temp_thresh = db.Column(db.Integer)
     offline_thresh = db.Column(db.Integer)
     hashrate_thresh = db.Column(db.Integer)
-    hashrate_trigger = db.Column(db.Boolean, default=False)
-    temp_trigger = db.Column(db.Boolean, default=False)
-    offline_trigger = db.Column(db.Boolean, default=False)
+    # Is there an error with any of these thresholds
+    hashrate_err = db.Column(db.Boolean, default=False)
+    temp_err = db.Column(db.Boolean, default=False)
+    offline_err = db.Column(db.Boolean, default=False)
+    # whether we should notify of the condition becoming fixed
     green_notif = db.Column(db.Boolean, default=True)
     emails = db.Column(ARRAY(db.String))
+
+    def report_condition(self, message, toggle):
+        send_addr = current_app.config['email_send_address']
+        send_name = current_app.config['email_send_name']
+
+        try:
+            host = smtplib.SMTP(host=current_app.config['email_server'],
+                                port=current_app.config['email_port'],
+                                local_hostname=current_app.config['email_ehlo'],
+                                timeout=current_app.config['email_timeout'])
+            host.set_debuglevel(current_app.config['email_debug'])
+            if current_app.config['email_tls']:
+                host.starttls()
+            if current_app.config['email_ehlo']:
+                host.ehlo()
+
+            host.login(current_app.config['email_username'],
+                       current_app.config['email_password'])
+            host.sendmail(send_addr, to_addr, msg.as_string())
+            host.quit()
+            return True
+        except smtplib.SMTPException:
+            current_app.logger.warn('Email unable to send', exc_info=True)
+            return False
 
 
 class Payout(base):

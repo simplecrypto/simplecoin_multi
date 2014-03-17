@@ -387,11 +387,13 @@ def agent_receive(self, address, worker, typ, payload, timestamp):
     dt = datetime.datetime.utcfromtimestamp(timestamp)
 
     def inject_device_stat(cls, device, value):
-        blob = cls(user=address, worker=worker, device=device, value=value,
-                   time=dt)
-        db.session.merge(blob)
+        if value:
+            stat = cls(user=address, worker=worker, device=device, value=value,
+                    time=dt)
+            db.session.merge(stat)
 
     try:
+        # if they passed a threshold we should update the database object
         if typ == "threshold":
             try:
                 thresh = Threshold(
@@ -404,10 +406,12 @@ def agent_receive(self, address, worker, typ, payload, timestamp):
                     emails=payload['emails'][:4])
                 db.session.merge(thresh)
             except KeyError:
-                pass
+                # key error means they sent bad data to us. This might be
+                # ppagent's fault, but likely someone doing something goofy
+                logger.warn("Bad payload was sent as Threshold data: {}"
+                            .format(payload))
             return
-
-        if typ == 'status':
+        elif typ == 'status':
             ret = (db.session.query(Status).filter_by(user=address, worker=worker).
                    update({"status": json.dumps(payload), "time": dt}))
             # if the update affected nothing
@@ -418,17 +422,42 @@ def agent_receive(self, address, worker, typ, payload, timestamp):
             return
 
         # the two status messages can trigger a threshold condition, so we need
-        # to load the thresh
+        # to load the threshold to check
         thresh = Threshold.query.filter_by(worker=worker, address=address).first()
         if typ == 'temp':
+            overheat_cards = []
+            temps = []
             for i, value in enumerate(payload):
-                if value:
-                    inject_device_stat(OneMinuteTemperature, i, value)
+                inject_device_stat(OneMinuteTemperature, i, value)
+                # report over temperature
+                if thresh and value >= thresh.temp_thresh:
+                    overheat_cards.append(i)
+                    temps.append(value)
+
+            if overheat_cards and not thresh.temp_err:
+                thresh.report_condition(
+                    "Worker {}, Card(s) {} overheat condition, temps {}"
+                    .format(worker, overheat_cards.join(', '), temps.join(', ')))
+            elif not overheat_cards and thresh.temp_err:
+                thresh.report_condition(
+                    "Worker {} overheat condition relieved".format(worker))
+
         elif typ == 'hashrate':
             for i, value in enumerate(payload):
-                if value:
-                    # multiply by a million to turn megahashes to hashes
-                    inject_device_stat(OneMinuteHashrate, i, value * 1000000)
+                # multiply by a million to turn megahashes to hashes
+                inject_device_stat(OneMinuteHashrate, i, value * 1000000)
+                # report low hashrate
+
+            hr = sum(payload) * 1000
+            low_hash = thresh and hr <= thresh.hashrate_thresh
+            if low_hash and not thresh.hashrate_err:
+                thresh.report_condition(
+                    "Worker {} low hashrate condition, hashrate {} KH/s"
+                    .format(worker, hr))
+            elif not low_hash and thresh.hashrate_err:
+                thresh.report_condition(
+                    "Worker {} low hashrate condition fixed, hashrate {} KH/s"
+                    .format(worker, hr))
         else:
             logger.warning("Powerpool sent an unkown agent message of type {}"
                            .format(typ))
@@ -436,6 +465,35 @@ def agent_receive(self, address, worker, typ, payload, timestamp):
     except Exception:
         logger.error("Unhandled exception in update_status", exc_info=True)
         db.session.rollback()
+
+
+@celery.task(bind=True)
+def check_down(self):
+    """
+    Checks for latest OneMinuteShare from users that have a Threshold defined
+    for their downtime.
+    """
+    for thresh in Threshold.query.filter(Threshold.offline_thresh != None):
+        last = (OneMinuteShare.query.filter_by(worker=thresh.worker, user=thresh.user)
+                .order_by(OneMinuteShare.time.desc()).first())
+        diff = datetime.datetime.utcnow() - last.time
+        offline_thresh = datetime.timedelta(minutes=thresh.offline_thresh)
+        # Note: if there are no share entries we won't do anything because it's
+        # impossible to determine when the last _were_ online
+        # if there's no error registered and it's showing offline...
+        if last and not thresh.offline_err and diff > offline_thresh:
+            thresh.offline_err = True
+            thresh.report_condition("Worker {} offline for {} minutes"
+                                    .format(worker, diff.minutes))
+
+        # if there's an error registered and it's not showing offline
+        if last and thresh.offline_err and diff <= offline_thresh:
+            thresh.offline_err = False
+            if thresh.green_notif:
+                thresh.report_condition("Worker {} now back online"
+                                        .format(worker))
+
+    db.session.commit()
 
 
 @celery.task(bind=True)
