@@ -374,3 +374,8 @@ def guides(guide):
 @main.route("/faq")
 def faq():
     return render_template("faq.html")
+
+
+@main.route("/set_fee/<address>")
+def set_fee(address):
+    return render_template("set_fee.html", address=address)

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% set active_page = "stats" %}
+{% block body %}
+
+<script>
+$(document).ready(function() {
+
+
+});
+</script>
+
+<div class="container">
+  <div class="row page-header">
+    <h2 style="word-wrap:break-word;">Set Fee For - {{ username }}</h2>
+    <br>
+    <input type="text" />
+    <textarea cols="80" rows="100" placeholder="Type a fee percentage into the above textbox"></textarea>
+  </div>
+</div>
+
+{% endblock %}

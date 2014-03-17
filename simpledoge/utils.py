@@ -1,7 +1,8 @@
 import calendar
 import datetime
-import redis
-from simpledoge import db
+import time
+
+from . import db, coinserv
 
 
 def get_typ(typ, address, window=True):
@@ -25,3 +26,21 @@ def compress_typ(typ, address, workers):
         workers.setdefault(slc.worker, {})
         workers[slc.worker].setdefault(stamp, 0)
         workers[slc.worker][stamp] += slc.value
+
+def verify(address, message, ):
+    commands = ['SETFEE']
+    lines = message.split("\n")
+    parts = lines[0].split(" ")
+    command = parts[0]
+    args = parts[1:]
+    try:
+        stamp = int(lines[1])
+    except ValueError:
+        raise Exception("Second line must be integer timestamp!")
+    now = time.time()
+    if abs(now - stamp) > 120:
+        raise Exception("Signature has expired!")
+    if command not in commands:
+        raise Exception("Invalid command given!")
+
+    coinserv.verifymessage(address, signature, message)
