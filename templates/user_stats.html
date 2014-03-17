@@ -228,7 +228,7 @@ $(document).ready(function() {
                     {% endif %}
                     {% set accepted = gpu.get('Difficulty Accepted', 0) %}
                     <th>
-                      {{ accepted|int }} / {{ gpu.get('Difficulty Rejected', 0)|int }}
+                      {{ '{:,}'.format(accepted|int) }} / {{ '{:,}'.format(gpu.get('Difficulty Rejected', 0)|int) }}
                       {% if accepted != 0 %}
                         &nbsp;({{ ((accepted - gpu.get('Rejected', 0)) / accepted)*100 }}%)
                     {% else %}
