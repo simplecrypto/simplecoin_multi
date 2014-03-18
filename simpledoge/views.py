@@ -103,10 +103,10 @@ def add_pool_stats():
     additional_shares = ratio * additional_seconds
     g.pool_stats[0] += additional_shares
     g.pool_stats[1] += additional_seconds
-    blobs = Blob.query.filter(Blob.key.in_(("block", "server"))).all()
-    block = [b for b in blobs if b.key == "block"][0]
+    blobs = Blob.query.filter(Blob.key.in_(("server", "diff"))).all()
     server = [b for b in blobs if b.key == "server"][0]
-    g.current_difficulty = block.data['difficulty']
+    diff = [b for b in blobs if b.key == "diff"][0].data['diff']
+    g.current_difficulty = diff
     g.worker_count = int(server.data['stratum_clients'])
 
     alerts = yaml.load(open(root + '/static/yaml/alerts.yaml'))
@@ -305,7 +305,7 @@ def user_dashboard(address=None):
 def address_clear(address=None):
     if len(address) != 34:
         abort(404)
-    
+
     # remove address from the recently viewed
     recent = session.get('recent_users', [])
     if address in recent:
