@@ -1,7 +1,10 @@
 import calendar
 import logging
 import json
+import smtplib
 
+from email.mime.text import MIMEText
+from flask import current_app
 from collections import namedtuple
 from datetime import datetime, timedelta
 from simpledoge.model_lib import base
@@ -183,9 +186,21 @@ class Threshold(base):
     green_notif = db.Column(db.Boolean, default=True)
     emails = db.Column(ARRAY(db.String))
 
-    def report_condition(self, message, toggle):
-        send_addr = econf['send_address']
-        send_name = econf['send_name']
+    def report_condition(self, message, typ, new_state):
+        db.session.refresh(self, lockmode='update')
+        # we got beat in a race condition...
+        if getattr(self, typ) == new_state:
+            current_app.logger.info("Ignored sending of report_condition due "
+                                    "to race condition resolution")
+            return
+        setattr(self, typ, new_state)
+
+        # if we shouldn't notify of state going up
+        if new_state and not self.green_notif:
+            return
+        current_app.logger.info("Reporting '{}' for worker {}; addr: {}"
+                                .format(message, self.worker, self.user))
+
         # get all the events that happened for these addresses in the last hour
         hour_ago = datetime.utcnow() - timedelta(hours=1)
         events = (Event.query.filter_by(worker=self.worker, user=self.worker).
@@ -194,6 +209,7 @@ class Threshold(base):
 
         try:
             econf = current_app.config['email']
+            send_addr = econf['send_address']
             host = smtplib.SMTP(
                 host=econf['server'],
                 port=econf['port'],
@@ -205,16 +221,24 @@ class Threshold(base):
             if econf['ehlo']:
                 host.ehlo()
 
-            host.login(econf['username'],
-                    econf['password'])
+            host.login(econf['username'], econf['password'])
             email_limit = current_app.config.get('emails_per_hour_cap', 6)
-            for address in emails:
+            # Send the message via our own SMTP server, but don't include the
+            # envelope header.
+            for address in self.emails:
                 count = len([a for a in events if a.address == address])
                 if count <= email_limit:
-                    host.sendmail(send_addr, to_addr, msg.as_string())
+                    msg = MIMEText('http://simpledoge.com/{}'.format(self.user))
+                    msg['Subject'] = message
+                    msg['From'] = 'Simple Doge <simpledogepool@gmail.com>'
+                    msg['To'] = address
+                    host.sendmail(send_addr, address, msg.as_string())
                 else:
-                    logger.info("Not sending email to {} because over limit"
-                                .format(address, email_limit))
+                    current_app.logger.info(
+                        "Not sending email to {} because over limit"
+                        .format(address, email_limit))
+                ev = Event(user=self.user, worker=self.worker, address=address)
+                db.session.add(ev)
         except smtplib.SMTPException:
             current_app.logger.warn('Email unable to send', exc_info=True)
             return False
@@ -225,7 +249,7 @@ class Threshold(base):
 
 
 class Event(base):
-    time = db.Column(db.DateTime, primary_key=True)
+    time = db.Column(db.DateTime, primary_key=True, default=datetime.utcnow)
     user = db.Column(db.String, primary_key=True)
     worker = db.Column(db.String, primary_key=True)
     address = db.Column(db.String, primary_key=True)

@@ -1,6 +1,5 @@
 import os
 import logging
-import random
 
 from flask.ext.script import Manager, Shell
 from flask.ext.migrate import Migrate, MigrateCommand
@@ -14,7 +13,7 @@ root = os.path.abspath(os.path.dirname(__file__) + '/../')
 
 from bitcoinrpc.authproxy import AuthServiceProxy
 from simpledoge.tasks import add_share, cleanup, payout
-from simpledoge.models import Payout, Block, OneMinuteShare, Transaction
+from simpledoge.models import Transaction, Threshold
 from flask import current_app, _request_ctx_stack
 
 root = logging.getLogger()
@@ -50,6 +49,12 @@ def confirm_trans(transaction_id):
     trans = Transaction.query.filter_by(txid=transaction_id).first()
     trans.confirmed = True
     db.session.commit()
+
+
+@manager.command
+def test_email():
+    thresh = Threshold(emails=['simpledogepool@gmail.com'])
+    thresh.report_condition("Test condition")
 
 
 @manager.option('-s', '--simulate', dest='simulate', default=True)

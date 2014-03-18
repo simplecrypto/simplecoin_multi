@@ -389,16 +389,16 @@ def agent_receive(self, address, worker, typ, payload, timestamp):
     def inject_device_stat(cls, device, value):
         if value:
             stat = cls(user=address, worker=worker, device=device, value=value,
-                    time=dt)
+                       time=dt)
             db.session.merge(stat)
 
     try:
         # if they passed a threshold we should update the database object
-        if typ == "threshold":
+        if typ == "thresholds":
             try:
                 thresh = Threshold(
                     worker=worker,
-                    address=address,
+                    user=address,
                     green_notif=not payload.get('no_green_notif', False),
                     temp_thresh=payload.get('overheat'),
                     hashrate_thresh=payload.get('lowhashrate'),
@@ -410,6 +410,7 @@ def agent_receive(self, address, worker, typ, payload, timestamp):
                 # ppagent's fault, but likely someone doing something goofy
                 logger.warn("Bad payload was sent as Threshold data: {}"
                             .format(payload))
+            db.session.commit()
             return
         elif typ == 'status':
             ret = (db.session.query(Status).filter_by(user=address, worker=worker).
@@ -419,45 +420,52 @@ def agent_receive(self, address, worker, typ, payload, timestamp):
                 new = Status(user=address, worker=worker,
                              status=json.dumps(payload), time=dt)
                 db.session.add(new)
+            db.session.commit()
             return
 
         # the two status messages can trigger a threshold condition, so we need
         # to load the threshold to check
-        thresh = Threshold.query.filter_by(worker=worker, address=address).first()
+        thresh = Threshold.query.filter_by(worker=worker, user=address).first()
         if typ == 'temp':
+            # track the overheated cards
             overheat_cards = []
             temps = []
             for i, value in enumerate(payload):
                 inject_device_stat(OneMinuteTemperature, i, value)
                 # report over temperature
                 if thresh and value >= thresh.temp_thresh:
-                    overheat_cards.append(i)
-                    temps.append(value)
+                    overheat_cards.append(str(i))
+                    temps.append(str(value))
 
             if overheat_cards and not thresh.temp_err:
+                s = "s" if len(overheat_cards) else ""
                 thresh.report_condition(
-                    "Worker {}, Card(s) {} overheat condition, temps {}"
-                    .format(worker, overheat_cards.join(', '), temps.join(', ')))
-            elif not overheat_cards and thresh.temp_err:
+                    "Worker {}, overheat on card{s} {}, temp{s} {}"
+                    .format(worker, ', '.join(overheat_cards), ', '.join(temps),
+                            s=s),
+                    'temp_err', True)
+            elif not overheat_cards and thresh and thresh.temp_err:
                 thresh.report_condition(
-                    "Worker {} overheat condition relieved".format(worker))
+                    "Worker {} overheat condition relieved".format(worker),
+                    'temp_err', False)
 
         elif typ == 'hashrate':
             for i, value in enumerate(payload):
                 # multiply by a million to turn megahashes to hashes
                 inject_device_stat(OneMinuteHashrate, i, value * 1000000)
-                # report low hashrate
 
-            hr = sum(payload) * 1000
-            low_hash = thresh and hr <= thresh.hashrate_thresh
-            if low_hash and not thresh.hashrate_err:
-                thresh.report_condition(
-                    "Worker {} low hashrate condition, hashrate {} KH/s"
-                    .format(worker, hr))
-            elif not low_hash and thresh.hashrate_err:
-                thresh.report_condition(
-                    "Worker {} low hashrate condition fixed, hashrate {} KH/s"
-                    .format(worker, hr))
+            # do threshold checking if they have one set
+            if thresh:
+                hr = sum(payload) * 1000
+                low_hash = thresh and hr <= thresh.hashrate_thresh
+                if low_hash and not thresh.hashrate_err:
+                    thresh.report_condition(
+                        "Worker {} low hashrate condition, hashrate {} KH/s"
+                        .format(worker, hr), 'hashrate_err', True)
+                elif not low_hash and thresh.hashrate_err:
+                    thresh.report_condition(
+                        "Worker {} low hashrate condition resolved, hashrate {} KH/s"
+                        .format(worker, hr), 'hashrate_err', False)
         else:
             logger.warning("Powerpool sent an unkown agent message of type {}"
                            .format(typ))
@@ -482,16 +490,17 @@ def check_down(self):
         # impossible to determine when the last _were_ online
         # if there's no error registered and it's showing offline...
         if last and not thresh.offline_err and diff > offline_thresh:
-            thresh.offline_err = True
             thresh.report_condition("Worker {} offline for {} minutes"
-                                    .format(worker, diff.minutes))
+                                    .format(thresh.worker, diff.minutes),
+                                    'offline_err',
+                                    True)
 
         # if there's an error registered and it's not showing offline
         if last and thresh.offline_err and diff <= offline_thresh:
-            thresh.offline_err = False
-            if thresh.green_notif:
-                thresh.report_condition("Worker {} now back online"
-                                        .format(worker))
+            thresh.report_condition("Worker {} now back online"
+                                    .format(thresh.worker),
+                                    'offline_err',
+                                    False)
 
     db.session.commit()
 
