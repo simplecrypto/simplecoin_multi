@@ -465,15 +465,18 @@ def agent_receive(self, address, worker, typ, payload, timestamp):
             # do threshold checking if they have one set
             if thresh:
                 hr = sum(payload) * 1000
-                low_hash = thresh and hr <= thresh.hashrate_thresh
-                if low_hash and not thresh.hashrate_err:
-                    thresh.report_condition(
-                        "Worker {} low hashrate condition, hashrate {} KH/s"
-                        .format(worker, hr), 'hashrate_err', True)
-                elif not low_hash and thresh.hashrate_err:
-                    thresh.report_condition(
-                        "Worker {} low hashrate condition resolved, hashrate {} KH/s"
-                        .format(worker, hr), 'hashrate_err', False)
+                if int(hr) == 0:
+                    current_app.logger.warn("Entry with 0 hashrate...")
+                else:
+                    low_hash = thresh and hr <= thresh.hashrate_thresh
+                    if low_hash and not thresh.hashrate_err:
+                        thresh.report_condition(
+                            "Worker {} low hashrate condition, hashrate {} KH/s"
+                            .format(worker, hr), 'hashrate_err', True)
+                    elif not low_hash and thresh.hashrate_err:
+                        thresh.report_condition(
+                            "Worker {} low hashrate condition resolved, hashrate {} KH/s"
+                            .format(worker, hr), 'hashrate_err', False)
         else:
             logger.warning("Powerpool sent an unkown agent message of type {}"
                            .format(typ))
