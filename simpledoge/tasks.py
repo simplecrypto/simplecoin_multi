@@ -492,25 +492,29 @@ def check_down(self):
     Checks for latest OneMinuteShare from users that have a Threshold defined
     for their downtime.
     """
-    for thresh in Threshold.query.filter(Threshold.offline_thresh != None):
-        last = Status.query.filter_by(worker=thresh.worker, user=thresh.user).first()
-        if not last:
-            continue
-        diff = int((datetime.datetime.utcnow() - last.time).total_seconds() / 60)
-        if not thresh.offline_err and diff > thresh.offline_thresh:
-            thresh.report_condition("Worker {} offline for {} minutes"
-                                    .format(thresh.worker, diff),
-                                    'offline_err',
-                                    True)
+    try:
+        for thresh in Threshold.query.filter(Threshold.offline_thresh != None):
+            last = Status.query.filter_by(worker=thresh.worker, user=thresh.user).first()
+            if not last:
+                continue
+            diff = int((datetime.datetime.utcnow() - last.time).total_seconds() / 60)
+            if not thresh.offline_err and diff > thresh.offline_thresh:
+                thresh.report_condition("Worker {} offline for {} minutes"
+                                        .format(thresh.worker, diff),
+                                        'offline_err',
+                                        True)
 
-        # if there's an error registered and it's not showing offline
-        elif thresh.offline_err and diff <= thresh.offline_thresh:
-            thresh.report_condition("Worker {} now back online"
-                                    .format(thresh.worker),
-                                    'offline_err',
-                                    False)
+            # if there's an error registered and it's not showing offline
+            elif thresh.offline_err and diff <= thresh.offline_thresh:
+                thresh.report_condition("Worker {} now back online"
+                                        .format(thresh.worker),
+                                        'offline_err',
+                                        False)
 
-    db.session.commit()
+        db.session.commit()
+    except Exception:
+        logger.error("Unhandled exception in check_down", exc_info=True)
+        db.session.rollback()
 
 
 @celery.task(bind=True)
@@ -518,17 +522,21 @@ def server_status(self):
     """
     Periodic pull update of server stats
     """
-    mon_addr = current_app.config['monitor_addr']
     try:
-        req = requests.get(mon_addr)
-        data = req.json()
+        mon_addr = current_app.config['monitor_addr']
+        try:
+            req = requests.get(mon_addr)
+            data = req.json()
+        except Exception:
+            logger.warn("Couldn't connect to internal monitor at {}".format(mon_addr),
+                        exc_info=True)
+            output = {'stratum_clients': 0, 'agent_clients': 0}
+        else:
+            output = {'stratum_clients': data['stratum_clients'],
+                    'agent_clients': data['agent_clients']}
+        blob = Blob(key='server', data={k: str(v) for k, v in output.iteritems()})
+        db.session.merge(blob)
+        db.session.commit()
     except Exception:
-        logger.warn("Couldn't connect to internal monitor at {}".format(mon_addr),
-                    exc_info=True)
-        output = {'stratum_clients': 0, 'agent_clients': 0}
-    else:
-        output = {'stratum_clients': data['stratum_clients'],
-                  'agent_clients': data['agent_clients']}
-    blob = Blob(key='server', data={k: str(v) for k, v in output.iteritems()})
-    db.session.merge(blob)
-    db.session.commit()
+        logger.error("Unhandled exception in server_status", exc_info=True)
+        db.session.rollback()
