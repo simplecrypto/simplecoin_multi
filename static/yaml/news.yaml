@@ -1,3 +1,12 @@
+- title: PPAgent 0.3 released, now with text+email notification! Also various site upgrades.
+  date: 3/17/2014
+  body: |
+      To get setup you'll need to download the new release and upgrade your config file. Complete instructions available
+      <a href="https://github.com/icook/ppagent">here</a>. We've also upgraded the pool stats page to show some helpful
+      numbers like pool efficiency, estimated times for round completion, added tooltips to most confusing
+      stats, and made closing alerts more permanent(clear your session to get them back). Also, a shout out to raid5
+      for his dev time, thanks to him you can now <a href="https://github.com/ericecook/simpledoge/pull/37">easily
+      remove recently viewed profiles</a> from the user stats page, and possibly can expect a mobile app in the future!
 - title: Upgrade to 1.6 Complete
   date: 3/16/2014
   body: |
