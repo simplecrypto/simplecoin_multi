@@ -32,7 +32,7 @@
       round_time_left = (shares_to_solve/shares_per_sec);
 
       function n(n){
-          return n > 9 ? "" + n: "0" + n;
+          return n > 9 || n < -9 ? "" + n: "0" + n;
       }
 
       seconds = Math.round(seconds);
@@ -52,6 +52,8 @@
         remaining_seconds = Math.floor(remaining_time%60);
         remaining_minutes = n(Math.floor(remaining_time/60)%60);
         remaining_hours = n(Math.floor(remaining_time/3600));
+
+        console.log(remaining_hours);
 
         luck = (shares_to_solve / additional_shares) * 1000;
         if (luck > 99999) {
