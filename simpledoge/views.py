@@ -35,15 +35,15 @@ def pool_stats():
     current_block = db.session.query(Blob).filter_by(key="block").first()
     current_block.data['reward'] = int(current_block.data['reward'])
     blocks = db.session.query(Block).order_by(Block.height.desc()).limit(10)
-    monthly_rejects = db.session.query(OneHourReject.value).all()
-    monthly_rejects = sum([hour.value for hour in monthly_rejects])
-    monthly_accepts = db.session.query(OneHourShare.value).all()
-    monthly_accepts = sum([hour.value for hour in monthly_accepts])
+    monthly_rejects = db.session.query(OneHourReject).order_by(OneHourReject.time.asc()).all()
+    monthly_reject = sum([hour.value for hour in monthly_rejects])
+    monthly_accepts = db.session.query(OneHourShare.value).filter(OneHourShare.time >= monthly_rejects[0].time).all()
+    monthly_accept = sum([hour.value for hour in monthly_accepts])
     return render_template('pool_stats.html',
                            blocks=blocks,
                            current_block=current_block,
-                           rejects=monthly_rejects,
-                           accepts=monthly_accepts)
+                           rejects=monthly_reject,
+                           accepts=monthly_accept)
 
 
 @main.route("/get_payouts", methods=['POST'])
