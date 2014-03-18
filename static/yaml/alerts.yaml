@@ -1,11 +1,3 @@
-- title: <b>1.6 wallet hard fork 3/17/2014</b>
-  severity: warning
-  date: 3/16/2014
-  key: 1
-  body: |
-      Simple Doge just ugraded its wallet to 1.6. It is <b>REQUIRED</b> that <b>EVERYONE</b> update to 1.6 or you will not
-      recieve payouts or transactions. The fork is scheduled for ~11pm GMT tomorrow, 3/17/2014. Learn more about or download
-      1.6 <a href="http://www.reddit.com/r/dogecoin/comments/207hfb/ann_dogecoin16_its_ready_all_you_need_to_know/">here</a>
 - title: <b>Grand Opening Promotions!</b>
   severity: success
   date: 3/12/2014
