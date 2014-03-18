@@ -21,9 +21,9 @@
     $(document).ready(function() {
       var shares, ten_min_hashrate, seconds, khashpersec, shares_per_sec, luck,
           round_time_left, shares_to_solve;
+
       {# Grab new pool stats #}
       shares = {{ g.pool_stats[0] }};
-
       seconds = {{ g.pool_stats[1] }};
       shares_to_solve = {{ g.current_difficulty }} * Math.pow(2, 16);
       ten_min_hashrate = Math.pow(2, 16) * {{ g.pool_stats[3] }};
@@ -37,8 +37,6 @@
 
       seconds = Math.round(seconds);
 
-
-
       setInterval(set_content = function(){
 
         seconds += 1;
@@ -49,7 +47,6 @@
         hours = n(Math.floor(seconds/3600));
 
         remaining_time = Math.abs(round_time_left - seconds);
-
 
         remaining_seconds = Math.floor(remaining_time%60);
         remaining_minutes = n(Math.floor(remaining_time/60)%60);
