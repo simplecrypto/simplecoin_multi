@@ -53,8 +53,6 @@
         remaining_minutes = n(Math.floor(remaining_time/60)%60);
         remaining_hours = n(Math.floor(remaining_time/3600));
 
-        console.log(remaining_hours);
-
         luck = (shares_to_solve / additional_shares) * 1000;
         if (luck > 99999) {
           luck = 99999;
@@ -119,7 +117,7 @@
               <br>
               <strong data-placement="right"
                 title="Estimated time remaining until the next block is found. It assumes round luck will be 100% and that difficulty will not change.">
-                Est.&nbsp;Time&nbsp;Left</strong>:&nbsp;<span class="remaining_hours">00</span>:<span class="remaining_minutes">00</span>:<span class="remaining_seconds">00</span>
+                Est.&nbsp;Time&nbsp;Left</strong>:&nbsp;<span class="est_remaining_hours">00</span>:<span class="est_remaining_minutes">00</span>:<span class="est_remaining_seconds">00</span>
             </div>
             <div class="col-sm-4">
               <strong data-placement="right"
