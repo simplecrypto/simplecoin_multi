@@ -4,7 +4,8 @@ from simpledoge import db, coinserv
 from simpledoge.models import (
     Share, Block, OneMinuteShare, Payout, Transaction, Blob, last_block_time,
     last_block_share_id, FiveMinuteShare, Status, OneMinuteReject,
-    OneMinuteTemperature, FiveMinuteReject, OneMinuteHashrate, Threshold)
+    OneMinuteTemperature, FiveMinuteReject, OneMinuteHashrate, Threshold,
+    Event)
 from sqlalchemy.sql import func
 from cryptokit import bits_to_shares, bits_to_difficulty
 from pprint import pformat
@@ -371,10 +372,17 @@ def compress_five_minute(self):
 
 
 @celery.task(bind=True)
-def remove_old_statuses(self):
+def general_cleanup(self):
+    """ Cleans up old database items.
+    - Event for email rate limiting older than 1 hr.
+    - Old status messages
+    """
     try:
-        ten_hour_ago = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
+        now = datetime.datetime.utcnow()
+        ten_hour_ago = now - datetime.timedelta(hours=12)
+        one_hour_ago = now - datetime.timedelta(hours=1)
         Status.query.filter(Status.time < ten_hour_ago).delete()
+        Event.query.filter(Event.time < one_hour_ago).delete()
         db.session.commit()
     except Exception:
         logger.error("Unhandled exception in remove_old_statuses", exc_info=True)
@@ -482,21 +490,18 @@ def check_down(self):
     for their downtime.
     """
     for thresh in Threshold.query.filter(Threshold.offline_thresh != None):
-        last = (OneMinuteShare.query.filter_by(worker=thresh.worker, user=thresh.user)
-                .order_by(OneMinuteShare.time.desc()).first())
-        diff = datetime.datetime.utcnow() - last.time
-        offline_thresh = datetime.timedelta(minutes=thresh.offline_thresh)
-        # Note: if there are no share entries we won't do anything because it's
-        # impossible to determine when the last _were_ online
-        # if there's no error registered and it's showing offline...
-        if last and not thresh.offline_err and diff > offline_thresh:
+        last = Status.query.filter_by(worker=thresh.worker, user=thresh.user).first()
+        if not last:
+            continue
+        diff = int((datetime.datetime.utcnow() - last.time).total_seconds() / 60)
+        if not thresh.offline_err and diff > thresh.offline_thresh:
             thresh.report_condition("Worker {} offline for {} minutes"
-                                    .format(thresh.worker, diff.minutes),
+                                    .format(thresh.worker, diff),
                                     'offline_err',
                                     True)
 
         # if there's an error registered and it's not showing offline
-        if last and thresh.offline_err and diff <= offline_thresh:
+        elif thresh.offline_err and diff <= thresh.offline_thresh:
             thresh.report_condition("Worker {} now back online"
                                     .format(thresh.worker),
                                     'offline_err',

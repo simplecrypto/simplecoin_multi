@@ -159,7 +159,6 @@ class Status(base):
         return json.loads(self.status)
 
     def pretty_json(self, gpu=0):
-        print type(gpu)
         return json.dumps(json.loads(self.status)['gpus'][gpu], indent=4, sort_keys=True)
 
     @property
@@ -203,7 +202,7 @@ class Threshold(base):
 
         # get all the events that happened for these addresses in the last hour
         hour_ago = datetime.utcnow() - timedelta(hours=1)
-        events = (Event.query.filter_by(worker=self.worker, user=self.worker).
+        events = (Event.query.filter_by(worker=self.worker, user=self.user).
                   filter(Event.address.in_(self.emails)).
                   filter(Event.time >= hour_ago).all())
 

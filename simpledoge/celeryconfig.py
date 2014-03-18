@@ -10,16 +10,20 @@ CELERYBEAT_SCHEDULE = {
         'task': 'simpledoge.tasks.compress_five_minute',
         'schedule': timedelta(minutes=60),
     },
-    'remove_old_statuses': {
-        'task': 'simpledoge.tasks.remove_old_statuses',
+    'general_cleanup': {
+        'task': 'simpledoge.tasks.general_cleanup',
         'schedule': timedelta(minutes=120),
     },
     'update_block_state': {
         'task': 'simpledoge.tasks.update_block_state',
         'schedule': timedelta(minutes=5),
     },
-    'update_block_state': {
+    'server_status': {
         'task': 'simpledoge.tasks.server_status',
         'schedule': timedelta(minutes=2),
+    },
+    'check_worker_down': {
+        'task': 'simpledoge.tasks.check_down',
+        'schedule': timedelta(minutes=1),
     },
 }
