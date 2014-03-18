@@ -466,7 +466,7 @@ def agent_receive(self, address, worker, typ, payload, timestamp):
             if thresh:
                 hr = sum(payload) * 1000
                 if int(hr) == 0:
-                    current_app.logger.warn("Entry with 0 hashrate...")
+                    current_app.logger.warn("Entry with 0 hashrate. Worker {}; User {}".format(worker, address))
                 else:
                     low_hash = thresh and hr <= thresh.hashrate_thresh
                     if low_hash and not thresh.hashrate_err:
