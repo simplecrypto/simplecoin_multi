@@ -17,31 +17,39 @@ $(document).ready(function() {
   <div class="col-sm-4">
     <div class="panel panel-default">
       <div class="panel-body text-center">
-        <small>Active&nbsp;workers:</small> <br><h4><p><span>{{ g.worker_count }}
-          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Total workers on the pool"></i>
-      </span></p></h4>
+        <small>Active&nbsp;Workers</small>&nbsp;
+        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                     title="Total workers currently mining the Simple Doge mining pool. Updated every couple minutes."></i>
+        <br>
+        <h4>
+          <p><span>{{ g.worker_count }}</span></p>
+        </h4>
       </div>
     </div>
   </div>
   <div class="col-sm-4">
     <div class="panel panel-default">
       <div class="panel-body text-center">
-        <small>Average&nbsp;hashrate:</small> <br><h4><p><span class="odometer phashrate">...</span>&nbsp;MHashes/sec
-          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Megahashes per second completed by the pool"></i>
-      </p></h4>
+        <small>Average&nbsp;Hashrate</small>&nbsp;
+        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                     title="Megahashes per second completed by the pool, an average of the last 10 minutes."></i>
+        <br>
+        <h4>
+          <p><span class="odometer phashrate">...</span>&nbsp;MHashes/sec</p>
+        </h4>
       </div>
     </div>
   </div>
   <div class="col-sm-4">
     <div class="panel panel-default">
       <div class="panel-body text-center">
-        <small>Accepted/Rejected&nbsp;(Efficiency):</small> <br><h4><p><span class="">
-      {{ ((accepts|round|int) / ((accepts|round|int) + rejects)*100)|round(2) }}%
-          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="All time efficiency for shares at least 25 hours old. Accepted/Total = {{ accepts|round|int }}/({{ rejects }}+{{ accepts|round|int }})"></i>
-      </span></p></h4>
+        <small>Accepted/Rejected&nbsp;(Efficiency)</small>&nbsp;
+        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                     title="All time efficiency for shares at least 25 hours old. Accepted/Total = {{ accepts|round|int }}/({{ rejects }}+{{ accepts|round|int }}). Updated hourly"></i>
+        <br>
+        <h4>
+          <p><span>{{ ((accepts|round|int) / ((accepts|round|int) + rejects)*100)|round(2) }}%</span></p>
+        </h4>
       </div>
     </div>
   </div>
@@ -67,21 +75,40 @@ $(document).ready(function() {
   <div class="col-sm-4">
     <div class="panel panel-default">
       <div class="panel-body text-center">
-        <small>Blockheight:</small> <br><h4><p><span>{{ current_block.data['height'] }}</span></p></h4>
+        <small>Blockheight</small>
+        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                     title="Current height of the blockchain."></i>
+        <br>
+        <h4>
+          <p><span>{{ '{:2,}'.format((current_block.data['height']|int)) }}</span></p>
+        </h4>
       </div>
     </div>
   </div>
   <div class="col-sm-4">
     <div class="panel panel-default">
       <div class="panel-body text-center">
-        <small>Est. shares remaining:</small> <br><h4><p><span class="odometer remaining_shares">0</span></p></h4>
+        <small>Est.&nbsp;Shares&nbsp;Remaining</small>
+        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                     title="An estimation of the number of difficulty1 shares remaining until completing a block.
+                     This is based on the current difficulty, and will jump around with difficulty changes"></i>
+        <br>
+        <h4>
+          <p><span class="odometer remaining_shares">0</span></p>
+        </h4>
       </div>
     </div>
   </div>
   <div class="col-sm-4">
     <div class="panel panel-default">
       <div class="panel-body text-center">
-        <small>Est. round time remaining:</small> <br><h4><p><span class="est_remaining_hours">00</span>:<span class="est_remaining_minutes">00</span>:<span class="est_remaining_seconds">00</span></p></h4>
+        <small>Est.&nbsp;Round&nbsp;Time&nbsp;Remaining</small>
+        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                     title="Estimated time remaining until the next block is found. It assumes round luck will be 100% and that difficulty will not change."></i>
+        <br>
+        <h4>
+          <p><span class="est_remaining_hours">00</span>:<span class="est_remaining_minutes">00</span>:<span class="est_remaining_seconds">00</span></p>
+        </h4>
       </div>
     </div>
   </div>

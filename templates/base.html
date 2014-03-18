@@ -38,7 +38,8 @@
       seconds = Math.round(seconds);
 
 
-      setInterval(function(){
+
+      setInterval(set_content = function(){
 
         seconds += 1;
         additional_shares = shares_per_sec * seconds
@@ -83,6 +84,8 @@
         $('.odometer.remaining_shares').text(numberWithCommas(Math.round(shares_remaining)));
 
       },1000);
+
+      set_content();
 
       {# pass the alert close action to the server to add it to the session #}
       $('.alert').bind('closed.bs.alert', function () {
