@@ -26,4 +26,8 @@ CELERYBEAT_SCHEDULE = {
         'task': 'simpledoge.tasks.check_down',
         'schedule': timedelta(minutes=1),
     },
+    'update_diff_average': {
+        'task': 'simpledoge.tasks.difficulty_avg',
+        'schedule': timedelta(hours=1),
+    },
 }

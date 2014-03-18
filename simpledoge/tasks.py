@@ -540,3 +540,27 @@ def server_status(self):
     except Exception:
         logger.error("Unhandled exception in server_status", exc_info=True)
         db.session.rollback()
+
+
+@celery.task(bind=True)
+def difficulty_avg(self):
+    """
+    Setup a blob with the average network difficulty for the last 500 blocks
+    """
+    try:
+        req = requests.get("http://dogechain.info/chain/Dogecoin/q/nethash/1/-500?format=json")
+        data = req.json()
+    except Exception as exc:
+        logger.warn("Couldn't connect to dogechain.info".format(mon_addr),
+                    exc_info=True)
+        raise self.retry(exc=exc)
+
+    try:
+        diffs = [col[4] for col in data]
+        avg = sum(diffs) / len(diffs)
+        blob = Blob(key='diff', data={'diff': str(avg)})
+        db.session.merge(blob)
+        db.session.commit()
+    except Exception as exc:
+        logger.warn("Unknown failure in difficulty_avg", exc_info=True)
+        raise self.retry(exc=exc)
