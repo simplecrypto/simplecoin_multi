@@ -47,11 +47,17 @@
         minutes = n(Math.floor(seconds/60)%60);
         hours = n(Math.floor(seconds/3600));
 
-        remaining_time = round_time_left - seconds;
+        remaining_time = Math.abs(round_time_left - seconds);
+
 
         remaining_seconds = Math.floor(remaining_time%60);
         remaining_minutes = n(Math.floor(remaining_time/60)%60);
         remaining_hours = n(Math.floor(remaining_time/3600));
+
+        {# show a negative sign if we passed the expected solve time #}
+        if (round_time_left - seconds < 0) {
+          remaining_hours = "-" + remaining_hours
+        }
 
         luck = (shares_to_solve / additional_shares) * 1000;
         if (luck > 99999) {
