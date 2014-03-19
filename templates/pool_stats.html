@@ -93,11 +93,11 @@ $(document).ready(function() {
           <th><span class="odometer blockshares">0</span></th>
           <th><span class="odometer blockluck">0</span>%</th>
           <th><span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span></th>
-          <th>{{ (current_block.data['reward'] / 100000000) | round(2) }}</th>
-          <th>{{ current_block.data['difficulty'] }}</th>
+          <th>{{ '{:,}'.format((current_block.data['reward'] / 100000000) | round(2)) }}</th>
+          <th>{{ '{:,}'.format((current_block.data['difficulty']|int)) }}</th>
           <th>...</th>
           <th>...</th>
-          <th>{{ current_block.data['height'] }}</th>
+          <th>{{ '{:,}'.format((current_block.data['height'])|int) }}</th>
           <th>In progress</th>
         </tr>
         {% for block in blocks %}
@@ -106,7 +106,7 @@ $(document).ready(function() {
           <th>{{ '{:,}'.format(block.shares_to_solve) }}</th>
           <th>{{ '{:,}'.format(( ((block.difficulty * (2 ** 16))/block.shares_to_solve ) * 100) | round(1)) }} %</th>
           <th>{{ block.duration }}</th>
-          <th>{{ (block.total_value / 100000000) | round(2) }}</th>
+          <th>{{ '{:,}'.format((block.total_value / 100000000) | round(2)) }}</th>
           <th>{{ '{:,}'.format(block.difficulty| round(4)) }}</th>
           <th><a href="/{{ block.user }}">{{ block.user|truncate(9, True) }}</a></th>
           <th><a href="https://dogechain.info/block/{{ block.hash }}">{{ block.hash|truncate(9, True) }}</a></th>
