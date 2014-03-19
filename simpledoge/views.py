@@ -184,11 +184,15 @@ def user_stats():
     return render_template('stats.html')
 
 
-@main.route("/share_summary")
+@main.route("/round_summary")
 def summary_page():
+
+    current_block = db.session.query(Blob).filter_by(key="block").first()
     users = user_summary()
     users = sorted(users, key=lambda x: x[0], reverse=True)
-    return render_template('share_summary.html', users=users)
+    user_list = [([user[0], user[1], ((2 ** 16) * last_10_shares(user[1])) / 600]) for user in users]
+
+    return render_template('round_summary.html', users=user_list, current_block=current_block)
 
 
 @main.route("/exc_test")

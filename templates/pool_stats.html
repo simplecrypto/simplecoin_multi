@@ -69,51 +69,6 @@ $(document).ready(function() {
   </div>
 </div>
 
-<div class="row page-header">
-  <h2 style="word-wrap:break-word;">Current Block Stats</h2>
-  <br>
-  <div class="col-sm-4">
-    <div class="panel panel-default">
-      <div class="panel-body text-center">
-        <small>Blockheight</small>
-        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                     title="Current height of the blockchain."></i>
-        <br>
-        <h4>
-          <p><span>{{ '{:2,}'.format((current_block.data['height']|int)) }}</span></p>
-        </h4>
-      </div>
-    </div>
-  </div>
-  <div class="col-sm-4">
-    <div class="panel panel-default">
-      <div class="panel-body text-center">
-        <small>Est.&nbsp;Shares&nbsp;Remaining</small>
-        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                     title="An estimation of the number of difficulty1 shares remaining until completing a block.
-                     This is based on the current difficulty, and will jump around with difficulty changes"></i>
-        <br>
-        <h4>
-          <p><span class="odometer remaining_shares">0</span></p>
-        </h4>
-      </div>
-    </div>
-  </div>
-  <div class="col-sm-4">
-    <div class="panel panel-default">
-      <div class="panel-body text-center">
-        <small>Est.&nbsp;Round&nbsp;Time&nbsp;Remaining</small>
-        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                     title="Estimated time remaining until the next block is found. It assumes round luck will be 100% and that difficulty will not change."></i>
-        <br>
-        <h4>
-          <p><span class="est_remaining_hours">00</span>:<span class="est_remaining_minutes">00</span>:<span class="est_remaining_seconds">00</span></p>
-        </h4>
-      </div>
-    </div>
-  </div>
-</div>
-
 <div class="row row-header" style="padding-top:50px;">
   <div class="col-lg-12">
     <div class="bs-example table-responsive">
