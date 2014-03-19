@@ -153,8 +153,8 @@ def last_10_shares(user):
     two_ago = datetime.datetime.utcnow() - datetime.timedelta(minutes=2)
     minutes = (OneMinuteShare.query.
                filter_by(user=user).filter(OneMinuteShare.time >= twelve_ago, OneMinuteShare.time < two_ago).
-               order_by(OneMinuteShare.time.desc()).
-               limit(10))
+               order_by(OneMinuteShare.time.desc()))
+    print minutes
     if minutes:
         return sum([min.value for min in minutes])
     return 0
@@ -191,7 +191,7 @@ def summary_page():
     current_block = db.session.query(Blob).filter_by(key="block").first()
     users = user_summary()
     users = sorted(users, key=lambda x: x[0], reverse=True)
-    user_list = [([user[0], user[1], ((2 ** 16) * last_10_shares(user[1])) / 600]) for user in users]
+    user_list = [([user[0], user[1], (65536 * last_10_shares(user[1])) / 600]) for user in users]
 
     return render_template('round_summary.html', users=user_list, current_block=current_block)
 
