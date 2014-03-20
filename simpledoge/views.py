@@ -183,13 +183,15 @@ def summary_page():
 
     user_shares = cache.get('pplns_user_shares')
 
+
     cached_time = cache.get('pplns_cache_time')
     if cached_time != None:
         cached_time = cached_time.strftime("%Y-%m-%d %H:%M:%S")
     if user_shares == None:
+        print user_shares
         user_list = []
     else:
-        user_list = [([shares, user, (65536 * last_10_shares(user) / 600)]) for user, shares in user_shares.iteritems()]
+        user_list = [([shares, user, (65536 * last_10_shares(user[6:]) / 600)]) for user, shares in user_shares.iteritems()]
         user_list = sorted(user_list, key=lambda x: x[0], reverse=True)
 
     current_block = db.session.query(Blob).filter_by(key="block").first()
