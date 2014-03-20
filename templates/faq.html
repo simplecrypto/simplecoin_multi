@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% set active_page = "faq" %}
+{% block body %}
+<h3>What is a block?</h3>
+<p>A block is a grouping of transactions. Blocks are added to the network
+through "mining," which serves two purposes: minting of new funds in the
+network, and confirming transactions. The "block reward" is an arbitrary amount
+of funds that the block finder is awarded for their work, and is what seeds the
+funds in the network. In addition to transaction information every block contains
+a link that points to the block that was discovered before it. These links could
+be followed back all the way until reaching the "genesis block," which is a special
+block that started the network.</p>
+
+<h3>How long does it take to solve a block?</h3>
+<p>This is not a straightforward question to answer. Mining can be thought of
+like rolling dice. Imagine a regular six sided dice. Say we want to know how
+many rolls it will take to roll a 1. Well probability would say our chances are
+1/6, so after 6 rolls we'll have rolled a 1, right? But maybe we'll be lucky
+and get it on the first roll... It's random. Probabilities like this can be
+shown by a "standard distribution", as shown below. So what do the numbers mean?
+Imagine you do an experiment where you roll a dice until you get a 1. You
+record the number of rolls that it took. Now repeat this 10,000 times. Now
+graph the results. Your graph will look just like the standard distribution
+below, with the most common trial taking 6 rolls, and it becomming increasingly
+less common in either direction.
+
+Alright, enough of this. Back to cryptocurrency. So trying to find a block is
+just like rolling those dice. It's random. Think of finding the block as
+rolling a dice with millions of millions of sides, and your computer is
+rolling it thousands of times per second. Lets say you find the block if you
+roll a 1. We can now say on average how much time it will take to roll the one
+by dividing the number of sides on the dice by the number of rolls per second
+that your computer can do. This is exactly how round estimates are calculated,
+and that's why sometimes it takes longer than expected to find a block and
+other times its found early.</p>
+
+<h3>What is the difficulty, or target?</h3>
+<p>When mining for coins the goal is to find a hash that meets the target. Say
+you're mining, and you just got a new hash and want to see if it's good enough.
+Well the hash is just a number. Just a bunch of bits, 0s and 1s. The target is
+also a number. The rules say to be valid your hash has to be smaller than the
+target. Difficulty is just the inverse of the target, so the more difficult the
+lower the target. So what's the point? Well the idea is that by making the
+target larger or smaller you make finding a valid hash more or less difficult.
+Using the dice analogy, if your goal (or target..) is to roll a 3 or lower then
+that's less difficult (will take fewer rolls on average) than needing to roll a
+2 or lower.  Why is this important? Well one of the goals of cryptocurrencies
+is to mint new money at a constant rate. But if more people start mining, won't
+blocks be found at a more rapid rate? To balance this out a process called
+retargeting which adjusts how difficult it _should_ be to find subsequent
+blocks.
+
+<h3>What is retargeting?</h3>
+<p>In general it is desirable to find new blocks at a constant rate. To achieve
+this, the target (or inversely difficuly) gets adjusted by retargeting. Early
+retargeting algorithms were very basic. Essentially after some number of blocks
+has been solved they look at the last x number of solved blocks and see how
+long it took to find them on average. Depending on how much faster or slower
+the average was than some target speed (which varies by crypto. 1 minute for
+Doge) then the difficulty will increase or deacrease. Modern retargeting
+algorithms are a bit more complicated and try to factor in problem that arise
+when massive numbers of people join or leave the network rapidly, among other
+technical challenges.</p>
+
+<h3>What is a share?</h3>
+<p></p>
+
+<h3>Why should I join a pool? Can't I just mine on my own?</h3>
+<p>With most major cryptocurrencies finding a block is very difficult. So
+difficult that most average computer setups would take weeks if not years to
+find the next block working by themselves. Why is this bad in itself? Mostly a
+factor of variance, a result of the randomness of finding a block. If on
+average you are supposed to find a block every 2 weeks that means it could take
+4 weeks in reality, reducing your profits by 100% because being unlucky. With a
+pool people work together and find blocks at a more rapid pace, and over the
+same time period you might solve several blocks, some unlucky and some lucky.
+
+<h3>What is a hash?</h3>
+<p>A hash is the output of function that takes some input, and produces a
+different output. This ourput is usually of a fixed length (like say, 2
+characters), but not always. There are tons of types of hash functions, but
+cryptocurrencies are usually only concerned with what are called
+"cryptographically secure hash functions." These are functions that are very
+very very difficult to run in reverse, ie we can't figure out what the input
+was by looking at the output. This is important as you can see in the "What is
+the difficulty, or target?"</p>
+{% endblock %}
