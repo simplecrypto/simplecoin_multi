@@ -1,3 +1,13 @@
+- title: Round Summary added, and payout estimates are now (much) more accurate
+  date: 3/19/2014
+  body: |
+      Pretty much everyone will notice a change in their est. payout. If you've been mining with us
+      for 60+ hours you'll notice your payout estimate drop! This is
+      because the estimate was based on PPS, and we've been quite unlucky this round, and it is now
+      correctly using PPLNS to generate estimates. The new estimates should be ~99% accurate, but are updated less
+      frequently. Also, raid5 is doing a 10k giveaway for everyone
+      mining when we finally crack this block. Check it out
+      <a href="http://www.reddit.com/r/dogemining/comments/20x328/simpledoge_10k_giveaway_for_latest_round/">here</a>
 - title: PPAgent 0.3.3 occasionally reporting erroneous low hashrate condition [Now Fixed]
   date: 3/19/2014
   body: |

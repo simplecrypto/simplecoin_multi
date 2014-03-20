@@ -13,12 +13,10 @@ from .models import (Transaction, OneMinuteShare, Block, Share, Payout,
                      last_block_share_id, last_block_time, Blob, FiveMinuteShare,
                      OneHourShare, Status, FiveMinuteReject, OneMinuteReject, OneHourReject)
 from . import db, root, cache
-from simpledoge import utils
 from simpledoge.utils import compress_typ, get_typ
 
 
 main = Blueprint('main', __name__)
-
 
 @main.route("/")
 def home():
