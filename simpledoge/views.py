@@ -182,9 +182,15 @@ def user_stats():
 def summary_page():
 
     user_shares = cache.get('pplns_user_shares')
-    cached_time = cache.get('pplns_cache_time').strftime("%Y-%m-%d %H:%M:%S")
-    user_list = [([shares, user, (65536 * last_10_shares(user) / 600)]) for user, shares in user_shares.iteritems()]
-    user_list = sorted(user_list, key=lambda x: x[0], reverse=True)
+
+    cached_time = cache.get('pplns_cache_time')
+    if cached_time != None:
+        cached_time = cached_time.strftime("%Y-%m-%d %H:%M:%S")
+    if user_shares == None:
+        user_list = []
+    else:
+        user_list = [([shares, user, (65536 * last_10_shares(user) / 600)]) for user, shares in user_shares.iteritems()]
+        user_list = sorted(user_list, key=lambda x: x[0], reverse=True)
 
     current_block = db.session.query(Blob).filter_by(key="block").first()
 
@@ -249,7 +255,9 @@ def user_dashboard(address=None):
 
     payouts = db.session.query(Payout).filter_by(user=address).order_by(Payout.id.desc()).limit(20)
     user_shares = cache.get('pplns_' + address)
-    pplns_cached_time = cache.get('pplns_cache_time').strftime("%Y-%m-%d %H:%M:%S")
+    pplns_cached_time = cache.get('pplns_cache_time')
+    if pplns_cached_time != None:
+        pplns_cached_time.strftime("%Y-%m-%d %H:%M:%S")
 
     # reorganize/create the recently viewed
     recent = session.get('recent_users', [])
