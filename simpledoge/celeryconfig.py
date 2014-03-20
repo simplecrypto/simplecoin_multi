@@ -2,6 +2,10 @@ from datetime import timedelta
 
 
 CELERYBEAT_SCHEDULE = {
+    'compute_pplns': {
+        'task': 'simpledoge.tasks.update_pplns_est',
+        'schedule': timedelta(minutes=15)
+    },
     'compress_min_shares': {
         'task': 'simpledoge.tasks.compress_minute',
         'schedule': timedelta(minutes=5),

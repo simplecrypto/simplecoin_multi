@@ -31,12 +31,14 @@ $(document).ready(function() {
     dogerate = ((percentage_value * round_reward)) * .99;
 
     mhashpersec = (hashrate / seconds) / 1000;
-    setInterval(function(){
+    setInterval(set_content = function(){
       $('.odometer.hashrate').text(numberWithCommas(Math.round(mhashpersec * 1000) / 1000));
       $('.odometer.usershares').text(numberWithCommas(Math.round(user_shares)));
       $('.odometer.estpayout').text(numberWithCommas(Math.round(est_payout * 1000) / 1000));
       $('.odometer.dogerate').text(numberWithCommas(Math.round(dogerate * 1000) / 1000));
     },1000);
+
+    set_content();
 
   },1000);
 
@@ -77,8 +79,7 @@ $(document).ready(function() {
         <div class="panel-body text-center">
           <small>Est. Round Payout</small>&nbsp;
           <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Payout estimate based on PPS (the pool pays out in PPLNS! This is just a estimate),
-                        assumes a 250k reward"></i>
+                       title="Payout estimate based on PPLNS (Last updated {{ pplns_cached_time }}). This estimate will be extremely close to your actual payout"></i>
           <br><h4><p><span class="odometer estpayout">...</span> &ETH;</p></h4>
         </div>
       </div>

@@ -48,7 +48,9 @@
 
 <div class="row page-header">
   <h2>Top Users PPLNS Summary <small><i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                     title="All shares to be paid out, based on Pay Per Last N Shares. If a payout were to occur these would be the stats used to determine who gets paid what."></i></small></h2>
+                     title="All shares to be paid out, based on the Pay Per Last N Share algorithm. If a payout were to occur these would be extremely similar to the stats used to determine who gets paid what."></i>
+  <span class="text-muted">- updated {{ cached_time }} UTC</span>
+  </small></h2>
   <br>
   <div class="col-lg-12">
     <table class="table table-striped table-hover table-responsive">
@@ -62,7 +64,7 @@
       <tbody>
       {% for shares, user, hashrate in users %}
         <tr>
-          <th>{{ loop.index }}. <a href="/{{ user }}">{{ user }}</a></th>
+          <th>{{ loop.index }}. <a href="/{{ user[6:] }}">{{ user[6:] }}</a></th>
           <th>{{ '{:,}'.format(shares|int) }}</th>
           <th>{{ '{:,}'.format((hashrate / 1000) | round(2)) }} KH/s</th>
         </tr>

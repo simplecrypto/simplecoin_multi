@@ -13,10 +13,12 @@ from .models import (Transaction, OneMinuteShare, Block, Share, Payout,
                      last_block_share_id, last_block_time, Blob, FiveMinuteShare,
                      OneHourShare, Status, FiveMinuteReject, OneMinuteReject, OneHourReject)
 from . import db, root, cache
+from simpledoge import utils
 from simpledoge.utils import compress_typ, get_typ
 
 
 main = Blueprint('main', __name__)
+
 
 @main.route("/")
 def home():
@@ -172,37 +174,6 @@ def total_paid(user):
               filter_by(confirmed=True))
     return sum([tx.amount for tx in total_p])
 
-@cache.memoize(timeout=600)
-def user_summary():
-    """ Returns all users that contributed shares to the last round """
-    return (db.session.query(func.sum(Share.shares), Share.user).
-            group_by(Share.user).filter(Share.id > last_block_share_id()).all())
-
-@cache.memoize(timeout=3600)
-def pplns_summary():
-    # grab configured N
-    mult = int(current_app.config['last_n'])
-    # generate average diff from last 500 blocks
-    blobs = Blob.query.filter(Blob.key.in_(("server", "diff"))).all()
-    diff = [b for b in blobs if b.key == "diff"][0].data['diff']
-    # Calculate the total shares to that are 'counted'
-    total_shares = ((float(diff) * (2 ** 16)) * mult)
-
-    # Loop through all shares, descending order, until we'd distributed the shares
-    remain = total_shares
-    user_shares = {}
-    for share in Share.query.order_by(Share.id.desc()).yield_per(5000):
-        user_shares.setdefault(share.user, 0)
-        if remain > share.shares:
-            user_shares[share.user] += share.shares
-            remain -= share.shares
-        else:
-            user_shares[share.user] += remain
-            remain = 0
-            break
-
-    return user_shares
-
 
 @main.route("/stats")
 def user_stats():
@@ -212,13 +183,14 @@ def user_stats():
 @main.route("/round_summary")
 def summary_page():
 
-    user_shares = pplns_summary()
+    user_shares = cache.get('pplns_user_shares')
+    cached_time = cache.get('pplns_cache_time').strftime("%Y-%m-%d %H:%M:%S")
     user_list = [([shares, user, (65536 * last_10_shares(user) / 600)]) for user, shares in user_shares.iteritems()]
     user_list = sorted(user_list, key=lambda x: x[0], reverse=True)
 
     current_block = db.session.query(Blob).filter_by(key="block").first()
 
-    return render_template('round_summary.html', users=user_list, current_block=current_block)
+    return render_template('round_summary.html', users=user_list, current_block=current_block, cached_time=cached_time)
 
 
 @main.route("/exc_test")
@@ -278,8 +250,8 @@ def user_dashboard(address=None):
     balance -= unconfirmed_balance
 
     payouts = db.session.query(Payout).filter_by(user=address).order_by(Payout.id.desc()).limit(20)
-    user_shares = pplns_summary()
-    user_shares = user_shares[address]
+    user_shares = cache.get('pplns_' + address)
+    pplns_cached_time = cache.get('pplns_cache_time').strftime("%Y-%m-%d %H:%M:%S")
 
     # reorganize/create the recently viewed
     recent = session.get('recent_users', [])
@@ -320,6 +292,7 @@ def user_dashboard(address=None):
                            username=address,
                            workers=workers,
                            user_shares=user_shares,
+                           pplns_cached_time=pplns_cached_time,
                            payouts=payouts,
                            round_reward=250000,
                            total_earned=earned,

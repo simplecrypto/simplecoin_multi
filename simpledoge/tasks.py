@@ -1,6 +1,6 @@
 from flask import current_app
 from celery import Celery
-from simpledoge import db, coinserv
+from simpledoge import db, coinserv, cache
 from simpledoge.models import (
     Share, Block, OneMinuteShare, Payout, Transaction, Blob, last_block_time,
     last_block_share_id, FiveMinuteShare, Status, OneMinuteReject,
@@ -20,6 +20,42 @@ import datetime
 
 logger = get_task_logger(__name__)
 celery = Celery('simpledoge')
+
+
+@celery.task(bind=True)
+def update_pplns_est(self):
+    """
+    Generates redis cached value for share counts of all users based on PPLNS window
+    """
+    try:
+        # grab configured N
+        mult = int(current_app.config['last_n'])
+        # generate average diff from last 500 blocks
+        blobs = Blob.query.filter(Blob.key.in_(("server", "diff"))).all()
+        diff = [b for b in blobs if b.key == "diff"][0].data['diff']
+        # Calculate the total shares to that are 'counted'
+        total_shares = ((float(diff) * (2 ** 16)) * mult)
+
+        # Loop through all shares, descending order, until we'd distributed the shares
+        remain = total_shares
+        user_shares = {}
+        for share in Share.query.order_by(Share.id.desc()).yield_per(5000):
+            user_shares.setdefault('pplns_' + share.user, 0)
+            if remain > share.shares:
+                user_shares['pplns_' + share.user] += share.shares
+                remain -= share.shares
+            else:
+                user_shares['pplns_' + share.user] += remain
+                remain = 0
+                break
+
+        cache.set('pplns_cache_time', datetime.datetime.utcnow())
+        cache.set_many(user_shares)
+        cache.set('pplns_user_shares', user_shares)
+
+    except Exception as exc:
+        logger.error("Unhandled exception in estimating pplns", exc_info=True)
+        raise self.retry(exc=exc)
 
 
 @celery.task(bind=True)
