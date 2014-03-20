@@ -154,7 +154,6 @@ def last_10_shares(user):
     minutes = (OneMinuteShare.query.
                filter_by(user=user).filter(OneMinuteShare.time >= twelve_ago, OneMinuteShare.time < two_ago).
                order_by(OneMinuteShare.time.desc()))
-    print minutes
     if minutes:
         return sum([min.value for min in minutes])
     return 0
@@ -179,6 +178,31 @@ def user_summary():
     return (db.session.query(func.sum(Share.shares), Share.user).
             group_by(Share.user).filter(Share.id > last_block_share_id()).all())
 
+@cache.memoize(timeout=3600)
+def pplns_summary():
+    # grab configured N
+    mult = int(current_app.config['last_n'])
+    # generate average diff from last 500 blocks
+    blobs = Blob.query.filter(Blob.key.in_(("server", "diff"))).all()
+    diff = [b for b in blobs if b.key == "diff"][0].data['diff']
+    # Calculate the total shares to that are 'counted'
+    total_shares = ((float(diff) * (2 ** 16)) * mult)
+
+    # Loop through all shares, descending order, until we'd distributed the shares
+    remain = total_shares
+    user_shares = {}
+    for share in Share.query.order_by(Share.id.desc()).yield_per(5000):
+        user_shares.setdefault(share.user, 0)
+        if remain > share.shares:
+            user_shares[share.user] += share.shares
+            remain -= share.shares
+        else:
+            user_shares[share.user] += remain
+            remain = 0
+            break
+
+    return user_shares
+
 
 @main.route("/stats")
 def user_stats():
@@ -188,10 +212,11 @@ def user_stats():
 @main.route("/round_summary")
 def summary_page():
 
+    user_shares = pplns_summary()
+    user_list = [([shares, user, (65536 * last_10_shares(user) / 600)]) for user, shares in user_shares.iteritems()]
+    user_list = sorted(user_list, key=lambda x: x[0], reverse=True)
+
     current_block = db.session.query(Blob).filter_by(key="block").first()
-    users = user_summary()
-    users = sorted(users, key=lambda x: x[0], reverse=True)
-    user_list = [([user[0], user[1], (65536 * last_10_shares(user[1])) / 600]) for user in users]
 
     return render_template('round_summary.html', users=user_list, current_block=current_block)
 
@@ -253,10 +278,8 @@ def user_dashboard(address=None):
     balance -= unconfirmed_balance
 
     payouts = db.session.query(Payout).filter_by(user=address).order_by(Payout.id.desc()).limit(20)
-    last_share_id = last_block_share_id()
-    user_shares = (db.session.query(func.sum(Share.shares)).
-                   filter(Share.id > last_share_id, Share.user == address).
-                   scalar() or 0)
+    user_shares = pplns_summary()
+    user_shares = user_shares[address]
 
     # reorganize/create the recently viewed
     recent = session.get('recent_users', [])
