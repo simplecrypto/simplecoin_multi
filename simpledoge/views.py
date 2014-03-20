@@ -13,10 +13,12 @@ from .models import (Transaction, OneMinuteShare, Block, Share, Payout,
                      last_block_share_id, last_block_time, Blob, FiveMinuteShare,
                      OneHourShare, Status, FiveMinuteReject, OneMinuteReject, OneHourReject)
 from . import db, root, cache
+from simpledoge import utils
 from simpledoge.utils import compress_typ, get_typ
 
 
 main = Blueprint('main', __name__)
+
 
 @main.route("/")
 def home():
@@ -181,6 +183,7 @@ def user_stats():
 def summary_page():
 
     user_shares = cache.get('pplns_user_shares')
+<<<<<<< HEAD
 
 
     cached_time = cache.get('pplns_cache_time')
@@ -192,6 +195,11 @@ def summary_page():
     else:
         user_list = [([shares, user, (65536 * last_10_shares(user[6:]) / 600)]) for user, shares in user_shares.iteritems()]
         user_list = sorted(user_list, key=lambda x: x[0], reverse=True)
+=======
+    cached_time = cache.get('pplns_cache_time').strftime("%Y-%m-%d %H:%M:%S")
+    user_list = [([shares, user, (65536 * last_10_shares(user) / 600)]) for user, shares in user_shares.iteritems()]
+    user_list = sorted(user_list, key=lambda x: x[0], reverse=True)
+>>>>>>> Upgrades round payout estimates to PPLNS
 
     current_block = db.session.query(Blob).filter_by(key="block").first()
 

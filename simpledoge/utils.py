@@ -19,6 +19,7 @@ def get_typ(typ, address, window=True):
     grab = typ.floor_time(datetime.datetime.utcnow()) - typ.window
     return base.filter(typ.time >= grab)
 
+
 def compress_typ(typ, address, workers):
     for slc in get_typ(typ, address, window=False):
         slice_dt = typ.upper.floor_time(slc.time)
@@ -26,6 +27,7 @@ def compress_typ(typ, address, workers):
         workers.setdefault(slc.worker, {})
         workers[slc.worker].setdefault(stamp, 0)
         workers[slc.worker][stamp] += slc.value
+
 
 def verify(address, message, ):
     commands = ['SETFEE']
