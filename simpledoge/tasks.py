@@ -49,9 +49,9 @@ def update_pplns_est(self):
                 remain = 0
                 break
 
-        cache.set('pplns_cache_time', datetime.datetime.utcnow())
-        cache.set_many(user_shares)
-        cache.set('pplns_user_shares', user_shares)
+        cache.set('pplns_cache_time', datetime.datetime.utcnow(), timeout=40 * 60)
+        cache.set_many(user_shares, timeout=40 * 60)
+        cache.set('pplns_user_shares', user_shares, timeout=40 * 60)
 
     except Exception as exc:
         logger.error("Unhandled exception in estimating pplns", exc_info=True)
