@@ -369,3 +369,8 @@ def guides_index():
 @main.route("/guides/<guide>")
 def guides(guide):
     return render_template("guides/" + guide + ".html")
+
+
+@main.route("/faq")
+def faq():
+    return render_template("faq.html")
