@@ -9,7 +9,7 @@ from collections import namedtuple
 from datetime import datetime, timedelta
 from simpledoge.model_lib import base
 from sqlalchemy.schema import CheckConstraint
-from sqlalchemy.ext.declarative import AbstractConcreteBase
+from sqlalchemy.ext.declarative import AbstractConcreteBase, declared_attr
 from sqlalchemy.dialects.postgresql import HSTORE, ARRAY
 from cryptokit import bits_to_difficulty
 
@@ -254,26 +254,71 @@ class Event(base):
     address = db.Column(db.String, primary_key=True)
 
 
-class Payout(base):
+class DonationPercent(base):
+    user = db.Column(db.String, primary_key=True)
+    perc = db.Column(db.Integer)
+
+    @classmethod
+    def create(cls, user, perc):
+        payout = cls(user=user, perc=perc)
+        db.session.add(payout)
+        return payout
+
+
+class Transfer(AbstractConcreteBase, base):
     """ Represents a users payout for a single round """
     id = db.Column(db.Integer, primary_key=True)
+    user = db.Column(db.String)
+    amount = db.Column(db.BigInteger, CheckConstraint('amount>0', 'min_payout_amount'))
+    # allows us to lock a transfer while doing a payout. prevents double
+    # spending
+    locked = db.Column(db.Boolean, default=False, server_default="FALSE")
+
+    @declared_attr
+    def transaction_id(self):
+        return db.Column(db.String, db.ForeignKey('transaction.txid'))
+
+    @declared_attr
+    def transaction(self):
+        return db.relationship('Transaction')
+
+
+class Payout(Transfer):
+    __tablename__ = "payout"
     blockhash = db.Column(db.String, db.ForeignKey('block.hash'))
     block = db.relationship('Block', foreign_keys=[blockhash])
-    user = db.Column(db.String)
     shares = db.Column(db.BigInteger)
-    amount = db.Column(db.BigInteger, CheckConstraint('amount>0', 'min_payout_amount'))
-    transaction_id = db.Column(db.String, db.ForeignKey('transaction.txid'))
-    transaction = db.relationship('Transaction', foreign_keys=[transaction_id])
+    perc = db.Column(db.Float, default=0.0, server_default="0")
+    perc_applied = db.Column(db.BigInteger, default=0, server_default="0")
+    __mapper_args__ = {
+        'polymorphic_identity': 'payout',
+        'concrete': True
+    }
     __table_args__ = (
         db.UniqueConstraint("user", "blockhash"),
     )
 
     @classmethod
-    def create(cls, user, amount, block, shares):
-        payout = cls(user=user, amount=amount, block=block, shares=shares)
+    def create(cls, user, amount, block, shares, perc, perc_applied):
+        payout = cls(user=user, amount=amount, block=block, shares=shares,
+                     perc=perc, perc_applied=perc_applied)
         db.session.add(payout)
         return payout
 
+
+class BonusPayout(Transfer):
+    __tablename__ = "bonus_payout"
+    description = db.Column(db.String)
+    __mapper_args__ = {
+        'polymorphic_identity': 'bonus_payout',
+        'concrete': True
+    }
+
+    @classmethod
+    def create(cls, user, amount, description):
+        bonus = cls(user=user, amount=amount, description=description)
+        db.session.add(bonus)
+        return bonus
 
 class SliceMixin(object):
     @classmethod

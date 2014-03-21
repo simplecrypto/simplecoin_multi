@@ -5,12 +5,13 @@ from simpledoge.models import (
     Share, Block, OneMinuteShare, Payout, Transaction, Blob, last_block_time,
     last_block_share_id, FiveMinuteShare, Status, OneMinuteReject,
     OneMinuteTemperature, FiveMinuteReject, OneMinuteHashrate, Threshold,
-    Event)
+    Event, DonationPercent)
 from sqlalchemy.sql import func
 from cryptokit import bits_to_shares, bits_to_difficulty
 from pprint import pformat
 from bitcoinrpc import CoinRPCException
 from celery.utils.log import get_task_logger
+from math import ceil, floor
 
 import requests
 import json
@@ -269,10 +270,10 @@ def cleanup(self, simulate=False):
         # compute the id which earlier ones are safe to delete
         stale_id = block.last_share.id - id_diff
         if simulate:
-            print("Share for block computed: {}".format(shares // 2))
-            print("Share total margin computed: {}".format(shares))
-            print("Id diff computed: {}".format(id_diff))
-            print("Stale ID computed: {}".format(stale_id))
+            logger.info("Share for block computed: {}".format(shares // 2))
+            logger.info("Share total margin computed: {}".format(shares))
+            logger.info("Id diff computed: {}".format(id_diff))
+            logger.info("Stale ID computed: {}".format(stale_id))
             exit(0)
         elif stale_id > 0:
             logger.info("Cleaning all shares older than {}".format(stale_id))
@@ -332,18 +333,13 @@ def payout(self, simulate=False):
         total_shares -= remain
         logger.debug("Found {} shares".format(total_shares))
         if simulate:
-            logger.debug("Share distribution:\n {}"
-                         .format(pformat(user_shares)))
+            out = "\n".join(["\t".join((user, str(amount))) for user, amount in user_shares.iteritems()])
+            logger.debug("Share distribution:\n{}".format(out))
 
         # Calculate the portion going to the miners by truncating the
         # fractional portions and giving the remainder to the pool owner
-        fee = float(current_app.config['fee'])
-        logger.debug("Fee loaded as {}".format(fee))
-        distribute_amnt = int((block.total_value * (100 - fee)) // 100)
-        # record the fee collected by the pool for convenience
-        block.fees = block.total_value - distribute_amnt
-        logger.debug("Block fees computed to {}".format(block.fees))
-        logger.debug("Distribute_amnt: {}".format(distribute_amnt))
+        default_fee = float(current_app.config['fee'])
+        logger.debug("Distribute_amnt: {}".format(block.total_value))
         # Below calculates the truncated portion going to each miner. because
         # of fractional pieces the total accrued wont equal the disitrubte_amnt
         # so we will distribute that round robin the miners in dictionary order
@@ -351,31 +347,76 @@ def payout(self, simulate=False):
         user_payouts = {}
         for user, share_count in user_shares.iteritems():
             user_payouts.setdefault(share.user, 0)
-            user_payouts[user] = (share_count * distribute_amnt) // total_shares
+            user_payouts[user] = (share_count * block.total_value) // total_shares
             accrued += user_payouts[user]
 
         logger.debug("Total accrued after trunated iteration {}; {}%"
-                     .format(accrued, (accrued / float(distribute_amnt)) * 100))
+                     .format(accrued, (accrued / float(block.total_value)) * 100))
         # loop over the dictionary indefinitely until we've distributed
         # all the remaining funds
-        while accrued < distribute_amnt:
+        while accrued < block.total_value:
             for key in user_payouts:
                 user_payouts[key] += 1
                 accrued += 1
                 # exit if we've exhausted
-                if accrued >= distribute_amnt:
+                if accrued >= block.total_value:
                     break
 
-        assert accrued == distribute_amnt
-        logger.info("Successfully distributed all rewards among {} users"
+        # now handle donation or bonus distribution for each user
+        donation_total = 0
+        bonus_total = 0
+        user_donations = {}
+        default_perc = current_app.config.get('default_perc', -5.0)
+        # convert our custom percentages that apply to these users into an
+        # easy to access dictionary
+        custom_percs = DonationPercent.query.filter(DonationPercent.user.in_(user_shares.keys()))
+        custom_percs = {d.user: d.perc for d in custom_percs}
+        for user, payout in user_payouts.iteritems():
+            # use the custom perc, or fallback to the default
+            perc = custom_percs.get(user, default_perc)
+
+            # if the perc is greater than 0 it's calced as a donation
+            if perc > 0:
+                donation = int(ceil((perc / 100.0) * payout))
+                logger.debug("Donation of {} ({}%) collected from {}"
+                            .format(donation, perc, user))
+                donation_total += donation
+                user_payouts[user] -= donation
+                user_donations[user] = donation
+
+            # if less than zero it's a bonus payout
+            elif perc < 0:
+                perc *= -1
+                bonus = int(floor((perc / 100.0) * payout))
+                user_payouts[user] += bonus
+                bonus_total += bonus
+                user_donations[user] = -1 * bonus
+
+            # percentages of 0 are no-ops
+
+        logger.info("Payed out {} in bonus payment".format(bonus_total / 100000000.0))
+        logger.info("Received {} in donation payment".format(donation_total / 100000000.0))
+        logger.info("Net income from block {}".format((donation_total - bonus_total) / 100000000.0))
+
+        assert accrued == block.total_value
+        logger.info("Successfully distributed all rewards among {} users."
                     .format(len(user_payouts)))
 
+        # run another safety check
+        user_sum = sum(user_payouts.values())
+        assert user_sum == (block.total_value + bonus_total - donation_total)
+        logger.info("Double check for payout distribution."
+                    " Total user payouts {}, total block value {}."
+                    .format(user_sum, block.total_value))
+
         if simulate:
-            logger.debug("Share distribution:\n {}".format(pformat(user_payouts)))
+            out = "\n".join(["\t".join((user, str(amount / 100000000.0))) for user, amount in user_payouts.iteritems()])
+            logger.debug("Payout distribution:\n{}".format(out))
             db.session.rollback()
         else:
             for user, amount in user_payouts.iteritems():
-                Payout.create(user, amount, block, user_shares[user])
+                Payout.create(user, amount, block, user_shares[user],
+                              )
             block.processed = True
             db.session.commit()
     except Exception as exc:
@@ -386,6 +427,8 @@ def payout(self, simulate=False):
 
 @celery.task(bind=True)
 def compress_minute(self):
+    """ Compresses OneMinute records (for temp, hashrate, shares, rejects) to
+    FiveMinute """
     try:
         OneMinuteShare.compress()
         OneMinuteReject.compress()
@@ -427,6 +470,8 @@ def general_cleanup(self):
 
 @celery.task(bind=True)
 def agent_receive(self, address, worker, typ, payload, timestamp):
+    """ Accepts ppagent data that is forwarded from powerpool and manages
+    adding it to the database and triggering alerts as needed. """
     # convert unix timestamp to datetime
     dt = datetime.datetime.utcfromtimestamp(timestamp)
 
