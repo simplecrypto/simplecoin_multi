@@ -68,10 +68,10 @@ class RPCClient(object):
 
         payouts = self.post('get_payouts')
         pids = [t[2] for t in payouts]
-        logger.debug("Recieved {} transactions from the server"
+        logger.info("Recieved {} transactions from the server"
                      .format(len(pids)))
         if not len(pids):
-            logger.debug("No payouts to process..")
+            logger.info("No payouts to process..")
             return
 
         # builds two dictionaries, one that tracks the total payouts to a user,
@@ -93,6 +93,7 @@ class RPCClient(object):
         # to rpc
         users = {user: amount / float(100000000) for user, amount in totals.iteritems()
                  if amount > current_app.config['minimum_payout']}
+        logger.info("Trying to payout a total of {}".format(sum(users.values())))
 
         if len(users) == 0:
             logger.info("Nobody has a big enough balance to pay out...")
@@ -111,10 +112,10 @@ class RPCClient(object):
 
         # now actually pay them
         coin_txid = payout_many(users)
-        logger.debug("Got {} as txid for payout!".format(coin_txid))
+        logger.info("Got {} as txid for payout!".format(coin_txid))
 
         data = {'coin_txid': coin_txid, 'pids': committed_pids}
-        logger.debug("Sending data back to confirm_payouts: " + str(data))
+        logger.info("Sending data back to confirm_payouts: " + str(data))
         while True:
             try:
                 if self.post('confirm_payouts', data=data):
