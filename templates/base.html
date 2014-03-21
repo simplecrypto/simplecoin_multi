@@ -26,6 +26,7 @@
       shares = {{ g.pool_stats[0] }};
       seconds = {{ g.pool_stats[1] }};
       shares_to_solve = {{ g.current_difficulty }} * Math.pow(2, 16);
+      shares_to_solve = shares_to_solve * 2;
       ten_min_hashrate = Math.pow(2, 16) * {{ g.pool_stats[3] }};
       khashpersec = (ten_min_hashrate / 600) / 1000;
       shares_per_sec = (shares / seconds);

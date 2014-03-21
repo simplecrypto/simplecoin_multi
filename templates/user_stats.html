@@ -15,9 +15,9 @@ $(document).ready(function() {
 
     round_reward = {{ round_reward }};
     user_shares = {{ user_shares }};
-
     {# Calculate est round payout  #}
     shares_to_solve = {{ g.current_difficulty }} * Math.pow(2, 16);
+    shares_to_solve = shares_to_solve * 2;
     percentage_value = user_shares / shares_to_solve;
     est_payout = ((percentage_value * round_reward)) * .99;
 
@@ -79,7 +79,7 @@ $(document).ready(function() {
         <div class="panel-body text-center">
           <small>Est. Round Payout</small>&nbsp;
           <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Payout estimate based on PPLNS (Last updated {{ pplns_cached_time }}). This estimate will be very close to your actual payout"></i>
+                       title="Payout estimate based on PPLNS (Last updated {{ pplns_cached_time }}). This estimate will be very close to your actual payout. Total Shares for this N = {{ user_shares }}"></i>
           <br><h4><p><span class="odometer estpayout">...</span> &ETH;</p></h4>
         </div>
       </div>
