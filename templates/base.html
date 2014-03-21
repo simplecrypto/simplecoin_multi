@@ -42,7 +42,7 @@
 
         seconds += 1;
         additional_shares = shares_per_sec * seconds
-        shares_remaining = shares_to_solve - Math.round(additional_shares);
+        shares_remaining = (shares_to_solve/2) - Math.round(additional_shares);
         y = seconds%60
         minutes = n(Math.floor(seconds/60)%60);
         hours = n(Math.floor(seconds/3600));
