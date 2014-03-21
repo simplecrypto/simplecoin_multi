@@ -152,7 +152,7 @@ def last_10_shares(user):
     twelve_ago = datetime.datetime.utcnow() - datetime.timedelta(minutes=12)
     two_ago = datetime.datetime.utcnow() - datetime.timedelta(minutes=2)
     minutes = (OneMinuteShare.query.
-               filter_by(user=user).filter(OneMinuteShare.time >= twelve_ago, OneMinuteShare.time < two_ago))
+               filter_by(user=user).filter(OneMinuteShare.time > twelve_ago, OneMinuteShare.time < two_ago))
     if minutes:
         return sum([min.value for min in minutes])
     return 0
@@ -276,7 +276,7 @@ def user_dashboard(address=None):
     for m in get_typ(FiveMinuteShare, address).all() + get_typ(OneMinuteShare, address).all():
         workers.setdefault(m.worker, def_worker.copy())
         workers[m.worker]['accepted'] += m.value
-        if m.time >= twelve_ago and m.time < two_ago:
+        if m.time > twelve_ago and m.time < two_ago:
             workers[m.worker]['last_10_shares'] += m.value
 
     for m in get_typ(FiveMinuteReject, address).all() + get_typ(OneMinuteReject, address).all():
