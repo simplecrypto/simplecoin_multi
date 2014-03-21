@@ -45,7 +45,8 @@ class Block(base):
     # Associated transaction fees
     transaction_fees = db.Column(db.BigInteger)
     # total going to pool from fees
-    fees = db.Column(db.BigInteger)
+    donated = db.Column(db.BigInteger)
+    bonus_payed = db.Column(db.BigInteger)
     # Difficulty of block when solved
     bits = db.Column(db.String(8), nullable=False)
     # the last share id that was processed when the block was entered.

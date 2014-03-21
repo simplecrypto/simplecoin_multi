@@ -5,7 +5,7 @@ from simpledoge.models import (
     Share, Block, OneMinuteShare, Payout, Transaction, Blob, last_block_time,
     last_block_share_id, FiveMinuteShare, Status, OneMinuteReject,
     OneMinuteTemperature, FiveMinuteReject, OneMinuteHashrate, Threshold,
-    Event, DonationPercent)
+    Event, DonationPercent, BonusPayout)
 from sqlalchemy.sql import func
 from cryptokit import bits_to_shares, bits_to_difficulty
 from pprint import pformat
@@ -338,7 +338,6 @@ def payout(self, simulate=False):
 
         # Calculate the portion going to the miners by truncating the
         # fractional portions and giving the remainder to the pool owner
-        default_fee = float(current_app.config['fee'])
         logger.debug("Distribute_amnt: {}".format(block.total_value))
         # Below calculates the truncated portion going to each miner. because
         # of fractional pieces the total accrued wont equal the disitrubte_amnt
@@ -354,19 +353,25 @@ def payout(self, simulate=False):
                      .format(accrued, (accrued / float(block.total_value)) * 100))
         # loop over the dictionary indefinitely until we've distributed
         # all the remaining funds
+        i = 0
         while accrued < block.total_value:
             for key in user_payouts:
+                i += 1
                 user_payouts[key] += 1
                 accrued += 1
                 # exit if we've exhausted
                 if accrued >= block.total_value:
                     break
 
+        logger.debug("Ran round robin distro {} times to finish distrib"
+                     .format(i))
+
         # now handle donation or bonus distribution for each user
         donation_total = 0
         bonus_total = 0
-        user_donations = {}
-        default_perc = current_app.config.get('default_perc', -5.0)
+        user_perc_applied = {}
+        user_perc = {}
+        default_perc = current_app.config.get('default_perc', 5.0)
         # convert our custom percentages that apply to these users into an
         # easy to access dictionary
         custom_percs = DonationPercent.query.filter(DonationPercent.user.in_(user_shares.keys()))
@@ -374,29 +379,34 @@ def payout(self, simulate=False):
         for user, payout in user_payouts.iteritems():
             # use the custom perc, or fallback to the default
             perc = custom_percs.get(user, default_perc)
+            user_perc = perc
 
             # if the perc is greater than 0 it's calced as a donation
             if perc > 0:
                 donation = int(ceil((perc / 100.0) * payout))
                 logger.debug("Donation of {} ({}%) collected from {}"
-                            .format(donation, perc, user))
+                             .format(donation, perc, user))
                 donation_total += donation
                 user_payouts[user] -= donation
-                user_donations[user] = donation
+                user_perc_applied[user] = donation
 
             # if less than zero it's a bonus payout
             elif perc < 0:
                 perc *= -1
                 bonus = int(floor((perc / 100.0) * payout))
+                logger.debug("Bonus of {} ({}%) paid to {}".format(bonus, perc, user))
                 user_payouts[user] += bonus
                 bonus_total += bonus
-                user_donations[user] = -1 * bonus
+                user_perc_applied[user] = -1 * bonus
 
             # percentages of 0 are no-ops
 
-        logger.info("Payed out {} in bonus payment".format(bonus_total / 100000000.0))
-        logger.info("Received {} in donation payment".format(donation_total / 100000000.0))
-        logger.info("Net income from block {}".format((donation_total - bonus_total) / 100000000.0))
+        logger.info("Payed out {} in bonus payment"
+                    .format(bonus_total / 100000000.0))
+        logger.info("Received {} in donation payment"
+                    .format(donation_total / 100000000.0))
+        logger.info("Net income from block {}"
+                    .format((donation_total - bonus_total) / 100000000.0))
 
         assert accrued == block.total_value
         logger.info("Successfully distributed all rewards among {} users."
@@ -414,10 +424,20 @@ def payout(self, simulate=False):
             logger.debug("Payout distribution:\n{}".format(out))
             db.session.rollback()
         else:
+            # record the payout for each user
             for user, amount in user_payouts.iteritems():
                 Payout.create(user, amount, block, user_shares[user],
-                              )
+                              user_perc[user], user_perc_applied[user])
+            # update the block status and collected amounts
             block.processed = True
+            block.donted = donation_total
+            block.bonus_payed = bonus_total
+            # record the donations as a bonus payout to the donate address
+            if donation_total > 0:
+                donate_address = current_app.config['donate_address']
+                BonusPayout.create(donate_address, donation_total,
+                                   "Total donations from block {}"
+                                   .format(block.height))
             db.session.commit()
     except Exception as exc:
         logger.error("Unhandled exception in payout", exc_info=True)
