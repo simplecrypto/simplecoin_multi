@@ -50,7 +50,7 @@ generate_graph = function(request_url, date_format, user) {
           if (i in worker) {
             values.push([i * 1000, worker[i]]);
             //If this is an hour loop build a total value for last 10min
-            if (i >= (end - (10 * step)) &&  request_url == 'hour') {
+            if (i > (end - (10 * step)) &&  request_url == 'hour') {
               last_10min += worker[i];
             }
           } else {
