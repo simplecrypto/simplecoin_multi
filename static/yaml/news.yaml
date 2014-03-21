@@ -1,3 +1,11 @@
+- title: Stats bugs and changes
+  date: 3/19/2014
+  body: |
+      In the last ~3 hours we've fixed about half a dozen bugs with various stats around the site, including the
+      new (more accurate) round payout estimates, hash rate estimates, and est. time left.
+      We rushed getting them out to you guys because we wanted to be showing PPLNS rather than PPS round estimates
+      (which were noticably quite wrong due to the very unlucky round). We apologize that the numbers have jumped around,
+      everything should now be correct. Please feel free to drop by IRC if you have any questions.
 - title: Round Summary added, and payout estimates are now (much) more accurate
   date: 3/19/2014
   body: |
