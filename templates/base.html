@@ -30,7 +30,7 @@
       ten_min_hashrate = Math.pow(2, 16) * {{ g.pool_stats[3] }};
       khashpersec = (ten_min_hashrate / 600) / 1000;
       shares_per_sec = (shares / seconds);
-      round_time_left = (shares_to_solve/shares_per_sec);
+      round_time_left = (shares_to_solve/shares_per_sec)/2;
 
       function n(n){
           return n > 9 || n < -9 ? "" + n: "0" + n;
