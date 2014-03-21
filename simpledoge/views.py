@@ -185,7 +185,7 @@ def summary_page():
 
     cached_time = cache.get('pplns_cache_time')
     if cached_time != None:
-        cached_time = cached_time.strftime("%Y-%m-%d %H:%M:%S")
+        cached_time = cached_time.replace(second=0, microsecond=0).strftime("%Y-%m-%d %H:%M")
     if user_shares == None:
         print user_shares
         user_list = []
