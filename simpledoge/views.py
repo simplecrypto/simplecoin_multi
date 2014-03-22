@@ -398,11 +398,6 @@ def faq():
 
 @main.route("/set_fee/<address>", methods=['POST', 'GET'])
 def set_fee(address):
-    perc = DonationPercent.query.filter_by(user=address).first()
-    if not perc:
-        perc = current_app.config.get('default_perc', 0)
-    else:
-        perc = perc.perc
     vals = request.form
     result = ""
     if request.method == "POST":
@@ -413,5 +408,11 @@ def set_fee(address):
             result = "An error occurred: " + str(e)
         else:
             result = "Successfully changed!"
+
+    perc = DonationPercent.query.filter_by(user=address).first()
+    if not perc:
+        perc = current_app.config.get('default_perc', 0)
+    else:
+        perc = perc.perc
     return render_template("set_fee.html", username=address, result=result,
                            perc=perc)

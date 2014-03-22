@@ -19,7 +19,9 @@ $(document).ready(function() {
   $("#generate").click(function() {
     var feeString = $("#feeAmount").val();
     var fee = parseFloat(feeString);
-    if (isNaN(fee) || fee > 100 || fee < -5)
+    if (fee > 100 || fee < {{ config['minimum_perc'] }})
+      alert("Fee must be less than 100 and greater than {{ config['minimum_perc'] }}");
+    else if (isNaN(fee))
       alert("Must enter a valid number!");
     else {
       $("#message").text("SETFEE " + feeString + "\t" + Math.round(new Date().getTime() / 1000) + "\tOnly valid on SimpleDoge for " + new Date());

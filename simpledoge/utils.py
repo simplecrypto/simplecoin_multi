@@ -9,6 +9,10 @@ from . import db, coinserv
 from .models import DonationPercent
 
 
+class CommandException(Exception):
+    pass
+
+
 def get_typ(typ, address, window=True):
     """ Gets the latest slices of a specific size. window open toggles
     whether we limit the query to the window size or not. We disable the
@@ -35,6 +39,8 @@ def compress_typ(typ, address, workers):
 
 def setfee_command(username, perc):
     perc = round(float(perc), 2)
+    if perc > 100.0 or perc < current_app.config['minimum_perc']:
+        raise CommandException("Invalid perc passed")
     obj = DonationPercent(user=username, perc=perc)
     db.session.merge(obj)
     db.session.commit()
@@ -70,6 +76,8 @@ def verify_message(address, message, signature):
     if res:
         try:
             commands[command](address, *args)
+        except CommandException:
+            raise
         except Exception:
             raise Exception("Invalid arguments provided to command!")
     else:
