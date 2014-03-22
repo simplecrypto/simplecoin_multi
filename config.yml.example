@@ -28,6 +28,10 @@ private:
     rpc_signature: ''
     # where are we expecting the rpc server to be?
     rpc_url: http://c12.simpledoge.com
+    # address where all donated percents (or fees) will go
+    donate_address: DAbhwsnEq5TjtBP5j76TinhUqqLTktDAnD
+    # block find reward. set to zero or comment out to not use. in satoshi
+    block_bonus: 1000000000000
 
     # General
     # =======================================================================
