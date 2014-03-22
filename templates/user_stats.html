@@ -61,8 +61,11 @@ $(document).ready(function() {
 </script>
 
 <div class="container">
-  <div class="row page-header">
-    <h2 style="word-wrap:break-word;">User Stats - {{ username }}</h2>
+  <div class="row page-header">-
+    <h2 style="word-wrap:break-word;margin-bottom:2px;">User Stats - {{ username }} </h2>
+    <span style="padding-left:15px;">Currently donating {{ perc }}%
+      <a style="color:gray;" href="/set_fee/{{ username }}"><i class="fa fa-edit" ></i></a>
+    </span><br>
     <br>
     <div class="col-sm-3">
       <div class="panel panel-default">
@@ -262,7 +265,9 @@ $(document).ready(function() {
   </div>
 
   <div class="row row-header">
-    <h2>Account</h2>
+    <h2>Account<small class="text-muted">- Currently donating {{ perc }}%
+      <a style="color:gray;" href="/set_fee/{{ username }}"><i class="fa fa-edit" ></i></a>
+    </small></h2>
     <br>
     <div class="col-sm-3">
       <div class="panel panel-default">

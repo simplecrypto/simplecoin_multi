@@ -309,6 +309,12 @@ def user_dashboard(address=None):
         workers.setdefault(name, def_worker.copy())
         workers[name]['online'] = True
 
+    perc = DonationPercent.query.filter_by(user=address).first()
+    if not perc:
+        perc = current_app.config.get('default_perc', 0)
+    else:
+        perc = perc.perc
+
     return render_template('user_stats.html',
                            username=address,
                            workers=workers,
@@ -319,6 +325,7 @@ def user_dashboard(address=None):
                            total_earned=earned,
                            total_paid=total_paid,
                            balance=balance,
+                           perc=perc,
                            unconfirmed_balance=unconfirmed_balance,
                            latest_ppagent=current_app.config['latest_ppagent'])
 
