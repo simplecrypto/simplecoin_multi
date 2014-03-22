@@ -318,7 +318,10 @@ $(document).ready(function() {
             <tr>
               <th>Time</th>
               <th>Shares Contributed</th>
-              <th>Amount Earned</th>
+              <th>Mined</th>
+              <th>% +/-</th>
+              <th>Donation/Bonus</th>
+              <th>Total paid</th>
               <th>Blockheight</th>
               <th>TX id</th>
               <th>Status</th>
@@ -326,10 +329,24 @@ $(document).ready(function() {
           </thead>
           <tbody>
             {% for payout in payouts %}
+              {# Set some vars for easy table printing #}
+              {% if payout.perc < 0 %}
+                {% set type = 'bonus' %}
+                {% set maths = payout.perc_applied * -1 %}
+              {% elif payout.perc == 0 %}
+                {% set maths = payout.perc_applied %}
+                {% set type = '' %}
+              {% else %}
+                {% set type = 'donation' %}
+                {% set maths = payout.perc_applied %}
+              {% endif %}
             <tr>
               <th>{{ payout.block.found_at | time_ago }}</th>
               <th>{{ '{:,}'.format(payout.shares) }}</th>
-              <th>{{ '{:,}'.format(payout.amount / 100000000 | round(2)) }}</th>
+              <th>{{ '{:,}'.format((payout.amount / 100000000) | round(2)) }}</th>
+              <th>{{ '{:,}'.format(payout.perc) }}%</th>
+              <th>{{ type  }}{{ ' {:,}'.format((payout.perc_applied / 100000000) | round(2)) }}</th>
+              <th>{{ '{:,}'.format(((payout.amount - maths) / 100000000) | round(2)) }}</th>
               <th>{{ '{:,}'.format(payout.block.height) }}</th>
               <th>{% if payout.transaction_id %}
                 <a href="https://dogechain.info/tx/{{ payout.transaction_id }}" target="_blank">{{ payout.transaction_id | truncate(15, True) }}</a>

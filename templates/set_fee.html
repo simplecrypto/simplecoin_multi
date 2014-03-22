@@ -24,7 +24,7 @@ $(document).ready(function() {
     else if (isNaN(fee))
       alert("Must enter a valid number!");
     else {
-      $("#message").text("SETFEE " + feeString + "\t" + Math.round(new Date().getTime() / 1000) + "\tOnly valid on SimpleDoge for " + new Date());
+      $("#message").text("SETFEE " + fee + "\t" + Math.round(new Date().getTime() / 1000) + "\tOnly valid on SimpleDoge for " + new Date());
     }
   });
 });
@@ -36,7 +36,7 @@ $(document).ready(function() {
       <h2>How to change your fee %</h2>
       <br>
       <ol>
-        <li>Type in the % you want to donate as a whole number(no decimals or percent signs)</li>
+        <li>Type in the % you want to donate as a number.</li>
         <li>Click generate</li>
         <li>Click copy to Clipboard</li>
         <li>Sign the message with your Dogecoind wallet.
