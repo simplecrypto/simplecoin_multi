@@ -404,6 +404,7 @@ def set_fee(address):
         except Exception as e:
             current_app.logger.info("Failed to validate!", exc_info=True)
             result = "An error occurred: " + str(e)
-        result = "Successfully changed!"
+        else:
+            result = "Successfully changed!"
     return render_template("set_fee.html", username=address, result=result,
                            perc=perc)

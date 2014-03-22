@@ -30,6 +30,25 @@ $(document).ready(function() {
 
 <div class="container">
   <div class="row page-header">
+    <div class="col-lg-12">
+      <h2>How to change your fee %</h2>
+      <br>
+      <ol>
+        <li>Type in the % you want to donate as a whole number(no decimals or percent signs)</li>
+        <li>Click generate</li>
+        <li>Click copy to Clipboard</li>
+        <li>Sign the message with your Dogecoind wallet.
+          <ul>
+            <li>To do this, open up your dogecoin wallet</li>
+            <li>Open <b>file</b>, click <b>sign message</b></li>
+            <li>You'll need to put in your address and paste the message here.
+            the screens will look something like <a href="http://imgur.com/a/nUmZ0">these</a> </li>
+            <li>Copy the signature, and paste it on our site</li>
+          </ul>
+        </li>
+        <li>Click change, and you're done!</li>
+      </ol>
+    </div>
     <h2>Current fee percentage: {{ perc }}%</h2>
     {% if result %}
       <h1>{{ result }}</h1>
