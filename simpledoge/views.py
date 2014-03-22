@@ -15,7 +15,7 @@ from .models import (Transaction, OneMinuteShare, Block, Share, Payout,
                      OneHourShare, Status, FiveMinuteReject, OneMinuteReject,
                      OneHourReject, DonationPercent, BonusPayout)
 from . import db, root, cache
-from .utils import compress_typ, get_typ
+from .utils import compress_typ, get_typ, verify_message
 
 
 main = Blueprint('main', __name__)
