@@ -15,12 +15,7 @@ from .models import (Transaction, OneMinuteShare, Block, Share, Payout,
                      OneHourShare, Status, FiveMinuteReject, OneMinuteReject,
                      OneHourReject, DonationPercent, BonusPayout)
 from . import db, root, cache
-<<<<<<< HEAD
-from simpledoge import utils
-from simpledoge.utils import compress_typ, get_typ
-=======
-from simpledoge.utils import compress_typ, get_typ, verify_message
->>>>>>> Fee adjustment page functionality now in place
+from .utils import compress_typ, get_typ
 
 
 main = Blueprint('main', __name__)
@@ -183,8 +178,8 @@ def total_earned(user):
 @cache.memoize(timeout=60)
 def total_paid(user):
     total_p = (Payout.query.filter_by(user=user).
-              join(Payout.transaction, aliased=True).
-              filter_by(confirmed=True))
+               join(Payout.transaction, aliased=True).
+               filter_by(confirmed=True))
     return sum([tx.amount for tx in total_p])
 
 
@@ -197,23 +192,15 @@ def user_stats():
 def summary_page():
 
     user_shares = cache.get('pplns_user_shares')
-<<<<<<< HEAD
-
-
     cached_time = cache.get('pplns_cache_time')
-    if cached_time != None:
+    if cached_time is not None:
         cached_time = cached_time.replace(second=0, microsecond=0).strftime("%Y-%m-%d %H:%M")
-    if user_shares == None:
-        print user_shares
+
+    if user_shares is None:
         user_list = []
     else:
         user_list = [([shares, user, (65536 * last_10_shares(user[6:]) / 600)]) for user, shares in user_shares.iteritems()]
         user_list = sorted(user_list, key=lambda x: x[0], reverse=True)
-=======
-    cached_time = cache.get('pplns_cache_time').strftime("%Y-%m-%d %H:%M:%S")
-    user_list = [([shares, user, (65536 * last_10_shares(user) / 600)]) for user, shares in user_shares.iteritems()]
-    user_list = sorted(user_list, key=lambda x: x[0], reverse=True)
->>>>>>> Upgrades round payout estimates to PPLNS
 
     current_block = db.session.query(Blob).filter_by(key="block").first()
 

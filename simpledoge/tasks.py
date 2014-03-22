@@ -440,7 +440,7 @@ def payout(self, simulate=False):
                                    "Total donations from block {}"
                                    .format(block.height))
                 logger.info("Added bonus payout to donation address {} for {}"
-                            .format(donate_address, donation_total))
+                            .format(donate_address, donation_total / 100000000.0))
 
             block_bonus = current_app.config.get('block_bonus', 0)
             if block_bonus > 0:
@@ -448,7 +448,7 @@ def payout(self, simulate=False):
                                    "Blockfinder bonus for block {}"
                                    .format(block.height))
                 logger.info("Added bonus payout for blockfinder {} for {}"
-                            .format(block.user, block_bonus))
+                            .format(block.user, block_bonus / 100000000.0))
 
             db.session.commit()
     except Exception as exc:
