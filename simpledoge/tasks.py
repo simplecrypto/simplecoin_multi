@@ -371,7 +371,7 @@ def payout(self, simulate=False):
         bonus_total = 0
         user_perc_applied = {}
         user_perc = {}
-        default_perc = current_app.config.get('default_perc')
+        default_perc = current_app.config.get('default_perc', 0)
         # convert our custom percentages that apply to these users into an
         # easy to access dictionary
         custom_percs = DonationPercent.query.filter(DonationPercent.user.in_(user_shares.keys()))

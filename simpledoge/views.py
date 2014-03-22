@@ -1,5 +1,6 @@
 import calendar
 import time
+import itertools
 import requests
 import yaml
 import datetime
@@ -276,6 +277,8 @@ def user_dashboard(address=None):
     balance -= unconfirmed_balance
 
     payouts = db.session.query(Payout).filter_by(user=address).order_by(Payout.id.desc()).limit(20)
+    bonuses = db.session.query(BonusPayout).filter_by(user=address).order_by(BonusPayout.id.desc()).limit(20)
+    acct_items = sorted(itertools.chain(payouts, bonuses), key=lambda i: i.created_at, reverse=True)
     user_shares = cache.get('pplns_' + address)
     pplns_cached_time = cache.get('pplns_cache_time')
     if pplns_cached_time != None:
@@ -328,7 +331,7 @@ def user_dashboard(address=None):
                            workers=workers,
                            user_shares=user_shares,
                            pplns_cached_time=pplns_cached_time,
-                           payouts=payouts,
+                           acct_items=acct_items,
                            round_reward=250000,
                            total_earned=earned,
                            total_paid=total_paid,
