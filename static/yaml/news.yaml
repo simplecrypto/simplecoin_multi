@@ -1,3 +1,13 @@
+- title: Elective donation
+  date: 3/19/2014
+  body: |
+      Simple Doge now allows you to set a percentage of your payouts to be
+      donated to help support the pool. To change your fee percentage click the
+      edit button next to the "Currently donating" percentage on your user
+      stats page.
+      <br><br>
+      <b>To kick this off, the pool has been set to -5% donation by default,
+      meaning we pay you extra for every payout. Thanks for mining with us!</b>
 - title: Stats bugs and changes
   date: 3/19/2014
   body: |
@@ -17,7 +27,7 @@
       mining when we finally crack this block. Check it out
       <a href="http://www.reddit.com/r/dogemining/comments/20x328/simpledoge_10k_giveaway_for_latest_round/">here</a>
       <br><br><b>EDIT: </b> raid5 has upped this to 20k and paid it out Say thanks to him next time you see him in IRC
-      lol.
+      .
 - title: PPAgent 0.3.3 occasionally reporting erroneous low hashrate condition [Now Fixed]
   date: 3/19/2014
   body: |
