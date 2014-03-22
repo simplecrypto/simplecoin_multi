@@ -259,12 +259,6 @@ class DonationPercent(base):
     user = db.Column(db.String, primary_key=True)
     perc = db.Column(db.Integer)
 
-    @classmethod
-    def create(cls, user, perc):
-        payout = cls(user=user, perc=perc)
-        db.session.add(payout)
-        return payout
-
 
 class Transfer(AbstractConcreteBase, base):
     """ Represents a users payout for a single round """
@@ -320,6 +314,7 @@ class BonusPayout(Transfer):
         bonus = cls(user=user, amount=amount, description=description)
         db.session.add(bonus)
         return bonus
+
 
 class SliceMixin(object):
     @classmethod

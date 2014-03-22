@@ -11,10 +11,15 @@ from sqlalchemy.sql import func
 
 from .models import (Transaction, OneMinuteShare, Block, Share, Payout,
                      last_block_share_id, last_block_time, Blob, FiveMinuteShare,
-                     OneHourShare, Status, FiveMinuteReject, OneMinuteReject, OneHourReject)
+                     OneHourShare, Status, FiveMinuteReject, OneMinuteReject,
+                     OneHourReject, DonationPercent)
 from . import db, root, cache
+<<<<<<< HEAD
 from simpledoge import utils
 from simpledoge.utils import compress_typ, get_typ
+=======
+from simpledoge.utils import compress_typ, get_typ, verify_message
+>>>>>>> Fee adjustment page functionality now in place
 
 
 main = Blueprint('main', __name__)
@@ -384,6 +389,21 @@ def faq():
     return render_template("faq.html")
 
 
-@main.route("/set_fee/<address>")
+@main.route("/set_fee/<address>", methods=['POST', 'GET'])
 def set_fee(address):
-    return render_template("set_fee.html", address=address)
+    perc = DonationPercent.query.filter_by(user=address).first()
+    if not perc:
+        perc = current_app.config.get('default_perc', 0)
+    else:
+        perc = perc.perc
+    vals = request.form
+    result = ""
+    if request.method == "POST":
+        try:
+            verify_message(address, vals['message'], vals['signature'])
+        except Exception as e:
+            current_app.logger.info("Failed to validate!", exc_info=True)
+            result = "An error occurred: " + str(e)
+        result = "Successfully changed!"
+    return render_template("set_fee.html", username=address, result=result,
+                           perc=perc)

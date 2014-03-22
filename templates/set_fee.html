@@ -1,20 +1,59 @@
 {% extends "base.html" %}
 {% set active_page = "stats" %}
+{% block head %}
+{% endblock %}
 {% block body %}
 
 <script>
 $(document).ready(function() {
+  ZeroClipboard.config( { moviePath: '//cdnjs.cloudflare.com/ajax/libs/zeroclipboard/1.3.3/ZeroClipboard.swf' } );
 
+  var client = new ZeroClipboard($("#copy-button"));
+  client.on("complete", function(client, args) {
+    $("#copied-notif").show();
+    setTimeout(function(){
+      $("#copied-notif").fadeOut();
+    }, 1000);
+  });
 
+  $("#generate").click(function() {
+    var feeString = $("#feeAmount").val();
+    var fee = parseFloat(feeString);
+    if (isNaN(fee) || fee > 100 || fee < -5)
+      alert("Must enter a valid number!");
+    else {
+      $("#message").text("SETFEE " + feeString + "\t" + Math.round(new Date().getTime() / 1000) + "\tOnly valid on SimpleDoge for " + new Date());
+    }
+  });
 });
 </script>
 
 <div class="container">
   <div class="row page-header">
+    <h2>Current fee percentage: {{ perc }}%</h2>
+    {% if result %}
+      <h1>{{ result }}</h1>
+    {% endif %}
     <h2 style="word-wrap:break-word;">Set Fee For - {{ username }}</h2>
     <br>
-    <input type="text" />
-    <textarea cols="80" rows="100" placeholder="Type a fee percentage into the above textbox"></textarea>
+    <form role="form" method="POST" action="">
+      <div class="form-group">
+        <label for="feeAmount">Fee Amount</label>
+        <input type="text" class="form-control" id="feeAmount" placeholder="Enter a new fee value">
+      </div>
+      <button type="button" class="btn btn-success" id="generate">Generate</button>
+      <button type="button" class="btn btn-success" id="copy-button" data-clipboard-target="message" title="Click to copy me.">Copy to Clipboard</button>
+      <span style="display: none; color:#58CF58; font-weight:500;" id="copied-notif">Copied!</span>
+      <div class="form-group">
+        <label for="exampleInputEmail1">Message to be signed</label>
+        <textarea cols="40" rows="5" class="form-control" name="message" id="message" placeholder="Type a fee percentage into the above textbox and hit generate!"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="exampleInputEmail1">Signature</label>
+        <input type="text" class="form-control" name="signature" placeholder="Paste signature from your wallet">
+      </div>
+      <button type="submit" class="btn btn-primary">Change!</button>
+    </form>
   </div>
 </div>
 
