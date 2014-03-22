@@ -1,0 +1,87 @@
+private:
+    Testing: true
+    # Celery configuration
+    # =======================================================================
+    SQLALCHEMY_DATABASE_URI: postgresql://simpledoge:testing@localhost:5432/simpledoge
+    SECRET_KEY: 'sdfgljksdflg'
+    # Celery configuration options.
+    BROKER_URL: ''
+    CELERY_IMPORTS: ['simpledoge.tasks']
+    CELERY_ACCEPT_CONTENT: ['pickle', 'json', 'msgpack', 'yaml']
+
+    # Payout configurations
+    # ========================================================================
+    # the multiplier used on the last n shares to keep for counting share
+    # contributions
+    last_n: 2
+    # default donation/bonus percentage applied to payouts if no custom is
+    # defined
+    default_perc: 0
+    # sets to lowest that a user is allowed to set their fee percentage
+    minimum_perc: -5.0
+    # min payout amount in satoshi
+    minimum_payout: 100000000  # 1 doge (or ltc, or whatever)
+    # the fee used when sending payouts to the coinserver. IE, to be applied
+    # to the payout transaction for transmission to the network
+    payout_fee: 1.0
+    # key used to sign rpc requests for payout system. Keep this secure
+    rpc_signature: ''
+    # where are we expecting the rpc server to be?
+    rpc_url: http://c12.simpledoge.com
+
+    # General
+    # =======================================================================
+    # Where's powerpool running?
+    monitor_addr: http://localhost:3855/
+    # how many confirmations do we wait before marking blocks mature
+    # and allowing payout over RPC
+    block_mature_confirms: 250
+    # the version that will trigger an upgrade notification
+    latest_ppagent: [0, 3, 4]
+    # connection information for the coinserver RPC
+    coinserv:
+        port: 22555
+        address: 127.0.0.1
+        username: dogecoin
+        password: ''
+        wallet_pass: ''
+        account: simpledoge_pool_address
+
+    # email server authentication 
+    email:
+        send_address: 'simpledogepool@gmail.com'
+        username: ''
+        password: ''
+        ehlo: simpledoge.com
+        timeout: 10
+        server: email-smtp.us-east-1.amazonaws.com
+        port: 587
+        debug: True
+        tls: True
+
+    # A list of address aliases that should be implemented on powerpool for display
+    # on the charity page
+    aliases:
+        - name: Dogecoin Foundation General Fund
+          address: DJ7zB7c5BsB9UJLy1rKQtY7c6CQfGiaRLM
+          url: http://foundation.dogecoin.com/roadmap
+          alias: dogefoundation
+        - name: The League Against AIDS
+          url: http://www.leagueagainstaids.com/index2.html
+          address: DRsyFLRwYpggbMNnkyTFYHW2uvLchqRmVD
+          alias: leagueagainst
+        - name: Edwards Center
+          url: http://www.leagueagainstaids.com/index2.html
+          address: DRz7iTh5aYdr3MVjEXUA8Bfh1QerLq2m7u
+          alias: edwardscenter
+        - name: Lucie's Place
+          url: http://www.luciesplace.org/
+          address: DNuakKH8cg5AjZzwfpnLWc1papDp3tUJ7q
+          alias: luciesplace
+        - name: Shiba Scout Rescue
+          url: http://www.shibascoutrescue.com/
+          address: D5MGiMCmxkpJkLBhKe9oN7h49X3t81e3kp
+          alias: shibascout
+
+public:
+    DEBUG: true

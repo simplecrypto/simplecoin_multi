@@ -47,7 +47,7 @@ class RPCClient(object):
         return self.remote(url, 'get', *args, **kwargs)
 
     def remote(self, url, method, max_age=None, **kwargs):
-        url = urljoin(self.config['url'], url)
+        url = urljoin(self.config['rpc_url'], url)
         ret = getattr(requests, method)(url, **kwargs)
         if ret.status_code != 200:
             raise RPCException("Non 200 from remote")

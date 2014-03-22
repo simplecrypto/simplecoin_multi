@@ -32,6 +32,7 @@ root.setLevel(logging.DEBUG)
 
 @manager.command
 def init_db():
+    """ Resets entire database to empty state """
     with app.app_context():
         db.session.commit()
         db.drop_all()
@@ -39,19 +40,25 @@ def init_db():
 
 
 @manager.command
-def power_shares():
-    for i in xrange(2000000):
-        add_share.delay('mrCuJ1WNXGpcBd8FA6H2cSeQLLXYuJ3qVt', 16)
+def update_minimum_fee():
+    """ Sets all custom fees in the database to be at least the minimum. Should
+    be run after changing the minimum. """
+    min_fee = current_app.config['minimum_perc']
+    DonationPercent.query.filter(DonationPercent.perc < min_fee).update(
+        {DonationPercent: min_fee}, synchronize_session=False)
+    db.session.commit()
 
 
 @manager.option('-s', '--simulate', dest='simulate', default=True)
 def cleanup_cmd(simulate):
+    """ Manually runs old share cleanup in simulate mode by default. """
     simulate = simulate != "0"
     cleanup(simulate=simulate)
 
 
 @manager.option('-t', '--txid', dest='transaction_id')
 def confirm_trans(transaction_id):
+    """ Manually confirms a transaction. """
     trans = Transaction.query.filter_by(txid=transaction_id).first()
     trans.confirmed = True
     db.session.commit()
@@ -59,12 +66,14 @@ def confirm_trans(transaction_id):
 
 @manager.command
 def test_email():
-    thresh = Threshold(emails=['simpledogepool@gmail.com'])
+    """ Sends a testing email to the send address """
+    thresh = Threshold(emails=[current_app.config['email']['send_address']])
     thresh.report_condition("Test condition")
 
 
 @manager.option('-s', '--simulate', dest='simulate', default=True)
 def payout_cmd(simulate):
+    """ Runs the payout task manually. Simulate mode is default. """
     simulate = simulate != "0"
     payout(simulate=simulate)
 
