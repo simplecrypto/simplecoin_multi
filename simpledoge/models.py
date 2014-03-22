@@ -268,6 +268,7 @@ class Transfer(AbstractConcreteBase, base):
     # allows us to lock a transfer while doing a payout. prevents double
     # spending
     locked = db.Column(db.Boolean, default=False, server_default="FALSE")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     @declared_attr
     def transaction_id(self):

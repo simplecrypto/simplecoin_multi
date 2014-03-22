@@ -14,7 +14,8 @@ root = os.path.abspath(os.path.dirname(__file__) + '/../')
 
 from bitcoinrpc.authproxy import AuthServiceProxy
 from simpledoge.tasks import cleanup, payout
-from simpledoge.models import Transaction, Threshold, DonationPercent
+from simpledoge.models import Transaction, Threshold, DonationPercent, Payout
+from simpledoge.utils import setfee_command
 from flask import current_app, _request_ctx_stack
 
 root = logging.getLogger()
@@ -48,6 +49,20 @@ def update_minimum_fee():
     DonationPercent.query.filter(DonationPercent.perc < min_fee).update(
         {DonationPercent: min_fee}, synchronize_session=False)
     db.session.commit()
+
+
+@manager.command
+def migrate_payouts_yes():
+    for p in Payout.query.all():
+        p.created_at = p.block.found_at
+    db.session.commit()
+
+
+@manager.option('fee')
+@manager.option('user')
+def set_fee(user, fee):
+    """ Manually sets a fee percentage. """
+    setfee_command(user, fee)
 
 
 @manager.command

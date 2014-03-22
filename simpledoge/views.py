@@ -12,7 +12,7 @@ from sqlalchemy.sql import func
 from .models import (Transaction, OneMinuteShare, Block, Share, Payout,
                      last_block_share_id, last_block_time, Blob, FiveMinuteShare,
                      OneHourShare, Status, FiveMinuteReject, OneMinuteReject,
-                     OneHourReject, DonationPercent)
+                     OneHourReject, DonationPercent, BonusPayout)
 from . import db, root, cache
 <<<<<<< HEAD
 from simpledoge import utils
@@ -51,6 +51,7 @@ def pool_stats():
                            rejects=efficiency[0],
                            accepts=efficiency[1])
 
+
 @cache.cached(timeout=3600, key_prefix='get_accepted_rejected')
 def get_efficiency_data():
     monthly_rejects = db.session.query(OneHourReject).order_by(OneHourReject.time.asc()).all()
@@ -69,9 +70,10 @@ def get_payouts():
 
     payouts = (Payout.query.filter_by(transaction_id=None).
                join(Payout.block, aliased=True).filter_by(mature=True))
-    struct = [(p.user, p.amount, p.id)
-              for p in payouts]
-    return s.dumps(struct)
+    bonus_payouts = BonusPayout.query.filter_by(transaction_id=None)
+    pids = [(p.user, p.amount, p.id) for p in payouts]
+    bids = [(p.user, p.amount, p.id) for p in bonus_payouts]
+    return s.dumps([pids, bids])
 
 
 @main.route("/confirm_payouts", methods=['POST'])
@@ -88,15 +90,21 @@ def confirm_transactions():
     try:
         assert len(data['coin_txid']) == 64
         assert isinstance(data['pids'], list)
+        assert isinstance(data['bids'], list)
         for id in data['pids']:
             assert isinstance(id, int)
+        for id in data['bids']:
+            assert isinstance(id, int)
     except AssertionError:
+        current_app.logger.warn("Invalid data passed to confirm", exc_info=True)
         abort(400)
 
     coin_trans = Transaction.create(data['coin_txid'])
     db.session.flush()
     Payout.query.filter(Payout.id.in_(data['pids'])).update(
         {Payout.transaction_id: coin_trans.txid}, synchronize_session=False)
+    BonusPayout.query.filter(BonusPayout.id.in_(data['bids'])).update(
+        {BonusPayout.transaction_id: coin_trans.txid}, synchronize_session=False)
     db.session.commit()
     return s.dumps(True)
 

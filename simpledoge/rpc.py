@@ -4,6 +4,7 @@ import six
 import logging
 import sys
 import argparse
+import pprint
 
 from time import sleep
 from flask import current_app
@@ -66,11 +67,12 @@ class RPCClient(object):
     def proc_trans(self, simulate=False):
         self.poke_rpc()
 
-        payouts = self.post('get_payouts')
+        payouts, bonus_payouts = self.post('get_payouts')
         pids = [t[2] for t in payouts]
-        logger.info("Recieved {} transactions from the server"
-                     .format(len(pids)))
-        if not len(pids):
+        bids = [t[2] for t in bonus_payouts]
+        logger.info("Recieved {} payouts and {} bonus payouts from the server"
+                     .format(len(pids), len(bids)))
+        if not len(pids) and not len(bids):
             logger.info("No payouts to process..")
             return
 
@@ -79,12 +81,23 @@ class RPCClient(object):
         # to the user
         totals = {}
         pids = {}
+        bids = {}
         for user, amount, id in payouts:
             if user.startswith('D'):
                 totals.setdefault(user, 0)
                 totals[user] += amount
                 pids.setdefault(user, [])
                 pids[user].append(id)
+            else:
+                logger.warn("User {} has been excluded due to invalid address"
+                            .format(user))
+
+        for user, amount, id in bonus_payouts:
+            if user.startswith('D'):
+                totals.setdefault(user, 0)
+                totals[user] += amount
+                bids.setdefault(user, [])
+                bids[user].append(id)
             else:
                 logger.warn("User {} has been excluded due to invalid address"
                             .format(user))
@@ -99,22 +112,35 @@ class RPCClient(object):
             logger.info("Nobody has a big enough balance to pay out...")
             return
 
-        if simulate:
-            import pprint
-            pprint.pprint(users)
-            exit(0)
-
         # now we have all the users who we're going to send money. build a list
         # of the pids that will be being paid in this transaction
         committed_pids = []
         for user in users:
-            committed_pids.extend(pids[user])
+            committed_pids.extend(pids.get(user, []))
+        committed_bids = []
+        for user in users:
+            committed_bids.extend(bids.get(user, []))
+
+        logger.info("Total user payouts")
+        logger.info(pprint.pformat(users))
+        logger.info("Total bonus IDs")
+        logger.info(pprint.pformat(bids))
+        logger.info("Total payout IDs")
+        logger.info(pprint.pformat(pids))
+        logger.info("List of payout ids to be committed")
+        logger.info(committed_pids)
+        logger.info("List of bonus payout ids to be committed")
+        logger.info(committed_bids)
+
+        if simulate:
+            exit(0)
 
         # now actually pay them
         coin_txid = payout_many(users)
+        #coin_txid = "1111111111111111111111111111111111111111111111111111111111111111"
         logger.info("Got {} as txid for payout!".format(coin_txid))
 
-        data = {'coin_txid': coin_txid, 'pids': committed_pids}
+        data = {'coin_txid': coin_txid, 'pids': committed_pids, 'bids': committed_bids}
         logger.info("Sending data back to confirm_payouts: " + str(data))
         while True:
             try:

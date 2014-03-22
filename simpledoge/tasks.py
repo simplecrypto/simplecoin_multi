@@ -371,7 +371,7 @@ def payout(self, simulate=False):
         bonus_total = 0
         user_perc_applied = {}
         user_perc = {}
-        default_perc = current_app.config.get('default_perc', 5.0)
+        default_perc = current_app.config.get('default_perc')
         # convert our custom percentages that apply to these users into an
         # easy to access dictionary
         custom_percs = DonationPercent.query.filter(DonationPercent.user.in_(user_shares.keys()))
@@ -379,13 +379,13 @@ def payout(self, simulate=False):
         for user, payout in user_payouts.iteritems():
             # use the custom perc, or fallback to the default
             perc = custom_percs.get(user, default_perc)
-            user_perc = perc
+            user_perc[user] = perc
 
             # if the perc is greater than 0 it's calced as a donation
             if perc > 0:
                 donation = int(ceil((perc / 100.0) * payout))
-                logger.debug("Donation of {} ({}%) collected from {}"
-                             .format(donation, perc, user))
+                logger.debug("Donation of\t{}\t({}%)\tcollected from\t{}"
+                             .format(donation / 100000000.0, perc, user))
                 donation_total += donation
                 user_payouts[user] -= donation
                 user_perc_applied[user] = donation
@@ -394,7 +394,8 @@ def payout(self, simulate=False):
             elif perc < 0:
                 perc *= -1
                 bonus = int(floor((perc / 100.0) * payout))
-                logger.debug("Bonus of {} ({}%) paid to {}".format(bonus, perc, user))
+                logger.debug("Bonus of\t{}\t({}%)\tpaid to\t{}"
+                             .format(bonus / 100000000.0, perc, user))
                 user_payouts[user] += bonus
                 bonus_total += bonus
                 user_perc_applied[user] = -1 * bonus
@@ -427,10 +428,10 @@ def payout(self, simulate=False):
             # record the payout for each user
             for user, amount in user_payouts.iteritems():
                 Payout.create(user, amount, block, user_shares[user],
-                              user_perc[user], user_perc_applied[user])
+                              user_perc[user], user_perc_applied.get(user, 0))
             # update the block status and collected amounts
             block.processed = True
-            block.donted = donation_total
+            block.donated = donation_total
             block.bonus_payed = bonus_total
             # record the donations as a bonus payout to the donate address
             if donation_total > 0:
@@ -438,6 +439,17 @@ def payout(self, simulate=False):
                 BonusPayout.create(donate_address, donation_total,
                                    "Total donations from block {}"
                                    .format(block.height))
+                logger.info("Added bonus payout to donation address {} for {}"
+                            .format(donate_address, donation_total))
+
+            block_bonus = current_app.config.get('block_bonus', 0)
+            if block_bonus > 0:
+                BonusPayout.create(block.user, block_bonus,
+                                   "Blockfinder bonus for block {}"
+                                   .format(block.height))
+                logger.info("Added bonus payout for blockfinder {} for {}"
+                            .format(block.user, block_bonus))
+
             db.session.commit()
     except Exception as exc:
         logger.error("Unhandled exception in payout", exc_info=True)
@@ -634,7 +646,7 @@ def server_status(self):
             output = {'stratum_clients': 0, 'agent_clients': 0}
         else:
             output = {'stratum_clients': data['stratum_clients'],
-                    'agent_clients': data['agent_clients']}
+                      'agent_clients': data['agent_clients']}
         blob = Blob(key='server', data={k: str(v) for k, v in output.iteritems()})
         db.session.merge(blob)
         db.session.commit()
@@ -652,8 +664,7 @@ def difficulty_avg(self):
         req = requests.get("http://dogechain.info/chain/Dogecoin/q/nethash/1/-500?format=json")
         data = req.json()
     except Exception as exc:
-        logger.warn("Couldn't connect to dogechain.info".format(mon_addr),
-                    exc_info=True)
+        logger.warn("Couldn't connect to dogechain.info", exc_info=True)
         raise self.retry(exc=exc)
 
     try:
