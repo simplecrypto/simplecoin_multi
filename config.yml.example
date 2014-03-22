@@ -31,6 +31,8 @@ private:
 
     # General
     # =======================================================================
+    # the block reward. Used to calculate averages, etc
+    reward: 250000
     # Where's powerpool running?
     monitor_addr: http://localhost:3855/
     # how many confirmations do we wait before marking blocks mature

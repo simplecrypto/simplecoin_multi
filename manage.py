@@ -1,5 +1,6 @@
 import os
 import logging
+import pprint
 
 from flask.ext.script import Manager, Shell
 from flask.ext.migrate import Migrate, MigrateCommand
@@ -12,8 +13,8 @@ migrate = Migrate(app, db)
 root = os.path.abspath(os.path.dirname(__file__) + '/../')
 
 from bitcoinrpc.authproxy import AuthServiceProxy
-from simpledoge.tasks import add_share, cleanup, payout
-from simpledoge.models import Transaction, Threshold
+from simpledoge.tasks import cleanup, payout
+from simpledoge.models import Transaction, Threshold, DonationPercent
 from flask import current_app, _request_ctx_stack
 
 root = logging.getLogger()
@@ -47,6 +48,17 @@ def update_minimum_fee():
     DonationPercent.query.filter(DonationPercent.perc < min_fee).update(
         {DonationPercent: min_fee}, synchronize_session=False)
     db.session.commit()
+
+
+@manager.command
+def list_fee_perc():
+    """ Gives a summary of number of users at each fee amount """
+    summ = {}
+    for entry in DonationPercent.query.all():
+        summ.setdefault(entry.perc, 0)
+        summ[entry.perc] += 1
+
+    pprint.pprint(summ)
 
 
 @manager.option('-s', '--simulate', dest='simulate', default=True)
