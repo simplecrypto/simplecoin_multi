@@ -363,7 +363,8 @@ def address_stats(address=None, window="hour"):
     for m in get_typ(typ, address):
         stamp = calendar.timegm(m.time.utctimetuple())
         workers.setdefault(m.worker, {})
-        workers[m.worker][stamp] = m.value
+        workers[m.worker].setdefault(stamp, 0)
+        workers[m.worker][stamp] += m.value
     step = typ.slice_seconds
     end = ((int(time.time()) // step) * step) - (step * 2)
     start = end - typ.window.total_seconds() + (step * 2)
