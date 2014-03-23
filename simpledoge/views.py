@@ -301,7 +301,10 @@ def user_dashboard(address=None):
         workers[st.worker]['status_stale'] = st.stale
         workers[st.worker]['status_time'] = st.time
         ver = workers[st.worker]['status'].get('v', '0.2.0').split('.')
-        workers[st.worker]['status_version'] = [int(part) for part in ver]
+        try:
+            workers[st.worker]['status_version'] = [int(part) for part in ver]
+        except ValueError:
+            workers[st.worker]['status_version'] = "Unsupp"
 
     for name in workers_online(address):
         workers.setdefault(name, def_worker.copy())
