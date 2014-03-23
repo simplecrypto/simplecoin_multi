@@ -9,6 +9,7 @@ from itsdangerous import TimedSerializer
 from flask import (current_app, request, render_template, Blueprint, abort,
                    jsonify, g, session, Response)
 from sqlalchemy.sql import func
+from lever import get_joined
 
 from .models import (Transaction, OneMinuteShare, Block, Share, Payout,
                      last_block_share_id, last_block_time, Blob, FiveMinuteShare,
@@ -250,10 +251,8 @@ def workers_online(address):
         return []
     return [w['worker'] for w in data[address]]
 
-@main.route("/<address>")
-def user_dashboard(address=None):
-    if len(address) != 34:
-        abort(404)
+
+def collect_user_stats(address):
     earned = total_earned(address)
     total_paid = (Payout.query.filter_by(user=address).
                   join(Payout.transaction, aliased=True).
@@ -326,19 +325,33 @@ def user_dashboard(address=None):
     else:
         perc = perc.perc
 
-    return render_template('user_stats.html',
-                           username=address,
-                           workers=workers,
-                           user_shares=user_shares,
-                           pplns_cached_time=pplns_cached_time,
-                           acct_items=acct_items,
-                           round_reward=250000,
-                           total_earned=earned,
-                           total_paid=total_paid,
-                           balance=balance,
-                           perc=perc,
-                           unconfirmed_balance=unconfirmed_balance,
-                           latest_ppagent=current_app.config['latest_ppagent'])
+    return dict(workers=workers,
+                user_shares=user_shares,
+                pplns_cached_time=pplns_cached_time,
+                acct_items=acct_items,
+                total_earned=earned,
+                total_paid=total_paid,
+                balance=balance,
+                fee_perc=perc,
+                unconfirmed_balance=unconfirmed_balance)
+
+@main.route("/<address>")
+def user_dashboard(address=None):
+    if len(address) != 34:
+        abort(404)
+
+    stats = collect_user_stats(address)
+    return render_template('user_stats.html', username=address, **stats)
+
+@main.route("/api/<address>")
+def address_api(address):
+    if len(address) != 34:
+        abort(404)
+
+    stats = collect_user_stats(address)
+    stats['acct_items'] = get_joined(stats['acct_items'])
+    stats['total_earned'] = float(stats['total_earned'])
+    return jsonify(**stats)
 
 
 @main.route("/<address>/clear")

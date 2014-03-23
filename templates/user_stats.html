@@ -14,7 +14,7 @@ $(document).ready(function() {
     var hashrate, seconds, mhashpersec, user_shares, est_payout,
         round_reward, shares_to_solve, percentage_value, dogerate, day_shares;
 
-    round_reward = {{ round_reward }};
+    round_reward = {{ config['reward'] }};
     user_shares = {{ user_shares or "NaN" }};
     {# Calculate est round payout  #}
     shares_to_solve = {{ g.current_difficulty }} * Math.pow(2, 16);
@@ -64,8 +64,8 @@ $(document).ready(function() {
 <div class="container">
   <div class="row page-header">
     <h2 style="word-wrap:break-word;margin-bottom:2px;">User Stats - {{ username }} </h2>
-    <span style="padding-left:15px;">Currently donating {{ perc }}%
-      <a style="color:gray;" href="/set_donation/{{ username }}"><i class="fa fa-edit" ></i></a>
+    <span style="padding-left:15px;">Currently donating {{ fee_perc }}%
+      <a style="color:gray;" href="/set_fee/{{ username }}"><i class="fa fa-edit" ></i></a>
     </span><br>
     <br>
     <div class="col-sm-3">
@@ -271,8 +271,8 @@ $(document).ready(function() {
   </div>
 
   <div class="row row-header">
-    <h2>Account<small class="text-muted">- Currently donating {{ perc }}%
-      <a style="color:gray;" href="/set_donation/{{ username }}"><i class="fa fa-edit" ></i></a>
+    <h2>Account<small class="text-muted">- Currently donating {{ fee_perc }}%
+      <a style="color:gray;" href="/set_fee/{{ username }}"><i class="fa fa-edit" ></i></a>
     </small></h2>
     <br>
     <div class="col-sm-3">
