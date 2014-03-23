@@ -319,7 +319,7 @@ $(document).ready(function() {
               <th>Time</th>
               <th>Shares Contributed</th>
               <th>Mined</th>
-              <th>% +/-</th>
+              <th>Donation %</th>
               <th>Donation/Bonus</th>
               <th>Total paid</th>
               <th>Blockheight</th>
@@ -335,20 +335,23 @@ $(document).ready(function() {
                 {% if payout.perc < 0 %}
                   {% set type = 'bonus' %}
                   {% set maths = payout.perc_applied * -1 %}
+                  {% set perc_applied = payout.perc_applied * -1 %}
                 {% elif payout.perc == 0 %}
                   {% set maths = payout.perc_applied %}
                   {% set type = '' %}
+                  {% set perc_applied = 0.0 %}
                 {% else %}
                   {% set type = 'donation' %}
                   {% set maths = payout.perc_applied %}
+                  {% set perc_applied = payout.perc_applied %}
                 {% endif %}
                 <tr>
                   <th>{{ payout.created_at | time_ago }}</th>
                   <th>{{ '{:,}'.format(payout.shares) }}</th>
-                  <th>{{ '{:,}'.format((payout.amount / 100000000) | round(2)) }}</th>
-                  <th>{{ '{:,}'.format(payout.perc) }}%</th>
-                  <th>{{ type  }}{{ ' {:,}'.format((payout.perc_applied / 100000000) | round(2)) }}</th>
                   <th>{{ '{:,}'.format(((payout.amount - maths) / 100000000) | round(2)) }}</th>
+                  <th>{{ '{:,}'.format(payout.perc) }}%</th>
+                  <th>{{ type  }}{{ ' {:,}'.format((perc_applied / 100000000) | round(2)) }}</th>
+                  <th>{{ '{:,}'.format((payout.amount / 100000000) | round(2)) }}</th>
                   <th>{{ '{:,}'.format(payout.block.height) }}</th>
                   <th>{% if payout.transaction_id %}
                     <a href="https://dogechain.info/tx/{{ payout.transaction_id }}" target="_blank">{{ payout.transaction_id | truncate(15, True) }}</a>
