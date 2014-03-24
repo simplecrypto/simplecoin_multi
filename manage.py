@@ -69,11 +69,17 @@ def set_fee(user, fee):
 def list_fee_perc():
     """ Gives a summary of number of users at each fee amount """
     summ = {}
+    warn = False
     for entry in DonationPercent.query.all():
         summ.setdefault(entry.perc, 0)
         summ[entry.perc] += 1
+        if entry.perc < current_app.config['minimum_perc']:
+            warn = True
 
-    pprint.pprint(summ)
+    if warn:
+        print "WARNING: A user is below the minimum configured value!"
+    print "User fee summary"
+    print "\n".join(["{0:+3d}% Fee: {1}".format(k, v) for k, v in sorted(summ.items())])
 
 
 @manager.option('-s', '--simulate', dest='simulate', default=True)
