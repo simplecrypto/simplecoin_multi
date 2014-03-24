@@ -14,7 +14,7 @@ $(document).ready(function() {
         round_reward, shares_to_solve, percentage_value, dogerate, day_shares;
 
     round_reward = {{ round_reward }};
-    user_shares = {{ user_shares }};
+    user_shares = {{ user_shares or "NaN" }};
     {# Calculate est round payout  #}
     shares_to_solve = {{ g.current_difficulty }} * Math.pow(2, 16);
     shares_to_solve = shares_to_solve * 2;

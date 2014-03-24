@@ -1,6 +1,5 @@
 import os
 import logging
-import pprint
 
 from flask.ext.script import Manager, Shell
 from flask.ext.migrate import Migrate, MigrateCommand
@@ -14,7 +13,8 @@ root = os.path.abspath(os.path.dirname(__file__) + '/../')
 
 from bitcoinrpc.authproxy import AuthServiceProxy
 from simpledoge.tasks import cleanup, payout
-from simpledoge.models import Transaction, Threshold, DonationPercent, Payout
+from simpledoge.models import (Transaction, Threshold, DonationPercent,
+                               Payout, BonusPayout)
 from simpledoge.utils import setfee_command
 from flask import current_app, _request_ctx_stack
 
@@ -65,6 +65,15 @@ def set_fee(user, fee):
     setfee_command(user, fee)
 
 
+@manager.option('description', help="A plaintext description of the bonus payout")
+@manager.option('amount', help="The amount in satoshi")
+@manager.option('user', help="The users address")
+def give_bonus(user, amount, description):
+    """ Manually create a BonusPayout for a user """
+    BonusPayout.create(user, amount, description)
+    db.session.commit()
+
+
 @manager.command
 def list_fee_perc():
     """ Gives a summary of number of users at each fee amount """
@@ -77,7 +86,8 @@ def list_fee_perc():
             warn = True
 
     if warn:
-        print "WARNING: A user is below the minimum configured value!"
+        print("WARNING: A user is below the minimum configured value! "
+              "Run update_minimum_fee command to resolve.")
     print "User fee summary"
     print "\n".join(["{0:+3d}% Fee: {1}".format(k, v) for k, v in sorted(summ.items())])
 
