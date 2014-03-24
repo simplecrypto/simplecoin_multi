@@ -17,13 +17,14 @@ like rolling dice. Imagine a regular six sided dice. Say we want to know how
 many rolls it will take to roll a 1. Well probability would say our chances are
 1/6, so after 6 rolls we'll have rolled a 1, right? But maybe we'll be lucky
 and get it on the first roll... It's random. Probabilities like this can be
-shown by a "standard distribution", as shown below. So what do the numbers mean?
-Imagine you do an experiment where you roll a dice until you get a 1. You
-record the number of rolls that it took. Now repeat this 10,000 times. Now
-graph the results. Your graph will look just like the standard distribution
-below, with the most common trial taking 6 rolls, and it becomming increasingly
-less common in either direction.
-
+shown by a "standard distribution", as shown below, with the "average" case
+being at the center. So what do the numbers mean?  Imagine you do an experiment
+where you roll a dice until you get a 1. You record the number of rolls that it
+took. Now repeat this 10,000 times. Now graph the results. Your graph will look
+just like the standard distribution below, with the most common trial taking 6
+rolls and being at the center, and it becomming increasingly less common to in
+either direction.
+<br><br>
 Alright, enough of this. Back to cryptocurrency. So trying to find a block is
 just like rolling those dice. It's random. Think of finding the block as
 rolling a dice with millions of millions of sides, and your computer is
@@ -32,7 +33,8 @@ roll a 1. We can now say on average how much time it will take to roll the one
 by dividing the number of sides on the dice by the number of rolls per second
 that your computer can do. This is exactly how round estimates are calculated,
 and that's why sometimes it takes longer than expected to find a block and
-other times its found early.</p>
+other times its found early.
+<br><img src="/static/img/distribution.png" /></p>
 
 <h3>What is the difficulty, or target?</h3>
 <p>When mining for coins the goal is to find a hash that meets the target. Say
