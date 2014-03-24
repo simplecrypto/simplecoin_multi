@@ -3,20 +3,20 @@
   body: |
       Thanks for mining with us and helping the pool work better for everyone!
       We've paid out 100k to the following to the lucky winners
-      <p><b>5k winners -</b></p>
-      <ul><li>DSVAHhZThd3BKEUm6DWA7t6Kk2Jsx7Tsm4</li>
-          <li>D6QQgsDjnUmQ1D9QSAQG7B1eSj5Rh7TguX</li>
-          <li>DNdWixFXv9cTWKmQNeN82wZA2aqNENVEJo</li>
-          <li>DPovv2FCmdAyWnToD2ishZuXkYoGvVYNj3</li>
-          <li>D5mwYeUfwhCBbWxDwigM46tRSQP9eKY1x2</li>
-          <li>DKwpt3GkiSVJkdBRKNfrrsU7cNSSoUMWxG</li>
-          <li>DAsAWzgMZtbRNkQKjGbCcrcvoKXTb3EPPJ</li>
-          <li>DTYeo8uyaSYWASs44TZFGHEDj6yjJyQU2k</li>
-          <li>DKgFFzsSkzwSfb7SN4yEEfbCUf8BemGBh2</li>
-          <li>DS5LX4CwUMoSmLPmhsRMZ6rmLjN4ty7mig</li>
+      <p><b>5k winners:</b></p>
+      <ul><li><a href="DSVAHhZThd3BKEUm6DWA7t6Kk2Jsx7Tsm4">DSVAHhZThd3BKEUm6DWA7t6Kk2Jsx7Tsm4</a></li>
+          <li><a href="D6QQgsDjnUmQ1D9QSAQG7B1eSj5Rh7TguX">D6QQgsDjnUmQ1D9QSAQG7B1eSj5Rh7TguX</a></li>
+          <li><a href="DNdWixFXv9cTWKmQNeN82wZA2aqNENVEJo">DNdWixFXv9cTWKmQNeN82wZA2aqNENVEJo</a></li>
+          <li><a href="DPovv2FCmdAyWnToD2ishZuXkYoGvVYNj3">DPovv2FCmdAyWnToD2ishZuXkYoGvVYNj3</a></li>
+          <li><a href="D5mwYeUfwhCBbWxDwigM46tRSQP9eKY1x2">D5mwYeUfwhCBbWxDwigM46tRSQP9eKY1x2</a></li>
+          <li><a href="DKwpt3GkiSVJkdBRKNfrrsU7cNSSoUMWxG">DKwpt3GkiSVJkdBRKNfrrsU7cNSSoUMWxG</a></li>
+          <li><a href="DAsAWzgMZtbRNkQKjGbCcrcvoKXTb3EPPJ">DAsAWzgMZtbRNkQKjGbCcrcvoKXTb3EPPJ</a></li>
+          <li><a href="DTYeo8uyaSYWASs44TZFGHEDj6yjJyQU2k">DTYeo8uyaSYWASs44TZFGHEDj6yjJyQU2k</a></li>
+          <li><a href="DKgFFzsSkzwSfb7SN4yEEfbCUf8BemGBh2">DKgFFzsSkzwSfb7SN4yEEfbCUf8BemGBh2</a></li>
+          <li><a href="DS5LX4CwUMoSmLPmhsRMZ6rmLjN4ty7mig">DS5LX4CwUMoSmLPmhsRMZ6rmLjN4ty7mig</a></li>
           </ul>
-      <p><b>50k winner -</b></p>
-      <ul><li>DQf1oGx3tjH3zVYyaofXuGjzquqi1cLMDK</li></ul>
+      <p><b>50k winner:</b></p>
+      <ul><li><a href="DQf1oGx3tjH3zVYyaofXuGjzquqi1cLMDK">DQf1oGx3tjH3zVYyaofXuGjzquqi1cLMDK</a></li></ul>
 - title: 100mhash/sec reached!
   date: 3/23/2014
   body: |
