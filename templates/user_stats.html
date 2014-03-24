@@ -342,7 +342,7 @@ $(document).ready(function() {
                   {% set perc_applied = 0.0 %}
                 {% else %}
                   {% set type = 'donation' %}
-                  {% set maths = payout.perc_applied %}
+                  {% set maths = payout.perc_applied * -1 %}
                   {% set perc_applied = payout.perc_applied %}
                 {% endif %}
                 <tr>
