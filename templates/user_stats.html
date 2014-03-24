@@ -274,7 +274,7 @@ $(document).ready(function() {
         <div class="panel-body text-center">
           <small>Balance</small>&nbsp;
           <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Current unpaid balance"></i>
+                       title="Current unpaid balance not including bonus payouts"></i>
           <br><h4><p>{{ '{:8,}'.format(balance / 100000000) }} &ETH;</p></h4>
         </div>
       </div>
@@ -284,7 +284,7 @@ $(document).ready(function() {
         <div class="panel-body text-center">
           <small>Unconfirmed balance</small>&nbsp;
           <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Newly solved block earnings, rewards not yet confirmed"></i>
+                       title="Newly solved block earnings, rewards not yet confirmed. Doesn't including bonus payouts"></i>
           <br><h4><p>{{ '{:8,}'.format(unconfirmed_balance / 100000000) }} &ETH;</p></h4>
         </div>
       </div>
@@ -294,7 +294,7 @@ $(document).ready(function() {
         <div class="panel-body text-center">
           <small>Total earned</small>&nbsp;
           <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Total ever earned by this address"></i>
+                       title="Total ever earned by this address from mining. No bonus payments included."></i>
           <br><h4><p>{{ '{:2,}'.format((total_earned / 100000000) | round(2)) }} &ETH;</p></h4>
         </div>
       </div>
@@ -304,7 +304,7 @@ $(document).ready(function() {
         <div class="panel-body text-center">
           <small>Total paid</small>&nbsp;
           <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Total paid out to this address"></i>
+                       title="Total paid out to this address from mining. No bonus payments included."></i>
           <br><h4><p>{{ '{:2,}'.format((total_paid / 100000000) | round(2)) }} &ETH;</p></h4>
         </div>
       </div>
