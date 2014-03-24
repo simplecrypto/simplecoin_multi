@@ -47,7 +47,7 @@ def update_minimum_fee():
     be run after changing the minimum. """
     min_fee = current_app.config['minimum_perc']
     DonationPercent.query.filter(DonationPercent.perc < min_fee).update(
-        {DonationPercent: min_fee}, synchronize_session=False)
+        {DonationPercent.perc: min_fee}, synchronize_session=False)
     db.session.commit()
 
 
