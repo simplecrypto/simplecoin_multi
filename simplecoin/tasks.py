@@ -1,7 +1,7 @@
 from flask import current_app
 from celery import Celery
-from simpledoge import db, coinserv, cache
-from simpledoge.models import (
+from simplecoin import db, coinserv, cache
+from simplecoin.models import (
     Share, Block, OneMinuteShare, Payout, Transaction, Blob, last_block_time,
     last_block_share_id, FiveMinuteShare, Status, OneMinuteReject,
     OneMinuteTemperature, FiveMinuteReject, OneMinuteHashrate, Threshold,
@@ -20,7 +20,7 @@ import logging
 import datetime
 
 logger = get_task_logger(__name__)
-celery = Celery('simpledoge')
+celery = Celery('simplecoin')
 
 
 @celery.task(bind=True)

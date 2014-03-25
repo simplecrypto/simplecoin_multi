@@ -3,7 +3,7 @@ import logging
 
 from flask.ext.script import Manager, Shell
 from flask.ext.migrate import Migrate, MigrateCommand
-from simpledoge import create_app, db
+from simplecoin import create_app, db
 
 app = create_app()
 manager = Manager(app)
@@ -12,10 +12,10 @@ migrate = Migrate(app, db)
 root = os.path.abspath(os.path.dirname(__file__) + '/../')
 
 from bitcoinrpc.authproxy import AuthServiceProxy
-from simpledoge.tasks import cleanup, payout
-from simpledoge.models import (Transaction, Threshold, DonationPercent,
+from simplecoin.tasks import cleanup, payout
+from simplecoin.models import (Transaction, Threshold, DonationPercent,
                                Payout, BonusPayout)
-from simpledoge.utils import setfee_command
+from simplecoin.utils import setfee_command
 from flask import current_app, _request_ctx_stack
 
 root = logging.getLogger()

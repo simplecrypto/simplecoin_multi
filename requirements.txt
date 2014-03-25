@@ -1,6 +1,7 @@
 lever==0.2.3
 git+https://github.com/icook/python-bitcoinrpc.git
 git+https://github.com/icook/cryptokit
+gunicorn
 Flask==0.10.1
 Flask-SQLAlchemy==1.0
 Flask-Script==0.6.6

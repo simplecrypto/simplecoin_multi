@@ -7,12 +7,12 @@ from email.mime.text import MIMEText
 from flask import current_app
 from collections import namedtuple
 from datetime import datetime, timedelta
-from simpledoge.model_lib import base
 from sqlalchemy.schema import CheckConstraint
 from sqlalchemy.ext.declarative import AbstractConcreteBase, declared_attr
 from sqlalchemy.dialects.postgresql import HSTORE, ARRAY
 from cryptokit import bits_to_difficulty
 
+from .model_lib import base
 from . import db
 
 
@@ -209,6 +209,10 @@ class Threshold(base):
 
         try:
             econf = current_app.config['email']
+            if not econf.get('enabled', True):
+                logger.warn("Skipping actual email send because disabled!")
+                return True
+
             send_addr = econf['send_address']
             host = smtplib.SMTP(
                 host=econf['server'],

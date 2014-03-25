@@ -12,7 +12,7 @@ module.exports = (grunt) ->
         stdout: true
         stderr: true
       reload:
-        command: 'uwsgi --stop uwsgi.pid; sleep 1.5; uwsgi --yaml uwsgi.yml; sleep 1; tail uwsgi.log'
+        command: 'kill -2 `cat gunicorn.pid`; gunicorn simplecoin.wsgi_entry:app'
 
     watch:
       dev_server:

@@ -1,10 +1,11 @@
-from simpledoge import create_app
-from simpledoge.tasks import celery
+from simplecoin import create_app
+from simplecoin.tasks import celery
 from celery.bin.worker import main
 from flask import current_app
 
 
 app = create_app(celery=True)
+# import celerybeat settings
 celery.config_from_object('celeryconfig')
 
 with app.app_context():
