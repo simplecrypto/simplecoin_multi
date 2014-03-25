@@ -2,11 +2,18 @@ private:
     Testing: true
     # Celery configuration
     # =======================================================================
-    SQLALCHEMY_DATABASE_URI: postgresql://[website_name]:[super_duper_password]@localhost:5432/[website_name]
+    SQLALCHEMY_DATABASE_URI: postgresql://simplecoin:testing@localhost:5432/simplecoin
     SECRET_KEY: 'somethting_really_secret'
     # Celery configuration options.
     BROKER_URL: ''
     CELERY_ACCEPT_CONTENT: ['pickle', 'json', 'msgpack', 'yaml']
+    # the name of the queue you'll recieve tasks from powerpool on. should
+    # match the default queue setting in powerpool instances that connect with
+    # this task handler
+    CELERY_QUEUES:
+        simplecoin:
+            exchange: "simplecoin"
+            binding_key: "simplecoin"
 
     # Payout configurations
     # ========================================================================
@@ -34,6 +41,9 @@ private:
 
     # General
     # =======================================================================
+    # the path that will be postfixed with the current git hash in the footer.
+    # comment out to remove
+    repopath: https://github.com/icook/simplecoin/commit/
     # the block reward. Used to calculate averages, etc
     reward: 250000
     # Where's powerpool running?
@@ -63,30 +73,6 @@ private:
         port: 587
         debug: True
         tls: True
-
-    # A list of address aliases that should be implemented on powerpool for display
-    # on the charity page
-    aliases:
-        - name: Dogecoin Foundation General Fund
-          address: DJ7zB7c5BsB9UJLy1rKQtY7c6CQfGiaRLM
-          url: http://foundation.dogecoin.com/roadmap
-          alias: dogefoundation
-        - name: The League Against AIDS
-          url: http://www.leagueagainstaids.com/index2.html
-          address: DRsyFLRwYpggbMNnkyTFYHW2uvLchqRmVD
-          alias: leagueagainst
-        - name: Edwards Center
-          url: http://www.leagueagainstaids.com/index2.html
-          address: DRz7iTh5aYdr3MVjEXUA8Bfh1QerLq2m7u
-          alias: edwardscenter
-        - name: Lucie's Place
-          url: http://www.luciesplace.org/
-          address: DNuakKH8cg5AjZzwfpnLWc1papDp3tUJ7q
-          alias: luciesplace
-        - name: Shiba Scout Rescue
-          url: http://www.shibascoutrescue.com/
-          address: D5MGiMCmxkpJkLBhKe9oN7h49X3t81e3kp
-          alias: shibascout
 
 public:
     DEBUG: true
