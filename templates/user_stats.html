@@ -169,24 +169,16 @@ $(document).ready(function() {
           {% set stat = dat['status'] %}
           <div class="table-responsive bs-component worker-table-wrapper">
             <div class="worker-wrapper">
-              <b>{{ stat['type'] }} status</b> <small>- PPAgent v{{ stat.get('v', '0.2') }}</small>&nbsp;&nbsp;&nbsp;
+              <b>{{ stat['type'] }} status</b>
             {% if not name %}
               {# Show a warning about unnamed workers #}
               <small style="font-size:14px;color:#ff0000;font-weight:400;">
                 Multiple unnamed workers will do wonky things!
               </small>
             {% endif %}
-            {% if dat['status_version'] < latest_ppagent %}
-              {# Notice about out of date ppagent #}
-              <a href="https://github.com/icook/ppagent#upgrade">
-                <small style="font-size:14px;color:#FFD600;font-weight:400;">
-                  New version of ppagent available, upgrade here!
-                </small>
-              </a>&nbsp;&nbsp;
-            {% endif %}
             {% if dat['status_stale'] == True %}
               {# if stale then show a warning #}
-              <small colspan="3" style="font-size:14px;color:#EEA236;"> last reported in {{ dat['status_time'] | time_ago }}!</small>
+              <small colspan="3" style="font-size:14px;color:#EEA236;"> <i>Updated {{ dat['status_time'] | time_ago }}</i></small>
               <div class="btn btn-default btn-sm collapse-button" data-toggle="collapse" data-target="#worker-{{ name }}">
                 [ + ]
               </div>
@@ -245,6 +237,19 @@ $(document).ready(function() {
                     <th>{{ gpu.get('GPU Clock', 0) }}/{{ gpu.get('Memory Clock', 0) }}</th>
                   </tr>
                 {% endfor %}
+                  <tr>
+                    <th colspan="8" style="text-align:left;">
+                      <small>Running PPAgent v{{ stat.get('v', '0.2') }}</small>&nbsp;
+                      {% if dat['status_version'] < latest_ppagent %}
+                        {# Notice about out of date ppagent #}
+                        <a href="https://github.com/icook/ppagent#upgrade">
+                          <small style="color:#FFD600;font-weight:400;">
+                            Newer version available here
+                          </small>
+                        </a>&nbsp;&nbsp;
+                      {% endif %}
+                    </th>
+                  </tr>
                 </tbody>
               </table>
             </div>
