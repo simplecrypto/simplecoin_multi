@@ -185,7 +185,7 @@ def total_paid(user):
 
 @main.route("/stats")
 def user_stats():
-    return render_template('stats.html')
+    return render_template('stats.html', page_title='User Stats - Look up statistics for a Dogecoin address')
 
 
 @main.route("/round_summary")
@@ -204,7 +204,10 @@ def summary_page():
 
     current_block = db.session.query(Blob).filter_by(key="block").first()
 
-    return render_template('round_summary.html', users=user_list, current_block=current_block, cached_time=cached_time)
+    return render_template('round_summary.html',
+                           users=user_list,
+                           current_block=current_block,
+                           cached_time=cached_time)
 
 
 @main.route("/exc_test")
@@ -405,8 +408,8 @@ def faq():
     return render_template("faq.html")
 
 
-@main.route("/set_fee/<address>", methods=['POST', 'GET'])
-def set_fee(address):
+@main.route("/set_donation/<address>", methods=['POST', 'GET'])
+def set_donation(address):
     vals = request.form
     result = ""
     if request.method == "POST":
@@ -423,5 +426,5 @@ def set_fee(address):
         perc = current_app.config.get('default_perc', 0)
     else:
         perc = perc.perc
-    return render_template("set_fee.html", username=address, result=result,
+    return render_template("set_donation.html", username=address, result=result,
                            perc=perc)

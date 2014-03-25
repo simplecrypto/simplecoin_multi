@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% set active_page = "stats" %}
+{% set page_title = 'User Stats - Mining and account information for user ' +  username %}
 {% block body %}
 
 <script>
@@ -64,7 +65,7 @@ $(document).ready(function() {
   <div class="row page-header">
     <h2 style="word-wrap:break-word;margin-bottom:2px;">User Stats - {{ username }} </h2>
     <span style="padding-left:15px;">Currently donating {{ perc }}%
-      <a style="color:gray;" href="/set_fee/{{ username }}"><i class="fa fa-edit" ></i></a>
+      <a style="color:gray;" href="/set_donation/{{ username }}"><i class="fa fa-edit" ></i></a>
     </span><br>
     <br>
     <div class="col-sm-3">
@@ -271,7 +272,7 @@ $(document).ready(function() {
 
   <div class="row row-header">
     <h2>Account<small class="text-muted">- Currently donating {{ perc }}%
-      <a style="color:gray;" href="/set_fee/{{ username }}"><i class="fa fa-edit" ></i></a>
+      <a style="color:gray;" href="/set_donation/{{ username }}"><i class="fa fa-edit" ></i></a>
     </small></h2>
     <br>
     <div class="col-sm-3">

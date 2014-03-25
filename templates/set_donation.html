@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% set active_page = "stats" %}
+{% set page_title = "Set Donation - Change your Simple Doge donation amount" %}
 {% block head %}
 {% endblock %}
 {% block body %}
@@ -41,7 +42,7 @@ $(document).ready(function() {
         </div>
       <div id="source-button" class="btn btn-primary btn-xs" style="display: none;">&lt; &gt;</div></div>
       <h2></h2>
-      <h2>How to change your fee %</h2>
+      <h2>How to change your donation percentage</h2>
       <br>
       <ol>
         <li>Type in the % you want to donate as a number.</li>
@@ -59,23 +60,23 @@ $(document).ready(function() {
         <li>Click change, and you're done!</li>
       </ol>
     </div>
-    <h2>Current fee percentage: {{ perc }}%</h2>
+    <h2>Current donation percentage: {{ perc }}%</h2>
     {% if result %}
       <h1>{{ result }}</h1>
     {% endif %}
-    <h2 style="word-wrap:break-word;">Set Fee For - {{ username }}</h2>
+    <h2 style="word-wrap:break-word;">Set donation For - {{ username }}</h2>
     <br>
     <form role="form" method="POST" action="">
       <div class="form-group">
-        <label for="feeAmount">Fee Amount</label>
-        <input type="text" class="form-control" id="feeAmount" placeholder="Enter a new fee value">
+        <label for="feeAmount">Donation Amount</label>
+        <input type="text" class="form-control" id="feeAmount" placeholder="Enter a new donation value">
       </div>
       <button type="button" class="btn btn-success" id="generate">Generate</button>
       <button type="button" class="btn btn-success" id="copy-button" data-clipboard-target="message" title="Click to copy me.">Copy to Clipboard</button>
       <span style="display: none; color:#58CF58; font-weight:500;" id="copied-notif">Copied!</span>
       <div class="form-group">
         <label for="exampleInputEmail1">Message to be signed</label>
-        <textarea cols="40" rows="5" class="form-control" name="message" id="message" placeholder="Type a fee percentage into the above textbox and hit generate!"></textarea>
+        <textarea cols="40" rows="5" class="form-control" name="message" id="message" placeholder="Type a donation percentage into the above textbox and hit generate!"></textarea>
       </div>
       <div class="form-group">
         <label for="exampleInputEmail1">Signature</label>
