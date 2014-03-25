@@ -517,18 +517,22 @@ def agent_receive(self, address, worker, typ, payload, timestamp):
         # if they passed a threshold we should update the database object
         if typ == "thresholds":
             try:
-                thresh = Threshold(
-                    worker=worker,
-                    user=address,
-                    green_notif=not payload.get('no_green_notif', False),
-                    temp_thresh=payload.get('overheat'),
-                    hashrate_thresh=payload.get('lowhashrate'),
-                    offline_thresh=payload.get('offline'),
-                    emails=payload['emails'][:4])
-                db.session.merge(thresh)
+                if not payload:
+                    # if they didn't list valid email key we want to remove
+                    Threshold.query.filter_by(worker=worker, user=address).delete()
+                else:
+                    thresh = Threshold(
+                        worker=worker,
+                        user=address,
+                        green_notif=not payload.get('no_green_notif', False),
+                        temp_thresh=payload.get('overheat'),
+                        hashrate_thresh=payload.get('lowhashrate'),
+                        offline_thresh=payload.get('offline'),
+                        emails=payload['emails'][:4])
+                    db.session.merge(thresh)
             except KeyError:
-                # key error means they sent bad data to us. This might be
-                # ppagent's fault, but likely someone doing something goofy
+                # assume they're trying to remove the thresholds...
+                Threshold.query.filter_by(worker=worker, user=address).delete()
                 logger.warn("Bad payload was sent as Threshold data: {}"
                             .format(payload))
             db.session.commit()
