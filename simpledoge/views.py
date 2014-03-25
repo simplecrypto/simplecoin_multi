@@ -256,7 +256,14 @@ def user_dashboard(address=None):
                   join(Payout.transaction, aliased=True).
                   filter_by(confirmed=True))
     total_paid = sum([tx.amount for tx in total_paid])
+
+    total_bonus = db.session.query(BonusPayout).filter_by(user=address).order_by(BonusPayout.id.desc()).limit(20)
+    total_bonus = sum([tx.amount for tx in total_bonus])
+
     balance = float(earned) - total_paid
+    # Add bonuses to total paid amount
+    total_paid = (total_paid + total_bonus)
+
     unconfirmed_balance = (Payout.query.filter_by(user=address).
                            join(Payout.block, aliased=True).
                            filter_by(mature=False))

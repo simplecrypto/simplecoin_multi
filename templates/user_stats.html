@@ -309,7 +309,8 @@ $(document).ready(function() {
         <div class="panel-body text-center">
           <small>Total paid</small>&nbsp;
           <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Total paid out to this address from mining. No bonus payments included."></i>
+                       title="Total paid out to this address from mining. Bonus payments are included in this amount.">
+          </i>
           <br><h4><p>{{ '{:2,}'.format((total_paid / 100000000) | round(2)) }} &ETH;</p></h4>
         </div>
       </div>
