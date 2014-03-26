@@ -51,7 +51,9 @@ def create_app(config='/config.yml', celery=False):
 
     # register all our plugins
     db.init_app(app)
-    cache.init_app(app, config={'CACHE_TYPE': 'redis'})
+    cache_config = {'CACHE_TYPE': 'redis'}
+    cache_config.update(app.config.get('main_cache', {}))
+    cache.init_app(app, config=cache_config)
 
     if not celery:
         logger = logging.getLogger()
