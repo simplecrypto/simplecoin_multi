@@ -46,10 +46,10 @@ $(document).ready(function() {
       <div class="panel-body text-center">
         <small>Pool Efficiency</small>&nbsp;
         <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                     title="All time efficiency for shares at least 25 hours old. Accepted/Total = {{ accepts|round|int }}/({{ rejects }}+{{ accepts|round|int }}). Updated hourly"></i>
+                     title="All time efficiency for shares at least 25 hours old. Accepted / Total = {{ accept_total }} / ({{ reject_total }} + {{ accept_total }}). Updated hourly."></i>
         <br>
         <h4>
-          <p><span>{{ ((accepts|round|int) / ((accepts|round|int) + rejects)*100)|round(2) }}%</span></p>
+          <p><span>{{ efficiency | round(2) }}%</span></p>
         </h4>
       </div>
     </div>

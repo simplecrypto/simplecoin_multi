@@ -40,22 +40,38 @@ def pool_stats():
     current_block.data['reward'] = int(current_block.data['reward'])
     blocks = db.session.query(Block).order_by(Block.height.desc()).limit(10)
 
-    efficiency = get_efficiency_data()
+    reject_total, accept_total = get_pool_acc_rej()
+    efficiency = get_pool_eff()
 
     return render_template('pool_stats.html',
                            blocks=blocks,
                            current_block=current_block,
-                           rejects=efficiency[0],
-                           accepts=efficiency[1])
+                           efficiency=efficiency,
+                           accept_total=accept_total,
+                           reject_total=reject_total)
 
 
-@cache.cached(timeout=3600, key_prefix='get_accepted_rejected')
-def get_efficiency_data():
-    monthly_rejects = db.session.query(OneHourReject).order_by(OneHourReject.time.asc()).all()
-    monthly_reject = sum([hour.value for hour in monthly_rejects])
-    monthly_accepts = db.session.query(OneHourShare.value).filter(OneHourShare.time >= monthly_rejects[0].time).all()
-    monthly_accept = sum([hour.value for hour in monthly_accepts])
-    return [monthly_reject, monthly_accept]
+@cache.cached(timeout=3600, key_prefix='get_pool_acc_rej')
+def get_pool_acc_rej():
+    rejects = db.session.query(OneHourReject).order_by(OneHourReject.time.asc())
+    reject_total = sum([hour.value for hour in rejects])
+    accepts = db.session.query(OneHourShare.value)
+    # if we found rejects, set the earliest accepted share to consider as the
+    # same time we've recieved a reject. This is a hack since we didn't
+    # start tracking rejected shares until a few weeks after accepted...
+    if reject_total:
+        accepts = accepts.filter(OneHourShare.time >= rejects[0].time)
+    accept_total = sum([hour.value for hour in accepts])
+    return reject_total, accept_total
+
+
+def get_pool_eff():
+    rej, acc = get_pool_acc_rej()
+    # avoid zero division error
+    if not rej and not acc:
+        return 100
+    else:
+        return (acc / (acc + rej)) * 100
 
 
 @main.route("/get_payouts", methods=['POST'])
