@@ -25,15 +25,13 @@ $(document).ready(function() {
     est_payout = ((percentage_value * round_reward)) * .99;
 
     {# Calculate mhashes/sec  #}
-    seconds = 60000;
-    hashrate = Math.pow(2, 16) * last_10_shares;
+    mhashpersec = {{ last_10_hashrate }};
 
     {# Calculate est doge per day  #}
     day_shares = (last_10_shares * 60 * 24);
     percentage_value = day_shares / (shares_to_solve/2);
     dogerate = ((percentage_value * round_reward)) * .99;
 
-    mhashpersec = (hashrate / seconds) / 1000;
     setInterval(set_content = function(){
       $('.odometer.hashrate').text(numberWithCommas(Math.round(mhashpersec * 1000) / 1000));
       $('.odometer.usershares').text(numberWithCommas(Math.round(user_shares)));
