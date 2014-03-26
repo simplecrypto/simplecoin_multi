@@ -335,6 +335,7 @@ def collect_user_stats(address):
                 donation_perc=perc,
                 unconfirmed_balance=unconfirmed_balance)
 
+
 @main.route("/<address>")
 def user_dashboard(address=None):
     if len(address) != 34:
@@ -343,6 +344,7 @@ def user_dashboard(address=None):
     stats = collect_user_stats(address)
     return render_template('user_stats.html', username=address, **stats)
 
+
 @main.route("/api/<address>")
 def address_api(address):
     if len(address) != 34:
@@ -350,6 +352,12 @@ def address_api(address):
 
     stats = collect_user_stats(address)
     stats['acct_items'] = get_joined(stats['acct_items'])
+    workers = []
+    for name, data in stats['workers'].iteritems():
+        print name
+        workers.append(data)
+        workers[-1]['name'] = name
+    stats['workers'] = workers
     stats['total_earned'] = float(stats['total_earned'])
     return jsonify(**stats)
 
