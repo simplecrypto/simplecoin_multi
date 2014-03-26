@@ -319,6 +319,13 @@ def collect_user_stats(address):
         workers.setdefault(name, def_worker.copy())
         workers[name]['online'] = True
 
+    for name, w in workers.iteritems():
+        workers[name]['last_10_hashrate'] = ((w['last_10_shares'] * 65536) / 1000000) / 600
+        if w['accepted'] and w['rejected']:
+            workers[name]['efficiency'] = w['accepted'] / (w['accepted'] + w['rejected'])
+        else:
+            workers[name]['efficiency'] = None
+
     perc = DonationPercent.query.filter_by(user=address).first()
     if not perc:
         perc = current_app.config.get('default_perc', 0)
