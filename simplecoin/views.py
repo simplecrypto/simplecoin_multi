@@ -322,7 +322,7 @@ def collect_user_stats(address):
     for name, w in workers.iteritems():
         workers[name]['last_10_hashrate'] = ((w['last_10_shares'] * 65536.0) / 1000000) / 600
         if w['accepted'] or w['rejected']:
-            workers[name]['efficiency'] = float(w['accepted']) / (w['accepted'] + w['rejected'])
+            workers[name]['efficiency'] = 100.0 * (w['accepted'] / (w['accepted'] + w['rejected']))
         else:
             workers[name]['efficiency'] = None
 
