@@ -152,7 +152,7 @@ def get_frontpage_data():
     twelve_ago = dt - datetime.timedelta(minutes=12)
     two_ago = dt - datetime.timedelta(minutes=2)
     ten_min = (OneMinuteShare.query.filter_by(user='pool')
-               .filter(OneMinuteShare.time >= twelve_ago, OneMinuteShare <= two_ago)
+               .filter(OneMinuteShare.time >= twelve_ago, OneMinuteShare.time <= two_ago)
                .order_by(OneMinuteShare.time.desc())
                .limit(10))
     ten_min = sum([min.value for min in ten_min])
@@ -334,7 +334,7 @@ def collect_user_stats(address):
                 total_earned=earned,
                 total_paid=total_paid,
                 balance=balance,
-                fee_perc=perc,
+                donation_perc=perc,
                 unconfirmed_balance=unconfirmed_balance)
 
 @main.route("/<address>")
