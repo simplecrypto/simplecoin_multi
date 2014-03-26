@@ -132,7 +132,7 @@ $(document).ready(function() {
           <h3>
             <i class="fa fa-circle" style="color:{% if dat['online'] %}#5BCE00{% else %}#B12627{% endif %}"
                data-toggle="tooltip" data-placement="right" title="Online"></i>&nbsp;
-            {{ name }}
+            {% if name %}{{ name }}{% else %}[unnamed]{% endif %}
             <span class="pull-right">
             <small class="text-right" style="padding-left:10px;font-weight:300;">Hashrate:
               {{ dat['last_10_hashrate'] | round(3) }} MH/sec &nbsp;
