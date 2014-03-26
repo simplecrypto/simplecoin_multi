@@ -15,7 +15,9 @@ $(document).ready(function() {
         round_reward, shares_to_solve, percentage_value, dogerate, day_shares;
 
     round_reward = {{ config['reward'] }};
-    user_shares = {{ user_shares or 'NaN' }};
+    user_shares = {{ round_shares or 'NaN' }};
+    last_10_shares = {{ last_10_shares }};
+
     {# Calculate est round payout  #}
     shares_to_solve = {{ g.current_difficulty }} * Math.pow(2, 16);
     shares_to_solve = shares_to_solve * 2;
@@ -24,10 +26,10 @@ $(document).ready(function() {
 
     {# Calculate mhashes/sec  #}
     seconds = 60000;
-    hashrate = Math.pow(2, 16) * window.last_10min;
+    hashrate = Math.pow(2, 16) * last_10_shares;
 
     {# Calculate est doge per day  #}
-    day_shares = (window.last_10min * 60 * 24);
+    day_shares = (last_10_shares * 60 * 24);
     percentage_value = day_shares / (shares_to_solve/2);
     dogerate = ((percentage_value * round_reward)) * .99;
 

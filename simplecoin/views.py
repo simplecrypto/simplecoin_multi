@@ -275,7 +275,7 @@ def collect_user_stats(address):
     payouts = db.session.query(Payout).filter_by(user=address).order_by(Payout.id.desc()).limit(20)
     bonuses = db.session.query(BonusPayout).filter_by(user=address).order_by(BonusPayout.id.desc()).limit(20)
     acct_items = sorted(itertools.chain(payouts, bonuses), key=lambda i: i.created_at, reverse=True)
-    user_shares = cache.get('pplns_' + address)
+    round_shares = cache.get('pplns_' + address)
     pplns_cached_time = cache.get('pplns_cache_time')
     if pplns_cached_time != None:
         pplns_cached_time.strftime("%Y-%m-%d %H:%M:%S")
@@ -322,7 +322,7 @@ def collect_user_stats(address):
     for name, w in workers.iteritems():
         workers[name]['last_10_hashrate'] = ((w['last_10_shares'] * 65536.0) / 1000000) / 600
         if w['accepted'] or w['rejected']:
-            workers[name]['efficiency'] = 100.0 * (w['accepted'] / (w['accepted'] + w['rejected']))
+            workers[name]['efficiency'] = 100.0 * (float(w['accepted']) / (w['accepted'] + w['rejected']))
         else:
             workers[name]['efficiency'] = None
 
@@ -332,14 +332,19 @@ def collect_user_stats(address):
     else:
         perc = perc.perc
 
+    user_last_10_shares = last_10_shares(address)
+    last_10_hashrate = ((user_last_10_shares * 65536.0) / 1000000) / 600
+
     return dict(workers=workers,
-                user_shares=user_shares,
+                round_shares=round_shares,
                 pplns_cached_time=pplns_cached_time,
                 acct_items=acct_items,
                 total_earned=earned,
                 total_paid=total_paid,
                 balance=balance,
                 donation_perc=perc,
+                last_10_shares=user_last_10_shares,
+                last_10_hashrate=last_10_hashrate,
                 unconfirmed_balance=unconfirmed_balance)
 
 
@@ -366,6 +371,8 @@ def address_api(address):
         workers[-1]['name'] = name
     stats['workers'] = workers
     stats['total_earned'] = float(stats['total_earned'])
+    if stats['pplns_cached_time']:
+        stats['pplns_cached_time'] = calendar.timegm(stats['pplns_cached_time'].utctimetuple())
     return jsonify(**stats)
 
 
