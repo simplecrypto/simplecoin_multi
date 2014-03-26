@@ -6,7 +6,7 @@
 <div class="row page-header">
   <h2 style="word-wrap:break-word;">Current Round Stats</h2>
   <br>
-  <div class="col-sm-4">
+  <div class="col-sm-3">
     <div class="panel panel-default">
       <div class="panel-body text-center">
         <small>Blockheight</small>
@@ -19,7 +19,7 @@
       </div>
     </div>
   </div>
-  <div class="col-sm-4">
+  <div class="col-sm-3">
     <div class="panel panel-default">
       <div class="panel-body text-center">
         <small>Est.&nbsp;Shares&nbsp;Remaining</small>
@@ -32,7 +32,7 @@
       </div>
     </div>
   </div>
-  <div class="col-sm-4">
+  <div class="col-sm-3">
     <div class="panel panel-default">
       <div class="panel-body text-center">
         <small>Est.&nbsp;Round&nbsp;Time&nbsp;Remaining</small>
@@ -41,6 +41,19 @@
         <br>
         <h4>
           <p><span class="est_remaining_hours">00</span>:<span class="est_remaining_minutes">00</span>:<span class="est_remaining_seconds">00</span></p>
+        </h4>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-3">
+    <div class="panel panel-default">
+      <div class="panel-body text-center">
+        <small>Total&nbsp;N&nbsp;This&nbsp;Round</small>
+        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                     title="When the round is completed the payout will be based on this number of shares submitted just before the block was completed. This number is calculated based on the expected number of shares to complete a block, and multiplied by two."></i>
+        <br>
+        <h4>
+          <p><span class="total_n">...</span></p>
         </h4>
       </div>
     </div>
@@ -60,14 +73,16 @@
           <th>User</th>
           <th>Shares Contributed</th>
           <th>Hashrate</th>
+          <th>Donation %</th>
         </tr>
       </thead>
       <tbody>
-      {% for shares, user, hashrate in users %}
+      {% for shares, user, hashrate, donation_perc in users %}
         <tr>
           <th>{{ loop.index }}. <a href="/{{ user[6:] }}">{{ user[6:] }}</a></th>
           <th>{{ '{:,}'.format(shares|int) }}</th>
           <th>{{ '{:,}'.format((hashrate / 1000) | round(2)) }} KH/s</th>
+          <th>{% if donation_perc %}{{ donation_perc }}%{% else %}-{% endif %} </th>
         </tr>
       {% endfor %}
       </tbody>

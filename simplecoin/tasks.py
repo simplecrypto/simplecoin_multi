@@ -59,6 +59,27 @@ def update_pplns_est(self):
 
 
 @celery.task(bind=True)
+def cache_user_donation(self):
+    """
+    Grab all user donations and loop through them then cache donation %
+    """
+
+    try:
+        user_donations = {}
+        # Build a dict of donation % to cache
+        custom_donations = DonationPercent.query.all()
+        for donation in custom_donations:
+            user_donations.setdefault(donation.user, current_app.config['fee'])
+            user_donations[donation.user] = donation.perc
+
+        cache.set('user_donations', user_donations, timeout=1440 * 60)
+
+    except Exception as exc:
+        logger.error("Unhandled exception in caching user donations", exc_info=True)
+        raise self.retry(exc=exc)
+
+
+@celery.task(bind=True)
 def update_coin_transaction(self):
     """
     Loops through all immature transactions

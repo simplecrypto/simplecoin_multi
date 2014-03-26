@@ -2,6 +2,10 @@ from datetime import timedelta
 
 
 CELERYBEAT_SCHEDULE = {
+    'cache_user_donations': {
+        'task': 'simpledoge.tasks.cache_user_donation',
+        'schedule': timedelta(minutes=15)
+    },
     'compute_pplns': {
         'task': 'simpledoge.tasks.update_pplns_est',
         'schedule': timedelta(minutes=15)

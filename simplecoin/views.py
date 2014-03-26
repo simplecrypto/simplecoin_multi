@@ -144,13 +144,22 @@ def summary_page():
 
     user_shares = cache.get('pplns_user_shares')
     cached_time = cache.get('pplns_cache_time')
+    cached_donation = cache.get('user_donations')
+
+    def user_match(user):
+        if cached_donation is not None:
+            if user in cached_donation:
+                return cached_donation[user]
+            else:
+                return current_app.config['fee']
+
     if cached_time is not None:
         cached_time = cached_time.replace(second=0, microsecond=0).strftime("%Y-%m-%d %H:%M")
 
     if user_shares is None:
         user_list = []
     else:
-        user_list = [([shares, user, (65536 * last_10_shares(user[6:]) / 600)]) for user, shares in user_shares.iteritems()]
+        user_list = [([shares, user, (65536 * last_10_shares(user[6:]) / 600), user_match(user[6:])]) for user, shares in user_shares.iteritems()]
         user_list = sorted(user_list, key=lambda x: x[0], reverse=True)
 
     current_block = db.session.query(Blob).filter_by(key="block").first()
