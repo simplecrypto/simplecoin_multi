@@ -82,7 +82,7 @@
           <th>{{ loop.index }}. <a href="/{{ user[6:] }}">{{ user[6:] }}</a></th>
           <th>{{ '{:,}'.format(shares|int) }}</th>
           <th>{{ '{:,}'.format((hashrate / 1000) | round(2)) }} KH/s</th>
-          <th>{% if donation_perc %}{{ donation_perc }}%{% else %}-{% endif %} </th>
+          <th>{% if donation_perc != None %}{{ '{:0.1f}'.format(donation_perc) }}%{% else %}-{% endif %} </th>
         </tr>
       {% endfor %}
       </tbody>
