@@ -22,6 +22,7 @@ $(document).ready(function() {
     hashrate = {{ last_10_hashrate }};
     difficulty = {{ g.current_difficulty or 'Nan' }};
     donate = {{ config['default_perc'] or 0 }};
+    n_multiplier = {{ config['last_n'] }}
 
     {# Run calculation functions #}
     shares_to_solve = avg_shares_to_solve(difficulty);
