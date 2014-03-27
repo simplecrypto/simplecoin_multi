@@ -21,7 +21,7 @@ $(document).ready(function() {
     last_10_shares = {{ last_10_shares or 0 }};
     hashrate = {{ last_10_hashrate }};
     difficulty = {{ g.current_difficulty or 'Nan' }};
-    donate = {{ config['default_perc'] or 0 }};
+    donate = {{ donation_perc or 0 }};
     n_multiplier = {{ config['last_n'] }}
 
     {# Run calculation functions #}
