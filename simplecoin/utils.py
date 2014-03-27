@@ -248,7 +248,7 @@ def get_pool_eff():
     if not rej and not acc:
         return 100
     else:
-        return (acc / (acc + rej)) * 100
+        return (float(acc) / (acc + rej)) * 100
 
 
 def setfee_command(username, perc):
