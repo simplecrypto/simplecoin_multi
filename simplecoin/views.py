@@ -1,22 +1,21 @@
 import calendar
 import time
-import itertools
-import requests
 import yaml
 import datetime
 
 from itsdangerous import TimedSerializer
 from flask import (current_app, request, render_template, Blueprint, abort,
                    jsonify, g, session, Response)
-from sqlalchemy.sql import func
 from lever import get_joined
 
-from .models import (Transaction, OneMinuteShare, Block, Share, Payout,
-                     last_block_share_id, last_block_time, Blob, FiveMinuteShare,
-                     OneHourShare, Status, FiveMinuteReject, OneMinuteReject,
-                     OneHourReject, DonationPercent, BonusPayout)
+from .models import (Transaction, OneMinuteShare, Block, Payout, Blob,
+                     FiveMinuteShare, OneHourShare, Status, FiveMinuteReject,
+                     OneMinuteReject, OneHourReject, DonationPercent,
+                     BonusPayout)
 from . import db, root, cache
-from .utils import compress_typ, get_typ, verify_message
+from .utils import (compress_typ, get_typ, verify_message, get_pool_acc_rej,
+                    get_pool_eff, get_frontpage_data, last_10_shares,
+                    total_earned, total_paid, collect_user_stats)
 
 
 main = Blueprint('main', __name__)
@@ -49,29 +48,6 @@ def pool_stats():
                            efficiency=efficiency,
                            accept_total=accept_total,
                            reject_total=reject_total)
-
-
-@cache.cached(timeout=3600, key_prefix='get_pool_acc_rej')
-def get_pool_acc_rej():
-    rejects = db.session.query(OneHourReject).order_by(OneHourReject.time.asc())
-    reject_total = sum([hour.value for hour in rejects])
-    accepts = db.session.query(OneHourShare.value)
-    # if we found rejects, set the earliest accepted share to consider as the
-    # same time we've recieved a reject. This is a hack since we didn't
-    # start tracking rejected shares until a few weeks after accepted...
-    if reject_total:
-        accepts = accepts.filter(OneHourShare.time >= rejects[0].time)
-    accept_total = sum([hour.value for hour in accepts])
-    return reject_total, accept_total
-
-
-def get_pool_eff():
-    rej, acc = get_pool_acc_rej()
-    # avoid zero division error
-    if not rej and not acc:
-        return 100
-    else:
-        return (acc / (acc + rej)) * 100
 
 
 @main.route("/get_payouts", methods=['POST'])
@@ -158,48 +134,6 @@ def pool_stats_api():
     return jsonify(**ret)
 
 
-@cache.cached(timeout=60, key_prefix='get_total_n1')
-def get_frontpage_data():
-
-    # A bit inefficient, but oh well... Make it better later...
-    last_share_id = last_block_share_id()
-    last_found_at = last_block_time()
-    dt = datetime.datetime.utcnow()
-    twelve_ago = dt - datetime.timedelta(minutes=12)
-    two_ago = dt - datetime.timedelta(minutes=2)
-    ten_min = (OneMinuteShare.query.filter_by(user='pool')
-               .filter(OneMinuteShare.time >= twelve_ago, OneMinuteShare.time <= two_ago))
-    ten_min = sum([min.value for min in ten_min])
-    shares = db.session.query(func.sum(Share.shares)).filter(Share.id > last_share_id).scalar() or 0
-    last_dt = (datetime.datetime.utcnow() - last_found_at).total_seconds()
-    return [shares, last_dt, dt, ten_min]
-
-
-@cache.memoize(timeout=60)
-def last_10_shares(user):
-    twelve_ago = datetime.datetime.utcnow() - datetime.timedelta(minutes=12)
-    two_ago = datetime.datetime.utcnow() - datetime.timedelta(minutes=2)
-    minutes = (OneMinuteShare.query.
-               filter_by(user=user).filter(OneMinuteShare.time > twelve_ago, OneMinuteShare.time < two_ago))
-    if minutes:
-        return sum([min.value for min in minutes])
-    return 0
-
-
-@cache.memoize(timeout=60)
-def total_earned(user):
-    return (db.session.query(func.sum(Payout.amount)).
-            filter_by(user=user).scalar() or 0.0)
-
-
-@cache.memoize(timeout=60)
-def total_paid(user):
-    total_p = (Payout.query.filter_by(user=user).
-               join(Payout.transaction, aliased=True).
-               filter_by(confirmed=True))
-    return sum([tx.amount for tx in total_p])
-
-
 @main.route("/stats")
 def user_stats():
     return render_template('stats.html', page_title='User Stats - Look up statistics for a Dogecoin address')
@@ -256,45 +190,12 @@ def worker_detail(address, worker, gpu):
     return jsonify(output=output)
 
 
-@cache.memoize(timeout=120)
-def workers_online(address):
-    """ Returns all workers online for an address """
-    client_mon = current_app.config['monitor_addr']+'client/'+address
-    try:
-        req = requests.get(client_mon)
-        data = req.json()
-    except Exception:
-        return []
-    return [w['worker'] for w in data[address]]
+@main.route("/<address>")
+def user_dashboard(address=None):
+    if len(address) != 34:
+        abort(404)
 
-
-def collect_user_stats(address):
-    earned = total_earned(address)
-    total_paid = (Payout.query.filter_by(user=address).
-                  join(Payout.transaction, aliased=True).
-                  filter_by(confirmed=True))
-    total_paid = sum([tx.amount for tx in total_paid])
-
-    total_bonus = db.session.query(BonusPayout).filter_by(user=address).order_by(BonusPayout.id.desc()).limit(20)
-    total_bonus = sum([tx.amount for tx in total_bonus])
-
-    balance = float(earned) - total_paid
-    # Add bonuses to total paid amount
-    total_paid = (total_paid + total_bonus)
-
-    unconfirmed_balance = (Payout.query.filter_by(user=address).
-                           join(Payout.block, aliased=True).
-                           filter_by(mature=False))
-    unconfirmed_balance = sum([payout.amount for payout in unconfirmed_balance])
-    balance -= unconfirmed_balance
-
-    payouts = db.session.query(Payout).filter_by(user=address).order_by(Payout.id.desc()).limit(20)
-    bonuses = db.session.query(BonusPayout).filter_by(user=address).order_by(BonusPayout.id.desc()).limit(20)
-    acct_items = sorted(itertools.chain(payouts, bonuses), key=lambda i: i.created_at, reverse=True)
-    round_shares = cache.get('pplns_' + address)
-    pplns_cached_time = cache.get('pplns_cache_time')
-    if pplns_cached_time != None:
-        pplns_cached_time.strftime("%Y-%m-%d %H:%M:%S")
+    stats = collect_user_stats(address)
 
     # reorganize/create the recently viewed
     recent = session.get('recent_users', [])
@@ -303,73 +204,6 @@ def collect_user_stats(address):
     recent.insert(0, address)
     session['recent_users'] = recent[:10]
 
-    # store all the raw data of we're gonna grab
-    workers = {}
-    def_worker = {'accepted': 0, 'rejected': 0, 'last_10_shares': 0,
-                  'online': False, 'status': None}
-    now = datetime.datetime.utcnow().replace(second=0, microsecond=0)
-    twelve_ago = now - datetime.timedelta(minutes=12)
-    two_ago = now - datetime.timedelta(minutes=2)
-    for m in get_typ(FiveMinuteShare, address).all() + get_typ(OneMinuteShare, address).all():
-        workers.setdefault(m.worker, def_worker.copy())
-        workers[m.worker]['accepted'] += m.value
-        if m.time >= twelve_ago and m.time < two_ago:
-            workers[m.worker]['last_10_shares'] += m.value
-
-    for m in get_typ(FiveMinuteReject, address).all() + get_typ(OneMinuteReject, address).all():
-        workers.setdefault(m.worker, def_worker.copy())
-        workers[m.worker]['rejected'] += m.value
-
-    for st in Status.query.filter_by(user=address):
-        workers.setdefault(st.worker, def_worker.copy())
-        workers[st.worker]['status'] = st.parsed_status
-        workers[st.worker]['status_stale'] = st.stale
-        workers[st.worker]['status_time'] = st.time
-        ver = workers[st.worker]['status'].get('v', '0.2.0').split('.')
-        try:
-            workers[st.worker]['status_version'] = [int(part) for part in ver]
-        except ValueError:
-            workers[st.worker]['status_version'] = "Unsupp"
-
-    for name in workers_online(address):
-        workers.setdefault(name, def_worker.copy())
-        workers[name]['online'] = True
-
-    for name, w in workers.iteritems():
-        workers[name]['last_10_hashrate'] = ((w['last_10_shares'] * 65536.0) / 1000000) / 600
-        if w['accepted'] or w['rejected']:
-            workers[name]['efficiency'] = 100.0 * (float(w['accepted']) / (w['accepted'] + w['rejected']))
-        else:
-            workers[name]['efficiency'] = None
-
-    perc = DonationPercent.query.filter_by(user=address).first()
-    if not perc:
-        perc = current_app.config.get('default_perc', 0)
-    else:
-        perc = perc.perc
-
-    user_last_10_shares = last_10_shares(address)
-    last_10_hashrate = ((user_last_10_shares * 65536.0) / 1000000) / 600
-
-    return dict(workers=workers,
-                round_shares=round_shares,
-                pplns_cached_time=pplns_cached_time,
-                acct_items=acct_items,
-                total_earned=earned,
-                total_paid=total_paid,
-                balance=balance,
-                donation_perc=perc,
-                last_10_shares=user_last_10_shares,
-                last_10_hashrate=last_10_hashrate,
-                unconfirmed_balance=unconfirmed_balance)
-
-
-@main.route("/<address>")
-def user_dashboard(address=None):
-    if len(address) != 34:
-        abort(404)
-
-    stats = collect_user_stats(address)
     return render_template('user_stats.html', username=address, **stats)
 
 

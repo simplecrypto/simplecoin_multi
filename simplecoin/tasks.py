@@ -1,14 +1,13 @@
 from flask import current_app
 from celery import Celery
-from simplecoin import db, coinserv, cache
-from simplecoin.models import (
-    Share, Block, OneMinuteShare, Payout, Transaction, Blob, last_block_time,
-    last_block_share_id, FiveMinuteShare, Status, OneMinuteReject,
-    OneMinuteTemperature, FiveMinuteReject, OneMinuteHashrate, Threshold,
-    Event, DonationPercent, BonusPayout)
+from simpledoge import db, coinserv, cache
+from simpledoge.utils import last_block_time, last_block_share_id
+from simpledoge.models import (
+    Share, Block, OneMinuteShare, Payout, Transaction, Blob, FiveMinuteShare,
+    Status, OneMinuteReject, OneMinuteTemperature, FiveMinuteReject,
+    OneMinuteHashrate, Threshold, Event, DonationPercent, BonusPayout)
 from sqlalchemy.sql import func
 from cryptokit import bits_to_shares, bits_to_difficulty
-from pprint import pformat
 from bitcoinrpc import CoinRPCException
 from celery.utils.log import get_task_logger
 from math import ceil, floor

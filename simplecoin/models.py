@@ -92,35 +92,6 @@ class Block(base):
         return formatted_time
 
 
-def last_block_time():
-    """ Retrieves the last time a block was solved using progressively less
-    accurate methods. Essentially used to calculate round time. """
-    last_block = Block.query.order_by(Block.height.desc()).first()
-    if last_block:
-        return last_block.found_at
-
-    hour = OneHourShare.query.order_by(OneHourShare.time).first()
-    if hour:
-        return hour.time
-
-    five = FiveMinuteShare.query.order_by(FiveMinuteShare.time).first()
-    if five:
-        return five.time
-
-    minute = OneMinuteShare.query.order_by(OneMinuteShare.time).first()
-    if minute:
-        return minute.time
-
-    return datetime.utcnow()
-
-
-def last_block_share_id():
-    last_block = Block.query.order_by(Block.height.desc()).first()
-    if not last_block:
-        return 0
-    return last_block.last_share_id
-
-
 class Share(base):
     """ This class generates a table containing every share accepted for a
     round """
