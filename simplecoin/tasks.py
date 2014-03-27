@@ -69,7 +69,7 @@ def cache_user_donation(self):
         # Build a dict of donation % to cache
         custom_donations = DonationPercent.query.all()
         for donation in custom_donations:
-            user_donations.setdefault(donation.user, current_app.config['fee'])
+            user_donations.setdefault(donation.user, current_app.config['default_perc'])
             user_donations[donation.user] = donation.perc
 
         cache.set('user_donations', user_donations, timeout=1440 * 60)
