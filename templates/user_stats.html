@@ -11,30 +11,25 @@ $(document).ready(function() {
 
   {# Generate user stats #}
   setTimeout(function(){
-    var hashrate, seconds, mhashpersec, user_shares, est_payout,
-        round_reward, shares_to_solve, user_percentage, coin_rate,
-        day_shares, pplns_shares, daily_percentage;
+    var hashrate, last_10_shares, difficulty, user_shares, est_payout,
+        round_reward, shares_to_solve, donate, coin_rate,
+        n_multiplier;
 
+    {# load serverside info into js #}
     round_reward = {{ config['reward'] or 0 }};
-    user_shares = {{ round_shares or 'NaN' }};
-    last_10_shares = {{ last_10_shares or 'Nan' }};
+    user_shares = {{ round_shares or 0 }};
+    last_10_shares = {{ last_10_shares or 0 }};
+    hashrate = {{ last_10_hashrate }}
+    difficulty = {{ g.current_difficulty or 'Nan' }};
+    donate = {{ config['default_perc'] or 0 }};
 
-    {# Calculate est round payout  #}
-    shares_to_solve = {{ g.current_difficulty }} * Math.pow(2, 16);
-    pplns_shares = shares_to_solve * {{ config['last_n'] }};
-    user_percentage = user_shares / shares_to_solve;
-    est_payout = ((user_percentage * round_reward)) * (1 - config['fee']);
-
-    {# Calculate mhashes/sec  #}
-    mhashpersec = {{ last_10_hashrate }};
-
-    {# Calculate est coins per day  #}
-    day_shares = (last_10_shares * 6 * 24);
-    daily_percentage = (day_shares / shares_to_solve);
-    coin_rate = ((daily_percentage * round_reward)) * (1 - {{ config['fee'] }});
+    {# Run calculation functions #}
+    shares_to_solve = avg_shares_to_solve(difficulty);
+    est_payout = round_payout(difficulty, user_shares, shares_to_solve, donate, round_reward);
+    coin_rate = daily_est(last_10_shares, shares_to_solve, donate, round_reward);
 
     setInterval(set_content = function(){
-      $('.odometer.hashrate').text(numberWithCommas(Math.round(mhashpersec * 1000) / 1000));
+      $('.odometer.hashrate').text(numberWithCommas(Math.round(hashrate * 1000) / 1000));
       $('.odometer.usershares').text(numberWithCommas(Math.round(user_shares)));
       $('.odometer.estpayout').text(numberWithCommas(Math.round(est_payout * 1000) / 1000));
       $('.odometer.dogerate').text(numberWithCommas(Math.round(coin_rate * 1000) / 1000));
