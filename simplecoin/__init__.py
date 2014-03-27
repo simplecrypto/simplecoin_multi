@@ -39,7 +39,8 @@ def create_app(config='/config.yml', celery=False):
         .format(app.config['coinserv']['username'],
                 app.config['coinserv']['password'],
                 app.config['coinserv']['address'],
-                app.config['coinserv']['port']))
+                app.config['coinserv']['port'],
+                pool_kwargs=dict(maxsize=app.config.get('maxsize', 10))))
 
     # add the debug toolbar if we're in debug mode...
     if app.config['DEBUG']:

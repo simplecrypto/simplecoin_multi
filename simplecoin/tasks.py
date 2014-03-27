@@ -129,12 +129,12 @@ def update_block_state(self):
                 block.orphan = True
             else:
                 if output['confirmations'] > mature_diff:
-                    logger.info("Block {}:{} meets 120 confirms, mark mature"
-                                .format(block.height, block.hash))
+                    logger.info("Block {}:{} meets {} confirms, mark mature"
+                                .format(block.height, block.hash, mature_diff))
                     block.mature = True
                 elif (blockheight - block.height) > mature_diff and output['confirmations'] < mature_diff:
-                    logger.info("Block {}:{} 120 height ago, but not enough confirms. Marking orphan."
-                                .format(block.height, block.hash))
+                    logger.info("Block {}:{} {} height ago, but not enough confirms. Marking orphan."
+                                .format(block.height, block.hash, mature_diff))
                     block.orphan = True
 
         db.session.commit()
@@ -165,7 +165,7 @@ def add_share(self, user, shares):
 def add_block(self, user, height, total_value, transaction_fees, bits,
               hash_hex):
     """
-    Insert a block & blockchain data
+    Insert a discovered block & blockchain data
 
     user: should be a username/wallet address of who found block
     height: should be the height of the given block in the blockchain
@@ -248,7 +248,7 @@ def add_one_minute(self, user, valid_shares, minute, worker='', dup_shares=0,
 @celery.task(bind=True)
 def new_block(self, blockheight, bits=None, reward=None):
     """
-    Notification that a new block height has been reached.
+    Notification that a new block height has been reached in the network.
     """
     logger.info("Recieved notice of new block height {}".format(blockheight))
     if not isinstance(blockheight, int):
@@ -259,6 +259,10 @@ def new_block(self, blockheight, bits=None, reward=None):
                                    'reward': str(reward)})
     db.session.merge(blob)
     db.session.commit()
+
+    # keep the last 500 blocks in the cache for getting average difficulty
+    cache.cache._client.lpush('block_cache', bits)
+    cache.cache._client.ltrim('block_cache', 0, 500)
 
 
 @celery.task(bind=True)
@@ -320,8 +324,7 @@ def payout(self, simulate=False):
             logger.setLevel(logging.DEBUG)
 
         # find the oldest un-processed block
-        block = (Block.query.
-                 filter_by(processed=False).
+        block = (Block.query.filter_by(processed=False).
                  order_by(Block.height).first())
         if block is None:
             logger.debug("No block found, exiting...")
@@ -685,16 +688,9 @@ def difficulty_avg(self):
     Setup a blob with the average network difficulty for the last 500 blocks
     """
     try:
-        req = requests.get("http://dogechain.info/chain/Dogecoin/q/nethash/1/-500?format=json")
-        data = req.json()
-    except Exception as exc:
-        logger.warn("Couldn't connect to dogechain.info", exc_info=True)
-        raise self.retry(exc=exc)
-
-    try:
-        diffs = [col[4] for col in data]
-        avg = sum(diffs) / len(diffs)
-        blob = Blob(key='diff', data={'diff': str(avg)})
+        diff_list = cache.cache._client.lrange('block_cache', 0, 500)
+        total_diffs = sum([bits_to_difficulty(diff) for diff in diff_list])
+        blob = Blob(key='diff', data={'diff': str(total_diffs / len(diff_list))})
         db.session.merge(blob)
         db.session.commit()
     except Exception as exc:
