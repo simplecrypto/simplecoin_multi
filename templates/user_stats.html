@@ -25,7 +25,7 @@ $(document).ready(function() {
 
     {# Run calculation functions #}
     shares_to_solve = avg_shares_to_solve(difficulty);
-    est_payout = round_payout(difficulty, user_shares, shares_to_solve, donate, round_reward);
+    est_payout = round_payout(difficulty, user_shares, shares_to_solve, donate, round_reward, n_multiplier);
     coin_rate = daily_est(last_10_shares, shares_to_solve, donate, round_reward);
 
     setInterval(set_content = function(){
