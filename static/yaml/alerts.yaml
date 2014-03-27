@@ -3,5 +3,6 @@
   date: 3/27/2014
   key: 4
   body: |
-      Megative fees have ended, we're moving to 0% fees permanently. Check the news for details.
-      Thanks for mining with us!
+      Negative fees have ended, we're moving to minimum of 0% fees with a
+      default donation of 1% permanently. Check the news for details. Thanks
+      for mining with us!
