@@ -1,6 +1,7 @@
-- title: <b>-5% fees have ended, now running -2% fees!</b>
+- title: <b>Negative fees have ended!</b>
   severity: success
-  date: 3/24/2014
-  key: 3
+  date: 3/27/2014
+  key: 4
   body: |
-      Thanks to raid5, who generously donated his 10k block reward, we will be running -2% fees for a while.
+      Megative fees have ended, we're moving to 0% fees permanently. Check the news for details.
+      Thanks for mining with us!

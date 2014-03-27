@@ -19,7 +19,7 @@ $(document).ready(function() {
     round_reward = {{ config['reward'] or 0 }};
     user_shares = {{ round_shares or 0 }};
     last_10_shares = {{ last_10_shares or 0 }};
-    hashrate = {{ last_10_hashrate }}
+    hashrate = {{ last_10_hashrate }};
     difficulty = {{ g.current_difficulty or 'Nan' }};
     donate = {{ config['default_perc'] or 0 }};
 

@@ -14,6 +14,6 @@ daily_est = function(last_10_shares, shares_to_solve, donate, round_reward) {
   return ((daily_percentage * round_reward)) * (1 - donate);
 }
 // Calculate number of shares in pplns
-shares_in_pplns = function(shares_to_solve, n_multiplier) {
-  return shares_to_solve * n_multiplier;
+shares_in_pplns = function(pplns_window, n_multiplier) {
+  return pplnw_window * n_multiplier;
 }
