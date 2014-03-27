@@ -151,7 +151,7 @@ def summary_page():
             if user in cached_donation:
                 return cached_donation[user]
             else:
-                return current_app.config['fee']
+                return current_app.config['default_perc']
 
     if cached_time is not None:
         cached_time = cached_time.replace(second=0, microsecond=0).strftime("%Y-%m-%d %H:%M")
