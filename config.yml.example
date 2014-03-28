@@ -53,6 +53,12 @@ private:
     block_mature_confirms: 250
     # the version that will trigger an upgrade notification
     latest_ppagent: [0, 3, 4]
+    # this url will have the transaction id appended to it to provide
+    # information on a specific transaction for a payout
+    transaction_link_prefix: http://dogechain.info/tx/
+    # just like above, but with a block
+    block_link_prefix: http://dogechain.info/block/
+
     # connection information for the coinserver RPC
     coinserv:
         port: 22555

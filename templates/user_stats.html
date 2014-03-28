@@ -358,7 +358,9 @@ $(document).ready(function() {
                   <th>{{ '{:,}'.format((payout.amount / 100000000) | round(2)) }}</th>
                   <th>{{ '{:,}'.format(payout.block.height) }}</th>
                   <th>{% if payout.transaction_id %}
-                    <a href="https://dogechain.info/tx/{{ payout.transaction_id }}" target="_blank">{{ payout.transaction_id | truncate(15, True) }}</a>
+                    <a href="{{ config['transaction_link_prefix'] }}{{ payout.transaction_id }}" target="_blank">
+                      {{ payout.transaction_id | truncate(15, True) }}
+                    </a>
                     {% endif %}
                   </th>
                   <th>
@@ -378,7 +380,9 @@ $(document).ready(function() {
                   <th colspan="4"><span style="color:#2ca02c;">Bonus:</span> {{ obj.description }}</th>
                   <th colspan="2">{{ '{:,}'.format(obj.amount / 100000000 | round(2)) }}</th>
                   <th>{% if obj.transaction_id %}
-                    <a href="https://dogechain.info/tx/{{ obj.transaction_id }}" target="_blank">{{ obj.transaction_id | truncate(15, True) }}</a>
+                    <a href="{{ config['transaction_link_prefix'] }}{{ obj.transaction_id }}" target="_blank">
+                      {{ obj.transaction_id | truncate(15, True) }}
+                    </a>
                     {% endif %}
                   </th>
                   <th>
