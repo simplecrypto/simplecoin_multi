@@ -193,6 +193,7 @@ def add_block(self, user, height, total_value, transaction_fees, bits,
                  filter(Share.id <= block.last_share_id).scalar()) or 128
         block.shares_to_solve = count
         db.session.commit()
+        payout.delay()
     except Exception as exc:
         logger.error("Unhandled exception in add_block", exc_info=True)
         db.session.rollback()
