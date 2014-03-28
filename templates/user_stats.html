@@ -238,7 +238,7 @@ $(document).ready(function() {
                   <tr>
                     <th colspan="8" style="text-align:left;">
                       <small>Running PPAgent v{{ stat.get('v', '0.2') }}</small>&nbsp;
-                      {% if dat['status_version'] < latest_ppagent %}
+                      {% if dat['status_version'] < config['latest_ppagent'] %}
                         {# Notice about out of date ppagent #}
                         <a href="https://github.com/icook/ppagent#upgrade">
                           <small style="color:#FFD600;font-weight:400;">

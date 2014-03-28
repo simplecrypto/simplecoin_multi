@@ -11,8 +11,7 @@
 .noseids
 cover
 node_modules
-uwsgi.log
-uwsgi.pid
+gunicorn.pid
 
 # tmp saves
 *~
