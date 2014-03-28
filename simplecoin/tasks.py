@@ -1,8 +1,8 @@
 from flask import current_app
 from celery import Celery
-from simpledoge import db, coinserv, cache
-from simpledoge.utils import last_block_time, last_block_share_id
-from simpledoge.models import (
+from simplecoin import db, coinserv, cache
+from simplecoin.utils import last_block_time, last_block_share_id
+from simplecoin.models import (
     Share, Block, OneMinuteShare, Payout, Transaction, Blob, FiveMinuteShare,
     Status, OneMinuteReject, OneMinuteTemperature, FiveMinuteReject,
     OneMinuteHashrate, Threshold, Event, DonationPercent, BonusPayout)

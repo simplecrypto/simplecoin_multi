@@ -12,11 +12,11 @@ module.exports = (grunt) ->
         stdout: true
         stderr: true
       reload:
-        command: 'kill -2 `cat gunicorn.pid`; gunicorn simplecoin.wsgi_entry:app'
+        command: 'kill -2 `cat gunicorn.pid`; gunicorn simplecoin.wsgi_entry:app -b 0.0.0.0:9400'
 
     watch:
       dev_server:
-        files: ['simpledoge/**/*.py', 'config.yml', 'uwsgi.yml']
+        files: ['simplecoin/**/*.py', 'config.yml', 'uwsgi.yml']
         tasks: ['shell:reload']
         options:
           atBegin: true

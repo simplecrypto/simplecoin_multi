@@ -8,7 +8,6 @@ from datetime import datetime
 
 import subprocess
 import logging
-import six
 import os
 import yaml
 
@@ -27,12 +26,8 @@ def create_app(config='/config.yml', celery=False):
     # set our template path and configs
     app.jinja_loader = FileSystemLoader(os.path.join(root, 'templates'))
     config_vars = yaml.load(open(root + config))
-    # merge the public and private keys
-    public = list(six.iteritems(config_vars['public']))
-    private = list(six.iteritems(config_vars['private']))
-    config_vars = dict(private + public)
-    for key, val in config_vars.items():
-        app.config[key] = val
+    # inject all the yaml configs
+    app.config.update(config_vars)
 
     app.rpc_connection = AuthServiceProxy(
         "http://{0}:{1}@{2}:{3}/"
@@ -57,17 +52,16 @@ def create_app(config='/config.yml', celery=False):
     cache.init_app(app, config=cache_config)
 
     if not celery:
-        logger = logging.getLogger()
         hdlr = logging.FileHandler(app.config.get('log_file', 'webserver.log'))
         formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
         hdlr.setFormatter(formatter)
         app.logger.addHandler(hdlr)
         app.logger.setLevel(logging.INFO)
 
-        # try and get the git information
+        # try and fetch the git version information
         try:
             output = subprocess.check_output("git show -s --format='%ci %h'",
-                                            shell=True).strip().rsplit(" ", 1)
+                                             shell=True).strip().rsplit(" ", 1)
             app.config['hash'] = output[1]
             app.config['revdate'] = output[0]
         # celery won't work with this, so set some default

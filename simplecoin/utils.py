@@ -39,7 +39,7 @@ def last_block_time():
     if minute:
         return minute.time
 
-    return datetime.utcnow()
+    return datetime.datetime.utcnow()
 
 
 @cache.cached(timeout=60, key_prefix='last_block_share_id')
