@@ -34,6 +34,12 @@ def news():
     return render_template('news.html', news=news)
 
 
+@main.route("/blocks")
+def blocks():
+    blocks = db.session.query(Block).order_by(Block.height.desc())
+    return render_template('blocks.html', blocks=blocks)
+
+
 @main.route("/pool_stats")
 def pool_stats():
     current_block = db.session.query(Blob).filter_by(key="block").first()
