@@ -112,12 +112,18 @@ def add_pool_stats():
     g.hashrate = get_pool_hashrate()
 
     blobs = Blob.query.filter(Blob.key.in_(("server", "diff"))).all()
-    server = [b for b in blobs if b.key == "server"][0]
-    diff = float([b for b in blobs if b.key == "diff"][0].data['diff'])
+    try:
+        server = [b for b in blobs if b.key == "server"][0]
+        g.worker_count = int(server.data['stratum_clients'])
+    except IndexError:
+        g.worker_count = 0
+    try:
+        diff = float([b for b in blobs if b.key == "diff"][0].data['diff'])
+    except IndexError:
+        diff = -1
     g.average_difficulty = diff
     g.shares_to_solve = diff * (2 ** 16)
     g.total_round_shares = g.shares_to_solve * current_app.config['last_n']
-    g.worker_count = int(server.data['stratum_clients'])
     g.alerts = get_alerts()
 
 
