@@ -17,8 +17,8 @@ $(document).ready(function() {
 <div class="row">
   <div class="col-lg-5">
     <div class="text-center">
-      <img class=" hidden-xs" src="static/img/doge-miner.jpg" width="450">
-      <img class="hidden-sm hidden-md hidden-lg" src="static/img/doge-miner-sm.jpg" width="275">
+      <img class=" hidden-xs" src="{{ config['leader'] | safe }}" width="450">
+      <img class="hidden-sm hidden-md hidden-lg" src="{{ config['leader-sm'] | safe }}" width="275">
     </div>
     <div class="well well-lg well-clear">
       <h3>New to Cryptocurrency?</h3>

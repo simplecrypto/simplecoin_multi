@@ -39,13 +39,28 @@ private:
     # block find reward. set to zero or comment out to not use. in satoshi
     block_bonus: 1000000000000
 
-    # General
+    # Coin/Branding
     # =======================================================================
     # the path that will be postfixed with the current git hash in the footer.
     # comment out to remove
     repopath: https://github.com/icook/simplecoin/commit/
     # the block reward. Used to calculate averages, etc
     reward: 250000
+    # the colloquial name of the coin
+    coin_name: Doge
+    # the unicode symbol for the coin
+    coin_symbol: "&ETH;"
+    # logo img
+    logo: "/static/img/dogecoin.png"
+    # xs leader img
+    leader-xs: "static/img/doge-miner-xs.jpg"
+    # sm leader img
+    leader-sm: "static/img/doge-miner-sm.jpg"
+    # fullsize leader img
+    leader: "static/img/doge-miner.jpg"
+
+    # General
+    # =======================================================================
     # Where's powerpool running?
     monitor_addr: http://localhost:3855/
     # how many confirmations do we wait before marking blocks mature

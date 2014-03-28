@@ -33,7 +33,7 @@ $(document).ready(function() {
       $('.odometer.hashrate').text(numberWithCommas(Math.round(hashrate * 1000) / 1000));
       $('.odometer.usershares').text(numberWithCommas(Math.round(user_shares)));
       $('.odometer.estpayout').text(numberWithCommas(Math.round(est_payout * 1000) / 1000));
-      $('.odometer.dogerate').text(numberWithCommas(Math.round(coin_rate * 1000) / 1000));
+      $('.odometer.coinrate').text(numberWithCommas(Math.round(coin_rate * 1000) / 1000));
     },1000);
 
     set_content();
@@ -81,7 +81,7 @@ $(document).ready(function() {
           <small>Est. Round Payout</small>&nbsp;
           <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
              title="Payout estimate based on PPLNS (Last updated {{ pplns_cached_time }}). This estimate will be very close to your actual payout."></i>
-          <br><h4><p><span class="odometer estpayout">...</span> &ETH;</p></h4>
+          <br><h4><p><span class="odometer estpayout">...</span> {{ config['coin_symbol'] | safe }}</p></h4>
         </div>
       </div>
     </div>
@@ -98,10 +98,10 @@ $(document).ready(function() {
     <div class="col-sm-3">
       <div class="panel panel-default">
         <div class="panel-body text-center">
-          <small>Est. Doge/day</small>&nbsp;
+          <small>Est. {{ config['coin_name'] | safe }}/day</small>&nbsp;
           <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                        title="An estimate based on your hashrate for the last ten minutes, constant mining at that hashrate, and 100% round luck. Your actual payout will fluctuate based on round luck!"></i>
-          <br><h4><p><span class="odometer dogerate">...</span> &ETH;</p></h4>
+          <br><h4><p><span class="odometer coinrate">...</span> {{ config['coin_symbol'] | safe }}</p></h4>
         </div>
       </div>
     </div>
@@ -278,7 +278,7 @@ $(document).ready(function() {
           <small>Balance</small>&nbsp;
           <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                        title="Current unpaid balance not including bonus payouts"></i>
-          <br><h4><p>{{ '{:8,}'.format(balance / 100000000) }} &ETH;</p></h4>
+          <br><h4><p>{{ '{:8,}'.format(balance / 100000000) }} {{ config['coin_symbol'] | safe }}</p></h4>
         </div>
       </div>
     </div>
@@ -288,7 +288,7 @@ $(document).ready(function() {
           <small>Unconfirmed balance</small>&nbsp;
           <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                        title="Newly solved block earnings, rewards not yet confirmed. Doesn't including bonus payouts"></i>
-          <br><h4><p>{{ '{:8,}'.format(unconfirmed_balance / 100000000) }} &ETH;</p></h4>
+          <br><h4><p>{{ '{:8,}'.format(unconfirmed_balance / 100000000) }} {{ config['coin_symbol'] | safe }}</p></h4>
         </div>
       </div>
     </div>
@@ -298,7 +298,7 @@ $(document).ready(function() {
           <small>Total earned</small>&nbsp;
           <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                        title="Total ever earned by this address from mining. No bonus payments included."></i>
-          <br><h4><p>{{ '{:2,}'.format((total_earned / 100000000) | round(2)) }} &ETH;</p></h4>
+          <br><h4><p>{{ '{:2,}'.format((total_earned / 100000000) | round(2)) }} {{ config['coin_symbol'] | safe }}</p></h4>
         </div>
       </div>
     </div>
@@ -309,7 +309,7 @@ $(document).ready(function() {
           <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                        title="Total paid out to this address from mining. Bonus payments are included in this amount.">
           </i>
-          <br><h4><p>{{ '{:2,}'.format((total_paid / 100000000) | round(2)) }} &ETH;</p></h4>
+          <br><h4><p>{{ '{:2,}'.format((total_paid / 100000000) | round(2)) }} {{ config['coin_symbol'] | safe }}</p></h4>
         </div>
       </div>
     </div>
