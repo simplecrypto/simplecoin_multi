@@ -20,12 +20,12 @@ $(document).ready(function() {
     user_shares = {{ round_shares or 0 }};
     last_10_shares = {{ last_10_shares or 0 }};
     hashrate = {{ last_10_hashrate }};
-    difficulty = {{ g.current_difficulty or 'Nan' }};
+    difficulty = {{ g.average_difficulty or 'Nan' }};
     donate = {{ donation_perc or 0 }};
     n_multiplier = {{ config['last_n'] }}
 
     {# Run calculation functions #}
-    shares_to_solve = avg_shares_to_solve(difficulty);
+    shares_to_solve = {{ g.shares_to_solve }};
     est_payout = round_payout(difficulty, user_shares, shares_to_solve, donate, round_reward, n_multiplier);
     coin_rate = daily_est(last_10_shares, shares_to_solve, donate, round_reward);
 

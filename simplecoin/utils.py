@@ -3,12 +3,13 @@ import datetime
 import time
 import itertools
 import requests
+import yaml
 
 from flask import current_app
 from bitcoinrpc import CoinRPCException
 from sqlalchemy.sql import func
 
-from . import db, coinserv, cache
+from . import db, coinserv, cache, root
 from .models import (DonationPercent, OneMinuteReject, OneMinuteShare,
                      FiveMinuteShare, FiveMinuteReject, Payout, BonusPayout,
                      Block, OneHourShare, OneHourReject, Share, Status)
@@ -18,6 +19,7 @@ class CommandException(Exception):
     pass
 
 
+@cache.cached(timeout=60, key_prefix='last_block_time')
 def last_block_time():
     """ Retrieves the last time a block was solved using progressively less
     accurate methods. Essentially used to calculate round time. """
@@ -40,6 +42,7 @@ def last_block_time():
     return datetime.utcnow()
 
 
+@cache.cached(timeout=60, key_prefix='last_block_share_id')
 def last_block_share_id():
     last_block = Block.query.order_by(Block.height.desc()).first()
     if not last_block:
@@ -71,21 +74,45 @@ def compress_typ(typ, address, workers):
         workers[slc.worker][stamp] += slc.value
 
 
-@cache.cached(timeout=60, key_prefix='get_total_n1')
-def get_frontpage_data():
-
-    # A bit inefficient, but oh well... Make it better later...
-    last_share_id = last_block_share_id()
-    last_found_at = last_block_time()
+@cache.cached(timeout=60, key_prefix='pool_hashrate')
+def get_pool_hashrate():
+    """ Retrieves the pools hashrate average for the last 10 minutes. """
     dt = datetime.datetime.utcnow()
     twelve_ago = dt - datetime.timedelta(minutes=12)
     two_ago = dt - datetime.timedelta(minutes=2)
     ten_min = (OneMinuteShare.query.filter_by(user='pool')
                .filter(OneMinuteShare.time >= twelve_ago, OneMinuteShare.time <= two_ago))
     ten_min = sum([min.value for min in ten_min])
-    shares = db.session.query(func.sum(Share.shares)).filter(Share.id > last_share_id).scalar() or 0
-    last_dt = (datetime.datetime.utcnow() - last_found_at).total_seconds()
-    return [shares, last_dt, dt, ten_min]
+    # shares times hashes per n1 share divided by 600 seconds and 1000 to get
+    # khash per second
+    return (float(ten_min) * (2 ** 16)) / 600000
+
+
+@cache.cached(timeout=60, key_prefix='round_shares')
+def get_round_shares():
+    """ Retrieves the total shares that have been submitted since the last
+    round rollover. """
+    round_shares = (db.session.query(func.sum(Share.shares)).
+                    filter(Share.id > last_block_share_id()).scalar() or 0)
+    return round_shares, datetime.datetime.utcnow()
+
+
+def get_adj_round_shares():
+    """ Since round shares are cached we still want them to update on every
+    page reload, so we extrapolate a new value based on computed average
+    shares per second for the round, then add that for the time since we
+    computed the real value. """
+    round_shares, dt = get_round_shares()
+    # compute average shares/second
+    now = datetime.datetime.utcnow()
+    sps = float(round_shares) / (now - last_block_time()).total_seconds()
+    round_shares += int(round((now - dt).total_seconds() * sps))
+    return round_shares
+
+
+@cache.cached(timeout=60, key_prefix='alerts')
+def get_alerts():
+    return yaml.load(open(root + '/static/yaml/alerts.yaml'))
 
 
 @cache.memoize(timeout=60)
@@ -154,7 +181,7 @@ def collect_user_stats(address):
     bonuses = BonusPayout.query.filter_by(user=address).order_by(BonusPayout.id.desc()).limit(20)
     acct_items = sorted(itertools.chain(payouts, bonuses),
                         key=lambda i: i.created_at, reverse=True)
-    round_shares = cache.get('pplns_' + address)
+    round_shares = cache.get('pplns_' + address) or 0
     pplns_cached_time = cache.get('pplns_cache_time')
     if pplns_cached_time != None:
         pplns_cached_time.strftime("%Y-%m-%d %H:%M:%S")

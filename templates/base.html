@@ -23,17 +23,15 @@
   <script>
     $(document).ready(function() {
       var shares, ten_min_hashrate, seconds, khashpersec, shares_per_sec, luck,
-          round_time_left, shares_to_solve;
+          round_time, shares_to_solve;
 
       {# Grab new pool stats #}
-      shares = {{ g.pool_stats[0] }};
-      seconds = {{ g.pool_stats[1] }};
-      shares_to_solve = {{ g.current_difficulty }} * Math.pow(2, 16);
-      shares_to_solve = shares_to_solve * 2;
-      ten_min_hashrate = Math.pow(2, 16) * {{ g.pool_stats[3] }};
-      khashpersec = (ten_min_hashrate / 600) / 1000;
+      shares = {{ g.completed_block_shares }};
+      seconds = {{ g.round_duration }};
+      total_round_shares = {{ g.total_round_shares }}
+      khashpersec = {{ g.hashrate }};
       shares_per_sec = (shares / seconds);
-      round_time_left = (shares_to_solve/shares_per_sec)/2;
+      round_time = {{ g.shares_to_solve }} / shares_per_sec;
 
       function n(n){
           return n > 9 || n < -9 ? "" + n: "0" + n;
@@ -45,29 +43,29 @@
 
         seconds += 1;
         additional_shares = shares_per_sec * seconds
-        shares_remaining = (shares_to_solve/2) - Math.round(additional_shares);
+        shares_remaining = (total_round_shares/2) - Math.round(additional_shares);
         y = seconds%60
         minutes = n(Math.floor(seconds/60)%60);
         hours = n(Math.floor(seconds/3600));
 
-        remaining_time = Math.abs(round_time_left - seconds);
+        remaining_time = Math.abs(round_time - seconds);
 
         remaining_seconds = Math.floor(remaining_time%60);
         remaining_minutes = n(Math.floor(remaining_time/60)%60);
         remaining_hours = n(Math.floor(remaining_time/3600));
 
         {# show a negative sign if we passed the expected solve time #}
-        if (round_time_left - seconds < 0) {
+        if (round_time - seconds < 0) {
           remaining_hours = "-" + remaining_hours
         }
 
-        luck = ((shares_to_solve/2) / additional_shares) * 1000;
+        luck = ((total_round_shares/2) / additional_shares) * 1000;
         if (luck > 99999) {
           luck = 99999;
         }
 
         $('.odometer.shares').text(numberWithCommas(Math.round(additional_shares)));
-        $('.total_n').text(numberWithCommas(Math.round(shares_to_solve)));
+        $('.total_n').text(numberWithCommas(Math.round(total_round_shares)));
         $('.odometer.blockshares').text(numberWithCommas(Math.round(additional_shares)));
 
         $('.minutes').text(minutes);

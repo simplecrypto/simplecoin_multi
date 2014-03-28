@@ -14,8 +14,9 @@ from .models import (Transaction, OneMinuteShare, Block, Payout, Blob,
                      BonusPayout)
 from . import db, root, cache
 from .utils import (compress_typ, get_typ, verify_message, get_pool_acc_rej,
-                    get_pool_eff, get_frontpage_data, last_10_shares,
-                    total_earned, total_paid, collect_user_stats)
+                    get_pool_eff, last_10_shares, total_earned, total_paid,
+                    collect_user_stats, get_adj_round_shares,
+                    get_pool_hashrate, last_block_time, get_alerts)
 
 
 main = Blueprint('main', __name__)
@@ -100,21 +101,18 @@ def confirm_transactions():
 
 @main.before_request
 def add_pool_stats():
-    g.pool_stats = get_frontpage_data()
+    g.completed_block_shares = get_adj_round_shares()
+    g.round_duration = (datetime.datetime.utcnow() - last_block_time()).total_seconds()
+    g.hashrate = get_pool_hashrate()
 
-    additional_seconds = (datetime.datetime.utcnow() - g.pool_stats[2]).total_seconds()
-    ratio = g.pool_stats[0] / g.pool_stats[1]
-    additional_shares = ratio * additional_seconds
-    g.pool_stats[0] += additional_shares
-    g.pool_stats[1] += additional_seconds
     blobs = Blob.query.filter(Blob.key.in_(("server", "diff"))).all()
     server = [b for b in blobs if b.key == "server"][0]
-    diff = [b for b in blobs if b.key == "diff"][0].data['diff']
-    g.current_difficulty = diff
+    diff = float([b for b in blobs if b.key == "diff"][0].data['diff'])
+    g.average_difficulty = diff
+    g.shares_to_solve = diff * (2 ** 16)
+    g.total_round_shares = g.shares_to_solve * current_app.config['last_n']
     g.worker_count = int(server.data['stratum_clients'])
-
-    alerts = yaml.load(open(root + '/static/yaml/alerts.yaml'))
-    g.alerts = alerts
+    g.alerts = get_alerts()
 
 
 @main.route("/close/<int:id>")
@@ -128,9 +126,13 @@ def close_alert(id):
 @main.route("/api/pool_stats")
 def pool_stats_api():
     ret = {}
-    ret['hashrate'] = (g.pool_stats[3] * (2**16)) / 600000
+    ret['hashrate'] = get_pool_hashrate()
     ret['workers'] = g.worker_count
-    ret['round_shares'] = round(g.pool_stats[0])
+    ret['completed_shares'] = g.completed_block_shares
+    ret['total_round_shares'] = g.total_round_shares
+    ret['round_duration'] = g.round_duration
+    sps = float(g.completed_block_shares) / g.round_duration
+    ret['shares_per_sec'] = sps
     return jsonify(**ret)
 
 
@@ -222,16 +224,22 @@ def address_api(address):
         abort(404)
 
     stats = collect_user_stats(address)
+    import pprint
+    pprint.pprint(stats)
     stats['acct_items'] = get_joined(stats['acct_items'])
     workers = []
     for name, data in stats['workers'].iteritems():
-        print name
         workers.append(data)
         workers[-1]['name'] = name
     stats['workers'] = workers
     stats['total_earned'] = float(stats['total_earned'])
     if stats['pplns_cached_time']:
         stats['pplns_cached_time'] = calendar.timegm(stats['pplns_cached_time'].utctimetuple())
+    day_shares = stats['last_10_shares'] * 6 * 24
+    daily_percentage = float(day_shares) / g.shares_to_solve
+    donation_perc = (1 - (stats['donation_perc'] / 100.0))
+    stats['daily_est'] = daily_percentage * current_app.config['reward'] * donation_perc
+    stats['round_payout'] = (float(stats['round_shares']) / g.total_round_shares) * donation_perc
     return jsonify(**stats)
 
 
