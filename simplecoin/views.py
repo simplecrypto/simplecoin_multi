@@ -133,6 +133,7 @@ def pool_stats_api():
     ret['round_duration'] = g.round_duration
     sps = float(g.completed_block_shares) / g.round_duration
     ret['shares_per_sec'] = sps
+    ret['est_sec_remaining'] = (float(g.shares_to_solve) - g.completed_block_shares) / sps
     return jsonify(**ret)
 
 
@@ -224,8 +225,6 @@ def address_api(address):
         abort(404)
 
     stats = collect_user_stats(address)
-    import pprint
-    pprint.pprint(stats)
     stats['acct_items'] = get_joined(stats['acct_items'])
     workers = []
     for name, data in stats['workers'].iteritems():
@@ -238,8 +237,9 @@ def address_api(address):
     day_shares = stats['last_10_shares'] * 6 * 24
     daily_percentage = float(day_shares) / g.shares_to_solve
     donation_perc = (1 - (stats['donation_perc'] / 100.0))
-    stats['daily_est'] = daily_percentage * current_app.config['reward'] * donation_perc
-    stats['round_payout'] = (float(stats['round_shares']) / g.total_round_shares) * donation_perc
+    rrwd = current_app.config['reward']
+    stats['daily_est'] = daily_percentage * rrwd * donation_perc
+    stats['est_round_payout'] = (float(stats['round_shares']) / g.total_round_shares) * donation_perc * rrwd
     return jsonify(**stats)
 
 
