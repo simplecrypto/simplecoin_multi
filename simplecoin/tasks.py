@@ -90,7 +90,7 @@ def update_coin_transaction(self):
         for tx in unconfirmed:
             # Check to see if the transaction hash exists in the block chain
             try:
-                t = coinserv.gettransaction(tx.id)
+                t = coinserv.gettransaction(tx.txid)
                 if t.get('confirmations', 0) >= 6:
                     tx.confirmed = True
             except CoinRPCException:
