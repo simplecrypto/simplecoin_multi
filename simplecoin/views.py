@@ -147,6 +147,7 @@ def pool_stats_api():
     sps = float(g.completed_block_shares) / g.round_duration
     ret['shares_per_sec'] = sps
     ret['last_block_found'] = last_block_found()
+    ret['shares_to_solve'] = g.shares_to_solve
     ret['est_sec_remaining'] = (float(g.shares_to_solve) - g.completed_block_shares) / sps
     return jsonify(**ret)
 
