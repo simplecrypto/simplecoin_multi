@@ -195,16 +195,6 @@ def exception():
     return ""
 
 
-@main.route("/charity")
-def charity_view():
-    charities = []
-    for info in current_app.config['aliases']:
-        info['hashes_per_min'] = ((2 ** 16) * last_10_shares(info['address'])) / 600
-        info['total_paid'] = total_paid(info['address'])
-        charities.append(info)
-    return render_template('charity.html', charities=charities)
-
-
 @main.route("/<address>/<worker>/details/<int:gpu>")
 @main.route("/<address>/details/<int:gpu>", defaults={'worker': ''})
 @main.route("/<address>//details/<int:gpu>", defaults={'worker': ''})

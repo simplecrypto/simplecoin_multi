@@ -1,8 +1,7 @@
-- title: <b>Negative fees have ended!</b>
+- title: Awesome, it works!
   severity: success
   date: 3/27/2014
-  key: 4
+  # make each of these unique. session stores if it's been closed...
+  key: 0
   body: |
-      Negative fees have ended, we're moving to minimum of 0% fees with a
-      default donation of 1%. Check the news for details. Thanks
-      for mining with us!
+      Woo!
