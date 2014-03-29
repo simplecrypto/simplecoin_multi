@@ -12,7 +12,7 @@ down_revision = '27a4875d33de'
 
 from alembic import op
 import sqlalchemy as sa
-from simpledoge.models import Payout
+from simplecoin.models import Payout
 
 
 def upgrade():

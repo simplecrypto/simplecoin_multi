@@ -1,1 +1,0 @@
-from simpledoge.tests import APITest

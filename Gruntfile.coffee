@@ -12,7 +12,7 @@ module.exports = (grunt) ->
         stdout: true
         stderr: true
       reload:
-        command: 'kill -2 `cat gunicorn.pid`; gunicorn simplecoin.wsgi_entry:app -D -p gunicorn.pid -b 0.0.0.0:9400; tail gunicorn.log; tail webserver.log'
+        command: 'kill -2 `cat gunicorn.pid`; gunicorn simplecoin.wsgi_entry:app -D -p gunicorn.pid -b 0.0.0.0:9400 --access-logfile gunicorn.log; tail gunicorn.log; tail webserver.log'
 
     watch:
       dev_server:

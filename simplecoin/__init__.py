@@ -28,6 +28,7 @@ def create_app(config='/config.yml', celery=False):
     config_vars = yaml.load(open(root + config))
     # inject all the yaml configs
     app.config.update(config_vars)
+    app.logger.info(app.config)
 
     app.rpc_connection = AuthServiceProxy(
         "http://{0}:{1}@{2}:{3}/"
@@ -68,6 +69,7 @@ def create_app(config='/config.yml', celery=False):
         except Exception:
             app.config['hash'] = ''
             app.config['revdate'] = ''
+
 
     # filters for jinja
     @app.template_filter('time_ago')
