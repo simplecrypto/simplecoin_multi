@@ -35,16 +35,18 @@ email:
 
 # Celery configuration
 # =======================================================================
-# Celery configuration options.
-#BROKER_URL: ''
-CELERY_ACCEPT_CONTENT: ['pickle', 'json', 'msgpack', 'yaml']
-# the name of the queue you'll recieve tasks from powerpool on. should
-# match the default queue setting in powerpool instances that connect with
-# this task handler
-#CELERY_QUEUES:
-#    simplecoin:
-#        exchange: "simplecoin"
-#        binding_key: "simplecoin"
+# Celery configuration options. Since celery is run under a flask context
+# then thses are settings for the celery worker.
+celery:
+    CELERY_ACCEPT_CONTENT: ['pickle', 'json', 'msgpack', 'yaml']
+    # the name of the queue you'll recieve tasks from powerpool on. should
+    # match the default queue setting in powerpool instances that connect with
+    # this task handler
+    #CELERY_QUEUES:
+    #    doge:
+    #        exchange: doge
+    #        binding_key: doge
+    BROKER_URL: 'amqp://guest:guest@localhost:5672/doge'
 
 # Cache configuration
 # ========================================================================
