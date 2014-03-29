@@ -16,7 +16,8 @@ from . import db, root, cache
 from .utils import (compress_typ, get_typ, verify_message, get_pool_acc_rej,
                     get_pool_eff, last_10_shares, total_earned, total_paid,
                     collect_user_stats, get_adj_round_shares,
-                    get_pool_hashrate, last_block_time, get_alerts)
+                    get_pool_hashrate, last_block_time, get_alerts,
+                    last_block_height)
 
 
 main = Blueprint('main', __name__)
@@ -145,6 +146,7 @@ def pool_stats_api():
     ret['round_duration'] = g.round_duration
     sps = float(g.completed_block_shares) / g.round_duration
     ret['shares_per_sec'] = sps
+    ret['last_block_found'] = last_block_found()
     ret['est_sec_remaining'] = (float(g.shares_to_solve) - g.completed_block_shares) / sps
     return jsonify(**ret)
 

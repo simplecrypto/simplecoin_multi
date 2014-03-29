@@ -50,6 +50,14 @@ def last_block_share_id():
     return last_block.last_share_id
 
 
+@cache.cached(timeout=60, key_prefix='last_block_found')
+def last_block_found():
+    last_block = Block.query.order_by(Block.height.desc()).first()
+    if not last_block:
+        return 0
+    return last_block.height
+
+
 def get_typ(typ, address, window=True):
     """ Gets the latest slices of a specific size. window open toggles
     whether we limit the query to the window size or not. We disable the
