@@ -154,7 +154,7 @@ def pool_stats_api():
 
 @main.route("/stats")
 def user_stats():
-    return render_template('stats.html', page_title='User Stats - Look up statistics for a Dogecoin address')
+    return render_template('stats.html')
 
 
 @main.route("/round_summary")

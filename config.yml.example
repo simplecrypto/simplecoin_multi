@@ -95,6 +95,7 @@ repopath: https://github.com/icook/simplecoin/commit/
 reward: 250000
 # the colloquial name of the coin
 coin_name: Doge
+site_title: Simple Doge
 # the unicode symbol for the coin
 coin_symbol: "&ETH;"
 # logo img

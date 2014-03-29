@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% set active_page = "home" %}
-{% set page_title = "Home - A custom Doge mining pool with no registration" %}
+{% set page_title = "Home - A custom mining pool with no registration" %}
 {% block body %}
 <script>
 $(document).ready(function() {
@@ -38,20 +38,20 @@ $(document).ready(function() {
             <small>
               <pre><b>URL: </b>stratum+tcp://stratum.simpledoge.com
 <b>Port:</b> 3333
-<b>Username: </b>[Your doge wallet address].[Worker Name]
+<b>Username: </b>[Your wallet address].[Worker Name]
 <b>Password: </b>anything
 <b>cgminer example:</b> ./cgminer -o stratum+tcp://stratum.simpledoge.com:3333 -u DRhevw3qkAjmAjyNkSyXh2kxvrXuxktmyD.worker1 -p x -I 13</pre>
             </small>
           </li>
-          <li>Check your stats and estimated payout by entering your Doge address below:</li>
+          <li>Check your stats and estimated payout by entering your {{ config['coin_name'] }} address below:</li>
           <div class="form-group">
             <form class="bs-example form-horizontal" id="statsform">
               <fieldset>
                 <div class="form-group">
                   <div class="col-lg-9">
-                    <input type="text" class="form-control" id="inputAddress" placeholder="Doge Address">
+                    <input type="text" class="form-control" id="inputAddress" placeholder="{{ config['coin_name'] }} Address">
                     <span class="help-block">
-                        Paste your Doge address for quick access to individualized stats.
+                        Paste your {{ config['coin_name'] }} address for quick access to individualized stats.
                         {% if 'recent_users' in session %}
                           <h4>Recently Visited Stats:</h4>
                           {% for address in session['recent_users'][:2] %}
@@ -73,13 +73,13 @@ $(document).ready(function() {
   </div>
 </div>
 
-<!-- Why Simple Doge rocks ================================================== -->
+<!-- Value points ================================================== -->
 
 <div class="row">
   <div class="col-md-4">
     <div class="well well-lg" style="height: 180px;">
       <h3><i class="fa fa-times too-damn-bright"></i> &nbsp;No registration</h3>
-      Unlike most pools, simple Doge doesn't require, or even provide, registration. Simply connect to our stratum servers with your dogecoin address. 
+      Unlike most pools, we doesn't require, or even provide, registration. Simply connect to our stratum servers with your dogecoin address. 
     </div>
   </div>
   <div class="col-md-4">
@@ -148,7 +148,6 @@ $(document).ready(function() {
 
 
 <!-- News/Announcements ================================================== -->
-
 <h2>News</h2>
 <div class="row row-header">
   <div class="col-lg-12">

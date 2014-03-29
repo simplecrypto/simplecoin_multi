@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% set active_page = "stats" %}
-{% set page_title = "Stats - Lookup mining stats for a Dogecoin address" %}
+{% set page_title = "Stats - Lookup mining stats for an address" %}
 {% block body %}
 <script>
 $(document).ready(function() {
@@ -41,7 +41,7 @@ $(document).ready(function() {
     <fieldset>
       <div class="form-group">
         <div class="col-lg-9">
-          <input type="text" class="form-control" id="inputAddress" placeholder="Paste your Doge address for quick access to individualized stats.">
+          <input type="text" class="form-control" id="inputAddress" placeholder="Paste your {{ config['coin_name'] }} address for quick access to individualized stats.">
           <span class="help-block">
               {% if 'recent_users' in session %}
                 <h4>Recently Visited Stats:</h4>

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% set active_page = "stats" %}
-{% set page_title = "Set Donation - Change your Simple Doge donation amount" %}
+{% set page_title = "Set Donation - Change your donation amount" %}
 {% block head %}
 {% endblock %}
 {% block body %}
@@ -25,7 +25,7 @@ $(document).ready(function() {
     else if (isNaN(fee))
       alert("Must enter a valid number!");
     else {
-      $("#message").text("SETFEE " + fee + "\t" + Math.round(new Date().getTime() / 1000) + "\tOnly valid on SimpleDoge for " + new Date());
+    $("#message").text("SETFEE " + fee + "\t" + Math.round(new Date().getTime() / 1000) + "\tOnly valid on {{ config['site_title'] }} for " + new Date());
     }
   });
 });
@@ -34,25 +34,17 @@ $(document).ready(function() {
 <div class="container">
   <div class="row page-header">
     <div class="col-lg-12">
-      <div class="bs-component">
-        <div class="alert alert-dismissable alert-warning">
-          <button type="button" class="close" data-dismiss="alert">×</button>
-          <strong>This section is not currently working with the Multidoge Wallet, sorry!</strong><br>
-          We're looking into a <a href="https://github.com/langerhans/multidoge/issues/20">fix</a>
-        </div>
-      <div id="source-button" class="btn btn-primary btn-xs" style="display: none;">&lt; &gt;</div></div>
-      <h2></h2>
       <h2>How to change your donation percentage</h2>
       <br>
       <ol>
         <li>Type in the % you want to donate as a number.</li>
         <li>Click generate</li>
         <li>Click copy to Clipboard</li>
-        <li>Sign the message with your Dogecoind wallet.
+        <li>Sign the message with your wallet.
           <ul>
-            <li>To do this, open up your dogecoin wallet</li>
+            <li>Open up your wallet application</li>
             <li>Open <b>file</b>, click <b>sign message</b></li>
-            <li>You'll need to put in your address and paste the message here.
+            <li>You'll need to put in <b>your</b> address and paste the message here.
             the screens will look something like <a href="http://imgur.com/a/nUmZ0">these</a> </li>
             <li>Copy the signature, and paste it on our site</li>
           </ul>
