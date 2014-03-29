@@ -13,20 +13,21 @@ $(document).ready(function() {
   setTimeout(function(){
     var hashrate, last_10_shares, difficulty, user_shares, est_payout,
         round_reward, shares_to_solve, donate, coin_rate,
-        n_multiplier;
+        n_multiplier, pplns_total_shares;
 
     {# load serverside info into js #}
     round_reward = {{ config['reward'] or 0 }};
     user_shares = {{ round_shares or 0 }};
+    pplns_total_shares = {{ pplns_total_shares or 0}}
     last_10_shares = {{ last_10_shares or 0 }};
     hashrate = {{ last_10_hashrate }};
     difficulty = {{ g.average_difficulty or 'Nan' }};
     donate = {{ donation_perc or 0 }};
-    n_multiplier = {{ config['last_n'] }}
+    n_multiplier = {{ config['last_n'] or 2}}
 
     {# Run calculation functions #}
     shares_to_solve = {{ g.shares_to_solve }};
-    est_payout = round_payout(difficulty, user_shares, shares_to_solve, donate, round_reward, n_multiplier);
+    est_payout = round_payout(difficulty, user_shares, shares_to_solve, donate, round_reward, n_multiplier, pplns_total_shares);
     coin_rate = daily_est(last_10_shares, shares_to_solve, donate, round_reward);
 
     setInterval(set_content = function(){

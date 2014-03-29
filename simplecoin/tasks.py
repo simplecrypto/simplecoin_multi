@@ -31,8 +31,7 @@ def update_pplns_est(self):
         # grab configured N
         mult = int(current_app.config['last_n'])
         # generate average diff from last 500 blocks
-        blobs = Blob.query.filter(Blob.key.in_(("server", "diff"))).all()
-        diff = [b for b in blobs if b.key == "diff"][0].data['diff']
+        diff = Blob.query.filter_by(key="diff").first().data['diff']
         # Calculate the total shares to that are 'counted'
         total_shares = ((float(diff) * (2 ** 16)) * mult)
 
@@ -49,6 +48,7 @@ def update_pplns_est(self):
                 remain = 0
                 break
 
+        cache.set('pplns_total_shares', (total_shares - remain), timeout=40 * 60)
         cache.set('pplns_cache_time', datetime.datetime.utcnow(), timeout=40 * 60)
         cache.set_many(user_shares, timeout=40 * 60)
         cache.set('pplns_user_shares', user_shares, timeout=40 * 60)

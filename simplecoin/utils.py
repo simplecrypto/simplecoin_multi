@@ -194,6 +194,8 @@ def collect_user_stats(address):
     if pplns_cached_time != None:
         pplns_cached_time.strftime("%Y-%m-%d %H:%M:%S")
 
+    pplns_total_shares = cache.get('pplns_total_shares')
+
     # store all the raw data of we're gonna grab
     workers = {}
     # blank worker template
@@ -255,6 +257,7 @@ def collect_user_stats(address):
     return dict(workers=workers,
                 round_shares=round_shares,
                 pplns_cached_time=pplns_cached_time,
+                pplns_total_shares=pplns_total_shares,
                 acct_items=acct_items,
                 total_earned=earned,
                 total_paid=total_payout_amount,
