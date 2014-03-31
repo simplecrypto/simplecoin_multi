@@ -244,6 +244,14 @@ def collect_user_stats(address):
         else:
             workers[name]['efficiency'] = None
 
+    # sort the workers
+    new_workers = []
+    for name, data in workers.iteritems():
+        new_workers.append(data)
+        new_workers[-1]['name'] = name
+
+    new_workers = sorted(new_workers, key=lambda x: x['name'])
+
     # show their donation percentage
     perc = DonationPercent.query.filter_by(user=address).first()
     if not perc:
@@ -254,7 +262,7 @@ def collect_user_stats(address):
     user_last_10_shares = last_10_shares(address)
     last_10_hashrate = ((user_last_10_shares * 65536.0) / 1000000) / 600
 
-    return dict(workers=workers,
+    return dict(workers=new_workers,
                 round_shares=round_shares,
                 pplns_cached_time=pplns_cached_time,
                 pplns_total_shares=pplns_total_shares,

@@ -231,11 +231,6 @@ def address_api(address):
 
     stats = collect_user_stats(address)
     stats['acct_items'] = get_joined(stats['acct_items'])
-    workers = []
-    for name, data in stats['workers'].iteritems():
-        workers.append(data)
-        workers[-1]['name'] = name
-    stats['workers'] = workers
     stats['total_earned'] = float(stats['total_earned'])
     if stats['pplns_cached_time']:
         stats['pplns_cached_time'] = calendar.timegm(stats['pplns_cached_time'].utctimetuple())

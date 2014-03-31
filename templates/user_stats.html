@@ -123,27 +123,27 @@ $(document).ready(function() {
   <div class="row page-header">
     <h2>Worker Status</h2>
     <br>
-    {% for name, dat in workers.iteritems() %}
+    {% for worker in workers %}
     <div class="col-lg-10 col-lg-offset-1 col-md-12 col-sm-12 col-xs-12">
       <div class="panel panel-default" style="background-color:#243749;">
         <div class="panel-heading">
           <h3>
-            <i class="fa fa-circle" style="color:{% if dat['online'] %}#5BCE00{% else %}#B12627{% endif %}"
+            <i class="fa fa-circle" style="color:{% if worker['online'] %}#5BCE00{% else %}#B12627{% endif %}"
                data-toggle="tooltip" data-placement="right" title="Online"></i>&nbsp;
-            {% if name %}{{ name }}{% else %}[unnamed]{% endif %}
+            {% if worker['name'] %}{{ worker['name'] }}{% else %}[unnamed]{% endif %}
             <span class="pull-right">
             <small class="text-right" style="padding-left:10px;font-weight:300;">Hashrate:
-              {{ dat['last_10_hashrate'] | round(3) }} MH/sec &nbsp;
+              {{ worker['last_10_hashrate'] | round(3) }} MH/sec &nbsp;
               <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                        title="Average hashrate over the last ten minutes based on accepted shares, NOT PPAgent."></i></small>
             <small class="text-right" style="padding-left:10px;font-weight:300;">Efficiency:
-              {% if dat['efficiency'] %}
-                {{ dat['efficiency'] | round(2) }}% &nbsp;
+              {% if worker['efficiency'] %}
+                {{ worker['efficiency'] | round(2) }}% &nbsp;
               {% else %}
                 --
               {% endif %}
               <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Computed from accepted/total({{ dat['accepted'] }}/{{ ((dat['accepted'] + dat['rejected'])) }}) shares submitted in the last 24 hours"></i></small>
+                       title="Computed from accepted/total({{ worker['accepted'] }}/{{ ((worker['accepted'] + worker['rejected'])) }}) shares submitted in the last 24 hours"></i></small>
             </span>
           </h3>
           <div class="clearfix"></div>
@@ -152,20 +152,20 @@ $(document).ready(function() {
         <div class="panel-body" style="padding:0px;">
           <div class="table-responsive  bs-component" style="position:relative;padding:9px;">
             <div class="col-xs-6">
-              <h4>Accepted Shares: {{ '{:,}'.format(dat['accepted']) }}&nbsp;
+              <h4>Accepted Shares: {{ '{:,}'.format(worker['accepted']) }}&nbsp;
                 <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                      title="Accepted shares over the last 24 hours"></i></h4>
             </div>
             <div class="col-xs-6">
-              <h4>Rejected Shares: {{ '{:,}'.format(dat['rejected']) }}&nbsp;
+              <h4>Rejected Shares: {{ '{:,}'.format(worker['rejected']) }}&nbsp;
                 <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                      title="Rejected shares over the last 24 hours"></i></h4>
             </div>
             <div class="clearfix"></div>
           </div>
           {# if there are miner status loop through them #}
-          {% if dat['status'] %}
-          {% set stat = dat['status'] %}
+          {% if worker['status'] %}
+          {% set stat = worker['status'] %}
           <div class="table-responsive bs-component worker-table-wrapper">
             <div class="worker-wrapper">
               <b>{{ stat['type'] }} status</b>
@@ -175,16 +175,16 @@ $(document).ready(function() {
                 Multiple unnamed workers will do wonky things!
               </small>
             {% endif %}
-            {% if dat['status_stale'] == True %}
+            {% if worker['status_stale'] == True %}
               {# if stale then show a warning #}
-              <small colspan="3" style="font-size:14px;color:#EEA236;"> <i>Updated {{ dat['status_time'] | time_ago }}</i></small>
+              <small colspan="3" style="font-size:14px;color:#EEA236;"> <i>Updated {{ worker['status_time'] | time_ago }}</i></small>
               <div class="btn btn-default btn-sm collapse-button" data-toggle="collapse" data-target="#worker-{{ name }}">
                 [ + ]
               </div>
             {% else %}
               {# Not stale - show last updated time #}
               <small colspan="3" style=" font-size:14px;font-weight:300;">
-                <i>Updated {{ dat['status_time'] | time_ago }}</i></small>
+                <i>Updated {{ worker['status_time'] | time_ago }}</i></small>
               <div class="btn btn-default btn-sm collapse-button"
                    data-toggle="collapse" data-target="#worker-{{ name }}">
                 [ - ]
@@ -192,7 +192,7 @@ $(document).ready(function() {
             {% endif %}
             </div>
             {# Worker's miner stats #}
-            <div id="worker-{{ name }}" class="collapse{% if dat['status_stale'] == False %} in{% endif %}">
+            <div id="worker-{{ name }}" class="collapse{% if worker['status_stale'] == False %} in{% endif %}">
               <table class="table table-striped table-hover worker-table">
                 <thead>
                   <tr>
@@ -239,7 +239,7 @@ $(document).ready(function() {
                   <tr>
                     <th colspan="8" style="text-align:left;">
                       <small>Running PPAgent v{{ stat.get('v', '0.2') }}</small>&nbsp;
-                      {% if dat['status_version'] < config['latest_ppagent'] %}
+                      {% if worker['status_version'] < config['latest_ppagent'] %}
                         {# Notice about out of date ppagent #}
                         <a href="https://github.com/icook/ppagent#upgrade">
                           <small style="color:#FFD600;font-weight:400;">
