@@ -1,7 +1,7 @@
 Simple Doge
 ===========
 
-This repo is the source code for the http://simpledoge.com in its entirety.
+This repo is a generic version of http://simpledoge.com and http://simplevert.com.
 This includes all Celery tasks for handling the PowerPool stratum mining servers
 output.
 
