@@ -3,7 +3,7 @@ from lever import (API, LeverException)
 from pprint import pformat
 
 from .models import (Block, Share, Transaction, Payout, OneMinuteShare, Status,
-                     Blob)
+                     Blob, BonusPayout)
 from . import db
 
 import six
@@ -93,9 +93,14 @@ class BlobAPI(APIBase):
     model = Blob
 
 
+class BonusPayoutAPI(APIBase):
+    model = BonusPayout
+
+
 BlobAPI.register(api, '/blob')
 BlockAPI.register(api, '/block')
 PayoutAPI.register(api, '/payout')
+BonusPayoutAPI.register(api, '/bonus_payout')
 OneMinuteShareAPI.register(api, '/onemin')
 ShareAPI.register(api, '/share')
 TransactionAPI.register(api, '/transaction')
