@@ -41,7 +41,7 @@ $(document).ready(function() {
 
   },1000);
 
-  $('table.worker-table > tbody > tr').bind( "click", function() {
+  $('table.worker-table > tbody > tr.gpu').bind( "click", function() {
     // row was clicked
     var jqxhr = $.ajax($(this).attr('data-url') )
     .always(function(data) {
@@ -169,7 +169,7 @@ $(document).ready(function() {
           <div class="table-responsive bs-component worker-table-wrapper">
             <div class="worker-wrapper">
               <b>{{ stat['type'] }} status</b>
-            {% if not name %}
+            {% if not worker['name'] %}
               {# Show a warning about unnamed workers #}
               <small style="font-size:14px;color:#ff0000;font-weight:400;">
                 Multiple unnamed workers will do wonky things!
@@ -184,7 +184,8 @@ $(document).ready(function() {
             {% else %}
               {# Not stale - show last updated time #}
               <small colspan="3" style=" font-size:14px;font-weight:300;">
-                <i>Updated {{ worker['status_time'] | time_ago }}</i></small>
+                <i>Updated {{ worker['status_time'] | time_ago }}</i>
+              </small>
               <div class="btn btn-default btn-sm collapse-button"
                    data-toggle="collapse" data-target="#worker-{{ name }}">
                 [ - ]
@@ -208,7 +209,7 @@ $(document).ready(function() {
                 </thead>
                 <tbody>
                 {% for gpu in stat['gpus'] %}
-                  <tr data-url="/{{ username }}/{{ name }}/details/{{ loop.index0 }}">
+                  <tr class="gpu" data-url="/{{ username }}/{{ name }}/details/{{ loop.index0 }}">
                     <th>{{ loop.index0 }}</th>
                     <th {% if (gpu.get('MHS av', 0)*1000) == 0 %}class="warning"{% endif %}>
                       {{ (gpu.get('MHS av', 0)*1000)|round|int }}
