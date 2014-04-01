@@ -6,7 +6,6 @@ import sys
 import argparse
 import pprint
 
-from time import sleep
 from flask import current_app
 from urlparse import urljoin
 from itsdangerous import TimedSerializer, BadData
@@ -21,6 +20,12 @@ ch = logging.StreamHandler(sys.stdout)
 formatter = logging.Formatter('[%(levelname)s] %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
+
+hdlr = logging.FileHandler('rpc.log')
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+hdlr.setFormatter(formatter)
+logger.addHandler(hdlr)
+logger.setLevel(logging.DEBUG)
 
 
 class RPCException(Exception):

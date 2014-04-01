@@ -25,7 +25,7 @@ ch.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
 root.addHandler(ch)
 root.setLevel(logging.DEBUG)
 
-hdlr = logging.FileHandler(app.config.get('log_file', 'manage.log'))
+hdlr = logging.FileHandler(app.config.get('manage_log_file', 'manage.log'))
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 root.addHandler(hdlr)

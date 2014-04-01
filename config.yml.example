@@ -124,3 +124,10 @@ stratum_address: stratum.simpledoge.com
 stratum_port: 3333
 # link to a good beginner guide
 beginner_guide: <a href="http://www.reddit.com/r/dogemining/wiki/index/mining_guide" target="_blank">Reddit</a>
+
+# Logging
+# =======================================================================
+# where all webserver exceptions and logging messages will get put
+#log_file = webserver.log
+# all management commands will be logged here
+#manage_log_file = manage.log
