@@ -236,7 +236,7 @@ $(document).ready(function() {
                 </thead>
                 <tbody>
                 {% for gpu in stat['gpus'] %}
-                  <tr class="gpu" data-url="/{{ username }}/{{ name }}/details/{{ loop.index0 }}">
+                  <tr class="gpu" data-url="/{{ username }}/{{ worker['name'] }}/details/{{ loop.index0 }}">
                     <th>{{ loop.index0 }}</th>
                     <th {% if (gpu.get('MHS av', 0)*1000) == 0 %}class="warning"{% endif %}>
                       {{ (gpu.get('MHS av', 0)*1000)|round|int }}
