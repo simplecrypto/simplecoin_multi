@@ -129,7 +129,8 @@ $(document).ready(function() {
         <div class="panel-heading">
           <h3>
             <i class="fa fa-circle" style="color:{% if worker['online'] %}#5BCE00{% else %}#B12627{% endif %}"
-               data-toggle="tooltip" data-placement="right" title="Online"></i>&nbsp;
+               data-toggle="tooltip" data-placement="right"
+               title="{% if worker['online'] %}Online{% else %}Offline{% endif %}"></i>&nbsp;
             {% if worker['name'] %}{{ worker['name'] }}{% else %}[unnamed]{% endif %}
             <span class="pull-right">
             <small class="text-right" style="padding-left:10px;font-weight:300;">Hashrate:
@@ -151,12 +152,12 @@ $(document).ready(function() {
         </div>
         <div class="panel-body" style="padding:0px;">
           <div class="table-responsive  bs-component" style="position:relative;padding:9px;">
-            <div class="col-xs-6">
+            <div class="col-xs-6 text-center">
               <h4>Accepted Shares: {{ '{:,}'.format(worker['accepted']) }}&nbsp;
                 <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                      title="Accepted shares over the last 24 hours"></i></h4>
             </div>
-            <div class="col-xs-6">
+            <div class="col-xs-6 text-center">
               <h4>Rejected Shares: {{ '{:,}'.format(worker['rejected']) }}&nbsp;
                 <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                      title="Rejected shares over the last 24 hours"></i></h4>
@@ -194,6 +195,32 @@ $(document).ready(function() {
             </div>
             {# Worker's miner stats #}
             <div id="worker-{{ name }}" class="collapse{% if worker['status_stale'] == False %} in{% endif %}">
+              <div class="table-responsive  bs-component" style="position:relative;padding:9px;">
+                <div class="col-xs-4 text-center">
+                  <h4>WU: {{ (worker['wu'])| int}}&nbsp;
+                    <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                         title="Summation of the reported average hashrates"></i></h4>
+                </div>
+                <div class="col-xs-4 text-center">
+                  <h4>KHash/sec: {{ '{:,}'.format((worker['total_hashrate']*1000)|int) }}&nbsp;
+                    <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                         title="Summation of the reported average hashrates"></i>
+                </div>
+                <div class="col-xs-4 text-center">
+                  <h4>
+                    {% if worker['wue'] < 0.80 %}
+                    <i class="fa fa-circle" style="color:red"></i>&nbsp;
+                    {% elif (worker['wue'] < 0.87) and (worker['wue'] >= 0.80) %}
+                    <i class="fa fa-circle" style="color:yellow"></i>&nbsp;
+                    {% elif worker['wue'] >= 0.87 %}
+                    <i class="fa fa-circle" style="color:green"></i>&nbsp;
+                    {% endif %}
+                    WUE: {{ (worker['wue']*100)| round(2)}}%&nbsp;
+                    <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                         title="This value is calculated from the reported WU({{ worker['wu'] }}) / reported average hashrate({{ (worker['total_hashrate']*1000)|int }}). A value of 90%+ is ideal. To increase your WUE make sure your rig is not having hardware errors"></i></h4>
+                </div>
+                <div class="clearfix"></div>
+              </div>
               <table class="table table-striped table-hover worker-table">
                 <thead>
                   <tr>
