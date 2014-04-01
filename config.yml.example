@@ -87,6 +87,9 @@ payout_fee: 1.0
 rpc_signature: ''
 # where are we expecting the rpc server to be?
 rpc_url: http://www.simpledoge.com
+# what the address should start with to try paying it out. 1 for BTC, L for
+# LTC, etc
+payout_prefix: D
 
 # Coin/Branding
 # =======================================================================

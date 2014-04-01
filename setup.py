@@ -10,7 +10,7 @@ setup(name='simplecoin',
       url='http://www.simpledoge.com',
       entry_points={
           'console_scripts': [
-              'sd_rpc = simplecoin.rpc:entry'
+              'sc_rpc = simplecoin.rpc:entry'
           ]
       },
       packages=find_packages()

@@ -3,15 +3,13 @@ import time
 import yaml
 import datetime
 
-from itsdangerous import TimedSerializer
 from flask import (current_app, request, render_template, Blueprint, abort,
                    jsonify, g, session, Response)
 from lever import get_joined
 
-from .models import (Transaction, OneMinuteShare, Block, Payout, Blob,
-                     FiveMinuteShare, OneHourShare, Status, FiveMinuteReject,
-                     OneMinuteReject, OneHourReject, DonationPercent,
-                     BonusPayout)
+from .models import (OneMinuteShare, Block, Blob, FiveMinuteShare,
+                     OneHourShare, Status, FiveMinuteReject, OneMinuteReject,
+                     OneHourReject, DonationPercent, BonusPayout)
 from . import db, root, cache
 from .utils import (compress_typ, get_typ, verify_message, get_pool_acc_rej,
                     get_pool_eff, last_10_shares, total_earned, total_paid,
@@ -56,54 +54,6 @@ def pool_stats():
                            efficiency=efficiency,
                            accept_total=accept_total,
                            reject_total=reject_total)
-
-
-@main.route("/get_payouts", methods=['POST'])
-def get_payouts():
-    """ Used by remote procedure call to retrieve a list of transactions to
-    be processed. Transaction information is signed for safety. """
-    s = TimedSerializer(current_app.config['rpc_signature'])
-    s.loads(request.data)
-
-    payouts = (Payout.query.filter_by(transaction_id=None).
-               join(Payout.block, aliased=True).filter_by(mature=True))
-    bonus_payouts = BonusPayout.query.filter_by(transaction_id=None)
-    pids = [(p.user, p.amount, p.id) for p in payouts]
-    bids = [(p.user, p.amount, p.id) for p in bonus_payouts]
-    return s.dumps([pids, bids])
-
-
-@main.route("/confirm_payouts", methods=['POST'])
-def confirm_transactions():
-    """ Used as a response from an rpc payout system. This will either reset
-    the sent status of a list of transactions upon failure on the remote side,
-    or create a new CoinTransaction object and link it to the transactions to
-    signify that the transaction has been processed. Both request and response
-    are signed. """
-    s = TimedSerializer(current_app.config['rpc_signature'])
-    data = s.loads(request.data)
-
-    # basic checking of input
-    try:
-        assert len(data['coin_txid']) == 64
-        assert isinstance(data['pids'], list)
-        assert isinstance(data['bids'], list)
-        for id in data['pids']:
-            assert isinstance(id, int)
-        for id in data['bids']:
-            assert isinstance(id, int)
-    except AssertionError:
-        current_app.logger.warn("Invalid data passed to confirm", exc_info=True)
-        abort(400)
-
-    coin_trans = Transaction.create(data['coin_txid'])
-    db.session.flush()
-    Payout.query.filter(Payout.id.in_(data['pids'])).update(
-        {Payout.transaction_id: coin_trans.txid}, synchronize_session=False)
-    BonusPayout.query.filter(BonusPayout.id.in_(data['bids'])).update(
-        {BonusPayout.transaction_id: coin_trans.txid}, synchronize_session=False)
-    db.session.commit()
-    return s.dumps(True)
 
 
 @main.before_request
