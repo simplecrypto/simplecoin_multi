@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% set active_page = "stats" %}
+{% set page_title = 'User Stats - Mining and account information for user ' +  username %}
+{% block body %}
+<script>
+
+  {# Initial graph generation #}
+  generate_worker_graph('month', '%H:%M %p', '{{ username }}', '{{ worker }}' );
+
+</script>
+<div class="container">
+  <div class="row page-header">
+    <h2 style="word-wrap:break-word;margin-bottom:2px;">Worker Stats - {{ worker }} </h2>
+      <div id="chart" style="height:400px;">
+        <img src="/static/img/712.GIF" style="position:absolute;padding-top:150px;padding-left:400px;"><svg></svg>
+      </div>
+  </div>
+</div>
+{% endblock %}

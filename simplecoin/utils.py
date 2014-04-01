@@ -57,7 +57,7 @@ def last_block_found():
     return last_block.height
 
 
-def get_typ(typ, address, window=True):
+def get_typ(typ, address, window=True, worker=None):
     """ Gets the latest slices of a specific size. window open toggles
     whether we limit the query to the window size or not. We disable the
     window when compressing smaller time slices because if the crontab
@@ -66,14 +66,17 @@ def get_typ(typ, address, window=True):
     compressed. """
     # grab the correctly sized slices
     base = db.session.query(typ).filter_by(user=address)
+
+    if worker is not None or 'undefined':
+        base = base.filter_by(worker=worker)
     if window is False:
         return base
     grab = typ.floor_time(datetime.datetime.utcnow()) - typ.window
     return base.filter(typ.time >= grab)
 
 
-def compress_typ(typ, address, workers):
-    for slc in get_typ(typ, address, window=False):
+def compress_typ(typ, address, workers, worker=None):
+    for slc in get_typ(typ, address, window=False, worker=worker):
         slice_dt = typ.upper.floor_time(slc.time)
         stamp = calendar.timegm(slice_dt.utctimetuple())
         workers.setdefault(slc.worker, {})

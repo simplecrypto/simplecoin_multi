@@ -9,7 +9,8 @@ from lever import get_joined
 
 from .models import (OneMinuteShare, Block, FiveMinuteShare,
                      OneHourShare, Status, FiveMinuteReject, OneMinuteReject,
-                     OneHourReject, DonationPercent, BonusPayout)
+                     OneHourReject, DonationPercent, BonusPayout,
+                     FiveMinuteHashrate, OneMinuteHashrate, OneHourHashrate)
 from . import db, root, cache
 from .utils import (compress_typ, get_typ, verify_message, get_pool_acc_rej,
                     get_pool_eff, last_10_shares, total_earned, total_paid,
@@ -138,13 +139,53 @@ def exception():
 @main.route("/<address>/<worker>/details/<int:gpu>")
 @main.route("/<address>/details/<int:gpu>", defaults={'worker': ''})
 @main.route("/<address>//details/<int:gpu>", defaults={'worker': ''})
-def worker_detail(address, worker, gpu):
+def gpu_detail(address, worker, gpu):
     status = Status.query.filter_by(user=address, worker=worker).first()
     if status:
         output = status.pretty_json(gpu)
     else:
         output = "Not available"
     return jsonify(output=output)
+
+
+@main.route("/<address>/<worker>")
+def worker_detail(address, worker):
+    status = Status.query.filter_by(user=address, worker=worker).first()
+
+    return render_template('worker_detail.html',
+                           status=status,
+                           username=address,
+                           worker=worker)
+
+
+@main.route("/<address>/<worker>/<stat_type>/<window>")
+def worker_stats(address=None, worker=None, stat_type=None, window="hour"):
+
+    if not address or not worker or not stat_type:
+        return None
+
+    # store all the raw data of we've grabbed
+    workers = {}
+
+    if window == "hour":
+        typ = OneMinuteHashrate
+    elif window == "day":
+        compress_typ(OneMinuteHashrate, address, workers, worker=worker)
+        typ = FiveMinuteHashrate
+    elif window == "month":
+        compress_typ(FiveMinuteHashrate, address, workers, worker=worker)
+        typ = OneHourHashrate
+
+    for m in get_typ(typ, address, worker=worker):
+        stamp = calendar.timegm(m.time.utctimetuple())
+        workers.setdefault(m.worker, {})
+        workers[m.worker].setdefault(stamp, 0)
+        workers[m.worker][stamp] += m.value
+    step = typ.slice_seconds
+    end = ((int(time.time()) // step) * step) - (step * 2)
+    start = end - typ.window.total_seconds() + (step * 2)
+
+    return jsonify(start=start, end=end, step=step, workers=workers)
 
 
 @main.route("/<address>")
