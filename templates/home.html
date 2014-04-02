@@ -17,8 +17,8 @@ $(document).ready(function() {
 <div class="row">
   <div class="col-lg-5">
     <div class="text-center">
-      <img class=" hidden-xs" src="{{ config['leader'] | safe }}" width="450">
-      <img class="hidden-sm hidden-md hidden-lg" src="{{ config['leader-sm'] | safe }}" width="275">
+      <img class=" hidden-xs" src="{{ config['assets_address'] }}{{ config['leader'] | safe }}" width="450">
+      <img class="hidden-sm hidden-md hidden-lg" src="{{ config['assets_address'] }}{{ config['leader-sm'] | safe }}" width="275">
     </div>
     <div class="well well-lg well-clear">
       <h3>New to Cryptocurrency?</h3>
@@ -108,7 +108,7 @@ $(document).ready(function() {
     <div class="panel panel-default">
       <div class="panel-body row">
         <div class="col-md-7 text-center no-padding">
-          <img src="/static/img/worker_status_small2.png" style="box-shadow: -1px -1px 1px #777;margin-top:35px;max-width:98%;">
+          <img src="{{ config['assets_address'] }}/img/worker_status_small2.png" style="box-shadow: -1px -1px 1px #777;margin-top:35px;max-width:98%;">
         </div>
         <div class="col-md-5">
           <h3>Monitor your rig's health, from anywhere</h3>
@@ -128,7 +128,7 @@ $(document).ready(function() {
     <div class="panel panel-default">
       <div class="panel-body row">
         <div class="col-md-7 text-center no-padding">
-          <img src="/static/img/graphs.png" style="box-shadow: -1px -1px 1px #777;margin-top:15px;max-width:98%;">
+          <img src="{{ config['assets_address'] }}/img/graphs.png" style="box-shadow: -1px -1px 1px #777;margin-top:15px;max-width:98%;">
         </div>
         <div class="col-md-5">
           <h3>Insightful statistics</h3>

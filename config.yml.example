@@ -100,14 +100,16 @@ coin_name: Doge
 site_title: Simple Doge
 # the unicode symbol for the coin
 coin_symbol: "&ETH;"
+# host for static assets e.g. {assets_address}/css/main.css
+assets_address: http://simpledoge.com/static
 # logo img
-logo: "/static/img/dogecoin.png"
+logo: "/img/dogecoin.png"
 # xs leader img
-leader-xs: "static/img/doge-miner-xs.jpg"
+leader-xs: "/img/doge-miner-xs.jpg"
 # sm leader img
-leader-sm: "static/img/doge-miner-sm.jpg"
+leader-sm: "/img/doge-miner-sm.jpg"
 # fullsize leader img
-leader: "static/img/doge-miner.jpg"
+leader: "/img/doge-miner.jpg"
 # this url will have the transaction id appended to it to provide
 # information on a specific transaction for a payout
 transaction_link_prefix: http://dogechain.info/tx/
