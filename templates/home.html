@@ -37,7 +37,7 @@ $(document).ready(function() {
           <li>Configure your stratum client with the information below. Worker name can be anything you'd like:
             <small>
               <pre><b>URL: </b>stratum+tcp://{{ config['stratum_address'] }}
-<b>Port:</b> 3333
+<b>Port:</b> {{ config['stratum_port'] }}
 <b>Username: </b>[Your wallet address].[Worker Name]
 <b>Password: </b>anything
 <b>cgminer example:</b> ./cgminer -o stratum+tcp://{{ config['stratum_address'] }}:{{ config['stratum_port'] }} -u DRhevw3qkAjmAjyNkSyXh2kxvrXuxktmyD.worker1 -p x -I 13</pre>
