@@ -179,7 +179,7 @@ $(document).ready(function() {
             {% if worker['status_stale'] == True %}
               {# if stale then show a warning #}
               <small colspan="3" style="font-size:14px;color:#EEA236;"> <i>Updated {{ worker['status_time'] | time_ago }}</i></small>
-              <div class="btn btn-default btn-sm collapse-button" data-toggle="collapse" data-target="#worker-{{ name }}">
+              <div class="btn btn-default btn-sm collapse-button" data-toggle="collapse" data-target="#worker-{{ worker['name'] }}">
                 [ + ]
               </div>
             {% else %}
@@ -188,13 +188,13 @@ $(document).ready(function() {
                 <i>Updated {{ worker['status_time'] | time_ago }}</i>
               </small>
               <div class="btn btn-default btn-sm collapse-button"
-                   data-toggle="collapse" data-target="#worker-{{ name }}">
+                   data-toggle="collapse" data-target="#worker-{{ worker['name'] }}">
                 [ - ]
               </div>
             {% endif %}
             </div>
             {# Worker's miner stats #}
-            <div id="worker-{{ name }}" class="collapse{% if worker['status_stale'] == False %} in{% endif %}">
+            <div id="worker-{{ worker['name'] }}" class="collapse{% if worker['status_stale'] == False %} in{% endif %}">
               <div class="table-responsive  bs-component" style="position:relative;padding:9px;">
                 <div class="col-xs-4 text-center">
                   <h4>WU: {{ (worker['wu'])| int}}&nbsp;
@@ -242,21 +242,24 @@ $(document).ready(function() {
                       {{ (gpu.get('MHS av', 0)*1000)|round|int }}
                     </th>
                     <th>
-                      {% if ( (gpu.get('Utility', 0))*(gpu.get('Last Share Difficulty', 0)) ) == 0
-                      or (gpu.get('MHS av', 0.0001) == 0) %}
-                      -/-
+                      {% set accepted = gpu.get('Difficulty Accepted', 0) %}
+                      {% if accepted != 0 and gpu.get('Device Elapsed', 0) !=0 %}
+                        {% set WU = (accepted / gpu['Device Elapsed'])*60 %}
                       {% else %}
-                      {{ ( ((gpu.get('Utility', 0)*(gpu.get('Last Share Difficulty', 0))) /
-                    (gpu.get('MHS av', 0.0001)*1000) ) * 100 ) | round(1) }}%</th>
-                    {% endif %}
-                    {% set accepted = gpu.get('Difficulty Accepted', 0) %}
+                        {% set WU = 0 %}
+                      {% endif %}
+                      {% if WU == 0 or (gpu.get('MHS av', 0.0001) == 0) %}
+                        -/-
+                      {% else %}
+                        {{ ( (WU / (gpu.get('MHS av', 0.0001)*1000) ) * 100 ) | round(1) }}%</th>
+                      {% endif %}
                     <th>
                       {{ '{:,}'.format(accepted|int) }} / {{ '{:,}'.format(gpu.get('Difficulty Rejected', 0)|int) }}
                       {% if accepted != 0 %}
                         &nbsp;({{ ((accepted - gpu.get('Rejected', 0)) / accepted)*100 }}%)
-                    {% else %}
-                      (0)
-                    {% endif %}
+                      {% else %}
+                        (0)
+                      {% endif %}
                     </th>
                     <th>{{ gpu.get('Hardware Errors', 0) }}</th>
                     <th {% if gpu.get('temp', 0) > 90 %}class="danger"{% endif %}>{{ gpu.get('temp', 0) }}</th>
