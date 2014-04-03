@@ -227,7 +227,7 @@ def collect_user_stats(address):
         workers[st.worker]['status_time'] = st.time
         workers[st.worker]['total_hashrate'] = sum([gpu['MHS av'] for gpu in workers[st.worker]['status']['gpus']])
         workers[st.worker]['wu'] = sum(
-            [gpu['Utility'] * gpu['Last Share Difficulty'] for gpu in workers[st.worker]['status']['gpus']])
+            [(gpu['Difficulty Accepted'] / gpu['Device Elapsed'])*60 for gpu in workers[st.worker]['status']['gpus']])
         workers[st.worker]['wue'] = workers[st.worker]['wu'] / (workers[st.worker]['total_hashrate']*1000)
         ver = workers[st.worker]['status'].get('v', '0.2.0').split('.')
         try:

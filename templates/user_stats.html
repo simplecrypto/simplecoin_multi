@@ -199,7 +199,7 @@ $(document).ready(function() {
                 <div class="col-xs-4 text-center">
                   <h4>WU: {{ (worker['wu'])| int}}&nbsp;
                     <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                         title="Summation of the reported average hashrates"></i></h4>
+                         title="Work Utility is calculated from accepted n1 shares/time mining. This results in a number that represents the effective contributions, rather than the raw hashrate."></i></h4>
                 </div>
                 <div class="col-xs-4 text-center">
                   <h4>KHash/sec: {{ '{:,}'.format((worker['total_hashrate']*1000)|int) }}&nbsp;
