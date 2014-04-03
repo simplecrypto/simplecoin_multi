@@ -197,7 +197,7 @@ $(document).ready(function() {
             <div id="worker-{{ worker['name'] }}" class="collapse{% if worker['status_stale'] == False %} in{% endif %}">
               <div class="table-responsive  bs-component" style="position:relative;padding:9px;">
                 <div class="col-xs-4 text-center">
-                  <h4>WU: {{ worker['wu'] }}&nbsp;
+                  <h4>WU: {{ worker['wu'] | round(2) }}&nbsp;
                     <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                          title="Work Utility is calculated from accepted n1 shares/time mining. This results in a number that represents the effective contributions, rather than the raw hashrate."></i></h4>
                 </div>
@@ -251,12 +251,13 @@ $(document).ready(function() {
                       {% if WU == 0 or (gpu.get('MHS av', 0.0001) == 0) %}
                         -/-
                       {% else %}
-                        {{ ( (WU / (gpu.get('MHS av', 0.0001)*1000) ) * 100 ) | round(1) }}%</th>
+                        {{ ( (WU / (gpu.get('MHS av', 0.0001)*1000) ) * 100 ) | round(1) }}%
                       {% endif %}
+                    </th>
                     <th>
                       {{ '{:,}'.format(accepted|int) }} / {{ '{:,}'.format(gpu.get('Difficulty Rejected', 0)|int) }}
                       {% if accepted != 0 %}
-                        &nbsp;({{ ((accepted - gpu.get('Rejected', 0)) / accepted)*100 }}%)
+                        &nbsp;({{ (((accepted - gpu.get('Difficulty Rejected', 0)) / accepted)*100)|round(2) }}%)
                       {% else %}
                         (0)
                       {% endif %}
