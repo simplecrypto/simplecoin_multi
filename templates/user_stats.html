@@ -197,7 +197,7 @@ $(document).ready(function() {
             <div id="worker-{{ worker['name'] }}" class="collapse{% if worker['status_stale'] == False %} in{% endif %}">
               <div class="table-responsive  bs-component" style="position:relative;padding:9px;">
                 <div class="col-xs-4 text-center">
-                  <h4>WU: {{ (worker['wu'])| int}}&nbsp;
+                  <h4>WU: {{ worker['wu'] }}&nbsp;
                     <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                          title="Work Utility is calculated from accepted n1 shares/time mining. This results in a number that represents the effective contributions, rather than the raw hashrate."></i></h4>
                 </div>
