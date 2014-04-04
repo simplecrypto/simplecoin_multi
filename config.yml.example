@@ -51,6 +51,10 @@ celery:
     #        exchange: doge
     #        binding_key: doge
     BROKER_URL: 'amqp://guest:guest@localhost:5672/doge'
+# set this to true and celery will only run scheduled tasks to refresh cache
+# objects. This allows you to run a staging version on the same database,
+# but with separate caches
+#stage: False
 
 # Cache configuration
 # ========================================================================
