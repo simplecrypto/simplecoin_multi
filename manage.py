@@ -12,9 +12,11 @@ migrate = Migrate(app, db)
 root = os.path.abspath(os.path.dirname(__file__) + '/../')
 
 from bitcoinrpc.authproxy import AuthServiceProxy
-from simplecoin.tasks import cleanup, payout
+from simplecoin.tasks import (cleanup, payout, server_status, difficulty_avg,
+                              update_online_workers, update_pplns_est,
+                              cache_user_donation)
 from simplecoin.models import (Transaction, Threshold, DonationPercent,
-                               Payout, BonusPayout)
+                               BonusPayout)
 from simplecoin.utils import setfee_command
 from flask import current_app, _request_ctx_stack
 
@@ -48,13 +50,6 @@ def update_minimum_fee():
     min_fee = current_app.config['minimum_perc']
     DonationPercent.query.filter(DonationPercent.perc < min_fee).update(
         {DonationPercent.perc: min_fee}, synchronize_session=False)
-    db.session.commit()
-
-
-@manager.command
-def migrate_payouts_yes():
-    for p in Payout.query.all():
-        p.created_at = p.block.found_at
     db.session.commit()
 
 
@@ -105,6 +100,17 @@ def confirm_trans(transaction_id):
     trans = Transaction.query.filter_by(txid=transaction_id).first()
     trans.confirmed = True
     db.session.commit()
+
+
+@manager.command
+def reload_cached():
+    """ Recomputes all the cached values that normally get refreshed by tasks.
+    Good to run if celery has been down, site just setup, etc. """
+    difficulty_avg()
+    update_pplns_est()
+    update_online_workers()
+    cache_user_donation()
+    server_status()
 
 
 @manager.command
