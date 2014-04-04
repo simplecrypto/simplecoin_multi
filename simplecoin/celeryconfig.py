@@ -17,7 +17,7 @@ caching_tasks = {
     },
     'update_diff_average': {
         'task': 'simplecoin.tasks.difficulty_avg',
-        'schedule': timedelta(hours=1),
+        'schedule': timedelta(minutes=15),
     },
     'server_status': {
         'task': 'simplecoin.tasks.server_status',
