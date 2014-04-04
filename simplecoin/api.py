@@ -17,7 +17,7 @@ api = Blueprint('api_bp', __name__)
 def api_error_handler(exc):
     # set some defaults
     log = 'debug'
-    msg = "Exception occured in error handling"
+    msg = "Exception occurred in error handling"
     code = 500
     extra = {}
     end_user = {}
@@ -32,7 +32,7 @@ def api_error_handler(exc):
         extra.pop('tb', None)
     except Exception as e:
         current_app.logger.error(
-            "Unhadled API error of type {0} raised".format(type(e)))
+            "Unhandled API error of type {0} raised".format(type(e)))
 
     if hasattr(exc, 'error_key'):
         end_user['error_key'] = e.error_key

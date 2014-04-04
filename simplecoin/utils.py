@@ -322,7 +322,7 @@ def verify_message(address, message, signature):
     if command not in commands:
         raise Exception("Invalid command given!")
 
-    current_app.logger.error("Attemting to validate message '{}' with sig '{}' for address '{}'"
+    current_app.logger.error(u"Attempting to validate message '{}' with sig '{}' for address '{}'"
                              .format(message, signature, address))
 
     try:
