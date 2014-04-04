@@ -288,9 +288,9 @@ def new_block(self, blockheight, bits=None, reward=None):
     """
     logger.info("Recieved notice of new block height {}".format(blockheight))
 
-    cache.set('blockheight', blockheight)
-    cache.set('difficulty', bits_to_difficulty(bits))
-    cache.set('reward', reward)
+    cache.set('blockheight', blockheight, timeout=1200)
+    cache.set('difficulty', bits_to_difficulty(bits), timeout=1200)
+    cache.set('reward', reward, timeout=1200)
 
     # keep the last 500 blocks in the cache for getting average difficulty
     cache.cache._client.lpush('block_cache', bits)
@@ -706,10 +706,11 @@ def server_status(self):
                             .format(mon_addr))
                 continue
             else:
-                cache.set('stratum_workers_' + str(i), data['stratum_clients'])
+                cache.set('stratum_workers_' + str(i),
+                          data['stratum_clients'], timeout=1200)
                 total_workers += data['stratum_clients']
 
-        cache.set('total_workers', total_workers)
+        cache.set('total_workers', total_workers, timeout=1200)
     except Exception:
         logger.error("Unhandled exception in server_status", exc_info=True)
         db.session.rollback()
@@ -723,7 +724,8 @@ def difficulty_avg(self):
     try:
         diff_list = cache.cache._client.lrange('block_cache', 0, 500)
         total_diffs = sum([bits_to_difficulty(diff) for diff in diff_list])
-        cache.set('difficulty_avg', total_diffs / len(diff_list))
+        cache.set('difficulty_avg', total_diffs / len(diff_list),
+                  timeout=120 * 60)
     except Exception as exc:
         logger.warn("Unknown failure in difficulty_avg", exc_info=True)
         raise self.retry(exc=exc)
