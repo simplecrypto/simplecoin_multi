@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(name='simplecoin',
-      version='0.4.0',
+      version='0.5.0',
       description='Dogecoin mining with no registration required.',
       author='Eric Cook',
       author_email='eric@simpload.com',

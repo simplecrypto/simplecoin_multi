@@ -23,6 +23,35 @@ celery = Celery('simplecoin')
 
 
 @celery.task(bind=True)
+def update_online_workers(self):
+    """
+    Grabs a list of workers from the running powerpool instances and caches
+    them
+    """
+    try:
+        users = {}
+        for i, pp_config in enumerate(current_app.config['monitor_addrs']):
+            mon_addr = pp_config['mon_address'] + '/clients'
+            try:
+                req = requests.get(mon_addr)
+                data = req.json()
+            except Exception:
+                current_app.logger.warn("Unable to connect to {} to gather worker summary."
+                                        .format(mon_addr))
+            else:
+                for address, workers in data['clients'].iteritems():
+                    users.setdefault('addr_online_' + address, [])
+                    for d in workers:
+                        users['addr_online_' + address].append((d['worker'], i))
+
+        cache.set_many(users, timeout=480)
+
+    except Exception as exc:
+        logger.error("Unhandled exception in estimating pplns", exc_info=True)
+        raise self.retry(exc=exc)
+
+
+@celery.task(bind=True)
 def update_pplns_est(self):
     """
     Generates redis cached value for share counts of all users based on PPLNS window
@@ -31,11 +60,16 @@ def update_pplns_est(self):
         # grab configured N
         mult = int(current_app.config['last_n'])
         # generate average diff from last 500 blocks
-        diff = Blob.query.filter_by(key="diff").first().data['diff']
+        diff = cache.get('difficulty_avg')
+        if diff is None:
+            current_app.logger.warn(
+                "Difficulty average is blank, can't calculate pplns estimate")
+            return
         # Calculate the total shares to that are 'counted'
         total_shares = ((float(diff) * (2 ** 16)) * mult)
 
-        # Loop through all shares, descending order, until we'd distributed the shares
+        # Loop through all shares, descending order, until we'd distributed the
+        # shares
         remain = total_shares
         user_shares = {}
         for share in Share.query.order_by(Share.id.desc()).yield_per(5000):
@@ -250,16 +284,13 @@ def add_one_minute(self, user, valid_shares, minute, worker='', dup_shares=0,
 def new_block(self, blockheight, bits=None, reward=None):
     """
     Notification that a new block height has been reached in the network.
+    Sets some things into the cache for display on the website.
     """
     logger.info("Recieved notice of new block height {}".format(blockheight))
-    if not isinstance(blockheight, int):
-        logger.error("Invalid block height submitted, must be integer")
 
-    blob = Blob(key='block', data={'height': str(blockheight),
-                                   'difficulty': str(bits_to_difficulty(bits)),
-                                   'reward': str(reward)})
-    db.session.merge(blob)
-    db.session.commit()
+    cache.set('blockheight', blockheight)
+    cache.set('difficulty', bits_to_difficulty(bits))
+    cache.set('reward', reward)
 
     # keep the last 500 blocks in the cache for getting average difficulty
     cache.cache._client.lpush('block_cache', bits)
@@ -661,23 +692,24 @@ def check_down(self):
 @celery.task(bind=True)
 def server_status(self):
     """
-    Periodic pull update of server stats
+    Periodicly poll the backend to get number of workers and throw it in the cache
     """
     try:
-        mon_addr = current_app.config['monitor_addr']
-        try:
-            req = requests.get(mon_addr)
-            data = req.json()
-        except Exception:
-            logger.warn("Couldn't connect to internal monitor at {}".format(mon_addr),
-                        exc_info=True)
-            output = {'stratum_clients': 0, 'agent_clients': 0}
-        else:
-            output = {'stratum_clients': data['stratum_clients'],
-                      'agent_clients': data['agent_clients']}
-        blob = Blob(key='server', data={k: str(v) for k, v in output.iteritems()})
-        db.session.merge(blob)
-        db.session.commit()
+        total_workers = 0
+        for i, pp_config in enumerate(current_app.config['monitor_addrs']):
+            mon_addr = pp_config['mon_address']
+            try:
+                req = requests.get(mon_addr)
+                data = req.json()
+            except Exception:
+                logger.warn("Couldn't connect to internal monitor at {}"
+                            .format(mon_addr))
+                continue
+            else:
+                cache.set('stratum_workers_' + str(i), data['stratum_clients'])
+                total_workers += data['stratum_clients']
+
+        cache.set('total_workers', total_workers)
     except Exception:
         logger.error("Unhandled exception in server_status", exc_info=True)
         db.session.rollback()
@@ -691,9 +723,7 @@ def difficulty_avg(self):
     try:
         diff_list = cache.cache._client.lrange('block_cache', 0, 500)
         total_diffs = sum([bits_to_difficulty(diff) for diff in diff_list])
-        blob = Blob(key='diff', data={'diff': str(total_diffs / len(diff_list))})
-        db.session.merge(blob)
-        db.session.commit()
+        cache.set('difficulty_avg', total_diffs / len(diff_list))
     except Exception as exc:
         logger.warn("Unknown failure in difficulty_avg", exc_info=True)
         raise self.retry(exc=exc)

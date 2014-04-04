@@ -1,7 +1,11 @@
 # General
 # =======================================================================
 # Where's powerpool running?
-monitor_addr: http://localhost:3855/
+monitor_addrs:
+    - stratum: tcp+stratum://localhost:3333
+      mon_address: http://localhost:3855/
+    - stratum: tcp+stratum://localhost:3334
+      mon_address: http://localhost:3856/
 # how many confirmations do we wait before marking blocks mature
 # and allowing payout over RPC
 block_mature_confirms: 250

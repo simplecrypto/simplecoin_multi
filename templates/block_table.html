@@ -22,11 +22,11 @@
         <th><span class="odometer blockshares">0</span></th>
         <th><span class="odometer blockluck">0</span>%</th>
         <th><span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span></th>
-        <th>{{ '{:,}'.format((current_block.data['reward'] / 100000000) | round(2)) }}</th>
-        <th>{{ '{:,}'.format((current_block.data['difficulty'] | int)) }}</th>
+        <th>{{ '{:,}'.format((current_block['reward'] / 100000000) | round(2)) }}</th>
+        <th>{{ '{:,}'.format((current_block['difficulty'] | round(4))) }}</th>
         <th>...</th>
         <th>...</th>
-        <th>{{ '{:,}'.format((current_block.data['height']) | int) }}</th>
+        <th>{{ '{:,}'.format((current_block['height']) | int) }}</th>
         <th>In progress</th>
       </tr>
       {% endif %}

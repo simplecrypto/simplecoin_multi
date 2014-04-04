@@ -2,7 +2,6 @@ import calendar
 import datetime
 import time
 import itertools
-import requests
 import yaml
 
 from flask import current_app
@@ -194,13 +193,13 @@ def collect_user_stats(address):
     if pplns_cached_time != None:
         pplns_cached_time.strftime("%Y-%m-%d %H:%M:%S")
 
-    pplns_total_shares = cache.get('pplns_total_shares')
+    pplns_total_shares = cache.get('pplns_total_shares') or 0
 
     # store all the raw data of we're gonna grab
     workers = {}
     # blank worker template
     def_worker = {'accepted': 0, 'rejected': 0, 'last_10_shares': 0,
-                  'online': False, 'status': None}
+                  'online': False, 'status': None, 'server': {}}
     # for picking out the last 10 minutes worth shares...
     now = datetime.datetime.utcnow().replace(second=0, microsecond=0)
     twelve_ago = now - datetime.timedelta(minutes=12)
@@ -240,9 +239,13 @@ def collect_user_stats(address):
             workers[st.worker]['status_version'] = "Unsupp"
 
     # pull online status from cached pull direct from powerpool servers
-    for name in workers_online(address):
+    for name, host in cache.get('addr_online_' + address) or []:
         workers.setdefault(name, def_worker.copy())
         workers[name]['online'] = True
+        try:
+            workers[name]['server'] = current_app.config['monitor_addrs'][host]
+        except KeyError:
+            workers[name]['server'] = {}
 
     # pre-calculate a few of the values here to abstract view logic
     for name, w in workers.iteritems():
@@ -282,18 +285,6 @@ def collect_user_stats(address):
                 last_10_shares=user_last_10_shares,
                 last_10_hashrate=last_10_hashrate,
                 unconfirmed_balance=unconfirmed_balance)
-
-
-@cache.memoize(timeout=120)
-def workers_online(address):
-    """ Returns all workers online for an address """
-    client_mon = current_app.config['monitor_addr']+'client/'+address
-    try:
-        req = requests.get(client_mon)
-        data = req.json()
-    except Exception:
-        return []
-    return [w['worker'] for w in data[address]]
 
 
 def get_pool_eff():

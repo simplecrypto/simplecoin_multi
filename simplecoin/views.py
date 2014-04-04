@@ -7,7 +7,7 @@ from flask import (current_app, request, render_template, Blueprint, abort,
                    jsonify, g, session, Response)
 from lever import get_joined
 
-from .models import (OneMinuteShare, Block, Blob, FiveMinuteShare,
+from .models import (OneMinuteShare, Block, FiveMinuteShare,
                      OneHourShare, Status, FiveMinuteReject, OneMinuteReject,
                      OneHourReject, DonationPercent, BonusPayout)
 from . import db, root, cache
@@ -41,8 +41,9 @@ def blocks():
 
 @main.route("/pool_stats")
 def pool_stats():
-    current_block = db.session.query(Blob).filter_by(key="block").first()
-    current_block.data['reward'] = int(current_block.data['reward'])
+    current_block = {'reward': cache.get('reward') or 0,
+                     'difficulty': cache.get('difficulty') or 0,
+                     'height': cache.get('blockheight') or 0}
     blocks = db.session.query(Block).order_by(Block.height.desc()).limit(10)
 
     reject_total, accept_total = get_pool_acc_rej()
@@ -62,18 +63,9 @@ def add_pool_stats():
     g.round_duration = (datetime.datetime.utcnow() - last_block_time()).total_seconds()
     g.hashrate = get_pool_hashrate()
 
-    blobs = Blob.query.filter(Blob.key.in_(("server", "diff"))).all()
-    try:
-        server = [b for b in blobs if b.key == "server"][0]
-        g.worker_count = int(server.data['stratum_clients'])
-    except IndexError:
-        g.worker_count = 0
-    try:
-        diff = float([b for b in blobs if b.key == "diff"][0].data['diff'])
-    except IndexError:
-        diff = -1
-    g.average_difficulty = diff
-    g.shares_to_solve = diff * (2 ** 16)
+    g.worker_count = cache.get('total_workers') or 0
+    g.average_difficulty = cache.get('difficulty_avg') or 0
+    g.shares_to_solve = g.average_difficulty * (2 ** 16)
     g.total_round_shares = g.shares_to_solve * current_app.config['last_n']
     g.alerts = get_alerts()
 
@@ -130,11 +122,9 @@ def summary_page():
         user_list = [([shares, user, (65536 * last_10_shares(user[6:]) / 600), user_match(user[6:])]) for user, shares in user_shares.iteritems()]
         user_list = sorted(user_list, key=lambda x: x[0], reverse=True)
 
-    current_block = db.session.query(Blob).filter_by(key="block").first()
-
     return render_template('round_summary.html',
                            users=user_list,
-                           current_block=current_block,
+                           blockheight=cache.get('blockheight') or 0,
                            cached_time=cached_time)
 
 
