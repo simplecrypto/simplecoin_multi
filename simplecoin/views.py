@@ -7,10 +7,12 @@ from flask import (current_app, request, render_template, Blueprint, abort,
                    jsonify, g, session, Response)
 from lever import get_joined
 
-from .models import (OneMinuteShare, Block, FiveMinuteShare,
-                     OneHourShare, Status, FiveMinuteReject, OneMinuteReject,
-                     OneHourReject, DonationPercent, BonusPayout,
-                     FiveMinuteHashrate, OneMinuteHashrate, OneHourHashrate)
+from .models import (Transaction, OneMinuteShare, Block, Payout, Blob,
+                     FiveMinuteShare, OneHourShare, Status, FiveMinuteReject,
+                     OneMinuteReject, OneHourReject, DonationPercent,
+                     BonusPayout, FiveMinuteHashrate, OneMinuteHashrate, OneHourHashrate, OneMinuteTemperature,
+                     FiveMinuteTemperature, OneHourTemperature)
+
 from . import db, root, cache
 from .utils import (compress_typ, get_typ, verify_message, get_pool_acc_rej,
                     get_pool_eff, last_10_shares, total_earned, total_paid,
@@ -164,23 +166,39 @@ def worker_stats(address=None, worker=None, stat_type=None, window="hour"):
     if not address or not worker or not stat_type:
         return None
 
+    type_lut = {'hash': {'hour': OneMinuteHashrate,
+                         'day': FiveMinuteHashrate,
+                         'day_compressed': OneMinuteHashrate,
+                         'month': OneHourHashrate,
+                         'month_compressed': FiveMinuteHashrate},
+                'temp': {'hour': OneMinuteTemperature,
+                         'day': FiveMinuteTemperature,
+                         'day_compressed': OneMinuteTemperature,
+                         'month': OneHourTemperature,
+                         'month_compressed': FiveMinuteTemperature}}
+
     # store all the raw data of we've grabbed
     workers = {}
 
-    if window == "hour":
-        typ = OneMinuteHashrate
-    elif window == "day":
-        compress_typ(OneMinuteHashrate, address, workers, worker=worker)
-        typ = FiveMinuteHashrate
+    typ = type_lut[stat_type][window]
+
+    if window == "day":
+        compress_typ(type_lut[stat_type]['day_compressed'], address, workers, worker=worker)
     elif window == "month":
-        compress_typ(FiveMinuteHashrate, address, workers, worker=worker)
-        typ = OneHourHashrate
+        compress_typ(type_lut[stat_type]['month_compressed'], address, workers, worker=worker)
+
+
 
     for m in get_typ(typ, address, worker=worker):
         stamp = calendar.timegm(m.time.utctimetuple())
-        workers.setdefault(m.worker, {})
-        workers[m.worker].setdefault(stamp, 0)
-        workers[m.worker][stamp] += m.value
+        if worker is not None or 'undefined':
+            workers.setdefault(m.device, {})
+            workers[m.device].setdefault(stamp, 0)
+            workers[m.device][stamp] += m.value
+        else:
+            workers.setdefault(m.worker, {})
+            workers[m.worker].setdefault(stamp, 0)
+            workers[m.worker][stamp] += m.value
     step = typ.slice_seconds
     end = ((int(time.time()) // step) * step) - (step * 2)
     start = end - typ.window.total_seconds() + (step * 2)

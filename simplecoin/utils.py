@@ -77,11 +77,18 @@ def get_typ(typ, address, window=True, worker=None):
 
 def compress_typ(typ, address, workers, worker=None):
     for slc in get_typ(typ, address, window=False, worker=worker):
-        slice_dt = typ.upper.floor_time(slc.time)
-        stamp = calendar.timegm(slice_dt.utctimetuple())
-        workers.setdefault(slc.worker, {})
-        workers[slc.worker].setdefault(stamp, 0)
-        workers[slc.worker][stamp] += slc.value
+        if worker is not None or 'undefined':
+            slice_dt = typ.floor_time(slc.time)
+            stamp = calendar.timegm(slice_dt.utctimetuple())
+            workers.setdefault(slc.device, {})
+            workers[slc.device].setdefault(stamp, 0)
+            workers[slc.device][stamp] += slc.value
+        else:
+            slice_dt = typ.upper.floor_time(slc.time)
+            stamp = calendar.timegm(slice_dt.utctimetuple())
+            workers.setdefault(slc.worker, {})
+            workers[slc.worker].setdefault(stamp, 0)
+            workers[slc.worker][stamp] += slc.value
 
 
 @cache.cached(timeout=60, key_prefix='pool_hashrate')

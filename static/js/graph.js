@@ -15,6 +15,21 @@ $(document).ready(function() {
         $('#chart img').show()
         generate_data($anchor.data('target'), $anchor.data('format'), $anchor.data('user'));
     });
+
+    //Swap classes on nav tabs
+    $('.tab-worker').click(function () {
+        $('.tab-worker').removeClass('active')
+        $(this).addClass('active')
+    })
+
+    //Swap graph time period
+    $(".tab-worker a").on("click", function() {
+        var $anchor = $(this);
+        clean_data = [];
+        $('#' + $anchor.data('html-target') + ' img').show()
+        generate_worker_data($anchor.data('html-target'), $anchor.data('target'), $anchor.data('format'), $anchor.data('user'),
+            $anchor.data('worker'), $anchor.data('stat-type'));
+    });
 });
 
 generate_graph = function(request_url, date_format, user) {
@@ -117,11 +132,12 @@ generate_graph = function(request_url, date_format, user) {
 }
 
 
-generate_worker_graph = function(request_url, date_format, user, worker) {
+generate_worker_graph = function(target, request_url, date_format, user, worker, stat_type) {
 
   var clean_data = [];
-  generate_worker_data = function(request_url, date_format, user, worker) {
-    d3.json('/' + user + '/' + worker + '/asdf/' + request_url, function(data) {
+  generate_worker_data = function(target, request_url, date_format, user, worker, stat_type) {
+    clean_data = [];
+    d3.json('/' + user + '/' + worker + '/' + stat_type + '/' + request_url, function(data) {
 
       start = data.start;
       end = data.end;
@@ -132,6 +148,7 @@ generate_worker_graph = function(request_url, date_format, user, worker) {
         for (var i = start; i <= end; i += step) {
 
           if (i in worker) {
+            if (worker[i] < 0){ worker[i] = 0; }
             values.push([i * 1000, worker[i]]);
           } else {
             values.push([i * 1000, 0]);
@@ -155,30 +172,44 @@ generate_worker_graph = function(request_url, date_format, user, worker) {
 
       //Actually generate/regenerate the graph here
       nv.addGraph(window.generate_graph = function() {
+      if (stat_type == 'temp') {
         var chart = nv.models.lineChart()
+                      .x(function(d) { return d[0] })   //We can modify the data accessor functions...
+                      .y(function(d) { return d[1] })   //...in case your data is formatted differently.
+                    .useInteractiveGuideline(true)  //We want nice looking tooltips and a guideline!
+                    .transitionDuration(350)  //how fast do you want the lines to transition?
+                    .clipEdge(true);
+
+        var axis_label = 'Temperature';
+
+      } else {
+        var chart = nv.models.stackedAreaChart()
                       .x(function(d) { return d[0] })   //We can modify the data accessor functions...
                       .y(function(d) { return d[1]/1000 })   //...in case your data is formatted differently.
                       .useInteractiveGuideline(true)    //Tooltips which show all data points. Very nice!
                       .transitionDuration(500)
+                      .showControls(true)       //Allow user to choose 'Stacked', 'Stream', 'Expanded' mode.
                       .clipEdge(true);
+        var axis_label = 'KHash/sec';
+      }
 
         // Format x-axis labels with custom function.
         chart.xAxis
             .tickFormat(function(d) { return d3.time.format(date_format)(new Date(d)) })
             .scale(d3.time.scale())
             .axisLabel('Time')
-            .axisLabelDistance(30);;
+            .axisLabelDistance(30);
 
         chart.yAxis
             .tickFormat(d3.format(',.2f'))
-            .axisLabel('KHash/sec')
+            .axisLabel(axis_label)
             .axisLabelDistance(25);
 
-        d3.select('#chart svg')
+        d3.select('#' + target + ' svg')
           .datum(clean_data)
           .call(chart);
 
-        $('#chart img').hide()
+        $('#' + target + ' img').hide()
 
         //Hack to update chart when click event occurs
         $(".nv-stackedAreaChart").on("click", function() {
@@ -191,6 +222,6 @@ generate_worker_graph = function(request_url, date_format, user, worker) {
   }
 
   // Initial graph generation
-  generate_worker_data(request_url, date_format, user, worker);
+  generate_worker_data(target, request_url, date_format, user, worker, stat_type);
 
 }
