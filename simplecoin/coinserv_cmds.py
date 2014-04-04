@@ -1,4 +1,5 @@
 from flask import current_app
+
 from . import coinserv
 
 

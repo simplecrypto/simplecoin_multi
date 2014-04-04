@@ -2,16 +2,17 @@ import calendar
 import logging
 import json
 import smtplib
-
 from email.mime.text import MIMEText
-from flask import current_app
 from collections import namedtuple
+
 from datetime import datetime, timedelta
+
+from flask import current_app
 from sqlalchemy.schema import CheckConstraint
 from sqlalchemy.ext.declarative import AbstractConcreteBase, declared_attr
 from sqlalchemy.dialects.postgresql import HSTORE, ARRAY
-from cryptokit import bits_to_difficulty
 
+from cryptokit import bits_to_difficulty
 from .model_lib import base
 from . import db
 

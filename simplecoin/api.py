@@ -1,13 +1,13 @@
+from pprint import pformat
+import sys
+
 from flask import Blueprint, current_app, jsonify
 from lever import (API, LeverException)
-from pprint import pformat
+import six
 
 from .models import (Block, Share, Transaction, Payout, OneMinuteShare, Status,
                      Blob, BonusPayout)
 from . import db
-
-import six
-import sys
 
 
 api = Blueprint('api_bp', __name__)

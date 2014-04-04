@@ -1,7 +1,8 @@
+from flask import current_app
+
 from simplecoin import create_app
 from simplecoin.tasks import celery
 from celery.bin.worker import main
-from flask import current_app
 
 
 app = create_app(celery=True)

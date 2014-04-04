@@ -2,12 +2,13 @@ import calendar
 import datetime
 import time
 import itertools
-import yaml
 
+import yaml
 from flask import current_app
-from bitcoinrpc import CoinRPCException
 from sqlalchemy.sql import func
 
+import requests
+from bitcoinrpc import CoinRPCException
 from . import db, coinserv, cache, root
 from .models import (DonationPercent, OneMinuteReject, OneMinuteShare,
                      FiveMinuteShare, FiveMinuteReject, Payout, BonusPayout,

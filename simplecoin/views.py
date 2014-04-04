@@ -1,22 +1,20 @@
 import calendar
 import time
-import yaml
+
 import datetime
 
+import yaml
 from flask import (current_app, request, render_template, Blueprint, abort,
                    jsonify, g, session, Response)
 from lever import get_joined
 
-from .models import (Transaction, OneMinuteShare, Block, Payout, Blob,
-                     FiveMinuteShare, OneHourShare, Status, FiveMinuteReject,
-                     OneMinuteReject, OneHourReject, DonationPercent,
-                     BonusPayout, FiveMinuteHashrate, OneMinuteHashrate, OneHourHashrate, OneMinuteTemperature,
+from .models import (OneMinuteShare, Block, Blob,
+                     FiveMinuteShare, OneHourShare, Status, DonationPercent,
+                     FiveMinuteHashrate, OneMinuteHashrate, OneHourHashrate, OneMinuteTemperature,
                      FiveMinuteTemperature, OneHourTemperature)
-
 from . import db, root, cache
 from .utils import (compress_typ, get_typ, verify_message, get_pool_acc_rej,
-                    get_pool_eff, last_10_shares, total_earned, total_paid,
-                    collect_user_stats, get_adj_round_shares,
+                    get_pool_eff, last_10_shares, collect_user_stats, get_adj_round_shares,
                     get_pool_hashrate, last_block_time, get_alerts,
                     last_block_found)
 
