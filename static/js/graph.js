@@ -4,7 +4,7 @@ $(document).ready(function() {
 
     //Swap classes on nav tabs
     $('.tab').click(function () {
-        $('.tab').removeClass('active')
+        $(this).siblings().removeClass('active')
         $(this).addClass('active')
     })
 
@@ -12,23 +12,15 @@ $(document).ready(function() {
     $(".tab a").on("click", function() {
         var $anchor = $(this);
         clean_data = [];
-        $('#chart img').show()
-        generate_data($anchor.data('target'), $anchor.data('format'), $anchor.data('user'));
-    });
 
-    //Swap classes on nav tabs
-    $('.tab-worker').click(function () {
-        $('.tab-worker').removeClass('active')
-        $(this).addClass('active')
-    })
-
-    //Swap graph time period
-    $(".tab-worker a").on("click", function() {
-        var $anchor = $(this);
-        clean_data = [];
-        $('#' + $anchor.data('html-target') + ' img').show()
-        generate_worker_data($anchor.data('html-target'), $anchor.data('target'), $anchor.data('format'), $anchor.data('user'),
-            $anchor.data('worker'), $anchor.data('stat-type'));
+        if ($anchor.data('html-target') != undefined) {
+            $('#' + $anchor.data('html-target') + ' img').show()
+            generate_worker_data($anchor.data('html-target'), $anchor.data('target'), $anchor.data('format'), $anchor.data('user'),
+                $anchor.data('worker'), $anchor.data('stat-type'));
+        } else {
+            $('#chart img').show()
+            generate_data($anchor.data('target'), $anchor.data('format'), $anchor.data('user'));
+        }
     });
 });
 

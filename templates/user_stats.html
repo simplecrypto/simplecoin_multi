@@ -222,7 +222,7 @@ $(document).ready(function() {
                          title="This value is calculated from the reported WU({{ worker['wu'] }}) / reported average hashrate({{ (worker['total_hashrate']*1000)|int }}). A value of 90%+ is ideal. To increase your WUE make sure your rig is not having hardware errors"></i></h4>
                 </div>
                 <div class="col-xs-3 text-center">
-                  <h4><i class="fa fa-bar-chart-o"></i><a href=""> Detailed view</a></h4>
+                  <h4><i class="fa fa-bar-chart-o"></i> <a href="/{{ username }}/{{ worker['name'] }}">Detailed view</a></h4>
                 </div>
                 <div class="clearfix"></div>
               </div>
