@@ -28,7 +28,7 @@ caching_tasks = {
 database_tasks = {
     'compress_min_shares': {
         'task': 'simplecoin.tasks.compress_minute',
-        'schedule': timedelta(seconds=5),
+        'schedule': timedelta(minutes=5),
     },
     'compress_five_min_shares': {
         'task': 'simplecoin.tasks.compress_five_minute',
