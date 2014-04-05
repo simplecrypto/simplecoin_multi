@@ -11,8 +11,6 @@ $(document).ready(function() {
     //Swap graph time period
     $(".tab a").on("click", function() {
         var $anchor = $(this);
-        clean_data = [];
-
         if ($anchor.data('html-target') != undefined) {
             $('#' + $anchor.data('html-target') + ' img').show()
             generate_worker_data($anchor.data('html-target'), $anchor.data('target'), $anchor.data('format'), $anchor.data('user'),
@@ -42,6 +40,7 @@ generate_graph = function(request_url, date_format, user) {
   var clean_data = [];
   var last_10min = 0;
   generate_data = function(request_url, date_format, user) {
+    clean_data = [];
     d3.json('/' + user + '/stats/' + request_url, function(data) {
 
       start = data.start;

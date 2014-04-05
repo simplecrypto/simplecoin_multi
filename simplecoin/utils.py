@@ -68,7 +68,7 @@ def get_typ(typ, address, window=True, worker=None):
     # grab the correctly sized slices
     base = db.session.query(typ).filter_by(user=address)
 
-    if worker is not None or 'undefined':
+    if worker is not None:
         base = base.filter_by(worker=worker)
     if window is False:
         return base
@@ -78,7 +78,7 @@ def get_typ(typ, address, window=True, worker=None):
 
 def compress_typ(typ, address, workers, worker=None):
     for slc in get_typ(typ, address, window=False, worker=worker):
-        if worker is not None or 'undefined':
+        if worker is not None:
             slice_dt = typ.floor_time(slc.time)
             stamp = calendar.timegm(slice_dt.utctimetuple())
             workers.setdefault(slc.device, {})
