@@ -15,6 +15,10 @@ latest_ppagent: [0, 3, 4]
 SQLALCHEMY_DATABASE_URI: postgresql://simplecoin:testing@localhost:5432/simplecoin
 # the session encryption key
 SECRET_KEY: 'somethting_really_secret'
+# a simple list of users to redact from the stats. Should be built out to a 
+# database table at some point
+redacted_addresses:
+    - dsflkgsdlfkgsld;fkgsl;dfkg
 
 # connection information for the coinserver RPC
 coinserv:

@@ -117,16 +117,26 @@ def summary_page():
     if cached_time is not None:
         cached_time = cached_time.replace(second=0, microsecond=0).strftime("%Y-%m-%d %H:%M")
 
-    if user_shares is None:
-        user_list = []
-    else:
-        user_list = [([shares, user, (65536 * last_10_shares(user[6:]) / 600), user_match(user[6:])]) for user, shares in user_shares.iteritems()]
-        user_list = sorted(user_list, key=lambda x: x[0], reverse=True)
+    redacted = set(current_app.config.get('redacted_addresses', set()))
+    user_list = []
+    total_hashrate = 0.0
+    if user_shares is not None:
+        for user, shares in user_shares.iteritems():
+            user = user[6:]
+            hashrate = (65536 * last_10_shares(user) / 600)
+            total_hashrate += hashrate
+            dat = {'hashrate': hashrate,
+                   'shares': shares,
+                   'user': user if user not in redacted else None,
+                   'donation_perc': user_match(user)}
+            user_list.append(dat)
+        user_list = sorted(user_list, key=lambda x: x['shares'], reverse=True)
 
     return render_template('round_summary.html',
                            users=user_list,
                            blockheight=cache.get('blockheight') or 0,
-                           cached_time=cached_time)
+                           cached_time=cached_time,
+                           total_hashrate=total_hashrate)
 
 
 @main.route("/exc_test")

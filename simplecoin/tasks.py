@@ -41,8 +41,8 @@ def update_online_workers(self):
                 req = requests.get(mon_addr)
                 data = req.json()
             except Exception:
-                current_app.logger.warn("Unable to connect to {} to gather worker summary."
-                                        .format(mon_addr))
+                logger.warn("Unable to connect to {} to gather worker summary."
+                            .format(mon_addr))
             else:
                 for address, workers in data['clients'].iteritems():
                     users.setdefault('addr_online_' + address, [])
@@ -62,13 +62,13 @@ def update_pplns_est(self):
     Generates redis cached value for share counts of all users based on PPLNS window
     """
     try:
+        logger.info("Recomputing PPLNS for users")
         # grab configured N
         mult = int(current_app.config['last_n'])
         # generate average diff from last 500 blocks
         diff = cache.get('difficulty_avg')
         if diff is None:
-            current_app.logger.warn(
-                "Difficulty average is blank, can't calculate pplns estimate")
+            logger.warn("Difficulty average is blank, can't calculate pplns estimate")
             return
         # Calculate the total shares to that are 'counted'
         total_shares = ((float(diff) * (2 ** 16)) * mult)
@@ -314,7 +314,7 @@ def cleanup(self, simulate=False):
         diff = cache.get('difficulty_avg')
         diff = 1100.0
         if diff is None:
-            current_app.logger.warn(
+            logger.warn(
                 "Difficulty average is blank, can't safely cleanup")
             return
         # count all unprocessed blocks
@@ -388,8 +388,8 @@ def payout(self, simulate=False):
         logger.debug("Processing block height {}".format(block.height))
 
         mult = int(current_app.config['last_n'])
-        logger.debug("Looking for up to {} total shares".format(total_shares))
         total_shares = (bits_to_shares(block.bits) * mult)
+        logger.debug("Looking for up to {} total shares".format(total_shares))
         remain = total_shares
         start = block.last_share.id
         logger.debug("Identified last matching share id as {}".format(start))
@@ -661,7 +661,7 @@ def agent_receive(self, address, worker, typ, payload, timestamp):
             if thresh:
                 hr = sum(payload) * 1000
                 if int(hr) == 0:
-                    current_app.logger.warn("Entry with 0 hashrate. Worker {}; User {}".format(worker, address))
+                    logger.warn("Entry with 0 hashrate. Worker {}; User {}".format(worker, address))
                 else:
                     low_hash = thresh and hr <= thresh.hashrate_thresh
                     if low_hash and not thresh.hashrate_err:

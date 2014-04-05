@@ -77,12 +77,17 @@
         </tr>
       </thead>
       <tbody>
-      {% for shares, user, hashrate, donation_perc in users %}
+      {% for dat in users %}
         <tr>
-          <th>{{ loop.index }}. <a href="/{{ user[6:] }}">{{ user[6:] }}</a></th>
-          <th>{{ '{:,}'.format(shares|int) }}</th>
-          <th>{{ '{:,}'.format((hashrate / 1000) | round(2)) }} KH/s</th>
-          <th>{% if donation_perc != None %}{{ '{:0.1f}'.format(donation_perc) }}%{% else %}-{% endif %} </th>
+          <th>{{ loop.index }}.
+            {% if not dat['user'] %}
+              Anonymous
+            {% else %}
+              <a href="/{{ dat['user'] }}">{{ dat['user'] }}</a></th>
+            {% endif %}
+          <th>{{ '{:,}'.format(dat['shares'] | int) }}</th>
+          <th>{{ '{:,}'.format((dat['hashrate'] / 1000) | round(2)) }} KH/s</th>
+          <th>{% if donation_perc != None %}{{ '{:0.1f}'.format(dat['donation_perc']) }}%{% else %}-{% endif %} </th>
         </tr>
       {% endfor %}
       </tbody>
