@@ -326,7 +326,7 @@ def verify_message(address, message, signature):
                              .format(message, signature, address))
 
     try:
-        res = coinserv.verifymessage(address, signature, message)
+        res = coinserv.verifymessage(address, signature, message.encode('utf-8').decode('unicode-escape'))
     except CoinRPCException:
         raise Exception("Rejected by RPC server!")
     except Exception:
