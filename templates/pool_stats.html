@@ -60,9 +60,9 @@ $(document).ready(function() {
   <div class="col-lg-12">
     <h2>Pool Hashrate</h2>
       <ul class="nav nav-tabs">
-        <li class="active tab"><a id="hour" data-target="hour" data-format="%M:%S">Hour</a></li>
-        <li class="tab"><a id="day" data-target="day" data-format="%H:%M %p">Day</a></li>
-        <li class="tab"><a id="month" data-target="month" data-format="%m/%d %H:%M">Month</a></li>
+        <li class="active tab"><a id="hour" data-target="hour" data-format="%M:%S" data-user="pool">Hour</a></li>
+        <li class="tab"><a id="day" data-target="day" data-format="%H:%M %p" data-user="pool">Day</a></li>
+        <li class="tab"><a id="month" data-target="month" data-format="%m/%d %H:%M" data-user="pool">Month</a></li>
       </ul>
     <div id="chart" style="height:400px;">
       <img src="{{ config['assets_address'] | safe }}/img/712.GIF" style="position:absolute;padding-top:150px;padding-left:400px;"><svg></svg>
