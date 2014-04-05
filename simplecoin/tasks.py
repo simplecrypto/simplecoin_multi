@@ -13,7 +13,9 @@ from simplecoin.utils import last_block_time, last_block_share_id
 from simplecoin.models import (
     Share, Block, OneMinuteShare, Payout, Transaction, Blob, FiveMinuteShare,
     Status, OneMinuteReject, OneMinuteTemperature, FiveMinuteReject,
-    OneMinuteHashrate, Threshold, Event, DonationPercent, BonusPayout, FiveMinuteTemperature, FiveMinuteHashrate)
+    OneMinuteHashrate, Threshold, Event, DonationPercent, BonusPayout,
+    FiveMinuteTemperature, FiveMinuteHashrate)
+from sqlalchemy.sql import func, select
 from cryptokit import bits_to_shares, bits_to_difficulty
 
 from bitcoinrpc import CoinRPCException
@@ -306,42 +308,60 @@ def cleanup(self, simulate=False):
     Finds all the shares that will no longer be used and removes them from
     the database.
     """
+    import time
+    t = time.time()
     try:
-        # find the oldest un-processed block
-        block = (Block.query.
-                 filter_by(processed=False).
-                 order_by(Block.height).first())
-        if block is None:
-            # sloppy hack to get the newest block that is processed
-            block = (Block.query.
-                     filter_by(processed=True).
-                     order_by(Block.height.desc()).first())
-            if block is None:
-                logger.debug("No block found, exiting...")
-                return
+        diff = cache.get('difficulty_avg')
+        diff = 1100.0
+        if diff is None:
+            current_app.logger.warn(
+                "Difficulty average is blank, can't safely cleanup")
+            return
+        # count all unprocessed blocks
+        unproc_blocks = len(Block.query.filter_by(processed=False).all())
+        # make sure we leave the right number of shares for them
+        unproc_n = unproc_blocks * current_app.config['last_n']
+        # plus our requested cleanup n for a safe margin
+        cleanup_n = current_app.config.get('cleanup_n', 4) + current_app.config['last_n']
+        # calculate how many n1 shares that is
+        total_shares = int(round(((float(diff) * (2 ** 16)) * (cleanup_n + unproc_n))))
+        stale_id = 0
+        counted_shares = 0
+        rows = 0
+        logger.info("Unprocessed blocks: {}; {} N kept"
+                    .format(unproc_blocks, unproc_n))
+        logger.info("Safety margin N from config: {}".format(cleanup_n))
+        logger.info("Total shares being saved: {}".format(total_shares))
+        # iterate through shares in newest to oldest order to find the share
+        # id that is oldest needed id
+        for shares, id in (db.engine.execution_options(stream_results=True).
+                           execute(select([Share.shares, Share.id]).
+                                   order_by(Share.id.desc()))):
+            rows += 1
+            counted_shares += shares
+            if counted_shares >= total_shares:
+                stale_id = id
+                break
 
-        mult = int(current_app.config['last_n'])
-        # take our standard share count times two for a safe margin. divide
-        # by 16 to get the number of rows, since a rows minimum share count
-        # is 16
-        shares = (bits_to_shares(block.bits) * mult) * 2
-        id_diff = shares // 16
-        # compute the id which earlier ones are safe to delete
-        stale_id = block.last_share.id - id_diff
+        if not stale_id:
+            logger.info("Stale ID is 0, deleting nothing.")
+            return
+
+        logger.info("Time to identify proper id {}".format(time.time() - t))
         if simulate:
-            logger.info("Share for block computed: {}".format(shares // 2))
-            logger.info("Share total margin computed: {}".format(shares))
-            logger.info("Id diff computed: {}".format(id_diff))
             logger.info("Stale ID computed: {}".format(stale_id))
-            exit(0)
-        elif stale_id > 0:
-            logger.info("Cleaning all shares older than {}".format(stale_id))
-            # delete all shares that are sufficiently old
-            Share.query.filter(Share.id < stale_id).delete(
-                synchronize_session=False)
-            db.session.commit()
-        else:
-            logger.info("Not cleaning anything, stale id less than zero")
+            logger.info("Rows iterated to find stale id: {}".format(rows))
+            return
+
+        logger.info("Cleaning all shares older than id {}".format(stale_id))
+        # To prevent integrity errors, all blocks linking to a share that's
+        # going to be deleted needs to be updated to remove reference
+        Block.query.filter(Block.last_share_id <= stale_id).update({Block.last_share_id: None})
+        db.session.flush()
+        # delete all shares that are sufficiently old
+        Share.query.filter(Share.id < stale_id).delete(synchronize_session=False)
+        db.session.commit()
+        logger.info("Time to completion {}".format(time.time() - t))
     except Exception as exc:
         logger.error("Unhandled exception in cleanup", exc_info=True)
         db.session.rollback()
@@ -368,11 +388,8 @@ def payout(self, simulate=False):
         logger.debug("Processing block height {}".format(block.height))
 
         mult = int(current_app.config['last_n'])
-        # take our standard share count times two for a safe margin. divide
-        # by 16 to get the number of rows, since a rows minimum share count
-        # is 16
-        total_shares = (bits_to_shares(block.bits) * mult)
         logger.debug("Looking for up to {} total shares".format(total_shares))
+        total_shares = (bits_to_shares(block.bits) * mult)
         remain = total_shares
         start = block.last_share.id
         logger.debug("Identified last matching share id as {}".format(start))

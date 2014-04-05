@@ -69,6 +69,8 @@ celery:
 # the multiplier used on the last n shares to keep for counting share
 # contributions
 last_n: 2
+# this is the n margin that is left by the cleanup script.
+cleanup_n: 4
 # default donation/bonus percentage applied to payouts if no custom is
 # defined
 default_perc: 0
