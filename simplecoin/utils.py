@@ -242,7 +242,12 @@ def collect_user_stats(address):
                  for gpu in workers[st.worker]['status']['gpus']])
         except KeyError:
             workers[st.worker]['wu'] = 0
-        workers[st.worker]['wue'] = workers[st.worker]['wu'] / (workers[st.worker]['total_hashrate']*1000)
+
+        try:
+            workers[st.worker]['wue'] = workers[st.worker]['wu'] / (workers[st.worker]['total_hashrate']*1000)
+        except ZeroDivisionError:
+            workers[st.worker]['wue'] = 0.0
+
         ver = workers[st.worker]['status'].get('v', '0.2.0').split('.')
         try:
             workers[st.worker]['status_version'] = [int(part) for part in ver]
