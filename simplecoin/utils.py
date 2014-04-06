@@ -191,7 +191,7 @@ def collect_user_stats(address):
 
     unconfirmed_balance = (Payout.query.filter_by(user=address).
                            join(Payout.block, aliased=True).
-                           filter_by(mature=False))
+                           filter_by(mature=False, orphan=False))
     unconfirmed_balance = sum([payout.amount for payout in unconfirmed_balance])
     balance -= unconfirmed_balance
 

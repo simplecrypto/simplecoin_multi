@@ -401,16 +401,7 @@ $(document).ready(function() {
                     </a>
                     {% endif %}
                   </th>
-                  <th>
-                    {% if payout.transaction_id %}
-                      {% if payout.transaction.confirmed == True %}
-                        Confirmed
-                      {% else %}
-                        Unconfirmed
-                      {% endif %}
-                    {% else %}
-                      -
-                    {% endif %}</th>
+                  <th>{{ payout.status }}</th>
                 </tr>
               {% else %}
                 <tr>
@@ -426,12 +417,12 @@ $(document).ready(function() {
                   <th>
                     {% if obj.transaction_id %}
                       {% if obj.transaction.confirmed == True %}
-                        Confirmed
+                        Payout Confirmed
                       {% else %}
-                        Unconfirmed
+                        Payout Unconfirmed
                       {% endif %}
                     {% else %}
-                      -
+                      Payout Pending
                     {% endif %}</th>
                 </tr>
               {% endif %}
