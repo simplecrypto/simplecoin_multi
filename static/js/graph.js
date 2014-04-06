@@ -197,7 +197,7 @@ generate_worker_graph = function(target, request_url, date_format, user, worker,
             .axisLabel(axis_label)
             .axisLabelDistance(25);
 
-        chart.forceY([0, d3.max(values_no_stamp) ]);
+        chart.forceY([0, d3.max(values_no_stamp)*1.1 ]);
 
 //        // build array of
 //        var values_array = [];
