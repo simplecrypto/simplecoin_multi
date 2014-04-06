@@ -42,7 +42,6 @@ generate_graph = function(request_url, date_format, user) {
   generate_data = function(request_url, date_format, user) {
     clean_data = [];
     d3.json('/' + user + '/stats/' + request_url, function(data) {
-
       start = data.start;
       end = data.end;
       step = data.step;
@@ -133,14 +132,16 @@ generate_worker_graph = function(target, request_url, date_format, user, worker,
       start = data.start;
       end = data.end;
       step = data.step;
+      var values_no_stamp = []
       for (var key in data.workers) {
         var worker = data.workers[key];
-        var values = []
-        for (var i = start; i <= end; i += step) {
+        var values = [];
 
+        for (var i = start; i <= end; i += step) {
           if (i in worker) {
             if (worker[i] < 0){ worker[i] = 0; }
             values.push([i * 1000, worker[i]]);
+            values_no_stamp.push(worker[i]);
           } else {
             values.push([i * 1000, 0]);
           }
@@ -195,6 +196,19 @@ generate_worker_graph = function(target, request_url, date_format, user, worker,
             .tickFormat(d3.format(',.2f'))
             .axisLabel(axis_label)
             .axisLabelDistance(25);
+
+        chart.forceY([0, d3.max(values_no_stamp) ]);
+
+//        // build array of
+//        var values_array = [];
+//        for (var i = 0; i <= clean_data.length-1; i += 1) {
+//            for (var u = 0; u <= clean_data[i]['values'].length; u += 1) {
+//                if (u in clean_data[i]['values']) {
+//                   values_array.push(clean_data[i]['values'][u][1]);
+//                }
+//            }
+//        }
+//        console.log(d3.max(values_array));
 
         d3.select('#' + target + ' svg')
           .datum(clean_data)
