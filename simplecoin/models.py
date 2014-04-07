@@ -65,7 +65,7 @@ class Block(base):
             return "Orphan"
         confirms = self.confirms_remaining
         if confirms is not None:
-            return "{} Confirms Reamining".format(confirms)
+            return "{} Confirms Remaining".format(confirms)
         else:
             return "Pending confirmation"
 
