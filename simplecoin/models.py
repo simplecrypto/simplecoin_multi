@@ -64,7 +64,7 @@ class Block(base):
         if self.orphan:
             return "Orphan"
         confirms = self.confirms_remaining
-        if confirms:
+        if confirms is not None:
             return "{} Confirms Reamining".format(confirms)
         else:
             return "Pending confirmation"
@@ -102,7 +102,8 @@ class Block(base):
         if not bh:
             return None
         confirms_req = current_app.config['block_mature_confirms']
-        return min(0, confirms_req - (bh - self.height))
+        # prevent displaying negative confirms
+        return max(0, confirms_req - (bh - self.height))
 
 
 class Share(base):
@@ -301,7 +302,7 @@ class Payout(Transfer):
         elif not self.block.mature:
 
             confirms = self.block.confirms_remaining
-            if confirms:
+            if confirms is not None:
                 return "{} Block Confirms Remaining".format(confirms)
             else:
                 return "Pending Block Confirmation"
