@@ -105,8 +105,18 @@ rpc_url: http://www.simpledoge.com
 # LTC, etc
 payout_prefix: D
 
+# Mimic some MPOS stuff
+# ========================================================================
+# Allowed API keys
+mpos_api_keys:
+    - asdf
+
 # Coin/Branding
 # =======================================================================
+# Website name
+site_name: Simple Doge
+# Website title
+site_url: simpledoge.com
 # the path that will be postfixed with the current git hash in the footer.
 # comment out to remove the footer mark
 repopath: https://github.com/simplecrypto/simplecoin/commit/
