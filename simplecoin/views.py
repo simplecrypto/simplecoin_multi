@@ -102,18 +102,20 @@ def mpos_pool_stats_api():
     if (action == 'getpoolstatus') & (api_key in current_app.config['mpos_api_keys']):
         sps = float(g.completed_block_shares) / g.round_duration
         difficulty = cache.get('difficulty') or 0
+        blockheight = cache.get('blockheight') or 0
         data = {"pool_name": current_app.config['site_url'],
-                "hashrate": get_pool_hashrate(),
+                "hashrate": round(get_pool_hashrate(), 0),
                 "efficiency": round(get_pool_eff(), 2),
                 "workers": g.worker_count,
-                "currentnetworkblock": cache.get('blockheight') or 0,
-                "nextnetworkblock": cache.get('blockheight') or 0,
+                "currentnetworkblock": blockheight,
+                "nextnetworkblock": blockheight+1,
                 "lastblock": last_block_found(),
                 "networkdiff": difficulty,
-                "esttime": (float(g.shares_to_solve) - g.completed_block_shares) / sps,
-                "estshares": g.shares_to_solve,
-                "timesincelast": g.round_duration,
-                "nethashrate": (difficulty * 2**32) / 60}
+                "esttime": round((float(g.shares_to_solve) - g.completed_block_shares) / sps, 0),
+                "estshares": round(g.shares_to_solve, 0),
+                "timesincelast": round(g.round_duration, 0),
+                "nethashrate": round((difficulty * 2**32) / 60, 0)
+                }
         ret['getpoolstatus'] = {"version": "0.3", "runtime": 0, "data": data}
 
     return jsonify(**ret)
