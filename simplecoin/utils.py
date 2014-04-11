@@ -4,7 +4,7 @@ import time
 import itertools
 
 import yaml
-from flask import current_app
+from flask import current_app, session
 from sqlalchemy.sql import func
 
 import requests
@@ -366,3 +366,20 @@ def verify_message(address, message, signature):
             raise Exception("Invalid arguments provided to command!")
     else:
         raise Exception("Invalid signature! Coinserver returned " + str(res))
+
+def resort_recent_visit(recent):
+    """ Accepts a new dictionary of recent visitors and calculates what
+    percentage of your total visits have gone to that address. Used to dim low
+    percentage addresses. Also sortes showing most visited on top. """
+    # accumulate most visited addr while trimming dictionary. NOT Python3 compat
+    session['recent_users'] = []
+    for i, (addr, visits) in enumerate(sorted(recent.items(), key=lambda x: x[1], reverse=True)):
+        if i > 20:
+            del recent[addr]
+            continue
+        session['recent_users'].append((addr, visits))
+
+    # total visits in the list, for calculating percentage
+    total = float(sum([t[1] for t in session['recent_users']]))
+    session['recent_users'] = [(addr, (visits / total))
+                               for addr, visits in session['recent_users']]

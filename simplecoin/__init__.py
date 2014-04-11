@@ -74,6 +74,18 @@ def create_app(config='/config.yml', celery=False):
 
 
     # filters for jinja
+    @app.template_filter('fader')
+    def fader(val, perc1, perc2, perc3, color1, color2, color3):
+        """
+        Accepts a decimal (0.1, 0.5, etc) and slots it into one of three categories based
+        on the percentage.
+        """
+        if val > perc3:
+            return color3
+        if val > perc2:
+            return color2
+        return color1
+
     @app.template_filter('time_ago')
     def pretty_date(time=False):
         """

@@ -54,7 +54,7 @@ $(document).ready(function() {
                         Paste your {{ config['coin_name'] }} address for quick access to individualized stats.
                         {% if 'recent_users' in session %}
                           <h4>Recently Visited Stats:</h4>
-                          {% for address in session['recent_users'][:2] %}
+                          {% for address, _ in session['recent_users'][:2] %}
                           <h5><a href="/{{ address }}">{{ address }}</a></h5>
                           {% endfor %}
                         {% endif %}

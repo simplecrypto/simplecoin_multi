@@ -16,7 +16,7 @@ from . import db, root, cache
 from .utils import (compress_typ, get_typ, verify_message, get_pool_acc_rej,
                     get_pool_eff, last_10_shares, collect_user_stats, get_adj_round_shares,
                     get_pool_hashrate, last_block_time, get_alerts,
-                    last_block_found, last_blockheight)
+                    last_block_found, last_blockheight, resort_recent_visit)
 
 
 main = Blueprint('main', __name__)
@@ -60,12 +60,17 @@ def pool_stats():
 
 @main.before_request
 def add_pool_stats():
+    try:
+        if len(session['recent_users'][0]) != 2:
+            session['recent_users'] = []
+    except IndexError:
+        pass
     g.completed_block_shares = get_adj_round_shares()
     g.round_duration = (datetime.datetime.utcnow() - last_block_time()).total_seconds()
     g.hashrate = get_pool_hashrate()
 
     g.worker_count = cache.get('total_workers') or 0
-    g.average_difficulty = cache.get('difficulty_avg') or 0
+    g.average_difficulty = cache.get('difficulty_avg') or 1
     g.shares_to_solve = g.average_difficulty * (2 ** 16)
     g.total_round_shares = g.shares_to_solve * current_app.config['last_n']
     g.alerts = get_alerts()
@@ -260,12 +265,11 @@ def user_dashboard(address=None):
     stats = collect_user_stats(address)
 
     # reorganize/create the recently viewed
-    recent = session.get('recent_users', [])
-    if address in recent:
-        recent.remove(address)
-    recent.insert(0, address)
-    session['recent_users'] = recent[:10]
-
+    recent = session.get('recent_user_counts', {})
+    recent.setdefault(address, 0)
+    recent[address] += 1
+    session['recent_user_counts'] = recent
+    resort_recent_visit(recent)
     return render_template('user_stats.html', username=address, **stats)
 
 
@@ -290,16 +294,15 @@ def address_api(address):
 
 @main.route("/<address>/clear")
 def address_clear(address=None):
-    if len(address) != 34:
-        abort(404)
-
     # remove address from the recently viewed
-    recent = session.get('recent_users', [])
-    if address in recent:
-        recent.remove(address)
-    session['recent_users'] = recent[:10]
+    recent = session.get('recent_users_counts', {})
+    try:
+        del recent[address]
+    except KeyError:
+        pass
+    resort_recent_visit(recent)
 
-    return jsonify(recent=recent[:10])
+    return jsonify(recent=session['recent_users'])
 
 
 @main.route("/<address>/stats")
