@@ -78,7 +78,7 @@ class RPCClient(object):
         if bids:
             proc_bids = [int(i) for i in bids.split(',')]
         data = {'pids': proc_pids, 'bids': proc_bids, 'reset': True}
-        logger.info("Reseting requested bids and pids")
+        logger.info("Resetting requested bids and pids")
         self.post('update_payouts', data=data)
 
     def proc_trans(self, simulate=False):

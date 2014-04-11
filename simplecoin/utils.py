@@ -340,11 +340,11 @@ def verify_message(address, message, signature):
     if command not in commands:
         raise Exception("Invalid command given!")
 
-    current_app.logger.error("Attemting to validate message '{}' with sig '{}' for address '{}'"
+    current_app.logger.error(u"Attempting to validate message '{}' with sig '{}' for address '{}'"
                              .format(message, signature, address))
 
     try:
-        res = coinserv.verifymessage(address, signature, message)
+        res = coinserv.verifymessage(address, signature, message.encode('utf-8').decode('unicode-escape'))
     except CoinRPCException:
         raise Exception("Rejected by RPC server!")
     except Exception:
