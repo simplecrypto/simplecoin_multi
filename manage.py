@@ -1,9 +1,11 @@
 import os
 import logging
+import datetime
+import sqlalchemy
 
 from flask.ext.script import Manager, Shell
 from flask.ext.migrate import Migrate, MigrateCommand
-from simplecoin import create_app, db
+from simplecoin import create_app, db, coinserv
 
 app = create_app()
 manager = Manager(app)
@@ -16,7 +18,7 @@ from simplecoin.tasks import (cleanup, payout, server_status, difficulty_avg,
                               update_online_workers, update_pplns_est,
                               cache_user_donation)
 from simplecoin.models import (Transaction, Threshold, DonationPercent,
-                               BonusPayout)
+                               BonusPayout, OneMinuteType, FiveMinuteType)
 from simplecoin.utils import setfee_command
 from flask import current_app, _request_ctx_stack
 
@@ -118,6 +120,39 @@ def test_email():
     """ Sends a testing email to the send address """
     thresh = Threshold(emails=[current_app.config['email']['send_address']])
     thresh.report_condition("Test condition")
+
+
+@manager.option('-b', '--blockheight', dest='blockheight', type=int,
+                help='blockheight to start working backward from')
+def historical_update(blockheight):
+    """ Very long running task. Fills out the network difficulty values for all
+    blocks before the site was running (or potentially recording block diff). """
+
+    def add_one_minute_diff(diff, time):
+        try:
+            m = OneMinuteType(typ='netdiff', value=diff, time=time)
+            db.session.add(m)
+            db.session.commit()
+        except sqlalchemy.exc.IntegrityError:
+            db.session.rollback()
+            slc = OneMinuteType.query.with_lockmode('update').filter_by(
+                time=time, typ='netdiff').one()
+            # just average the diff of two blocks that occured in the same second..
+            slc.value = (diff + slc.value) / 2
+            db.session.commit()
+
+    for ht in xrange(blockheight, 0, -1):
+        hsh = coinserv.getblockhash(ht)
+        info = coinserv.getblock(hsh)
+        add_one_minute_diff(info['difficulty'] * 1000000,
+                            datetime.datetime.fromtimestamp(info['time']))
+        current_app.logger.info("Processed block height {}".format(ht))
+
+    db.session.commit()
+    OneMinuteType.compress()
+    db.session.commit()
+    FiveMinuteType.compress()
+    db.session.commit()
 
 
 @manager.option('-s', '--simulate', dest='simulate', default=True)
