@@ -16,7 +16,8 @@ from . import db, root, cache
 from .utils import (compress_typ, get_typ, verify_message, get_pool_acc_rej,
                     get_pool_eff, last_10_shares, collect_user_stats, get_adj_round_shares,
                     get_pool_hashrate, last_block_time, get_alerts,
-                    last_block_found, last_blockheight, resort_recent_visit)
+                    last_block_found, last_blockheight, resort_recent_visit,
+                    collect_acct_items)
 
 
 main = Blueprint('main', __name__)
@@ -38,6 +39,12 @@ def news():
 def blocks():
     blocks = db.session.query(Block).order_by(Block.height.desc())
     return render_template('blocks.html', blocks=blocks)
+
+
+@main.route("/<address>/account")
+def account(address):
+    return render_template('account.html',
+                           acct_items=collect_acct_items(address, None))
 
 
 @main.route("/pool_stats")

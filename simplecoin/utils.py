@@ -7,7 +7,6 @@ import yaml
 from flask import current_app, session
 from sqlalchemy.sql import func
 
-import requests
 from bitcoinrpc import CoinRPCException
 from . import db, coinserv, cache, root
 from .models import (DonationPercent, OneMinuteReject, OneMinuteShare,
@@ -187,6 +186,13 @@ def get_pool_acc_rej():
     return reject_total, accept_total
 
 
+def collect_acct_items(address, limit):
+    payouts = Payout.query.filter_by(user=address).order_by(Payout.id.desc()).limit(limit)
+    bonuses = BonusPayout.query.filter_by(user=address).order_by(BonusPayout.id.desc()).limit(limit)
+    return sorted(itertools.chain(payouts, bonuses),
+                  key=lambda i: i.created_at, reverse=True)
+
+
 def collect_user_stats(address):
     """ Accumulates all aggregate user data for serving via API or rendering
     into main user stats page """
@@ -204,16 +210,12 @@ def collect_user_stats(address):
     unconfirmed_balance = sum([payout.amount for payout in unconfirmed_balance])
     balance -= unconfirmed_balance
 
-    payouts = Payout.query.filter_by(user=address).order_by(Payout.id.desc()).limit(20)
-    bonuses = BonusPayout.query.filter_by(user=address).order_by(BonusPayout.id.desc()).limit(20)
-    acct_items = sorted(itertools.chain(payouts, bonuses),
-                        key=lambda i: i.created_at, reverse=True)
-    round_shares = cache.get('pplns_' + address) or 0
     pplns_cached_time = cache.get('pplns_cache_time')
     if pplns_cached_time != None:
         pplns_cached_time.strftime("%Y-%m-%d %H:%M:%S")
 
     pplns_total_shares = cache.get('pplns_total_shares') or 0
+    round_shares = cache.get('pplns_' + address) or 0
 
     # store all the raw data of we're gonna grab
     workers = {}
@@ -302,7 +304,7 @@ def collect_user_stats(address):
                 round_shares=round_shares,
                 pplns_cached_time=pplns_cached_time,
                 pplns_total_shares=pplns_total_shares,
-                acct_items=acct_items,
+                acct_items=collect_acct_items(address, 20),
                 total_earned=earned,
                 total_paid=total_payout_amount,
                 balance=balance,
