@@ -1,6 +1,19 @@
+<script>
+$(document).ready(function() {
+  $("#blockTable").tablesorter({
+    textExtraction: function(node) {
+      var attr = $(node).attr('data-sort-value');
+      if (typeof attr !== 'undefined' && attr !== false) {
+        return attr;
+      }
+      return $(node).text(); 
+    } 
+  });
+});
+</script>
 <div class="col-lg-12">
   <div class="bs-example table-responsive">
-    <table class="table table-striped table-hover ">
+    <table class="table table-striped table-hover tablesorter" id="blockTable">
       <thead>
         <tr>
           <th>Age</th>
@@ -18,7 +31,7 @@
       <tbody>
       {% if current_block %}
       <tr class="active">
-        <th>Current</th>
+        <th data-sort-value="100000000000">Current</th>
         <th><span class="odometer blockshares">0</span></th>
         <th><span class="odometer blockluck">0</span>%</th>
         <th><span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span></th>
@@ -32,10 +45,10 @@
       {% endif %}
       {% for block in blocks %}
       <tr>
-        <th>{{ block.found_at | time_ago }}</th>
+        <th data-sort-value="{{ block.timestamp }}">{{ block.found_at | time_ago }}</th>
         <th>{{ '{:,}'.format(block.shares_to_solve) }}</th>
         <th>{{ '{:,}'.format(block.luck | round(1)) }} %</th>
-        <th>{{ block.duration }}</th>
+        <th data-sort-value="{{ block.duration.total_seconds() }}">{{ block.duration }}</th>
         <th>{{ '{:,}'.format(block.total_value_float | round(2)) }}</th>
         <th>{{ '{:,}'.format(block.difficulty | round(4)) }}</th>
         <th><a href="/{{ block.user }}">{{ block.user | truncate(9, True) }}</a></th>

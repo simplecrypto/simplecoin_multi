@@ -106,9 +106,13 @@ class Block(base):
         return bits_to_difficulty(self.bits)
 
     @property
+    def timestamp(self):
+        return calendar.timegm(self.found_at.utctimetuple())
+
+    @property
     def duration(self):
         seconds = round((self.found_at - self.time_started).total_seconds())
-        formatted_time = str(timedelta(seconds=seconds))
+        formatted_time = timedelta(seconds=seconds)
         return formatted_time
 
     @property
