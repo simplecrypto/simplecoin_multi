@@ -144,8 +144,8 @@ def historical_update(blockheight):
     for ht in xrange(blockheight, 0, -1):
         hsh = coinserv.getblockhash(ht)
         info = coinserv.getblock(hsh)
-        add_one_minute_diff(info['difficulty'] * 1000000,
-                            datetime.datetime.fromtimestamp(info['time']))
+        add_one_minute_diff(info['difficulty'] * 1000,
+                            datetime.datetime.utcfromtimestamp(info['time']))
         current_app.logger.info("Processed block height {}".format(ht))
 
     db.session.commit()
