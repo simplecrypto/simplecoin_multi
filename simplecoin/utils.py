@@ -18,6 +18,10 @@ class CommandException(Exception):
     pass
 
 
+@cache.cached(timeout=300, key_prefix='all_blocks')
+def all_blocks():
+    return db.session.query(Block).order_by(Block.height.desc())
+
 @cache.cached(timeout=60, key_prefix='last_block_time')
 def last_block_time():
     """ Retrieves the last time a block was solved using progressively less

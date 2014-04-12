@@ -59,6 +59,7 @@ $(document).ready(function() {
 <div class="row row-header">
   <div class="col-lg-12">
     <h2>Pool Hashrate</h2>
+    <br>
       <ul class="nav nav-tabs">
         <li class="active tab"><a id="hour" data-target="hour" data-format="%M:%S" data-user="pool">Hour</a></li>
         <li class="tab"><a id="day" data-target="day" data-format="%H:%M %p" data-user="pool">Day</a></li>
@@ -71,6 +72,49 @@ $(document).ready(function() {
 </div>
 
 <br />
+<div class="row page-header">
+  <h2>Block Statistics</h2>
+  <br>
+  <div class="col-sm-4">
+    <div class="panel panel-default">
+      <div class="panel-body text-center">
+        <small>Pool&nbsp;Luck</small>&nbsp;
+        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                     title="All time luck for the pool. Over time this will approach 100%. Lower numbers are worse, higher numbers are better"></i>
+        <br>
+        <h4>
+          <p><span>{{ (pool_luck*100)| round(2) }}%</span></p>
+        </h4>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="panel panel-default">
+      <div class="panel-body text-center">
+        <small>Current&nbsp;Effective&nbsp;Return</small>
+        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                     title="Expected return per Megahash per day, based on current all time pool luck, the average difficulty for the last 500 blocks, and removes the percentage of orphaned blocks."></i>
+        <br>
+        <h4>
+          <p><span>{{ effective_return | round(2) }}&nbsp;{{ config['coin_symbol'] | safe }}/MH/Day</span></p>
+        </h4>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="panel panel-default">
+      <div class="panel-body text-center">
+        <small>Orphan&nbsp;Percentage</small>
+        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                     title="All time percentage of blocks that are orphaned"></i>
+        <br>
+        <h4>
+          <p><span>{{ orphan_perc | round(2) }}%</span></p>
+        </h4>
+      </div>
+    </div>
+  </div>
+</div>
 {% include "block_table.html" %}
 <a href="/blocks">View all blocks</a>
 {% endblock %}
