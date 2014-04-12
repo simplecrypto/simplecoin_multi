@@ -4,13 +4,9 @@
 {% block body %}
 <script>
 $(document).ready(function() {
-
-
   {# Initial graph generation #}
-  generate_network_graph('netdifficulty-chart', 'hour', '%H:%M %p', 'pool', 0);
-  generate_network_graph('nethashrate-chart', 'hour', '%H:%M %p', 'pool', {{ network_block_time }});
-
-
+  generate_network_graph('netdifficulty-chart', 'hour', '%H:%M %p', 'netdiff', 0);
+  generate_network_graph('nethashrate-chart', 'hour', '%H:%M %p', 'netdiff', {{ network_block_time }});
 });
 </script>
 

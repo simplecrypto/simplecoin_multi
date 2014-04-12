@@ -1,7 +1,4 @@
-
-
 $(document).ready(function() {
-
     //Swap classes on nav tabs
     $('.tab').click(function () {
         $(this).siblings().removeClass('active')
@@ -119,7 +116,6 @@ generate_graph = function(request_url, date_format, user) {
 
   // Initial graph generation
   generate_data(request_url, date_format, user);
-
 }
 
 

@@ -68,7 +68,7 @@ def last_blockheight():
     return last.height
 
 
-def get_typ(typ, address=None, window=True, worker=None):
+def get_typ(typ, address=None, window=True, worker=None, q_typ=None):
     """ Gets the latest slices of a specific size. window open toggles
     whether we limit the query to the window size or not. We disable the
     window when compressing smaller time slices because if the crontab
@@ -82,6 +82,8 @@ def get_typ(typ, address=None, window=True, worker=None):
         base = base.filter_by(user=address)
     if worker is not None:
         base = base.filter_by(worker=worker)
+    if q_typ is not None:
+        base = base.filter_by(typ=q_typ)
     if window is False:
         return base
     grab = typ.floor_time(datetime.datetime.utcnow()) - typ.window

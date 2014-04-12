@@ -8,10 +8,10 @@ from flask import (current_app, request, render_template, Blueprint, abort,
                    jsonify, g, session, Response)
 from lever import get_joined
 
-from .models import (OneMinuteShare, Block, Blob,
+from .models import (OneMinuteShare, Block, OneMinuteType, FiveMinuteType,
                      FiveMinuteShare, OneHourShare, Status, DonationPercent,
                      FiveMinuteHashrate, OneMinuteHashrate, OneHourHashrate, OneMinuteTemperature,
-                     FiveMinuteTemperature, OneHourTemperature)
+                     FiveMinuteTemperature, OneHourTemperature, OneHourType)
 from . import db, root, cache
 from .utils import (compress_typ, get_typ, verify_message, get_pool_acc_rej,
                     get_pool_eff, last_10_shares, collect_user_stats, get_adj_round_shares,
@@ -86,6 +86,7 @@ def pool_stats():
                            effective_return=effective_return,
                            orphan_perc=orphan_perc)
 
+
 @main.route("/network_stats")
 def network_stats():
     network_block_time = current_app.config['block_time']
@@ -101,48 +102,43 @@ def network_stats():
                            network_hashrate=network_hashrate,
                            network_block_time=network_block_time)
 
+
 @main.route("/network_stats/<graph_type>/<window>")
 def network_graph_data(graph_type=None, window="hour"):
-
     if not graph_type:
         return None
 
-    type_lut = {'difficulty': {'hour': OneMinuteDifficulty,
-                         'day': FiveMinuteDifficulty,
-                         'day_compressed': OneMinuteDifficulty,
-                         'month': OneHourDifficulty,
-                         'month_compressed': FiveMinuteDifficulty},
-                'network_hashrate': {'hour': OneMinuteNetworkHashrate,
-                         'day': FiveMinuteNetworkHashrate,
-                         'day_compressed': OneMinuteNetworkHashrate,
-                         'month': OneHourNetworkHashrate,
-                         'month_compressed': FiveMinuteNetworkHashrate}}
+    type_map = {'hour': OneMinuteType,
+                'month': OneHourType,
+                'day': FiveMinuteType}
+    typ = type_map[window]
+    types = {}
 
-    # store all the raw data of we've grabbed
-    workers = {}
-
-    typ = type_lut[graph_type][window]
-
+    compress = None
     if window == "day":
-        compress_typ(type_lut[graph_type]['day_compressed'], workers)
+        compress = OneMinuteType
     elif window == "month":
-        compress_typ(type_lut[graph_type]['month_compressed'], workers)
+        compress = FiveMinuteType
 
-    for m in get_typ(typ):
+    if compress:
+        for slc in get_typ(compress, q_typ=graph_type):
+            slice_dt = compress.floor_time(slc.time)
+            stamp = calendar.timegm(slice_dt.utctimetuple())
+            types.setdefault(slc.typ, {})
+            types[slc.typ].setdefault(stamp, 0)
+            types[slc.typ][stamp] += slc.value
+
+    for m in get_typ(typ, q_typ=graph_type):
         stamp = calendar.timegm(m.time.utctimetuple())
-        if worker is not None or 'undefined':
-            workers.setdefault(m.device, {})
-            workers[m.device].setdefault(stamp, 0)
-            workers[m.device][stamp] += m.value
-        else:
-            workers.setdefault(m.worker, {})
-            workers[m.worker].setdefault(stamp, 0)
-            workers[m.worker][stamp] += m.value
+        types.setdefault(m.typ, {})
+        types[m.typ].setdefault(stamp, 0)
+        types[m.typ][stamp] += m.value
+
     step = typ.slice_seconds
     end = ((int(time.time()) // step) * step) - (step * 2)
     start = end - typ.window.total_seconds() + (step * 2)
 
-    return jsonify(start=start, end=end, step=step, workers=workers)
+    return jsonify(start=start, end=end, step=step, types=types)
 
 
 @main.before_request
@@ -222,7 +218,6 @@ def mpos_pool_stats_api():
         ret['getpoolstatus'] = {"version": "0.3", "runtime": 0, "data": data}
 
     return jsonify(**ret)
-
 
 
 @main.route("/stats")
