@@ -14,7 +14,7 @@ from simplecoin.models import (
     Share, Block, OneMinuteShare, Payout, Transaction, Blob, FiveMinuteShare,
     Status, OneMinuteReject, OneMinuteTemperature, FiveMinuteReject,
     OneMinuteHashrate, Threshold, Event, DonationPercent, BonusPayout,
-    FiveMinuteTemperature, FiveMinuteHashrate)
+    FiveMinuteTemperature, FiveMinuteHashrate, FiveMinuteType, OneMinuteType)
 from sqlalchemy.sql import func, select
 from cryptokit import bits_to_shares, bits_to_difficulty
 
@@ -541,6 +541,7 @@ def compress_minute(self):
         OneMinuteReject.compress()
         OneMinuteTemperature.compress()
         OneMinuteHashrate.compress()
+        OneMinuteType.compress()
         db.session.commit()
     except Exception:
         logger.error("Unhandled exception in compress_minute", exc_info=True)
@@ -554,6 +555,7 @@ def compress_five_minute(self):
         FiveMinuteReject.compress()
         FiveMinuteTemperature.compress()
         FiveMinuteHashrate.compress()
+        FiveMinuteType.compress()
         db.session.commit()
     except Exception:
         logger.error("Unhandled exception in compress_five_minute", exc_info=True)

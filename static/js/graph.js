@@ -10,8 +10,14 @@ $(document).ready(function() {
         var $anchor = $(this);
         if ($anchor.data('html-target') != undefined) {
             $('#' + $anchor.data('html-target') + ' img').show()
-            generate_worker_data($anchor.data('html-target'), $anchor.data('target'), $anchor.data('format'), $anchor.data('user'),
-                $anchor.data('worker'), $anchor.data('stat-type'));
+            if ($anchor.data('net-block-time') == undefined) {
+                generate_worker_data($anchor.data('html-target'), $anchor.data('target'), $anchor.data('format'), $anchor.data('user'),
+                    $anchor.data('worker'), $anchor.data('stat-type'));
+            } else {
+                generate_network_data($anchor.data('html-target'), $anchor.data('target'), $anchor.data('format'), $anchor.data('graph-type'),
+                    $anchor.data('net-block-time'));
+            }
+
         } else {
             $('#chart img').show()
             generate_data($anchor.data('target'), $anchor.data('format'), $anchor.data('user'));
@@ -226,14 +232,9 @@ generate_network_graph = function(target, request_url, date_format, graph_type, 
         var worker = data.workers[key];
         var values = [];
 
-        for (var i = start; i <= end; i += step) {
-          if (i in worker) {
-            if (worker[i] < 0){ worker[i] = 0; }
-            values.push([i * 1000, worker[i]]);
-            values_no_stamp.push(worker[i]);
-          } else {
-            values.push([i * 1000, 0]);
-          }
+        var x;
+        for (x in worker) {
+          values.push([x * 1000, worker[x]/1000]);
         }
 
         if (key == "")
@@ -250,18 +251,27 @@ generate_network_graph = function(target, request_url, date_format, graph_type, 
       // if a block time is passed in, lets get ready to return a calculated hashrate
       // rather than a difficulty
       var multiplier = 1;
+
       if (network_block_time > 0) {
-          multiplier = Math.pow(2, 32) / network_block_time
+        multiplier = Math.pow(2, 32) / network_block_time
+        var chart = nv.models.stackedAreaChart()
+                      .x(function(d) { return d[0] })   //We can modify the data accessor functions...
+                      .y(function(d) { return (d[1] * multiplier)/1000000 })   //...in case your data is formatted differently.
+                      .useInteractiveGuideline(true)    //Tooltips which show all data points. Very nice!
+                      .transitionDuration(500)
+                      .showControls(true)       //Allow user to choose 'Stacked', 'Stream', 'Expanded' mode.
+                      .clipEdge(true);
+        var axis_label = 'MHash/sec';
+      } else {
+          var chart = nv.models.lineChart()
+                        .x(function(d) { return d[0] })   //We can modify the data accessor functions...
+                        .y(function(d) { return d[1] })   //...in case your data is formatted differently.
+                        .useInteractiveGuideline(true)  //We want nice looking tooltips and a guideline!
+                        .transitionDuration(350)  //how fast do you want the lines to transition?
+                        .clipEdge(true);
+
+          var axis_label = 'Network Difficulty';
       }
-      var chart = nv.models.lineChart()
-                    .x(function(d) { return d[0] })   //We can modify the data accessor functions...
-                    .y(function(d) { return d[1] * multiplier })   //...in case your data is formatted differently.
-                    .useInteractiveGuideline(true)  //We want nice looking tooltips and a guideline!
-                    .transitionDuration(350)  //how fast do you want the lines to transition?
-                    .clipEdge(true);
-
-      var axis_label = 'Network Difficulty';
-
 
         // Format x-axis labels with custom function.
         chart.xAxis

@@ -128,7 +128,7 @@ def network_graph_data(graph_type=None, window="hour"):
             types[slc.typ].setdefault(stamp, 0)
             types[slc.typ][stamp] += slc.value
 
-    for m in get_typ(typ, q_typ=graph_type):
+    for m in get_typ(typ, q_typ=graph_type, window=False):
         stamp = calendar.timegm(m.time.utctimetuple())
         types.setdefault(m.typ, {})
         types[m.typ].setdefault(stamp, 0)
@@ -138,7 +138,7 @@ def network_graph_data(graph_type=None, window="hour"):
     end = ((int(time.time()) // step) * step) - (step * 2)
     start = end - typ.window.total_seconds() + (step * 2)
 
-    return jsonify(start=start, end=end, step=step, types=types)
+    return jsonify(start=start, end=end, step=step, workers=types)
 
 
 @main.before_request

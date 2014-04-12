@@ -72,9 +72,12 @@ $(document).ready(function() {
     <h2>Network Difficulty</h2>
     <br>
       <ul class="nav nav-tabs">
-        <li class="active tab"><a id="hour" data-target="hour" data-format="%M:%S">Hour</a></li>
-        <li class="tab"><a id="day" data-target="day" data-format="%H:%M %p">Day</a></li>
-        <li class="tab"><a id="month" data-target="month" data-format="%m/%d %H:%M">Month</a></li>
+        <li class="active tab"><a id="hour" data-target="hour" data-format="%M:%S" data-html-target="netdifficulty-chart"
+             data-graph-type="netdiff" data-net-block-time="0">Hour</a></li>
+        <li class="tab"><a id="day" data-target="day" data-format="%H:%M %p" data-html-target="netdifficulty-chart"
+            data-graph-type="netdiff" data-net-block-time="0">Day</a></li>
+        <li class="tab"><a id="month" data-target="month" data-format="%m/%d %H:%M" data-html-target="netdifficulty-chart"
+            data-graph-type="netdiff" data-net-block-time="0">Month</a></li>
       </ul>
     <div id="netdifficulty-chart" style="height:400px;">
       <img src="{{ config['assets_address'] | safe }}/img/712.GIF" style="position:absolute;padding-top:150px;padding-left:400px;"><svg></svg>
@@ -86,9 +89,12 @@ $(document).ready(function() {
     <h2>Network Hashrate</h2>
     <br>
       <ul class="nav nav-tabs">
-        <li class="active tab"><a id="hour" data-target="hour" data-format="%M:%S">Hour</a></li>
-        <li class="tab"><a id="day" data-target="day" data-format="%H:%M %p">Day</a></li>
-        <li class="tab"><a id="month" data-target="month" data-format="%m/%d %H:%M">Month</a></li>
+        <li class="active tab"><a id="hour" data-target="hour" data-format="%M:%S" data-html-target="nethashrate-chart"
+            data-graph-type="netdiff" data-net-block-time="{{ network_block_time }}">Hour</a></li>
+        <li class="tab"><a id="day" data-target="day" data-format="%H:%M %p" data-html-target="nethashrate-chart"
+            data-graph-type="netdiff" data-net-block-time="{{ network_block_time }}">Day</a></li>
+        <li class="tab"><a id="month" data-target="month" data-format="%m/%d %H:%M" data-html-target="nethashrate-chart"
+            data-graph-type="netdiff" data-net-block-time="{{ network_block_time }}">Month</a></li>
       </ul>
     <div id="nethashrate-chart" style="height:400px;">
       <img src="{{ config['assets_address'] | safe }}/img/712.GIF" style="position:absolute;padding-top:150px;padding-left:400px;"><svg></svg>
