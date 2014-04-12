@@ -70,6 +70,7 @@
     <table class="table table-striped table-hover table-responsive">
       <thead>
         <tr>
+          <th></th>
           <th>User</th>
           <th>Shares Contributed</th>
           <th>Hashrate</th>
@@ -78,12 +79,18 @@
       </thead>
       <tbody>
       {% for dat in users %}
+        {% if  dat['user'] %}
+          {% set name, color = dat['user'] | addr_to_name %}
+        {% endif %}
         <tr>
-          <th>{{ loop.index }}.
+          <th width="10">
+            {{ loop.index }}
+          </th>
+          <th>
             {% if not dat['user'] %}
               Anonymous
             {% else %}
-              <a href="/{{ dat['user'] }}">{{ dat['user'] }}</a></th>
+            <a href="/{{ dat['user'] }}"><small><tt>{{ dat['user'] }}</tt></small></a> - <span title="This is a human readable name generated from the address. This allows you to more easily remember different addresses and who they belong to.">{{ name }}</span></th>
             {% endif %}
           <th>{{ '{:,}'.format(dat['shares'] | int) }}</th>
           <th>{{ '{:,}'.format((dat['hashrate'] / 1000) | round(2)) }} KH/s</th>

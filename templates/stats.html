@@ -47,9 +47,10 @@ $(document).ready(function() {
                 <h4>Recently Visited Stats:</h4>
                 <div id="recent-users">
                 {% for address, perc in session['recent_users'] %}
+                  {% set name, _ = address | addr_to_name %}
                   <p>
                     <button type="button" class="close" data-address="{{ address }}">×</button>
-                    <h4><a style="opacity:{{ perc | fader(0.1, 0.3, 0.4, '0.8', '0.9', '1.0') }};" href="/{{ address }}">{{ address }}</a></h4>
+                    <h4><a style="opacity:{{ perc | fader(0.1, 0.3, 0.4, '0.8', '0.9', '1.0') }};" href="/{{ address }}">{{ address }} - {{ name }}</a></h4>
                   </p>
                 {% endfor %}
                 </div>

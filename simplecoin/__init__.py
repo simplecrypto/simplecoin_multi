@@ -55,6 +55,10 @@ def create_app(config='/config.yml', celery=False):
     cache.init_app(app, config=cache_config)
 
     if not celery:
+        app.config['nouns'] = [ln.strip() for ln in open(root + '/static/nouns.txt')]
+        app.config['colors'] = [ln.strip() for ln in open(root + '/static/colors.txt')]
+        app.config['colors_hex'] = [ln.strip() for ln in open(root + '/static/colors_hex.txt')]
+
         hdlr = logging.FileHandler(app.config.get('log_file', 'webserver.log'))
         formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
         hdlr.setFormatter(formatter)
@@ -71,6 +75,19 @@ def create_app(config='/config.yml', celery=False):
         except Exception:
             app.config['hash'] = ''
             app.config['revdate'] = ''
+
+
+    # filters for jinja
+    @app.template_filter('addr_to_name')
+    def addr_to_name(address):
+        """
+        Attempts to make a human readable name from an address
+        """
+        noun = app.config['nouns'][sum([ord(f) for f in address[5:]]) % len(app.config['nouns'])]
+        color_idx = sum([ord(f) for f in address[:6]]) % len(app.config['colors'])
+        color = app.config['colors'][color_idx]
+        color_hex = app.config['colors_hex'][color_idx]
+        return " ".join((color, noun)), color_hex
 
 
     # filters for jinja
