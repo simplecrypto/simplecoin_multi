@@ -122,6 +122,8 @@ site_url: simpledoge.com
 repopath: https://github.com/simplecrypto/simplecoin/commit/
 # the block reward. Used to calculate averages, etc
 reward: 250000
+# the expected time for the network to find a block in seconds
+block_time: 60
 # the colloquial name of the coin
 coin_name: Doge
 site_title: Simple Doge

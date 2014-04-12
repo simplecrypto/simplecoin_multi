@@ -64,6 +64,64 @@ def pool_stats():
                            accept_total=accept_total,
                            reject_total=reject_total)
 
+@main.route("/network_stats")
+def network_stats():
+    network_block_time = current_app.config['block_time']
+    network_difficulty = cache.get('difficulty') or 0
+    network_avg_difficulty = g.average_difficulty or 0
+    network_blockheight = cache.get('blockheight') or 0
+    network_hashrate = (network_difficulty * (2**32)) / network_block_time
+
+    return render_template('network_stats.html',
+                           network_difficulty=network_difficulty,
+                           network_avg_difficulty=network_avg_difficulty,
+                           network_blockheight=network_blockheight,
+                           network_hashrate=network_hashrate,
+                           network_block_time=network_block_time)
+
+@main.route("/network_stats/<graph_type>/<window>")
+def network_graph_data(graph_type=None, window="hour"):
+
+    if not graph_type:
+        return None
+
+    type_lut = {'difficulty': {'hour': OneMinuteDifficulty,
+                         'day': FiveMinuteDifficulty,
+                         'day_compressed': OneMinuteDifficulty,
+                         'month': OneHourDifficulty,
+                         'month_compressed': FiveMinuteDifficulty},
+                'network_hashrate': {'hour': OneMinuteNetworkHashrate,
+                         'day': FiveMinuteNetworkHashrate,
+                         'day_compressed': OneMinuteNetworkHashrate,
+                         'month': OneHourNetworkHashrate,
+                         'month_compressed': FiveMinuteNetworkHashrate}}
+
+    # store all the raw data of we've grabbed
+    workers = {}
+
+    typ = type_lut[graph_type][window]
+
+    if window == "day":
+        compress_typ(type_lut[graph_type]['day_compressed'], workers)
+    elif window == "month":
+        compress_typ(type_lut[graph_type]['month_compressed'], workers)
+
+    for m in get_typ(typ):
+        stamp = calendar.timegm(m.time.utctimetuple())
+        if worker is not None or 'undefined':
+            workers.setdefault(m.device, {})
+            workers[m.device].setdefault(stamp, 0)
+            workers[m.device][stamp] += m.value
+        else:
+            workers.setdefault(m.worker, {})
+            workers[m.worker].setdefault(stamp, 0)
+            workers[m.worker][stamp] += m.value
+    step = typ.slice_seconds
+    end = ((int(time.time()) // step) * step) - (step * 2)
+    start = end - typ.window.total_seconds() + (step * 2)
+
+    return jsonify(start=start, end=end, step=step, workers=workers)
+
 
 @main.before_request
 def add_pool_stats():
@@ -137,7 +195,7 @@ def mpos_pool_stats_api():
                 "esttime": round((float(g.shares_to_solve) - g.completed_block_shares) / sps, 0),
                 "estshares": round(g.shares_to_solve, 0),
                 "timesincelast": round(g.round_duration, 0),
-                "nethashrate": round((difficulty * 2**32) / 60, 0)
+                "nethashrate": round((difficulty * 2**32) / current_app.config['block_time'], 0)
                 }
         ret['getpoolstatus'] = {"version": "0.3", "runtime": 0, "data": data}
 
@@ -241,11 +299,9 @@ def worker_stats(address=None, worker=None, stat_type=None, window="hour"):
     typ = type_lut[stat_type][window]
 
     if window == "day":
-        compress_typ(type_lut[stat_type]['day_compressed'], address, workers, worker=worker)
+        compress_typ(type_lut[stat_type]['day_compressed'], workers, address, worker=worker)
     elif window == "month":
-        compress_typ(type_lut[stat_type]['month_compressed'], address, workers, worker=worker)
-
-
+        compress_typ(type_lut[stat_type]['month_compressed'], workers, address, worker=worker)
 
     for m in get_typ(typ, address, worker=worker):
         stamp = calendar.timegm(m.time.utctimetuple())
@@ -321,10 +377,10 @@ def address_stats(address=None, window="hour"):
     if window == "hour":
         typ = OneMinuteShare
     elif window == "day":
-        compress_typ(OneMinuteShare, address, workers)
+        compress_typ(OneMinuteShare, workers, address)
         typ = FiveMinuteShare
     elif window == "month":
-        compress_typ(FiveMinuteShare, address, workers)
+        compress_typ(FiveMinuteShare, workers, address)
         typ = OneHourShare
 
     for m in get_typ(typ, address):
