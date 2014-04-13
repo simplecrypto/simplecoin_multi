@@ -1,4 +1,4 @@
-"""empty message
+""" Adds Status for ppagent tracking. Changes payout foreign key to point to blockhash instead of height.
 
 Revision ID: 2db48f0c89c7
 Revises: b1e627b9a0

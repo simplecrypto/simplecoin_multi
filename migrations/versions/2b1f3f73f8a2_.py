@@ -1,4 +1,4 @@
-"""empty message
+"""Adds a created at time for payout tables so we don't rely on the block find time (frequently inaccurate)
 
 Revision ID: 2b1f3f73f8a2
 Revises: 27a4875d33de

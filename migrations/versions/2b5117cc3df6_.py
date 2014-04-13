@@ -1,4 +1,4 @@
-"""empty message
+""" Giant rework of the Payout system.
 
 Revision ID: 2b5117cc3df6
 Revises: None

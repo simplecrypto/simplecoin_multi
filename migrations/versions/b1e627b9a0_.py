@@ -1,4 +1,4 @@
-"""empty message
+"""Adds share tracking tables for three different time slices.
 
 Revision ID: b1e627b9a0
 Revises: 2b5117cc3df6

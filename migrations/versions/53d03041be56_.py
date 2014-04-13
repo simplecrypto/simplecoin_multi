@@ -1,4 +1,4 @@
-"""empty message
+"""Adds thresholds and events for tracking email send rates.
 
 Revision ID: 53d03041be56
 Revises: 19df16914a19

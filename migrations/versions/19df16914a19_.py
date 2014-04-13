@@ -1,4 +1,4 @@
-"""empty message
+"""Adds tracking for temperature, rejected shares, and hashrates each in their own set of timeslice tables.
 
 Revision ID: 19df16914a19
 Revises: 58441c58e37e

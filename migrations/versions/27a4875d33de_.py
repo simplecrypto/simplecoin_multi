@@ -1,4 +1,4 @@
-"""empty message
+""" Track bonus totals paid out for a block. Renames fee column
 
 Revision ID: 27a4875d33de
 Revises: f84430b16b

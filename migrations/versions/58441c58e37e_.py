@@ -1,4 +1,4 @@
-"""empty message
+"""Allows setting the time a Status object was last updated.
 
 Revision ID: 58441c58e37e
 Revises: 2db48f0c89c7

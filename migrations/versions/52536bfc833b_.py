@@ -1,4 +1,4 @@
-"""empty message
+"""Adds blockhash linking to BonusPayouts
 
 Revision ID: 52536bfc833b
 Revises: 160f63e90b91

@@ -1,4 +1,4 @@
-"""empty message
+"""Adds locking capabilities to payout table, creates new BonusPayout table, and DonationPercent table.
 
 Revision ID: f84430b16b
 Revises: 53d03041be56

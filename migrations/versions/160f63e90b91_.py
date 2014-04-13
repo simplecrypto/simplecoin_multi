@@ -1,4 +1,4 @@
-"""empty message
+"""Chnages donation percentage to a float for fractional percentages. Adds new time slice tables for tracking different single instance values (network hashrate, etc)
 
 Revision ID: 160f63e90b91
 Revises: 2b1f3f73f8a2
@@ -21,19 +21,19 @@ def upgrade():
                     sa.Column('typ', sa.String(), nullable=False),
                     sa.Column('time', sa.DateTime(), nullable=False),
                     sa.Column('value', sa.Integer(), nullable=True),
-                    sa.PrimaryKeyConstraint('type', 'time')
+                    sa.PrimaryKeyConstraint('typ', 'time')
                     )
     op.create_table('one_hour_type',
-                    sa.Column('type', sa.String(), nullable=False),
+                    sa.Column('typ', sa.String(), nullable=False),
                     sa.Column('time', sa.DateTime(), nullable=False),
                     sa.Column('value', sa.Integer(), nullable=True),
-                    sa.PrimaryKeyConstraint('type', 'time')
+                    sa.PrimaryKeyConstraint('typ', 'time')
                     )
     op.create_table('five_minute_type',
-                    sa.Column('type', sa.String(), nullable=False),
+                    sa.Column('typ', sa.String(), nullable=False),
                     sa.Column('time', sa.DateTime(), nullable=False),
                     sa.Column('value', sa.Integer(), nullable=True),
-                    sa.PrimaryKeyConstraint('type', 'time')
+                    sa.PrimaryKeyConstraint('typ', 'time')
                     )
     ### end Alembic commands ###
 
