@@ -19,7 +19,8 @@ def get_payouts():
 
     payouts = (Payout.query.filter_by(transaction_id=None, locked=False).
                join(Payout.block, aliased=True).filter_by(mature=True)).all()
-    bonus_payouts = BonusPayout.query.filter_by(transaction_id=None, locked=False).all()
+    bonus_payouts = (BonusPayout.query.filter_by(transaction_id=None, locked=False).
+                     join(BonusPayout.block, aliased=True).filter_by(mature=True)).all()
 
     pids = [(p.user, p.amount, p.id) for p in payouts]
     bids = [(p.user, p.amount, p.id) for p in bonus_payouts]

@@ -73,16 +73,7 @@
                     </a>
                     {% endif %}
                   </th>
-                  <th>
-                    {% if obj.transaction_id %}
-                      {% if obj.transaction.confirmed == True %}
-                        Payout Confirmed
-                      {% else %}
-                        Payout Unconfirmed
-                      {% endif %}
-                    {% else %}
-                      Payout Pending
-                    {% endif %}</th>
+                  <th>{{ obj.status }}</th>
                 </tr>
               {% endif %}
             {% endfor %}

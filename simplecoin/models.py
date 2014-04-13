@@ -286,6 +286,25 @@ class Transfer(AbstractConcreteBase, base):
     def transaction(self):
         return db.relationship('Transaction')
 
+    @property
+    def status(self):
+        if self.transaction:
+            if self.transaction.confirmed is True:
+                return "Payout Transaction Confirmed"
+            else:
+                return "Payout Transaction Pending"
+        elif self.block.orphan:
+            return "Block Orphaned"
+        elif not self.block.mature:
+
+            confirms = self.block.confirms_remaining
+            if confirms is not None:
+                return "{} Block Confirms Remaining".format(confirms)
+            else:
+                return "Pending Block Confirmation"
+        else:
+            return "Payout Pending"
+
 
 class Payout(Transfer):
     __tablename__ = "payout"
@@ -313,37 +332,21 @@ class Payout(Transfer):
     def timestamp(self):
         return calendar.timegm(self.created_at.utctimetuple())
 
-    @property
-    def status(self):
-        if self.transaction:
-            if self.transaction.confirmed is True:
-                return "Payout Transaction Confirmed"
-            else:
-                return "Payout Transaction Pending"
-        elif self.block.orphan:
-            return "Block Orphaned"
-        elif not self.block.mature:
-
-            confirms = self.block.confirms_remaining
-            if confirms is not None:
-                return "{} Block Confirms Remaining".format(confirms)
-            else:
-                return "Pending Block Confirmation"
-        else:
-            return "Payout Pending"
-
 
 class BonusPayout(Transfer):
     __tablename__ = "bonus_payout"
     description = db.Column(db.String)
+    blockhash = db.Column(db.String, db.ForeignKey('block.hash'))
+    block = db.relationship('Block', foreign_keys=[blockhash])
     __mapper_args__ = {
         'polymorphic_identity': 'bonus_payout',
         'concrete': True
     }
 
     @classmethod
-    def create(cls, user, amount, description):
-        bonus = cls(user=user, amount=amount, description=description)
+    def create(cls, user, amount, description, block):
+        bonus = cls(user=user, amount=amount, description=description,
+                    block=block)
         db.session.add(bonus)
         return bonus
 

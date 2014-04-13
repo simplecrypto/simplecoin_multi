@@ -18,7 +18,8 @@ from simplecoin.tasks import (cleanup, payout, server_status, difficulty_avg,
                               update_online_workers, update_pplns_est,
                               cache_user_donation)
 from simplecoin.models import (Transaction, Threshold, DonationPercent,
-                               BonusPayout, OneMinuteType, FiveMinuteType)
+                               BonusPayout, OneMinuteType, FiveMinuteType,
+                               Block)
 from simplecoin.utils import setfee_command
 from flask import current_app, _request_ctx_stack
 
@@ -62,12 +63,14 @@ def set_fee(user, fee):
     setfee_command(user, fee)
 
 
+@manager.option('blockhash', help="The blockhash that needs to mature for payout to occur")
 @manager.option('description', help="A plaintext description of the bonus payout")
 @manager.option('amount', help="The amount in satoshi")
 @manager.option('user', help="The users address")
-def give_bonus(user, amount, description):
+def give_bonus(user, amount, description, blockhash):
     """ Manually create a BonusPayout for a user """
-    BonusPayout.create(user, amount, description)
+    block = Block.query.filter_by(hash=blockhash).one()
+    BonusPayout.create(user, amount, description, block)
     db.session.commit()
 
 

@@ -513,7 +513,7 @@ def payout(self, simulate=False):
                 donate_address = current_app.config['donate_address']
                 BonusPayout.create(donate_address, donation_total,
                                    "Total donations from block {}"
-                                   .format(block.height))
+                                   .format(block.height), block)
                 logger.info("Added bonus payout to donation address {} for {}"
                             .format(donate_address, donation_total / 100000000.0))
 
@@ -521,7 +521,7 @@ def payout(self, simulate=False):
             if block_bonus > 0:
                 BonusPayout.create(block.user, block_bonus,
                                    "Blockfinder bonus for block {}"
-                                   .format(block.height))
+                                   .format(block.height), block)
                 logger.info("Added bonus payout for blockfinder {} for {}"
                             .format(block.user, block_bonus / 100000000.0))
 

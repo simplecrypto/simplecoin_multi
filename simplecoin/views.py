@@ -144,8 +144,11 @@ def network_graph_data(graph_type=None, window="hour"):
 @main.before_request
 def add_pool_stats():
     try:
-        if len(session['recent_users'][0]) != 2:
-            session['recent_users'] = []
+        try:
+            if len(session['recent_users'][0]) != 2:
+                session['recent_users'] = []
+        except (KeyError, IndexError):
+            pass
     except IndexError:
         pass
     g.completed_block_shares = get_adj_round_shares()
