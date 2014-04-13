@@ -25,6 +25,7 @@ $(document).ready(function() {
     });
 
     find_seconds = function(request_url) {
+      var seconds;
       if (request_url == 'hour') {
         seconds = 60;
       } else if (request_url == 'day') {
@@ -32,6 +33,7 @@ $(document).ready(function() {
       } else if (request_url == 'month') {
         seconds = 3600;
       }
+      return seconds
     }
 });
 

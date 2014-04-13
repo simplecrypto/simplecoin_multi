@@ -128,7 +128,7 @@ def network_graph_data(graph_type=None, window="hour"):
             types[slc.typ].setdefault(stamp, 0)
             types[slc.typ][stamp] += slc.value
 
-    for m in get_typ(typ, q_typ=graph_type, window=False):
+    for m in get_typ(typ, q_typ=graph_type):
         stamp = calendar.timegm(m.time.utctimetuple())
         types.setdefault(m.typ, {})
         types[m.typ].setdefault(stamp, 0)
