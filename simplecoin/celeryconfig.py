@@ -38,6 +38,10 @@ database_tasks = {
         'task': 'simplecoin.tasks.general_cleanup',
         'schedule': timedelta(minutes=120),
     },
+    'share_cleanup': {
+        'task': 'simplecoin.tasks.cleanup',
+        'schedule': timedelta(hours=24),
+    },
     'update_block_state': {
         'task': 'simplecoin.tasks.update_block_state',
         'schedule': timedelta(minutes=5),
