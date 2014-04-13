@@ -77,13 +77,15 @@ def update_pplns_est(self):
         # shares
         remain = total_shares
         user_shares = {}
-        for share in Share.query.order_by(Share.id.desc()).yield_per(5000):
-            user_shares.setdefault('pplns_' + share.user, 0)
-            if remain > share.shares:
-                user_shares['pplns_' + share.user] += share.shares
-                remain -= share.shares
+        for shares, user in (db.engine.execution_options(stream_results=True).
+                             execute(select([Share.shares, Share.user]).
+                                     order_by(Share.id.desc()))):
+            user_shares.setdefault('pplns_' + user, 0)
+            if remain > shares:
+                user_shares['pplns_' + user] += shares
+                remain -= shares
             else:
-                user_shares['pplns_' + share.user] += remain
+                user_shares['pplns_' + user] += remain
                 remain = 0
                 break
 
@@ -371,7 +373,7 @@ def cleanup(self, simulate=False):
 @celery.task(bind=True)
 def payout(self, simulate=False):
     """
-    Calculates payouts for users from share records for found blocks.
+    Calculates payouts for users from share records for the latest found block.
     """
     try:
         if simulate:
@@ -394,13 +396,17 @@ def payout(self, simulate=False):
         start = block.last_share.id
         logger.debug("Identified last matching share id as {}".format(start))
         user_shares = {}
-        for share in Share.query.order_by(Share.id.desc()).filter(Share.id <= start).yield_per(100):
-            user_shares.setdefault(share.user, 0)
-            if remain > share.shares:
-                user_shares[share.user] += share.shares
-                remain -= share.shares
+
+        for shares, user in (db.engine.execution_options(stream_results=True).
+                             execute(select([Share.shares, Share.user]).
+                                     order_by(Share.id.desc()).
+                                     filter(Share.id <= start))):
+            user_shares.setdefault(user, 0)
+            if remain > shares:
+                user_shares[user] += shares
+                remain -= shares
             else:
-                user_shares[share.user] += remain
+                user_shares[user] += remain
                 remain = 0
                 break
 
@@ -420,7 +426,6 @@ def payout(self, simulate=False):
         accrued = 0
         user_payouts = {}
         for user, share_count in user_shares.iteritems():
-            user_payouts.setdefault(share.user, 0)
             user_payouts[user] = (share_count * block.total_value) // total_shares
             accrued += user_payouts[user]
 
