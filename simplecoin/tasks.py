@@ -235,6 +235,7 @@ def add_block(self, user, height, total_value, transaction_fees, bits,
         block.shares_to_solve = count
         db.session.commit()
         payout.delay()
+        new_block.delay(height, bits, total_value)
     except Exception as exc:
         logger.error("Unhandled exception in add_block", exc_info=True)
         db.session.rollback()
@@ -291,17 +292,38 @@ def add_one_minute(self, user, valid_shares, minute, worker='', dup_shares=0,
 def new_block(self, blockheight, bits=None, reward=None):
     """
     Notification that a new block height has been reached in the network.
-    Sets some things into the cache for display on the website.
+    Sets some things into the cache for display on the website, adds graphing
+    for the network difficulty graph.
     """
     logger.info("Recieved notice of new block height {}".format(blockheight))
 
+    # prevent lots of duplicate rerunning...
+    last_blockheight = cache.get('blockheight') or 0
+    if blockheight == last_blockheight:
+        logger.warn("Recieving duplicate new_block notif, ignoring...")
+
+    difficulty = bits_to_difficulty(bits)
     cache.set('blockheight', blockheight, timeout=1200)
-    cache.set('difficulty', bits_to_difficulty(bits), timeout=1200)
+    cache.set('difficulty', difficulty, timeout=1200)
     cache.set('reward', reward, timeout=1200)
 
     # keep the last 500 blocks in the cache for getting average difficulty
     cache.cache._client.lpush('block_cache', bits)
     cache.cache._client.ltrim('block_cache', 0, 500)
+
+    # add the difficulty as a one minute share
+    now = datetime.datetime.utcnow()
+    try:
+        m = OneMinuteType(typ='netdiff', value=difficulty * 1000, time=now)
+        db.session.add(m)
+        db.session.commit()
+    except sqlalchemy.exc.IntegrityError:
+        db.session.rollback()
+        slc = OneMinuteType.query.with_lockmode('update').filter_by(
+            time=now, typ='netdiff').one()
+        # just average the diff of two blocks that occured in the same second..
+        slc.value = ((difficulty * 1000) + slc.value) / 2
+        db.session.commit()
 
 
 @celery.task(bind=True)
@@ -400,7 +422,7 @@ def payout(self, simulate=False):
         for shares, user in (db.engine.execution_options(stream_results=True).
                              execute(select([Share.shares, Share.user]).
                                      order_by(Share.id.desc()).
-                                     filter(Share.id <= start))):
+                                     where(Share.id <= start))):
             user_shares.setdefault(user, 0)
             if remain > shares:
                 user_shares[user] += shares
