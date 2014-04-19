@@ -19,6 +19,9 @@ SECRET_KEY: 'somethting_really_secret'
 # database table at some point
 redacted_addresses:
     - dsflkgsdlfkgsld;fkgsl;dfkg
+# the amount of time a action type signed message can be used for before
+# expiring (in seconds)
+#message_expiry: 7200
 
 # connection information for the coinserver RPC
 coinserv:

@@ -351,7 +351,7 @@ def verify_message(address, message, signature):
     except ValueError:
         raise Exception("Second line must be integer timestamp!")
     now = time.time()
-    if abs(now - stamp) > 820:
+    if abs(now - stamp) > current_app.config.get('message_expiry', 840):
         raise Exception("Signature has expired!")
 
     if command not in commands:
