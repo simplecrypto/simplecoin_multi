@@ -50,6 +50,8 @@ class Block(base):
     bonus_payed = db.Column(db.BigInteger)
     # Difficulty of block when solved
     bits = db.Column(db.String(8), nullable=False)
+    # Average difficulty of last x (default 500..) blocks when it was solved
+    difficulty_avg = db.Column(db.Integer)
     # the last share id that was processed when the block was entered.
     # used as a marker for calculating last n shares
     last_share_id = db.Column(db.BigInteger, db.ForeignKey('share.id'))
@@ -83,7 +85,8 @@ class Block(base):
                     bits=bits,
                     last_share=share,
                     hash=hash,
-                    time_started=time_started)
+                    time_started=time_started,
+                    difficulty_avg=cache.get('difficulty_avg'))
         # add and flush
         db.session.add(block)
         db.session.flush()

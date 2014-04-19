@@ -14,7 +14,7 @@ migrate = Migrate(app, db)
 root = os.path.abspath(os.path.dirname(__file__) + '/../')
 
 from bitcoinrpc.authproxy import AuthServiceProxy
-from simplecoin.tasks import (cleanup, payout, server_status, difficulty_avg,
+from simplecoin.tasks import (cleanup, payout, server_status,
                               update_online_workers, update_pplns_est,
                               cache_user_donation)
 from simplecoin.models import (Transaction, Threshold, DonationPercent,
@@ -111,7 +111,6 @@ def confirm_trans(transaction_id):
 def reload_cached():
     """ Recomputes all the cached values that normally get refreshed by tasks.
     Good to run if celery has been down, site just setup, etc. """
-    difficulty_avg()
     update_pplns_est()
     update_online_workers()
     cache_user_donation()

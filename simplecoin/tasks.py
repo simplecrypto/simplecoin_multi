@@ -295,12 +295,12 @@ def new_block(self, blockheight, bits=None, reward=None):
     Sets some things into the cache for display on the website, adds graphing
     for the network difficulty graph.
     """
-    logger.info("Recieved notice of new block height {}".format(blockheight))
-
     # prevent lots of duplicate rerunning...
     last_blockheight = cache.get('blockheight') or 0
     if blockheight == last_blockheight:
         logger.warn("Recieving duplicate new_block notif, ignoring...")
+        return
+    logger.info("Recieved notice of new block height {}".format(blockheight))
 
     difficulty = bits_to_difficulty(bits)
     cache.set('blockheight', blockheight, timeout=1200)
@@ -310,6 +310,9 @@ def new_block(self, blockheight, bits=None, reward=None):
     # keep the last 500 blocks in the cache for getting average difficulty
     cache.cache._client.lpush('block_cache', bits)
     cache.cache._client.ltrim('block_cache', 0, 500)
+    diff_list = cache.cache._client.lrange('block_cache', 0, 500)
+    total_diffs = sum([bits_to_difficulty(diff) for diff in diff_list])
+    cache.set('difficulty_avg', total_diffs / len(diff_list), timeout=120 * 60)
 
     # add the difficulty as a one minute share
     now = datetime.datetime.utcnow()
@@ -766,18 +769,3 @@ def server_status(self):
     except Exception:
         logger.error("Unhandled exception in server_status", exc_info=True)
         db.session.rollback()
-
-
-@celery.task(bind=True)
-def difficulty_avg(self):
-    """
-    Setup a blob with the average network difficulty for the last 500 blocks
-    """
-    try:
-        diff_list = cache.cache._client.lrange('block_cache', 0, 500)
-        total_diffs = sum([bits_to_difficulty(diff) for diff in diff_list])
-        cache.set('difficulty_avg', total_diffs / len(diff_list),
-                  timeout=120 * 60)
-    except Exception as exc:
-        logger.warn("Unknown failure in difficulty_avg", exc_info=True)
-        raise self.retry(exc=exc)
