@@ -57,6 +57,9 @@ class Block(base):
     # have payments been generated for it?
     processed = db.Column(db.Boolean, default=False)
 
+    standard_join = ['status', 'explorer_link', 'luck', 'total_value_float',
+                     'difficulty', 'duration']
+
     @property
     def status(self):
         if self.mature:
@@ -85,6 +88,18 @@ class Block(base):
         db.session.add(block)
         db.session.flush()
         return block
+
+    @property
+    def explorer_link(self):
+        return current_app.config['block_link_prefix'] + self.hash
+
+    @property
+    def luck(self):
+        return ((self.difficulty * (2 ** 16)) / self.shares_to_solve) * 100
+
+    @property
+    def total_value_float(self):
+        return self.total_value / 100000000.0
 
     @property
     def difficulty(self):

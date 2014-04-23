@@ -34,12 +34,12 @@
       <tr>
         <th>{{ block.found_at | time_ago }}</th>
         <th>{{ '{:,}'.format(block.shares_to_solve) }}</th>
-        <th>{{ '{:,}'.format(( ((block.difficulty * (2 ** 16))/block.shares_to_solve ) * 100) | round(1)) }} %</th>
+        <th>{{ '{:,}'.format(block.luck | round(1)) }} %</th>
         <th>{{ block.duration }}</th>
-        <th>{{ '{:,}'.format((block.total_value / 100000000) | round(2)) }}</th>
+        <th>{{ '{:,}'.format(block.total_value_float | round(2)) }}</th>
         <th>{{ '{:,}'.format(block.difficulty | round(4)) }}</th>
         <th><a href="/{{ block.user }}">{{ block.user | truncate(9, True) }}</a></th>
-        <th><a href="{{ config['block_link_prefix'] }}{{ block.hash }}">
+        <th><a href="{{ block.explorer_link }}">
             {{ block.hash | truncate(9, True) }}
         </a></th>
         <th>{{ '{:,}'.format(block.height) }}</th>
