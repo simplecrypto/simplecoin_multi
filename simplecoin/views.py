@@ -16,7 +16,7 @@ from . import db, root, cache
 from .utils import (compress_typ, get_typ, verify_message, get_pool_acc_rej,
                     get_pool_eff, last_10_shares, collect_user_stats, get_adj_round_shares,
                     get_pool_hashrate, last_block_time, get_alerts,
-                    last_block_found)
+                    last_block_found, last_blockheight)
 
 
 main = Blueprint('main', __name__)
@@ -89,10 +89,21 @@ def pool_stats_api():
     ret['round_duration'] = g.round_duration
     sps = float(g.completed_block_shares) / g.round_duration
     ret['shares_per_sec'] = sps
-    ret['last_block_found'] = last_block_found()
+    ret['last_block_found'] = last_blockheight()
     ret['shares_to_solve'] = g.shares_to_solve
     ret['est_sec_remaining'] = (float(g.shares_to_solve) - g.completed_block_shares) / sps
     return jsonify(**ret)
+
+
+@main.route("/api/last_block")
+def last_block_api():
+    b = last_block_found()
+    if not b:
+        return jsonify()
+    return jsonify(difficulty=b.difficulty, duration=str(b.duration),
+                   shares_to_solve=b.shares_to_solve, found_by=b.user,
+                   height=b.height, hash=b.hash)
+
 
 @main.route("/index.php")
 def mpos_pool_stats_api():
@@ -109,7 +120,7 @@ def mpos_pool_stats_api():
                 "workers": g.worker_count,
                 "currentnetworkblock": blockheight,
                 "nextnetworkblock": blockheight+1,
-                "lastblock": last_block_found(),
+                "lastblock": last_blockheight(),
                 "networkdiff": difficulty,
                 "esttime": round((float(g.shares_to_solve) - g.completed_block_shares) / sps, 0),
                 "estshares": round(g.shares_to_solve, 0),

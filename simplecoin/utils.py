@@ -54,8 +54,15 @@ def last_block_share_id():
 def last_block_found():
     last_block = Block.query.order_by(Block.height.desc()).first()
     if not last_block:
+        return None
+    return last_block
+
+
+def last_blockheight():
+    last = last_block_found()
+    if not last:
         return 0
-    return last_block.height
+    return last.height
 
 
 def get_typ(typ, address, window=True, worker=None):
