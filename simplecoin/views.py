@@ -67,7 +67,7 @@ def pool_stats():
     if total_shares > 0 and total_difficulty > 0:
         pool_luck = (total_difficulty * (2**32)) / (total_shares * (2**16))
     else:
-        pool_luck = '-'
+        pool_luck = 1
 
     blocks = blocks.limit(10)
     coins_per_day = ((current_app.config['reward'] / (g.average_difficulty * (2**32 / 86400))) * 1000000)
