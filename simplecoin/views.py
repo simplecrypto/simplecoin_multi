@@ -17,7 +17,7 @@ from .utils import (compress_typ, get_typ, verify_message, get_pool_acc_rej,
                     get_pool_eff, last_10_shares, collect_user_stats, get_adj_round_shares,
                     get_pool_hashrate, last_block_time, get_alerts,
                     last_block_found, last_blockheight, resort_recent_visit,
-                    collect_acct_items, all_blocks)
+                    collect_acct_items, all_blocks, get_block_stats)
 
 
 main = Blueprint('main', __name__)
@@ -52,27 +52,9 @@ def pool_stats():
     current_block = {'reward': cache.get('reward') or 0,
                      'difficulty': cache.get('difficulty') or 0,
                      'height': cache.get('blockheight') or 0}
-    blocks = all_blocks()
 
-    total_shares = 0
-    total_difficulty = 0
-    total_orphans = 0
-    for block in blocks:
-        total_shares += block.shares_to_solve
-        total_difficulty += block.difficulty
-        if block.orphan is True:
-            total_orphans += 1
-    total_blocks = blocks.count()
-    orphan_perc = (float(total_orphans) / total_blocks) * 100
-    if total_shares > 0 and total_difficulty > 0:
-        pool_luck = (total_difficulty * (2**32)) / (total_shares * (2**16))
-    else:
-        pool_luck = 1
-
-    blocks = blocks.limit(10)
-    coins_per_day = ((current_app.config['reward'] / (g.average_difficulty * (2**32 / 86400))) * 1000000)
-    effective_return = (coins_per_day * pool_luck) * ((100 - orphan_perc) / 100)
-
+    blocks = db.session.query(Block).order_by(Block.height.desc()).limit(10)
+    pool_luck, effective_return, orphan_perc = get_block_stats()
     reject_total, accept_total = get_pool_acc_rej()
     efficiency = get_pool_eff()
 

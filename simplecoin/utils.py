@@ -18,9 +18,9 @@ class CommandException(Exception):
     pass
 
 
-@cache.cached(timeout=300, key_prefix='all_blocks')
+@cache.cached(timeout=3600, key_prefix='all_blocks')
 def all_blocks():
-    return db.session.query(Block).order_by(Block.height.desc())
+    return db.session.query(Block).order_by(Block.height.desc()).all()
 
 @cache.cached(timeout=60, key_prefix='last_block_time')
 def last_block_time():
@@ -66,6 +66,34 @@ def last_blockheight():
     if not last:
         return 0
     return last.height
+
+@cache.cached(timeout=3600, key_prefix='block_stats')
+def get_block_stats():
+    blocks = all_blocks()
+    total_shares = 0
+    total_difficulty = 0
+    total_orphans = 0
+    for block in blocks:
+        total_shares += block.shares_to_solve
+        total_difficulty += block.difficulty
+        if block.orphan is True:
+            total_orphans += 1
+    total_blocks = blocks.count()
+
+    if total_orphans > 0 and total_blocks > 0:
+        orphan_perc = (float(total_orphans) / total_blocks) * 100
+    else:
+        orphan_perc = 0
+
+    if total_shares > 0 and total_difficulty > 0:
+        pool_luck = (total_difficulty * (2**32)) / (total_shares * (2**16))
+    else:
+        pool_luck = 1
+
+    coins_per_day = ((current_app.config['reward'] / (g.average_difficulty * (2**32 / 86400))) * 1000000)
+    effective_return = (coins_per_day * pool_luck) * ((100 - orphan_perc) / 100)
+    return pool_luck, effective_return, orphan_perc
+
 
 
 def get_typ(typ, address=None, window=True, worker=None, q_typ=None):
