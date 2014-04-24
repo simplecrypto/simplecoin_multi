@@ -68,7 +68,7 @@ def last_blockheight():
     return last.height
 
 @cache.cached(timeout=3600, key_prefix='block_stats')
-def get_block_stats():
+def get_block_stats(average_diff):
     blocks = all_blocks()
     total_shares = 0
     total_difficulty = 0
@@ -78,7 +78,8 @@ def get_block_stats():
         total_difficulty += block.difficulty
         if block.orphan is True:
             total_orphans += 1
-    total_blocks = blocks.count()
+
+    total_blocks = len(blocks)
 
     if total_orphans > 0 and total_blocks > 0:
         orphan_perc = (float(total_orphans) / total_blocks) * 100
@@ -90,7 +91,7 @@ def get_block_stats():
     else:
         pool_luck = 1
 
-    coins_per_day = ((current_app.config['reward'] / (g.average_difficulty * (2**32 / 86400))) * 1000000)
+    coins_per_day = ((current_app.config['reward'] / (average_diff * (2**32 / 86400))) * 1000000)
     effective_return = (coins_per_day * pool_luck) * ((100 - orphan_perc) / 100)
     return pool_luck, effective_return, orphan_perc
 

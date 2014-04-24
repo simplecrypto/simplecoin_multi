@@ -54,7 +54,7 @@ def pool_stats():
                      'height': cache.get('blockheight') or 0}
 
     blocks = db.session.query(Block).order_by(Block.height.desc()).limit(10)
-    pool_luck, effective_return, orphan_perc = get_block_stats()
+    pool_luck, effective_return, orphan_perc = get_block_stats(g.average_difficulty)
     reject_total, accept_total = get_pool_acc_rej()
     efficiency = get_pool_eff()
 
@@ -164,7 +164,11 @@ def pool_stats_api():
     ret['shares_per_sec'] = sps
     ret['last_block_found'] = last_blockheight()
     ret['shares_to_solve'] = g.shares_to_solve
-    ret['est_sec_remaining'] = (float(g.shares_to_solve) - g.completed_block_shares) / sps
+    if sps > 0:
+        ret['est_sec_remaining'] = (float(g.shares_to_solve) - g.completed_block_shares) / sps
+    else:
+        ret['est_sec_remaining'] = 'infinite'
+    ret['pool_luck'], ret['effective_return'], ret['orphan_perc'] = get_block_stats(g.average_difficulty)
     return jsonify(**ret)
 
 
