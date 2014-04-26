@@ -24,6 +24,9 @@ def all_blocks():
 
 @cache.cached(timeout=60, key_prefix='last_block_time')
 def last_block_time():
+    return last_block_time_nocache()
+
+def last_block_time_nocache():
     """ Retrieves the last time a block was solved using progressively less
     accurate methods. Essentially used to calculate round time. """
     last_block = Block.query.order_by(Block.height.desc()).first()
@@ -47,6 +50,10 @@ def last_block_time():
 
 @cache.cached(timeout=60, key_prefix='last_block_share_id')
 def last_block_share_id():
+    return last_block_share_id_nocache()
+
+
+def last_block_share_id_nocache():
     last_block = Block.query.order_by(Block.height.desc()).first()
     if not last_block:
         return 0

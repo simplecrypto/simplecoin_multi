@@ -9,7 +9,7 @@ import sqlalchemy
 
 from celery import Celery
 from simplecoin import db, coinserv, cache
-from simplecoin.utils import last_block_time, last_block_share_id
+from simplecoin.utils import last_block_share_id_nocache, last_block_time_nocache
 from simplecoin.models import (
     Share, Block, OneMinuteShare, Payout, Transaction, Blob, FiveMinuteShare,
     Status, OneMinuteReject, OneMinuteTemperature, FiveMinuteReject,
@@ -225,9 +225,9 @@ def add_block(self, user, height, total_value, transaction_fees, bits,
         "Total Height: {}\nTransaction Fees: {}\nBits: {}\nHash Hex: {}"
         .format(user, height, total_value, transaction_fees, bits, hash_hex))
     try:
-        last = last_block_share_id()
+        last = last_block_share_id_nocache()
         block = Block.create(user, height, total_value, transaction_fees, bits,
-                             hash_hex, time_started=last_block_time())
+                             hash_hex, time_started=last_block_time_nocache())
         db.session.flush()
         count = (db.session.query(func.sum(Share.shares)).
                  filter(Share.id > last).
