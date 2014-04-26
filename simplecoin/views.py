@@ -120,7 +120,7 @@ def network_graph_data(graph_type=None, window="hour"):
     end = ((int(time.time()) // step) * step) - (step * 2)
     start = end - typ.window.total_seconds() + (step * 2)
 
-    return jsonify(start=start, end=end, step=step, types=types)
+    return jsonify(start=start, end=end, step=step, workers=types)
 
 
 @main.before_request
