@@ -120,59 +120,6 @@ def network_graph_data(graph_type=None, window="hour"):
     end = ((int(time.time()) // step) * step) - (step * 2)
     start = end - typ.window.total_seconds() + (step * 2)
 
-    return jsonify(start=start, end=end, step=step, workers=types)
-
-@main.route("/network_stats")
-def network_stats():
-    network_block_time = current_app.config['block_time']
-    network_difficulty = cache.get('difficulty') or 0
-    network_avg_difficulty = g.average_difficulty or 0
-    network_blockheight = cache.get('blockheight') or 0
-    network_hashrate = (network_difficulty * (2**32)) / network_block_time
-
-    return render_template('network_stats.html',
-                           network_difficulty=network_difficulty,
-                           network_avg_difficulty=network_avg_difficulty,
-                           network_blockheight=network_blockheight,
-                           network_hashrate=network_hashrate,
-                           network_block_time=network_block_time)
-
-
-@main.route("/network_stats/<graph_type>/<window>")
-def network_graph_data(graph_type=None, window="hour"):
-    if not graph_type:
-        return None
-
-    type_map = {'hour': OneMinuteType,
-                'month': OneHourType,
-                'day': FiveMinuteType}
-    typ = type_map[window]
-    types = {}
-
-    compress = None
-    if window == "day":
-        compress = OneMinuteType
-    elif window == "month":
-        compress = FiveMinuteType
-
-    if compress:
-        for slc in get_typ(compress, q_typ=graph_type):
-            slice_dt = compress.floor_time(slc.time)
-            stamp = calendar.timegm(slice_dt.utctimetuple())
-            types.setdefault(slc.typ, {})
-            types[slc.typ].setdefault(stamp, 0)
-            types[slc.typ][stamp] += slc.value
-
-    for m in get_typ(typ, q_typ=graph_type):
-        stamp = calendar.timegm(m.time.utctimetuple())
-        types.setdefault(m.typ, {})
-        types[m.typ].setdefault(stamp, 0)
-        types[m.typ][stamp] += m.value
-
-    step = typ.slice_seconds
-    end = ((int(time.time()) // step) * step) - (step * 2)
-    start = end - typ.window.total_seconds() + (step * 2)
-
     return jsonify(start=start, end=end, step=step, types=types)
 
 
