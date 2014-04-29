@@ -4,7 +4,15 @@
 {% block body %}
 <script>
 $(document).ready(function() {
-    $("#roundSummary").tablesorter();
+    $("#roundSummary").tablesorter({
+      textExtraction: function(node) {
+        var attr = $(node).attr('data-sort-value');
+        if (typeof attr !== 'undefined' && attr !== false) {
+          return attr;
+        }
+        return $(node).text(); 
+      } 
+    });
 });
 </script>
 
@@ -91,7 +99,7 @@ $(document).ready(function() {
               <a href="/{{ dat['user'] }}">{{ dat['user'] }}</a></th>
             {% endif %}
           <th>{{ '{:,}'.format(dat['shares'] | int) }}</th>
-          <th>{{ '{:,}'.format((dat['hashrate'] / 1000) | round(2)) }} KH/s</th>
+          <th data-sort-value="{{ dat['hashrate'] }}">{{ '{:,}'.format((dat['hashrate'] / 1000) | round(2)) }} KH/s</th>
           <th>{% if donation_perc != None %}{{ '{:0.1f}'.format(dat['donation_perc']) }}%{% else %}-{% endif %} </th>
         </tr>
       {% endfor %}
