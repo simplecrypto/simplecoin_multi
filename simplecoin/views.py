@@ -177,9 +177,13 @@ def last_block_api():
     b = last_block_found()
     if not b:
         return jsonify()
-    return jsonify(difficulty=b.difficulty, duration=str(b.duration),
-                   shares_to_solve=b.shares_to_solve, found_by=b.user,
-                   height=b.height, hash=b.hash)
+    return jsonify(difficulty=b.difficulty,
+                   duration=str(b.duration),
+                   shares_to_solve=b.shares_to_solve,
+                   found_by=b.user,
+                   luck=b.luck,
+                   height=b.height,
+                   hash=b.hash)
 
 
 @main.route("/index.php")
