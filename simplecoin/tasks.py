@@ -237,7 +237,8 @@ def add_block(self, user, height, total_value, transaction_fees, bits,
         db.session.commit()
         if not merged:
             payout.delay()
-        new_block.delay(height, bits, total_value)
+        if not merged:
+            new_block.delay(height, bits, total_value)
     except Exception as exc:
         logger.error("Unhandled exception in add_block", exc_info=True)
         db.session.rollback()
