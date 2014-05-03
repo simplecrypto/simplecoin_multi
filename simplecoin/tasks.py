@@ -204,7 +204,7 @@ def add_share(self, user, shares):
 
 @celery.task(bind=True)
 def add_block(self, user, height, total_value, transaction_fees, bits,
-              hash_hex):
+              hash_hex, merged=False):
     """
     Insert a discovered block & blockchain data
 
@@ -227,14 +227,16 @@ def add_block(self, user, height, total_value, transaction_fees, bits,
     try:
         last = last_block_share_id_nocache()
         block = Block.create(user, height, total_value, transaction_fees, bits,
-                             hash_hex, time_started=last_block_time_nocache())
+                             hash_hex, time_started=last_block_time_nocache(),
+                             merged=merged)
         db.session.flush()
         count = (db.session.query(func.sum(Share.shares)).
                  filter(Share.id > last).
                  filter(Share.id <= block.last_share_id).scalar()) or 128
         block.shares_to_solve = count
         db.session.commit()
-        payout.delay()
+        if not merged:
+            payout.delay()
         new_block.delay(height, bits, total_value)
     except Exception as exc:
         logger.error("Unhandled exception in add_block", exc_info=True)
@@ -345,7 +347,7 @@ def cleanup(self, simulate=False):
                 "Difficulty average is blank, can't safely cleanup")
             return
         # count all unprocessed blocks
-        unproc_blocks = len(Block.query.filter_by(processed=False).all())
+        unproc_blocks = len(Block.query.filter_by(processed=False, merged=False).all())
         # make sure we leave the right number of shares for them
         unproc_n = unproc_blocks * current_app.config['last_n']
         # plus our requested cleanup n for a safe margin
@@ -406,7 +408,7 @@ def payout(self, simulate=False):
             logger.setLevel(logging.DEBUG)
 
         # find the oldest un-processed block
-        block = (Block.query.filter_by(processed=False).
+        block = (Block.query.filter_by(processed=False, merged=False).
                  order_by(Block.height).first())
         if block is None:
             logger.debug("No block found, exiting...")

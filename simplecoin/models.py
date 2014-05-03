@@ -58,6 +58,8 @@ class Block(base):
     last_share = db.relationship('Share', foreign_keys=[last_share_id])
     # have payments been generated for it?
     processed = db.Column(db.Boolean, default=False)
+    # is this a merge mined block, or a core block?
+    merged = db.Column(db.Boolean, default=False)
 
     standard_join = ['status', 'explorer_link', 'luck', 'total_value_float',
                      'difficulty', 'duration']
@@ -76,7 +78,7 @@ class Block(base):
 
     @classmethod
     def create(cls, user, height, total_value, transaction_fees, bits, hash,
-               time_started):
+               time_started, merged=False):
         share = Share.query.order_by(Share.id.desc()).first()
         block = cls(user=user,
                     height=height,
@@ -86,7 +88,8 @@ class Block(base):
                     last_share=share,
                     hash=hash,
                     time_started=time_started,
-                    difficulty_avg=cache.get('difficulty_avg'))
+                    difficulty_avg=cache.get('difficulty_avg'),
+                    merged=merged)
         # add and flush
         db.session.add(block)
         db.session.flush()
@@ -266,6 +269,11 @@ class Event(base):
     address = db.Column(db.String, primary_key=True)
 
 
+class MergeAddress(base):
+    user = db.Column(db.String, primary_key=True)
+    merge_address = db.Column(db.String)
+
+
 class DonationPercent(base):
     user = db.Column(db.String, primary_key=True)
     perc = db.Column(db.Float)
@@ -280,6 +288,7 @@ class Transfer(AbstractConcreteBase, base):
     # spending
     locked = db.Column(db.Boolean, default=False, server_default="FALSE")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    merged = db.Column(db.Boolean, default=False)
 
     @declared_attr
     def transaction_id(self):
@@ -325,9 +334,9 @@ class Payout(Transfer):
     )
 
     @classmethod
-    def create(cls, user, amount, block, shares, perc, perc_applied):
+    def create(cls, user, amount, block, shares, perc, perc_applied, merged=False):
         payout = cls(user=user, amount=amount, block=block, shares=shares,
-                     perc=perc, perc_applied=perc_applied)
+                     perc=perc, perc_applied=perc_applied, merged=merged)
         db.session.add(payout)
         return payout
 

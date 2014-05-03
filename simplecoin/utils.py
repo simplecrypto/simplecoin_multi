@@ -6,12 +6,14 @@ import itertools
 import yaml
 from flask import current_app, session
 from sqlalchemy.sql import func
+from cryptokit.base58 import get_bcaddress_version
 
 from bitcoinrpc import CoinRPCException
 from . import db, coinserv, cache, root
 from .models import (DonationPercent, OneMinuteReject, OneMinuteShare,
                      FiveMinuteShare, FiveMinuteReject, Payout, BonusPayout,
-                     Block, OneHourShare, OneHourReject, Share, Status)
+                     Block, OneHourShare, OneHourReject, Share, Status,
+                     MergeAddress)
 
 
 class CommandException(Exception):
@@ -20,7 +22,8 @@ class CommandException(Exception):
 
 @cache.cached(timeout=3600, key_prefix='all_blocks')
 def all_blocks():
-    return db.session.query(Block).order_by(Block.height.desc()).all()
+    return (db.session.query(Block).filter_by(merged=False).
+            order_by(Block.height.desc()).all())
 
 @cache.cached(timeout=3600, key_prefix='users_solved_blocks')
 def users_blocks(address):
@@ -37,7 +40,7 @@ def last_block_time():
 def last_block_time_nocache():
     """ Retrieves the last time a block was solved using progressively less
     accurate methods. Essentially used to calculate round time. """
-    last_block = Block.query.order_by(Block.height.desc()).first()
+    last_block = Block.query.filter_by(merged=False).order_by(Block.height.desc()).first()
     if last_block:
         return last_block.found_at
 
@@ -62,7 +65,7 @@ def last_block_share_id():
 
 
 def last_block_share_id_nocache():
-    last_block = Block.query.order_by(Block.height.desc()).first()
+    last_block = Block.query.filter_by(merged=False).order_by(Block.height.desc()).first()
     if not last_block:
         return 0
     return last_block.last_share_id
@@ -70,7 +73,7 @@ def last_block_share_id_nocache():
 
 @cache.cached(timeout=60, key_prefix='last_block_found')
 def last_block_found():
-    last_block = Block.query.order_by(Block.height.desc()).first()
+    last_block = Block.query.filter_by(merged=False).order_by(Block.height.desc()).first()
     if not last_block:
         return None
     return last_block
@@ -349,6 +352,16 @@ def collect_user_stats(address):
     else:
         perc = perc.perc
 
+    # show their merged mining address
+    if current_app.config['merge']['enabled']:
+        addr = MergeAddress.query.filter_by(user=address).first()
+        if not addr:
+            merge_addr = "[not set]"
+        else:
+            merge_addr = addr.merge_address
+    else:
+        merge_addr = None
+
     user_last_10_shares = last_10_shares(address)
     last_10_hashrate = ((user_last_10_shares * 65536.0) / 1000000) / 600
 
@@ -383,7 +396,8 @@ def collect_user_stats(address):
                 unconfirmed_balance=unconfirmed_balance,
                 solved_blocks=solved_blocks,
                 total_eff=total_eff,
-                total_shares=total_shares)
+                total_shares=total_shares,
+                merge_addr=merge_addr)
 
 
 def get_pool_eff():
@@ -404,8 +418,25 @@ def setfee_command(username, perc):
     db.session.commit()
 
 
+def setmerge_command(username, merge_address):
+    try:
+        version = get_bcaddress_version(username)
+    except Exception:
+        version = False
+    if (merge_address[0] != current_app.config['merge']['prefix'] or
+        not version):
+            raise CommandException("Invalid address!")
+
+    if not current_app.config['merge']['enabled']:
+        raise CommandException("Merged mining not endabled!")
+
+    obj = MergeAddress(user=username, merge_address=merge_address)
+    db.session.merge(obj)
+    db.session.commit()
+
+
 def verify_message(address, message, signature):
-    commands = {'SETFEE': setfee_command}
+    commands = {'SETFEE': setfee_command, 'SETMERGE': setmerge_command}
     lines = message.split("\t")
     parts = lines[0].split(" ")
     command = parts[0]
@@ -437,6 +468,7 @@ def verify_message(address, message, signature):
         except CommandException:
             raise
         except Exception:
+            current_app.logger.info("", exc_info=True)
             raise Exception("Invalid arguments provided to command!")
     else:
         raise Exception("Invalid signature! Coinserver returned " + str(res))

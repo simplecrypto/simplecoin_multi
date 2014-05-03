@@ -11,7 +11,8 @@ from lever import get_joined
 from .models import (OneMinuteShare, Block, OneMinuteType, FiveMinuteType,
                      FiveMinuteShare, OneHourShare, Status, DonationPercent,
                      FiveMinuteHashrate, OneMinuteHashrate, OneHourHashrate, OneMinuteTemperature,
-                     FiveMinuteTemperature, OneHourTemperature, OneHourType)
+                     FiveMinuteTemperature, OneHourTemperature, OneHourType,
+                     MergeAddress)
 from . import db, root, cache
 from .utils import (compress_typ, get_typ, verify_message, get_pool_acc_rej,
                     get_pool_eff, last_10_shares, collect_user_stats, get_adj_round_shares,
@@ -53,7 +54,7 @@ def pool_stats():
                      'difficulty': cache.get('difficulty') or 0,
                      'height': cache.get('blockheight') or 0}
 
-    blocks = db.session.query(Block).order_by(Block.height.desc()).limit(10)
+    blocks = db.session.query(Block).filter_by(merged=False).order_by(Block.height.desc()).limit(10)
     pool_luck, effective_return, orphan_perc = get_block_stats(g.average_difficulty)
     reject_total, accept_total = get_pool_acc_rej()
     efficiency = get_pool_eff()
@@ -429,6 +430,33 @@ def guides(guide):
 @main.route("/faq")
 def faq():
     return render_template("faq.html")
+
+
+@main.route("/set_merge/<address>", methods=['POST', 'GET'])
+def set_merge(address):
+    if not current_app.config['merge']['enabled']:
+        abort(400)
+
+    vals = request.form
+    result = ""
+    if request.method == "POST":
+        try:
+            verify_message(address, vals['message'], vals['signature'])
+        except Exception as e:
+            current_app.logger.info("Failed to validate!", exc_info=True)
+            result = "An error occurred: " + str(e)
+        else:
+            result = "Successfully changed!"
+
+    addr = MergeAddress.query.filter_by(user=address).first()
+    if not addr:
+        addr = "[not set]"
+    else:
+        addr = addr.merge_address
+    return render_template("set_merge_address.html",
+                           username=address,
+                           result=result,
+                           addr=addr)
 
 
 @main.route("/set_donation/<address>", methods=['POST', 'GET'])

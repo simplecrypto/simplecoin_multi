@@ -62,6 +62,11 @@ $(document).ready(function() {
 <div class="container">
   <div class="row page-header">
     <h2 style="word-wrap:break-word;margin-bottom:2px;">User Stats - {{ username }} </h2>
+    {% if merge_addr %}
+      <span style="padding-left:15px;">Merge mining payout address &nbsp; {{ merge_addr }}
+        <a style="color:gray;" href="/set_merge/{{ username }}"><i class="fa fa-edit" ></i></a>
+      </span><br>
+    {% endif %}
     <span style="padding-left:15px;">Currently donating {{ donation_perc }}%
       <a style="color:gray;" href="/set_donation/{{ username }}"><i class="fa fa-edit" ></i></a>
     </span><br>

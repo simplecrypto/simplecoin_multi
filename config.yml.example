@@ -23,6 +23,20 @@ redacted_addresses:
 # expiring (in seconds)
 #message_expiry: 7200
 
+merge:
+    enabled: False
+    # The letter that a valid merged mining address must start with
+    prefix: M
+    # connection information for the merge coinserver RPC
+    coinserv:
+        port: 6888
+        address: 127.0.0.1
+        username: monoclerp
+        password: ''
+        wallet_pass: ''
+        account: pool
+    
+
 # connection information for the coinserver RPC
 coinserv:
     port: 22555
