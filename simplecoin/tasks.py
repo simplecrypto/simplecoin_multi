@@ -8,7 +8,7 @@ from sqlalchemy.sql import func
 import sqlalchemy
 
 from celery import Celery
-from simplecoin import db, coinserv, cache
+from simplecoin import db, coinserv, cache, merge_coinserv
 from simplecoin.utils import last_block_share_id_nocache, last_block_time_nocache
 from simplecoin.models import (
     Share, Block, OneMinuteShare, Payout, Transaction, Blob, FiveMinuteShare,
@@ -155,12 +155,28 @@ def update_block_state(self):
     try:
         # Select all immature & non-orphaned blocks
         immature = (Block.query.filter_by(mature=False, orphan=False))
-        blockheight = coinserv.getblockcount()
+        unmerge_blockheight = coinserv.getblockcount()
+        merge_blockheight = merge_coinserv.getblockcount()
         for block in immature:
+            if block.merged:
+                blockheight = merge_blockheight
+            else:
+                blockheight = unmerge_blockheight
+
+            # ensure that our RPC server has more than caught up...
+            if blockheight - 10 < block.height:
+                logger.info("Skipping block {}:{} because blockchain isn't caught up."
+                            "Block is height {} and blockchain is at {}"
+                            .format(block.height, block.hash, block.height, blockheight))
+                continue
+
             logger.info("Checking block height: {}".format(block.height))
             # Check to see if the block hash exists in the block chain
             try:
-                output = coinserv.getblock(block.hash)
+                if block.merged:
+                    output = merge_coinserv.getblock(block.hash)
+                else:
+                    output = coinserv.getblock(block.hash)
                 logger.debug("Confirms: {}; Height diff: {}"
                              .format(output['confirmations'],
                                      blockheight - block.height))

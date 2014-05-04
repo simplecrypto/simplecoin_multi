@@ -351,13 +351,13 @@ class Payout(Transfer):
     @property
     def text_perc_applied(self):
         if self.perc < 0:
-            return "bonus {:,.2f}".format(self.perc_applied * -1)
+            return "bonus {:,.2f}".format(self.perc_applied * -1 / 100000000.0)
         else:
-            return "donation {:,.2f}".format(self.perc_applied)
+            return "donation {:,.2f}".format(self.perc_applied / 100000000.0)
 
     @property
     def mined(self):
-        return (self.amount + self.perc_applied) / 100000000
+        return (self.amount + self.perc_applied) / 100000000.0
 
     @classmethod
     def create(cls, user, amount, block, shares, perc, perc_applied, merged=False):

@@ -19,6 +19,8 @@ db = SQLAlchemy()
 cache = Cache()
 coinserv = LocalProxy(
     lambda: getattr(current_app, 'rpc_connection', None))
+merge_coinserv = LocalProxy(
+    lambda: getattr(current_app, 'merge_rpc_connection', None))
 
 
 def create_app(config='/config.yml', celery=False):
@@ -40,6 +42,15 @@ def create_app(config='/config.yml', celery=False):
                 app.config['coinserv']['port'],
                 pool_kwargs=dict(maxsize=app.config.get('maxsize', 10))))
 
+    if app.config['merge']['enabled']:
+        app.merge_rpc_connection = AuthServiceProxy(
+            "http://{0}:{1}@{2}:{3}/"
+            .format(app.config['merge']['coinserv']['username'],
+                    app.config['merge']['coinserv']['password'],
+                    app.config['merge']['coinserv']['address'],
+                    app.config['merge']['coinserv']['port'],
+                    pool_kwargs=dict(maxsize=app.config.get('maxsize', 10))))
+
     # add the debug toolbar if we're in debug mode...
     if app.config['DEBUG']:
         from flask_debugtoolbar import DebugToolbarExtension
@@ -50,7 +61,7 @@ def create_app(config='/config.yml', celery=False):
 
     # register all our plugins
     db.init_app(app)
-    cache_config = {'CACHE_TYPE': 'null'}
+    cache_config = {'CACHE_TYPE': 'redis'}
     cache_config.update(app.config.get('main_cache', {}))
     cache.init_app(app, config=cache_config)
 

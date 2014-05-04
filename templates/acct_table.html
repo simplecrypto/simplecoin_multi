@@ -32,26 +32,12 @@
             {% for obj in acct_items %}
               {% if obj.__tablename__ == 'payout' %}
                 {% set payout = obj %}
-                {# Set some vars for easy table printing #}
-                {% if payout.perc < 0 %}
-                  {% set type = 'bonus' %}
-                  {% set maths = payout.perc_applied * -1 %}
-                  {% set perc_applied = payout.perc_applied * -1 %}
-                {% elif payout.perc == 0 %}
-                  {% set maths = payout.perc_applied %}
-                  {% set type = '' %}
-                  {% set perc_applied = 0.0 %}
-                {% else %}
-                  {% set type = 'donation' %}
-                  {% set maths = payout.perc_applied * -1 %}
-                  {% set perc_applied = payout.perc_applied %}
-                {% endif %}
                 <tr>
                   <th data-sort-value="{{ payout.timestamp }}">{{ payout.created_at | time_ago }}</th>
                   <th>{{ '{:,}'.format(payout.shares) }}</th>
-                  <th>{{ '{:,}'.format(((payout.mined) / 100000000) | round(2)) }}</th>
+                  <th>{{ '{:,.2f}'.format(payout.mined) }}</th>
                   <th>{{ '{:,}'.format(payout.perc) }}%</th>
-                  <th data-sort-value="{{ perc_applied }}">{{ type }}{{ ' {:,}'.format((perc_applied / 100000000) | round(2)) }}</th>
+                  <th data-sort-value="{{ perc_applied }}">{{ payout.text_perc_applied }}</th>
                   <th>{{ '{:,}'.format((payout.amount / 100000000) | round(2)) }}</th>
                   <th>{{ '{:,}'.format(payout.block.height) }}</th>
                   <th>{% if payout.transaction_id %}
