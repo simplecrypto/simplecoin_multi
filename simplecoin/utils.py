@@ -44,7 +44,7 @@ def last_block_time(merged=False):
 def last_block_time_nocache(merged=False):
     """ Retrieves the last time a block was solved using progressively less
     accurate methods. Essentially used to calculate round time. """
-    last_block = Block.query.filter_by(merged=False).order_by(Block.height.desc()).first()
+    last_block = Block.query.filter_by(merged=merged).order_by(Block.height.desc()).first()
     if last_block:
         return last_block.found_at
 
