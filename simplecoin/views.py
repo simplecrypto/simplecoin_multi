@@ -54,6 +54,18 @@ def account(address):
                            acct_items=collect_acct_items(address, None))
 
 
+@main.route("/<address>/merged_account")
+def merged_account(address):
+    addr = MergeAddress.query.filter_by(user=address).first()
+    if not addr:
+        merged_addr = "[not set]"
+    else:
+        merged_addr = addr.merge_address
+    return render_template('account.html',
+                           acct_items=collect_acct_items(merged_addr, None,
+                                                         merged=True))
+
+
 @main.route("/pool_stats")
 def pool_stats():
     current_block = {'reward': cache.get('reward') or 0,

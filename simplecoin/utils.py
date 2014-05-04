@@ -245,9 +245,9 @@ def get_pool_acc_rej():
     return reject_total, accept_total
 
 
-def collect_acct_items(address, limit):
-    payouts = Payout.query.filter_by(user=address).order_by(Payout.id.desc()).limit(limit)
-    bonuses = BonusPayout.query.filter_by(user=address).order_by(BonusPayout.id.desc()).limit(limit)
+def collect_acct_items(address, limit, merged=False):
+    payouts = Payout.query.filter_by(user=address, merged=merged).order_by(Payout.id.desc()).limit(limit)
+    bonuses = BonusPayout.query.filter_by(user=address, merged=merged).order_by(BonusPayout.id.desc()).limit(limit)
     return sorted(itertools.chain(payouts, bonuses),
                   key=lambda i: i.created_at, reverse=True)
 
@@ -360,11 +360,13 @@ def collect_user_stats(address):
     if current_app.config['merge']['enabled']:
         addr = MergeAddress.query.filter_by(user=address).first()
         if not addr:
-            merge_addr = "[not set]"
+            merged_addr = "[not set]"
         else:
-            merge_addr = addr.merge_address
+            merged_addr = addr.merge_address
+        merged_acct_items = collect_acct_items(merged_addr, 20, merged=True)
     else:
-        merge_addr = None
+        merged_addr = None
+        merged_acct_items = None
 
     user_last_10_shares = last_10_shares(address)
     last_10_hashrate = ((user_last_10_shares * 65536.0) / 1000000) / 600
@@ -391,6 +393,7 @@ def collect_user_stats(address):
                 pplns_cached_time=pplns_cached_time,
                 pplns_total_shares=pplns_total_shares,
                 acct_items=collect_acct_items(address, 20),
+                merged_acct_items=merged_acct_items,
                 total_earned=earned,
                 total_paid=total_payout_amount,
                 balance=balance,
@@ -401,7 +404,7 @@ def collect_user_stats(address):
                 solved_blocks=solved_blocks,
                 total_eff=total_eff,
                 total_shares=total_shares,
-                merge_addr=merge_addr)
+                merged_addr=merged_addr)
 
 
 def get_pool_eff():
@@ -428,7 +431,7 @@ def setmerge_command(username, merge_address):
     except Exception:
         version = False
     if (merge_address[0] != current_app.config['merge']['prefix'] or
-        not version):
+            not version):
             raise CommandException("Invalid address!")
 
     if not current_app.config['merge']['enabled']:
@@ -476,6 +479,7 @@ def verify_message(address, message, signature):
             raise Exception("Invalid arguments provided to command!")
     else:
         raise Exception("Invalid signature! Coinserver returned " + str(res))
+
 
 def resort_recent_visit(recent):
     """ Accepts a new dictionary of recent visitors and calculates what

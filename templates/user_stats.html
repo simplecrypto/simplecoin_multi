@@ -62,8 +62,8 @@ $(document).ready(function() {
 <div class="container">
   <div class="row page-header">
     <h2 style="word-wrap:break-word;margin-bottom:2px;">User Stats - {{ username }} </h2>
-    {% if merge_addr %}
-      <span style="padding-left:15px;">Merge mining payout address &nbsp; {{ merge_addr }}
+    {% if merged_addr %}
+      <span style="padding-left:15px;">Merge mining payout address &nbsp; {{ merged_addr }}
         <a style="color:gray;" href="/set_merge/{{ username }}"><i class="fa fa-edit" ></i></a>
       </span><br>
     {% endif %}
@@ -394,6 +394,12 @@ $(document).ready(function() {
     <div class="clearfix"></div>
     {% include "acct_table.html" %}
     <a href="/{{ username }}/account">View all account transactions</a>
+    {% if merged_acct_items %}
+      <h2>Merged Mining Account</h2>
+      {% set acct_items = merged_acct_items %}
+      {% include "acct_table.html" %}
+      <a href="/{{ username }}/merged_account">View all merged mining account transactions</a>
+    {% endif %}
   </div>
 
 

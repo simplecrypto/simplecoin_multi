@@ -14,7 +14,8 @@ from simplecoin.models import (
     Share, Block, OneMinuteShare, Payout, Transaction, Blob, FiveMinuteShare,
     Status, OneMinuteReject, OneMinuteTemperature, FiveMinuteReject,
     OneMinuteHashrate, Threshold, Event, DonationPercent, BonusPayout,
-    FiveMinuteTemperature, FiveMinuteHashrate, FiveMinuteType, OneMinuteType)
+    FiveMinuteTemperature, FiveMinuteHashrate, FiveMinuteType, OneMinuteType,
+    MergeAddress)
 from sqlalchemy.sql import func, select
 from cryptokit import bits_to_shares, bits_to_difficulty
 
@@ -256,8 +257,7 @@ def add_block(self, user, height, total_value, transaction_fees, bits,
                  filter(Share.id <= block.last_share_id).scalar()) or 128
         block.shares_to_solve = count
         db.session.commit()
-        if not merged:
-            payout.delay()
+        payout.delay()
         if not merged:
             new_block.delay(height, bits, total_value)
     except Exception as exc:
@@ -419,6 +419,32 @@ def cleanup(self, simulate=False):
         raise self.retry(exc=exc)
 
 
+def get_sharemap(starting_id, shares_to_fetch):
+    """ Give a share id to start at and a number of shares to fetch (round size),
+    returns a map of {user_address: share_count} format and how many shares
+    were actually accrued """
+    user_shares = {}
+    remain = shares_to_fetch
+    next_mention = remain - 100000
+    for shares, user in (db.engine.execution_options(stream_results=True).
+                         execute(select([Share.shares, Share.user]).
+                                 order_by(Share.id.desc()).
+                                 where(Share.id <= starting_id))):
+        user_shares.setdefault(user, 0)
+        if remain < next_mention:
+            logger.debug("{} Shares remaining...".format(remain))
+            next_mention -= 100000
+        if remain > shares:
+            user_shares[user] += shares
+            remain -= shares
+        else:
+            user_shares[user] += remain
+            remain = 0
+            break
+
+    return user_shares, shares_to_fetch - remain
+
+
 @celery.task(bind=True)
 def payout(self, simulate=False):
     """
@@ -430,7 +456,7 @@ def payout(self, simulate=False):
             logger.setLevel(logging.DEBUG)
 
         # find the oldest un-processed block
-        block = (Block.query.filter_by(processed=False, merged=False).
+        block = (Block.query.filter_by(processed=False).
                  order_by(Block.height).first())
         if block is None:
             logger.debug("No block found, exiting...")
@@ -441,34 +467,38 @@ def payout(self, simulate=False):
         mult = int(current_app.config['last_n'])
         total_shares = (bits_to_shares(block.bits) * mult)
         logger.debug("Looking for up to {} total shares".format(total_shares))
-        remain = total_shares
-        start = block.last_share.id
-        logger.debug("Identified last matching share id as {}".format(start))
-        user_shares = {}
-
-        for shares, user in (db.engine.execution_options(stream_results=True).
-                             execute(select([Share.shares, Share.user]).
-                                     order_by(Share.id.desc()).
-                                     where(Share.id <= start))):
-            user_shares.setdefault(user, 0)
-            if remain > shares:
-                user_shares[user] += shares
-                remain -= shares
-            else:
-                user_shares[user] += remain
-                remain = 0
-                break
+        logger.debug("Identified last matching share id as {}".format(block.last_share_id))
 
         # if we found less than n, use what we found as the total
-        total_shares -= remain
+        user_shares, total_shares = get_sharemap(block.last_share_id, total_shares)
         logger.debug("Found {} shares".format(total_shares))
         if simulate:
             out = "\n".join(["\t".join((user, str(amount))) for user, amount in user_shares.iteritems()])
             logger.debug("Share distribution:\n{}".format(out))
 
-        # Calculate the portion going to the miners by truncating the
-        # fractional portions and giving the remainder to the pool owner
         logger.debug("Distribute_amnt: {}".format(block.total_value))
+        if block.merged:
+            new_user_shares = {}
+            donate_addr = current_app.config['merge']['donate_address']
+            new_user_shares.setdefault(donate_addr, 0)
+            # build a map of regular addresses to merged addresses
+            query = MergeAddress.query.filter(MergeAddress.user.in_(user_shares.keys()))
+            merge_addr_map = {m.user: m.merge_address for m in query}
+
+            for user in user_shares:
+                merge_addr = merge_addr_map.get(user)
+                # if this user didn't set a merged mining address
+                if not merge_addr:
+                    # give the excess to the donation address if set to not
+                    # distribute unassigned
+                    if not current_app.config['merge']['distribute_unassigned']:
+                        new_user_shares[donate_addr] += user_shares[user]
+                    continue
+
+                new_user_shares[merge_addr] = user_shares[user]
+
+            user_shares = new_user_shares
+
         # Below calculates the truncated portion going to each miner. because
         # of fractional pieces the total accrued wont equal the disitrubte_amnt
         # so we will distribute that round robin the miners in dictionary order
@@ -498,13 +528,19 @@ def payout(self, simulate=False):
         # now handle donation or bonus distribution for each user
         donation_total = 0
         bonus_total = 0
+        # dictionary keyed by address to hold donate/bonus percs and amnts
         user_perc_applied = {}
         user_perc = {}
-        default_perc = current_app.config.get('default_perc', 0)
-        # convert our custom percentages that apply to these users into an
-        # easy to access dictionary
-        custom_percs = DonationPercent.query.filter(DonationPercent.user.in_(user_shares.keys()))
-        custom_percs = {d.user: d.perc for d in custom_percs}
+        if not block.merged:
+            default_perc = current_app.config.get('default_perc', 0)
+            # convert our custom percentages that apply to these users into an
+            # easy to access dictionary
+            custom_percs = DonationPercent.query.filter(DonationPercent.user.in_(user_shares.keys()))
+            custom_percs = {d.user: d.perc for d in custom_percs}
+        else:
+            default_perc = current_app.config['merge'].get('default_perc', 0)
+            custom_percs = {}
+
         for user, payout in user_payouts.iteritems():
             # use the custom perc, or fallback to the default
             perc = custom_percs.get(user, default_perc)
@@ -557,22 +593,26 @@ def payout(self, simulate=False):
             # record the payout for each user
             for user, amount in user_payouts.iteritems():
                 Payout.create(user, amount, block, user_shares[user],
-                              user_perc[user], user_perc_applied.get(user, 0))
+                              user_perc[user], user_perc_applied.get(user, 0),
+                              merged=block.merged)
             # update the block status and collected amounts
             block.processed = True
             block.donated = donation_total
             block.bonus_payed = bonus_total
             # record the donations as a bonus payout to the donate address
             if donation_total > 0:
-                donate_address = current_app.config['donate_address']
+                if block.merged:
+                    donate_address = current_app.config['merge']['donate_address']
+                else:
+                    donate_address = current_app.config['donate_address']
                 BonusPayout.create(donate_address, donation_total,
                                    "Total donations from block {}"
-                                   .format(block.height), block)
+                                   .format(block.height), block, merged=block.merged)
                 logger.info("Added bonus payout to donation address {} for {}"
                             .format(donate_address, donation_total / 100000000.0))
 
             block_bonus = current_app.config.get('block_bonus', 0)
-            if block_bonus > 0:
+            if block_bonus > 0 and not block.merged:
                 BonusPayout.create(block.user, block_bonus,
                                    "Blockfinder bonus for block {}"
                                    .format(block.height), block)

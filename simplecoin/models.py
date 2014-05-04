@@ -401,9 +401,9 @@ class BonusPayout(Transfer):
     }
 
     @classmethod
-    def create(cls, user, amount, description, block):
+    def create(cls, user, amount, description, block, merged=False):
         bonus = cls(user=user, amount=amount, description=description,
-                    block=block)
+                    block=block, merged=merged)
         db.session.add(bonus)
         return bonus
 
