@@ -227,8 +227,8 @@ def total_paid(user):
 
 @cache.memoize(timeout=60)
 def total_bonus(user):
-    return (int(db.session.query(func.sum(BonusPayout.amount)).
-            filter_by(user=user).scalar()) or 0.0)
+    return int((db.session.query(func.sum(BonusPayout.amount)).
+                filter_by(user=user).scalar()) or 0.0)
 
 
 @cache.cached(timeout=3600, key_prefix='get_pool_acc_rej')
