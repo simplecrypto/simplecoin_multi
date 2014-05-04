@@ -457,7 +457,7 @@ def payout(self, simulate=False):
 
         # find the oldest un-processed block
         block = (Block.query.filter_by(processed=False).
-                 order_by(Block.height).first())
+                 order_by(Block.found_at).first())
         if block is None:
             logger.debug("No block found, exiting...")
             return
@@ -473,14 +473,13 @@ def payout(self, simulate=False):
         user_shares, total_shares = get_sharemap(block.last_share_id, total_shares)
         logger.debug("Found {} shares".format(total_shares))
         if simulate:
-            out = "\n".join(["\t".join((user, str(amount))) for user, amount in user_shares.iteritems()])
-            logger.debug("Share distribution:\n{}".format(out))
+            out = "\n".join(["\t".join((user, str((amount * 100.0) / total_shares), str((amount * block.total_value) // total_shares), str(amount))) for user, amount in user_shares.iteritems()])
+            logger.debug("Share distribution:\nUSR\t%\tBLK_PAY\tSHARE\n{}".format(out))
 
         logger.debug("Distribute_amnt: {}".format(block.total_value))
         if block.merged:
-            new_user_shares = {}
             donate_addr = current_app.config['merge']['donate_address']
-            new_user_shares.setdefault(donate_addr, 0)
+            new_user_shares = {donate_addr: 0}
             # build a map of regular addresses to merged addresses
             query = MergeAddress.query.filter(MergeAddress.user.in_(user_shares.keys()))
             merge_addr_map = {m.user: m.merge_address for m in query}
@@ -493,11 +492,16 @@ def payout(self, simulate=False):
                     # distribute unassigned
                     if not current_app.config['merge']['distribute_unassigned']:
                         new_user_shares[donate_addr] += user_shares[user]
+                    else:
+                        total_shares -= user_shares[user]
                     continue
 
-                new_user_shares[merge_addr] = user_shares[user]
+                new_user_shares.setdefault(merge_addr, 0)
+                new_user_shares[merge_addr] += user_shares[user]
 
             user_shares = new_user_shares
+
+        assert total_shares == sum(user_shares.itervalues())
 
         # Below calculates the truncated portion going to each miner. because
         # of fractional pieces the total accrued wont equal the disitrubte_amnt
@@ -505,7 +509,7 @@ def payout(self, simulate=False):
         accrued = 0
         user_payouts = {}
         for user, share_count in user_shares.iteritems():
-            user_payouts[user] = (share_count * block.total_value) // total_shares
+            user_payouts[user] = float(share_count * block.total_value) // total_shares
             accrued += user_payouts[user]
 
         logger.debug("Total accrued after trunated iteration {}; {}%"
@@ -587,7 +591,7 @@ def payout(self, simulate=False):
 
         if simulate:
             out = "\n".join(["\t".join((user, str(amount / 100000000.0))) for user, amount in user_payouts.iteritems()])
-            logger.debug("Payout distribution:\n{}".format(out))
+            logger.debug("Final payout distribution:\nUSR\tAMNT\n{}".format(out))
             db.session.rollback()
         else:
             # record the payout for each user

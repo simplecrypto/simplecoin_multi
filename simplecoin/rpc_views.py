@@ -12,14 +12,17 @@ def get_payouts():
     be processed. Transaction information is signed for safety. """
     s = TimedSerializer(current_app.config['rpc_signature'])
     args = s.loads(request.data)
-    current_app.logger.info("get_payouts being called!")
+    current_app.logger.info("get_payouts being called, args of {}!".format(args))
     lock = False
+    merged = False
     if isinstance(args, dict) and args['lock']:
         lock = True
+    if isinstance(args, dict) and args['merged']:
+        merged = True
 
-    payouts = (Payout.query.filter_by(transaction_id=None, locked=False).
+    payouts = (Payout.query.filter_by(transaction_id=None, locked=False, merged=merged).
                join(Payout.block, aliased=True).filter_by(mature=True)).all()
-    bonus_payouts = (BonusPayout.query.filter_by(transaction_id=None, locked=False).
+    bonus_payouts = (BonusPayout.query.filter_by(transaction_id=None, locked=False, merged=merged).
                      join(BonusPayout.block, aliased=True).filter_by(mature=True)).all()
 
     pids = [(p.user, p.amount, p.id) for p in payouts]

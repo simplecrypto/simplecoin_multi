@@ -37,6 +37,7 @@ merge:
         account: pool
     donate_address: MSEjpL5Wyam3bxzcLuFPoWdDWTx7SxT19W
     distribute_unassigned: False
+    payout_prefix: M
     # this url will have the transaction id appended to it to provide
     # information on a specific transaction for a payout to merged mining
     transaction_link_prefix: http://cryptexplorer.com/tx/

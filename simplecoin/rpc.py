@@ -12,7 +12,7 @@ from itsdangerous import TimedSerializer, BadData
 import requests
 from bitcoinrpc.authproxy import JSONRPCException
 from .coinserv_cmds import payout_many
-from . import create_app, coinserv
+from . import create_app, coinserv, merge_coinserv
 
 
 logger = logging.getLogger("toroidal")
@@ -64,9 +64,9 @@ class RPCClient(object):
         except BadData:
             raise RPCException("Invalid signature: {}".format(ret.text))
 
-    def poke_rpc(self):
+    def poke_rpc(self, conn):
         try:
-            coinserv.getinfo()
+            conn.getinfo()
         except JSONRPCException:
             raise RPCException("Coinserver not awake")
 
@@ -81,25 +81,33 @@ class RPCClient(object):
         logger.info("Resetting requested bids and pids")
         self.post('update_payouts', data=data)
 
-    def proc_trans(self, simulate=False):
-        self.poke_rpc()
+    def proc_trans(self, simulate=False, merged=False):
+        logger.info("Running payouts for merged = {}".format(merged))
+        if merged:
+            conn = merge_coinserv
+        else:
+            conn = coinserv
+        self.poke_rpc(conn)
 
         lock = True
         if simulate:
             lock = False
 
-        payouts, bonus_payouts, lock_res = self.post('get_payouts',
-                                                     data={'lock': lock})
+        payouts, bonus_payouts, lock_res = self.post(
+            'get_payouts',
+            data={'lock': lock, 'merged': merged}
+        )
         if lock:
             assert lock_res
 
         pids = [t[2] for t in payouts]
         bids = [t[2] for t in bonus_payouts]
-        logger.warn("Locked all recieved payout ids and bonus payout ids. In "
-                    "the event of an error, run the following command to unlock"
-                    "for a retried payout.\nsc_rpc reset_trans '{}' '{}'"
-                    .format(",".join(str(p) for p in pids),
-                            ",".join(str(b) for b in bids)))
+        if not simulate:
+            logger.warn("Locked all recieved payout ids and bonus payout ids. In "
+                        "the event of an error, run the following command to unlock"
+                        "for a retried payout.\nsc_rpc reset_trans '{}' '{}'"
+                        .format(",".join(str(p) for p in pids),
+                                ",".join(str(b) for b in bids)))
 
         if not len(pids) and not len(bids):
             logger.info("No payouts to process..")
@@ -114,8 +122,12 @@ class RPCClient(object):
         totals = {}
         pids = {}
         bids = {}
+        if merged:
+            valid_prefix = current_app.config['merge']['payout_prefix']
+        else:
+            valid_prefix = current_app.config['payout_prefix']
         for user, amount, id in payouts:
-            if user.startswith(current_app.config['payout_prefix']):
+            if user.startswith(valid_prefix):
                 totals.setdefault(user, 0)
                 totals[user] += amount
                 pids.setdefault(user, [])
@@ -125,7 +137,7 @@ class RPCClient(object):
                             .format(user))
 
         for user, amount, id in bonus_payouts:
-            if user.startswith(current_app.config['payout_prefix']):
+            if user.startswith(valid_prefix):
                 totals.setdefault(user, 0)
                 totals[user] += amount
                 bids.setdefault(user, [])
@@ -168,8 +180,8 @@ class RPCClient(object):
             exit(0)
 
         # now actually pay them
-        coin_txid = payout_many(users)
-        #coin_txid = "1111111111111111111111111111111111111111111111111111111111111111"
+        #coin_txid = payout_many(users, merged=merged)
+        coin_txid = "1111111111111111111111111111111111111111111111111111111111111111"
         logger.info("Got {} as txid for payout!".format(coin_txid))
 
         data = {'coin_txid': coin_txid, 'pids': committed_pids, 'bids': committed_bids}
@@ -188,20 +200,17 @@ class RPCClient(object):
 
 
 def entry():
-    parser = argparse.ArgumentParser(prog='toro')
-    parser.add_argument('-l',
-                        '--log-level',
+    parser = argparse.ArgumentParser(prog='simplecoin RPC')
+    parser.add_argument('-l', '--log-level',
                         choices=['DEBUG', 'INFO', 'WARN', 'ERROR'],
                         default='WARN')
-    parser.add_argument('-s',
-                        '--simulate',
-                        action='store_true',
-                        default=False)
+    parser.add_argument('-s', '--simulate', action='store_true', default=False)
     subparsers = parser.add_subparsers(title='main subcommands', dest='action')
 
-    subparsers.add_parser('proc_trans',
-                          help='processes transactions locally by fetching '
-                               'from a remote server')
+    proc = subparsers.add_parser('proc_trans',
+                                 help='processes transactions locally by '
+                                      'fetching from a remote server')
+    proc.add_argument('-m', '--merged', action='store_true', default=False)
     reset = subparsers.add_parser('reset_trans',
                                   help='resets the lock state of a set of pids'
                                        ' and bids')
