@@ -180,8 +180,8 @@ class RPCClient(object):
             exit(0)
 
         # now actually pay them
-        #coin_txid = payout_many(users, merged=merged)
-        coin_txid = "1111111111111111111111111111111111111111111111111111111111111111"
+        coin_txid = payout_many(users, merged=merged)
+        #coin_txid = "1111111111111111111111111111111111111111111111111111111111111111"
         logger.info("Got {} as txid for payout!".format(coin_txid))
 
         data = {'coin_txid': coin_txid, 'pids': committed_pids, 'bids': committed_bids}

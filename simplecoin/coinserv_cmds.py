@@ -9,14 +9,17 @@ def payout_many(recip, merged=False):
     else:
         conn = coinserv
     if merged:
-        fee = current_app.config['payout_fee']
-        passphrase = current_app.config['coinserv']['wallet_pass']
-    else:
         fee = current_app.config['merge']['payout_fee']
         passphrase = current_app.config['merge']['coinserv']['wallet_pass']
+        account = current_app.config['merge']['coinserv']['account']
+    else:
+        fee = current_app.config['payout_fee']
+        passphrase = current_app.config['coinserv']['wallet_pass']
+        account = current_app.config['coinserv']['account']
     if passphrase:
         wallet = conn.walletpassphrase(passphrase, 10)
         current_app.logger.info("Unlocking wallet: %s" % wallet)
     current_app.logger.info("Setting tx fee: %s" % conn.settxfee(fee))
     current_app.logger.info("Sending to recip: " + str(recip))
-    return conn.sendmany(current_app.config['coinserv']['account'], recip)
+    current_app.logger.info("Sending from account: " + str(account))
+    return conn.sendmany(account, recip)
