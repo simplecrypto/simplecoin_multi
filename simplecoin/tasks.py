@@ -152,16 +152,17 @@ def update_block_state(self):
     First checks to see if blocks are orphaned,
     then it checks to see if they are now matured.
     """
-    mature_diff = current_app.config['block_mature_confirms']
     try:
         # Select all immature & non-orphaned blocks
-        immature = (Block.query.filter_by(mature=False, orphan=False))
+        immature = Block.query.filter_by(mature=False, orphan=False)
         unmerge_blockheight = coinserv.getblockcount()
         merge_blockheight = merge_coinserv.getblockcount()
         for block in immature:
             if block.merged:
+                mature_diff = current_app.config['merge']['block_mature_confirms']
                 blockheight = merge_blockheight
             else:
+                mature_diff = current_app.config['block_mature_confirms']
                 blockheight = unmerge_blockheight
 
             # ensure that our RPC server has more than caught up...
