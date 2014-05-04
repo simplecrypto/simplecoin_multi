@@ -20,24 +20,28 @@ class CommandException(Exception):
     pass
 
 
-@cache.cached(timeout=3600, key_prefix='all_blocks')
-def all_blocks():
-    return (db.session.query(Block).filter_by(merged=False).
+@cache.memoize(timeout=3600)
+def all_blocks(merged=False):
+    return (db.session.query(Block).filter_by(merged=merged).
             order_by(Block.height.desc()).all())
 
-@cache.cached(timeout=3600, key_prefix='users_solved_blocks')
-def users_blocks(address):
-    return db.session.query(Block).filter_by(user=address).count()
 
-@cache.cached(timeout=86400, key_prefix='all_user_shares')
+@cache.memoize(timeout=3600)
+def users_blocks(address, merged=None):
+    return db.session.query(Block).filter_by(user=address, merged_type=None).count()
+
+
+@cache.memoize(timeout=86400)
 def all_time_shares(address):
     return db.session.query(OneHourShare).filter_by(user=address).all()
 
-@cache.cached(timeout=60, key_prefix='last_block_time')
-def last_block_time():
-    return last_block_time_nocache()
 
-def last_block_time_nocache():
+@cache.memoize(timeout=60)
+def last_block_time(merged=False):
+    return last_block_time_nocache(merged=merged)
+
+
+def last_block_time_nocache(merged=False):
     """ Retrieves the last time a block was solved using progressively less
     accurate methods. Essentially used to calculate round time. """
     last_block = Block.query.filter_by(merged=False).order_by(Block.height.desc()).first()
@@ -59,31 +63,32 @@ def last_block_time_nocache():
     return datetime.datetime.utcnow()
 
 
-@cache.cached(timeout=60, key_prefix='last_block_share_id')
-def last_block_share_id():
-    return last_block_share_id_nocache()
+@cache.memoize(timeout=60)
+def last_block_share_id(merged=False):
+    return last_block_share_id_nocache(merged=merged)
 
 
-def last_block_share_id_nocache():
-    last_block = Block.query.filter_by(merged=False).order_by(Block.height.desc()).first()
+def last_block_share_id_nocache(merged=False):
+    last_block = Block.query.filter_by(merged=merged).order_by(Block.height.desc()).first()
     if not last_block:
         return 0
     return last_block.last_share_id
 
 
-@cache.cached(timeout=60, key_prefix='last_block_found')
-def last_block_found():
-    last_block = Block.query.filter_by(merged=False).order_by(Block.height.desc()).first()
+@cache.memoize(timeout=60)
+def last_block_found(merged=False):
+    last_block = Block.query.filter_by(merged=merged).order_by(Block.height.desc()).first()
     if not last_block:
         return None
     return last_block
 
 
-def last_blockheight():
-    last = last_block_found()
+def last_blockheight(merged=False):
+    last = last_block_found(merged=merged)
     if not last:
         return 0
     return last.height
+
 
 @cache.cached(timeout=3600, key_prefix='block_stats')
 def get_block_stats(average_diff):
@@ -112,7 +117,6 @@ def get_block_stats(average_diff):
     coins_per_day = ((current_app.config['reward'] / (average_diff * (2**32 / 86400))) * 1000000)
     effective_return = (coins_per_day * pool_luck) * ((100 - orphan_perc) / 100)
     return pool_luck, effective_return, orphan_perc
-
 
 
 def get_typ(typ, address=None, window=True, worker=None, q_typ=None):
@@ -210,7 +214,7 @@ def total_earned(user):
     total_p = (Payout.query.filter_by(user=user).
                join(Payout.block, aliased=True).
                filter_by(orphan=False))
-    return sum([payout.amount for payout in total_p])
+    return int(sum([payout.amount for payout in total_p]))
 
 
 @cache.memoize(timeout=60)
@@ -218,13 +222,13 @@ def total_paid(user):
     total_p = (Payout.query.filter_by(user=user).
                join(Payout.transaction, aliased=True).
                filter_by(confirmed=True))
-    return sum([tx.amount for tx in total_p])
+    return int(sum([tx.amount for tx in total_p]))
 
 
 @cache.memoize(timeout=60)
 def total_bonus(user):
-    return (db.session.query(func.sum(BonusPayout.amount)).
-            filter_by(user=user).scalar() or 0.0)
+    return (int(db.session.query(func.sum(BonusPayout.amount)).
+            filter_by(user=user).scalar()) or 0.0)
 
 
 @cache.cached(timeout=3600, key_prefix='get_pool_acc_rej')
@@ -255,7 +259,7 @@ def collect_user_stats(address):
     paid = total_paid(address)
     bonus = total_bonus(address)
 
-    balance = float(earned) - paid
+    balance = earned - paid
     # Add bonuses to total paid amount
     total_payout_amount = (paid + bonus)
 

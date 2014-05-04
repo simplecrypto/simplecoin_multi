@@ -35,6 +35,11 @@ merge:
         password: ''
         wallet_pass: ''
         account: pool
+    # this url will have the transaction id appended to it to provide
+    # information on a specific transaction for a payout to merged mining
+    transaction_link_prefix: http://cryptexplorer.com/tx/
+    # just like above, but with a block to merged mining
+    block_link_prefix: http://cryptexplorer.com/block/
     
 
 # connection information for the coinserver RPC

@@ -62,7 +62,7 @@ class Block(base):
     merged = db.Column(db.Boolean, default=False)
 
     standard_join = ['status', 'explorer_link', 'luck', 'total_value_float',
-                     'difficulty', 'duration']
+                     'difficulty', 'duration', 'found_at', 'time_started']
 
     @property
     def status(self):
@@ -97,7 +97,10 @@ class Block(base):
 
     @property
     def explorer_link(self):
-        return current_app.config['block_link_prefix'] + self.hash
+        if not self.merged:
+            return current_app.config['block_link_prefix'] + self.hash
+        else:
+            return current_app.config['merge']['block_link_prefix'] + self.hash
 
     @property
     def luck(self):
@@ -332,6 +335,29 @@ class Payout(Transfer):
     __table_args__ = (
         db.UniqueConstraint("user", "blockhash"),
     )
+
+    standard_join = ['status', 'created_at', 'explorer_link',
+                     'text_perc_applied', 'mined']
+
+    @property
+    def explorer_link(self):
+        if not self.transaction_id:
+            return
+        if not self.merged:
+            return current_app.config['transaction_link_prefix'] + self.transaction_id
+        else:
+            return current_app.config['merge']['transaction_link_prefix'] + self.transaction_id
+
+    @property
+    def text_perc_applied(self):
+        if self.perc < 0:
+            return "bonus {:,.2f}".format(self.perc_applied * -1)
+        else:
+            return "donation {:,.2f}".format(self.perc_applied)
+
+    @property
+    def mined(self):
+        return (self.amount + self.perc_applied) / 100000000
 
     @classmethod
     def create(cls, user, amount, block, shares, perc, perc_applied, merged=False):

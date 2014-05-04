@@ -42,6 +42,12 @@ def blocks():
     return render_template('blocks.html', blocks=blocks)
 
 
+@main.route("/merged_blocks")
+def merged_blocks():
+    blocks = all_blocks(merged=True)
+    return render_template('blocks.html', blocks=blocks)
+
+
 @main.route("/<address>/account")
 def account(address):
     return render_template('account.html',
@@ -55,6 +61,10 @@ def pool_stats():
                      'height': cache.get('blockheight') or 0}
 
     blocks = db.session.query(Block).filter_by(merged=False).order_by(Block.height.desc()).limit(10)
+    if current_app.config['merge']['enabled']:
+        merged_blocks = db.session.query(Block).filter_by(merged=True).order_by(Block.height.desc()).limit(10)
+    else:
+        merged_blocks = None
     pool_luck, effective_return, orphan_perc = get_block_stats(g.average_difficulty)
     reject_total, accept_total = get_pool_acc_rej()
     efficiency = get_pool_eff()
@@ -67,7 +77,8 @@ def pool_stats():
                            reject_total=reject_total,
                            pool_luck=pool_luck,
                            effective_return=effective_return,
-                           orphan_perc=orphan_perc)
+                           orphan_perc=orphan_perc,
+                           merged_blocks=merged_blocks)
 
 
 @main.route("/network_stats")

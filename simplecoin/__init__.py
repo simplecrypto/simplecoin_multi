@@ -50,7 +50,7 @@ def create_app(config='/config.yml', celery=False):
 
     # register all our plugins
     db.init_app(app)
-    cache_config = {'CACHE_TYPE': 'redis'}
+    cache_config = {'CACHE_TYPE': 'null'}
     cache_config.update(app.config.get('main_cache', {}))
     cache.init_app(app, config=cache_config)
 
@@ -71,7 +71,6 @@ def create_app(config='/config.yml', celery=False):
         except Exception:
             app.config['hash'] = ''
             app.config['revdate'] = ''
-
 
     # filters for jinja
     @app.template_filter('fader')

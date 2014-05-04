@@ -117,4 +117,11 @@ $(document).ready(function() {
 </div>
 {% include "block_table.html" %}
 <a href="/blocks">View all blocks</a>
+{% if merged_blocks %}
+  {% set current_block = none %}
+  {% set blocks = merged_blocks %}
+  <h2>Merge Mined Blocks</h2>
+  {% include "block_table.html" %}
+  <a href="/merged_blocks">View all blocks</a>
+{% endif %}
 {% endblock %}

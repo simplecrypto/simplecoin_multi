@@ -1,4 +1,4 @@
-lever==0.2.4
+lever==0.2.6
 git+https://github.com/icook/python-bitcoinrpc.git
 git+https://github.com/icook/cryptokit
 gunicorn
