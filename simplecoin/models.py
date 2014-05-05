@@ -320,6 +320,19 @@ class Transfer(AbstractConcreteBase, base):
         else:
             return "Payout Pending"
 
+    @property
+    def explorer_link(self):
+        if not self.transaction_id:
+            return
+        if not self.merged:
+            return current_app.config['transaction_link_prefix'] + self.transaction_id
+        else:
+            return current_app.config['merge']['transaction_link_prefix'] + self.transaction_id
+
+    @property
+    def amount_float(self):
+        return self.amount / 100000000.0
+
 
 class Payout(Transfer):
     __tablename__ = "payout"
@@ -337,16 +350,7 @@ class Payout(Transfer):
     )
 
     standard_join = ['status', 'created_at', 'explorer_link',
-                     'text_perc_applied', 'mined']
-
-    @property
-    def explorer_link(self):
-        if not self.transaction_id:
-            return
-        if not self.merged:
-            return current_app.config['transaction_link_prefix'] + self.transaction_id
-        else:
-            return current_app.config['merge']['transaction_link_prefix'] + self.transaction_id
+                     'text_perc_applied', 'mined', 'amount_float']
 
     @property
     def text_perc_applied(self):
@@ -399,6 +403,7 @@ class BonusPayout(Transfer):
         'polymorphic_identity': 'bonus_payout',
         'concrete': True
     }
+    standard_join = ['status', 'created_at', 'explorer_link', 'amount_float']
 
     @classmethod
     def create(cls, user, amount, description, block, merged=False):

@@ -377,6 +377,8 @@ def address_api(address):
 
     stats = collect_user_stats(address)
     stats['acct_items'] = get_joined(stats['acct_items'])
+    if stats['merged_acct_items']:
+        stats['merged_acct_items'] = get_joined(stats['merged_acct_items'])
     stats['total_earned'] = float(stats['total_earned'])
     if stats['pplns_cached_time']:
         stats['pplns_cached_time'] = calendar.timegm(stats['pplns_cached_time'].utctimetuple())
