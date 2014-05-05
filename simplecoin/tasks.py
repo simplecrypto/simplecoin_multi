@@ -304,7 +304,7 @@ def add_one_minute(self, user, valid_shares, minute, worker='', dup_shares=0,
 
         # only log a total reject on a per-user basis
         else:
-            total_reject = dup_shares + low_diff_shares + stale_shares
+            total_reject = stale_shares
             if total_reject:
                 count_share(OneMinuteReject, total_reject)
     except Exception as exc:
