@@ -2,9 +2,11 @@ from math import ceil, floor
 import json
 import logging
 import datetime
+import time
 
 from flask import current_app
 from sqlalchemy.sql import func
+from time import sleep
 import sqlalchemy
 
 from celery import Celery
@@ -16,7 +18,7 @@ from simplecoin.models import (
     OneMinuteHashrate, Threshold, Event, DonationPercent, BonusPayout,
     FiveMinuteTemperature, FiveMinuteHashrate, FiveMinuteType, OneMinuteType,
     MergeAddress)
-from sqlalchemy.sql import func, select
+from sqlalchemy.sql import select
 from cryptokit import bits_to_shares, bits_to_difficulty
 
 from bitcoinrpc import CoinRPCException
@@ -26,6 +28,64 @@ import requests
 
 logger = get_task_logger(__name__)
 celery = Celery('simplecoin')
+
+
+def get_sharemap(start_id, shares_to_fetch, chunk_size=None, sleep_interval=None):
+    """ Give a share id to start at and a number of shares to fetch (round size),
+    returns a map of {user_address: share_count} format and how many shares
+    were actually accrued """
+    # allow overridable configuration defaults
+    chunk_size = chunk_size or current_app.config.get('sharemap_chunk_size', 10000)
+    sleep_interval = sleep_interval or current_app.config.get('sharemap_sleep_interval', 0.1)
+    # hold all user shares here
+    user_shares = {}
+    stop_id = Share.query.order_by(Share.id).first().id  # last share to look for
+    if start_id is None:
+        # start at beginning
+        start_id = Share.query.order_by(Share.id.desc()).first().id
+    # iterate through shares in newest to oldest order to find the share
+    # id that is oldest needed id
+    remain = shares_to_fetch
+    rows = 0
+    sleep_total = 0
+    start_time = time.time()
+    while remain > 0 and start_id > stop_id:
+        res = (db.engine.execution_options(stream_results=True).
+               execute(select([Share.shares, Share.user]).
+                       order_by(Share.id.desc()).
+                       where(Share.id > start_id - chunk_size).
+                       where(Share.id <= start_id)))
+        chunk = res.fetchall()
+        logger.debug("Fetching rows {:,} to {:,}".format(start_id - chunk_size, start_id))
+        for shares, user in chunk:
+            rows += 1
+            user_shares.setdefault(user, 0)
+            if remain > shares:
+                user_shares[user] += shares
+                remain -= shares
+            else:
+                user_shares[user] += remain
+                remain = 0
+                break
+        else:
+            # grab another batch, we've still got shares to find
+            sleep(sleep_interval)
+            sleep_total += sleep_interval
+            start_id -= 10000
+            continue
+
+        # if we broke from the for loop we're done, exit
+        break
+
+    logger.info("Slept for a total of {}"
+                .format(datetime.timedelta(seconds=sleep_total)))
+    logger.info("Queried and summed for a total of {}"
+                .format(datetime.timedelta(seconds=time.time() - start_time - sleep_total)))
+    logger.info("Iterated {:,} rows to find {:,} shares"
+                .format(rows, shares_to_fetch))
+    logger.info("Found {:,} unique users in share log".format(len(user_shares)))
+
+    return user_shares, shares_to_fetch - remain
 
 
 @celery.task(bind=True)
@@ -53,7 +113,7 @@ def update_online_workers(self):
         cache.set_many(users, timeout=480)
 
     except Exception as exc:
-        logger.error("Unhandled exception in estimating pplns", exc_info=True)
+        logger.error("Unhandled exception in update_online_workers", exc_info=True)
         raise self.retry(exc=exc)
 
 
@@ -71,26 +131,16 @@ def update_pplns_est(self):
         if diff is None:
             logger.warn("Difficulty average is blank, can't calculate pplns estimate")
             return
+
         # Calculate the total shares to that are 'counted'
-        total_shares = ((float(diff) * (2 ** 16)) * mult)
+        total_shares = (float(diff) * (2 ** 16)) * mult
 
         # Loop through all shares, descending order, until we'd distributed the
         # shares
-        remain = total_shares
-        user_shares = {}
-        for shares, user in (db.engine.execution_options(stream_results=True).
-                             execute(select([Share.shares, Share.user]).
-                                     order_by(Share.id.desc()))):
-            user_shares.setdefault('pplns_' + user, 0)
-            if remain > shares:
-                user_shares['pplns_' + user] += shares
-                remain -= shares
-            else:
-                user_shares['pplns_' + user] += remain
-                remain = 0
-                break
+        user_shares, total_grabbed = get_sharemap(None, total_shares)
+        user_shares = {'pplns_' + k: v for k, v in user_shares.iteritems()}
 
-        cache.set('pplns_total_shares', (total_shares - remain), timeout=40 * 60)
+        cache.set('pplns_total_shares', total_grabbed, timeout=40 * 60)
         cache.set('pplns_cache_time', datetime.datetime.utcnow(), timeout=40 * 60)
         cache.set_many(user_shares, timeout=40 * 60)
         cache.set('pplns_user_shares', user_shares, timeout=40 * 60)
@@ -355,95 +405,102 @@ def new_block(self, blockheight, bits=None, reward=None):
 
 
 @celery.task(bind=True)
-def cleanup(self, simulate=False):
+def cleanup(self, simulate=False, chunk_size=None, sleep_interval=None):
     """
     Finds all the shares that will no longer be used and removes them from
     the database.
     """
-    import time
     t = time.time()
     try:
+        # allow overridable configuration defaults
+        chunk_size = chunk_size or current_app.config.get('cleanup_chunk_size', 10000)
+        sleep_interval = sleep_interval or current_app.config.get('cleanup_sleep_interval', 1.0)
+
         diff = cache.get('difficulty_avg')
-        diff = 1100.0
         if diff is None:
-            logger.warn(
-                "Difficulty average is blank, can't safely cleanup")
+            logger.warn("Difficulty average is blank, can't safely cleanup")
             return
         # count all unprocessed blocks
         unproc_blocks = len(Block.query.filter_by(processed=False, merged=False).all())
-        # make sure we leave the right number of shares for them
+        # make sure we leave the right number of shares for unprocessed block
+        # to be distributed
         unproc_n = unproc_blocks * current_app.config['last_n']
         # plus our requested cleanup n for a safe margin
         cleanup_n = current_app.config.get('cleanup_n', 4) + current_app.config['last_n']
         # calculate how many n1 shares that is
         total_shares = int(round(((float(diff) * (2 ** 16)) * (cleanup_n + unproc_n))))
-        stale_id = 0
-        counted_shares = 0
-        rows = 0
-        logger.info("Unprocessed blocks: {}; {} N kept"
-                    .format(unproc_blocks, unproc_n))
+
+        logger.info("Chunk size {:,}; Sleep time {}".format(chunk_size, sleep_interval))
+        logger.info("Unprocessed blocks: {}; {} Extra N kept".format(unproc_blocks, unproc_n))
         logger.info("Safety margin N from config: {}".format(cleanup_n))
-        logger.info("Total shares being saved: {}".format(total_shares))
+        logger.info("Total shares being saved: {:,}".format(total_shares))
+        # upper and lower iteration bounds
+        start_id = Share.query.order_by(Share.id.desc()).first().id + 1
+        stop_id = Share.query.order_by(Share.id).first().id
+        logger.info("Diff between first share {:,} and last {:,}: {:,}"
+                    .format(stop_id, start_id, start_id - stop_id))
+
+        rows = 0
+        counted_shares = 0
+        stale_id = 0
         # iterate through shares in newest to oldest order to find the share
-        # id that is oldest needed id
-        for shares, id in (db.engine.execution_options(stream_results=True).
-                           execute(select([Share.shares, Share.id]).
-                                   order_by(Share.id.desc()))):
-            rows += 1
-            counted_shares += shares
-            if counted_shares >= total_shares:
-                stale_id = id
-                break
+        # id that is oldest required to be kept
+        while counted_shares < total_shares and start_id > stop_id:
+            res = (db.engine.execute(select([Share.shares, Share.id]).
+                                     order_by(Share.id.desc()).
+                                     where(Share.id >= start_id - chunk_size).
+                                     where(Share.id < start_id)))
+            chunk = res.fetchall()
+            for shares, id in chunk:
+                rows += 1
+                counted_shares += shares
+                if counted_shares >= total_shares:
+                    stale_id = id
+                    break
+            logger.info("Fetched rows {:,} to {:,}. Found {:,} shares so far. Avg share/row {:,.2f}"
+                        .format(start_id - chunk_size, start_id, counted_shares, counted_shares / rows))
+            start_id -= chunk_size
 
         if not stale_id:
             logger.info("Stale ID is 0, deleting nothing.")
             return
 
-        logger.info("Time to identify proper id {}".format(time.time() - t))
+        logger.info("Time to identify proper id {}"
+                    .format(datetime.timedelta(seconds=time.time() - t)))
+        logger.info("Rows iterated to find stale id: {:,}".format(rows))
+        logger.info("Cleaning all shares older than id {:,}, up to {:,} rows. Saving {:,} rows."
+                    .format(stale_id, stale_id - stop_id, stale_id - start_id))
         if simulate:
-            logger.info("Stale ID computed: {}".format(stale_id))
-            logger.info("Rows iterated to find stale id: {}".format(rows))
+            logger.info("Simulate mode, exiting")
             return
 
-        logger.info("Cleaning all shares older than id {}".format(stale_id))
         # To prevent integrity errors, all blocks linking to a share that's
         # going to be deleted needs to be updated to remove reference
         Block.query.filter(Block.last_share_id <= stale_id).update({Block.last_share_id: None})
-        db.session.flush()
-        # delete all shares that are sufficiently old
-        Share.query.filter(Share.id < stale_id).delete(synchronize_session=False)
         db.session.commit()
-        logger.info("Time to completion {}".format(time.time() - t))
+
+        total_sleep = 0
+        total = stale_id - stop_id
+        remain = total
+        while remain > 0:
+            # delete all shares that are sufficiently old
+            bottom = stale_id - chunk_size
+            res = (Share.query.filter(Share.id < stale_id).
+                   filter(Share.id >= bottom).delete(synchronize_session=False))
+            db.session.commit()
+            remain -= chunk_size
+            logger.info("Deleted {:,} rows from {:,} to {:,}\t{:,.4f}\t{:,}"
+                        .format(res, stale_id, bottom, remain * 100.0 / total, remain))
+            stale_id -= chunk_size
+            sleep(sleep_interval)
+            total_sleep += sleep_interval
+
+        logger.info("Time to completion {}".format(datetime.timedelta(time.time() - t)))
+        logger.info("Time spent sleeping {}".format(datetime.timedelta(seconds=total_sleep)))
     except Exception as exc:
         logger.error("Unhandled exception in cleanup", exc_info=True)
         db.session.rollback()
         raise self.retry(exc=exc)
-
-
-def get_sharemap(starting_id, shares_to_fetch):
-    """ Give a share id to start at and a number of shares to fetch (round size),
-    returns a map of {user_address: share_count} format and how many shares
-    were actually accrued """
-    user_shares = {}
-    remain = shares_to_fetch
-    next_mention = remain - 100000
-    for shares, user in (db.engine.execution_options(stream_results=True).
-                         execute(select([Share.shares, Share.user]).
-                                 order_by(Share.id.desc()).
-                                 where(Share.id <= starting_id))):
-        user_shares.setdefault(user, 0)
-        if remain < next_mention:
-            logger.debug("{} Shares remaining...".format(remain))
-            next_mention -= 100000
-        if remain > shares:
-            user_shares[user] += shares
-            remain -= shares
-        else:
-            user_shares[user] += remain
-            remain = 0
-            break
-
-    return user_shares, shares_to_fetch - remain
 
 
 @celery.task(bind=True)
@@ -468,6 +525,9 @@ def payout(self, simulate=False):
         mult = int(current_app.config['last_n'])
         total_shares = (bits_to_shares(block.bits) * mult)
         logger.debug("Looking for up to {} total shares".format(total_shares))
+        if block.last_share_id is None:
+            logger.error("Can't process this block, it's shares have been deleted!")
+            return
         logger.debug("Identified last matching share id as {}".format(block.last_share_id))
 
         # if we found less than n, use what we found as the total
