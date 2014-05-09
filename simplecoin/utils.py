@@ -22,6 +22,14 @@ class CommandException(Exception):
 def all_blocks():
     return db.session.query(Block).order_by(Block.height.desc()).all()
 
+@cache.cached(timeout=3600, key_prefix='users_solved_blocks')
+def users_blocks(address):
+    return db.session.query(Block).filter_by(user=address).count()
+
+@cache.cached(timeout=86400, key_prefix='all_user_shares')
+def all_time_shares(address):
+    return db.session.query(OneHourShare).filter_by(user=address).all()
+
 @cache.cached(timeout=60, key_prefix='last_block_time')
 def last_block_time():
     return last_block_time_nocache()
@@ -344,6 +352,23 @@ def collect_user_stats(address):
     user_last_10_shares = last_10_shares(address)
     last_10_hashrate = ((user_last_10_shares * 65536.0) / 1000000) / 600
 
+    solved_blocks = users_blocks(address)
+
+    # Calculate 24 hour efficiency for all workers
+    total_acc = 0
+    total_rej = 0
+    for worker in new_workers:
+        total_acc += worker['accepted']
+        total_rej += worker['rejected']
+    if total_acc > 0:
+        total_eff = (total_acc / (total_acc + total_rej)) * 100
+    else:
+        total_eff = 0
+
+    # Grab all the accepted hour shares for the user
+    hour_shares = all_time_shares(address)
+    total_shares = sum([shares.value for shares in hour_shares])
+
     return dict(workers=new_workers,
                 round_shares=round_shares,
                 pplns_cached_time=pplns_cached_time,
@@ -355,7 +380,10 @@ def collect_user_stats(address):
                 donation_perc=perc,
                 last_10_shares=user_last_10_shares,
                 last_10_hashrate=last_10_hashrate,
-                unconfirmed_balance=unconfirmed_balance)
+                unconfirmed_balance=unconfirmed_balance,
+                solved_blocks=solved_blocks,
+                total_eff=total_eff,
+                total_shares=total_shares)
 
 
 def get_pool_eff():

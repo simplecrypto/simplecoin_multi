@@ -306,6 +306,41 @@ $(document).ready(function() {
   </div>
 
   <div class="row row-header">
+    <h2>Address Stats</h2>
+    <br>
+    <div class="col-sm-4">
+      <div class="panel panel-default">
+        <div class="panel-body text-center">
+          <small>24hr Efficiency</small>&nbsp;
+          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                       title="Efficiency of all workers over a 24 hour period."></i>
+          <br><h4><p>{{ total_eff }}%</p></h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="panel panel-default">
+        <div class="panel-body text-center">
+          <small>Total accepted shares</small>&nbsp;
+          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                       title="Total number of shares accepted older than 24 hours, updated daily."></i>
+          <br><h4><p>{{ total_shares }}</p></h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="panel panel-default">
+        <div class="panel-body text-center">
+          <small>Blocks Solved</small>&nbsp;
+          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                       title="Total number of blocks solved by this address, updated hourly"></i>
+          <br><h4><p>{{ solved_blocks }}</p></h4>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row row-header">
     <h2>Account<small class="text-muted">- Currently donating {{ donation_perc }}%
       <a style="color:gray;" href="/set_donation/{{ username }}"><i class="fa fa-edit" ></i></a>
     </small></h2>
