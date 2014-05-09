@@ -14,15 +14,15 @@ def get_payouts():
     args = s.loads(request.data)
     current_app.logger.info("get_payouts being called, args of {}!".format(args))
     lock = False
-    merged = False
+    merged = None
     if isinstance(args, dict) and args['lock']:
         lock = True
     if isinstance(args, dict) and args['merged']:
-        merged = True
+        merged = args['merged']
 
-    payouts = (Payout.query.filter_by(transaction_id=None, locked=False, merged=merged).
+    payouts = (Payout.query.filter_by(transaction_id=None, locked=False, merged_type=merged).
                join(Payout.block, aliased=True).filter_by(mature=True)).all()
-    bonus_payouts = (BonusPayout.query.filter_by(transaction_id=None, locked=False, merged=merged).
+    bonus_payouts = (BonusPayout.query.filter_by(transaction_id=None, locked=False, merged_type=merged).
                      join(BonusPayout.block, aliased=True).filter_by(mature=True)).all()
 
     pids = [(p.user, p.amount, p.id) for p in payouts]

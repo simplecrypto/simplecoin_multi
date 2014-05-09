@@ -19,7 +19,7 @@ $(document).ready(function() {
 
   $("#generate").click(function() {
     var feeString = $("#feeAmount").val();
-    $("#message").text("SETMERGE " + feeString + "\t" + Math.round(new Date().getTime() / 1000) + "\tOnly valid on {{ config['site_title'] }} for " + new Date());
+    $("#message").text("SETMERGE {{ currency_name }} " + feeString + "\t" + Math.round(new Date().getTime() / 1000) + "\tOnly valid on {{ config['site_title'] }} for " + new Date());
   });
 });
 </script>
@@ -27,13 +27,13 @@ $(document).ready(function() {
 <div class="container">
   <div class="row page-header">
     <div class="col-lg-12">
-      <h2>How to set your merged mining payout address</h2>
+      <h2>How to set your {{ name }} merged mining payout address</h2>
       <br>
       <ol>
-        <li>Type in the address you'd like merged mining payouts to go to</li>
+        <li>Type in the <b>{{ currency_name }}</b> address you'd like merged mining payouts to go to</li>
         <li>Click generate</li>
         <li>Click copy to Clipboard</li>
-        <li>Sign the message with your wallet.
+        <li>Sign the message with your {{ config['coin_name'] }} wallet.
           <ul>
             <li>Open up your wallet application</li>
             <li>Open <b>file</b>, click <b>sign message</b></li>
@@ -53,19 +53,19 @@ $(document).ready(function() {
     <br>
     <form role="form" method="POST" action="">
       <div class="form-group">
-        <label for="feeAmount">Merged Mining Address</label>
-        <input type="text" class="form-control" id="feeAmount" placeholder="Enter an address">
+        <label for="feeAmount">{{ name }}Merged Mining Address</label>
+        <input type="text" class="form-control" id="feeAmount" placeholder="Enter an {{ currency_name }} address">
       </div>
       <button type="button" class="btn btn-success" id="generate">Generate</button>
       <button type="button" class="btn btn-success" id="copy-button" data-clipboard-target="message" title="Click to copy me.">Copy to Clipboard</button>
       <span style="display: none; color:#58CF58; font-weight:500;" id="copied-notif">Copied!</span>
       <div class="form-group">
         <label for="exampleInputEmail1">Message to be signed</label>
-        <textarea cols="40" rows="5" class="form-control" name="message" id="message" placeholder="Type a merge mining address into the above textbox and hit generate!"></textarea>
+        <textarea cols="40" rows="5" class="form-control" name="message" id="message" placeholder="Type a {{ currency_name }} address into the above textbox and hit generate!"></textarea>
       </div>
       <div class="form-group">
         <label for="exampleInputEmail1">Signature</label>
-        <input type="text" class="form-control" name="signature" placeholder="Paste signature from your wallet">
+        <input type="text" class="form-control" name="signature" placeholder="Paste signature from your {{ config['coin_name'] }} wallet">
       </div>
       <button type="submit" class="btn btn-primary">Change!</button>
     </form>

@@ -24,25 +24,30 @@ redacted_addresses:
 #message_expiry: 7200
 
 merge:
-    enabled: False
-    # The letter that a valid merged mining address must start with
-    prefix: M
-    # connection information for the merge coinserver RPC
-    coinserv:
-        port: 6888
-        address: 127.0.0.1
-        username: monoclerp
-        password: ''
-        wallet_pass: ''
-        account: pool
-    donate_address: MSEjpL5Wyam3bxzcLuFPoWdDWTx7SxT19W
-    distribute_unassigned: False
-    payout_prefix: M
-    # this url will have the transaction id appended to it to provide
-    # information on a specific transaction for a payout to merged mining
-    transaction_link_prefix: http://cryptexplorer.com/tx/
-    # just like above, but with a block to merged mining
-    block_link_prefix: http://cryptexplorer.com/block/
+    - enabled: False
+      # The letter that a valid merged mining address must start with
+      prefix: M
+      # Full name of what to label the merged coin on the site
+      name: Monocle
+      # BTC, LTC, etc..
+      currency_name: MON
+      # connection information for the merge coinserver RPC
+      coinserv:
+          port: 6888
+          address: 127.0.0.1
+          username: monoclerp
+          password: ''
+          wallet_pass: ''
+          account: pool
+      donate_address: MSEjpL5Wyam3bxzcLuFPoWdDWTx7SxT19W
+      distribute_unassigned: False
+      # prefix that is checked for to payout the address
+      payout_prefix: M
+      # this url will have the transaction id appended to it to provide
+      # information on a specific transaction for a payout to merged mining
+      transaction_link_prefix: http://cryptexplorer.com/tx/
+      # just like above, but with a block to merged mining
+      block_link_prefix: http://cryptexplorer.com/block/
     
 
 # connection information for the coinserver RPC

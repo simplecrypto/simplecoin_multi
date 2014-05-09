@@ -115,13 +115,14 @@ $(document).ready(function() {
     </div>
   </div>
 </div>
+<h2>Mined {{ config['coin_name'] }} Blocks</h2>
 {% include "block_table.html" %}
 <a href="/blocks">View all blocks</a>
-{% if merged_blocks %}
+{% for curr, name, block_list in merged_blocks %}
   {% set current_block = none %}
-  {% set blocks = merged_blocks %}
-  <h2>Merge Mined Blocks</h2>
+  {% set blocks = block_list %}
+  <h2>Merge Mined {{ name }} Blocks</h2>
   {% include "block_table.html" %}
-  <a href="/merged_blocks">View all merged blocks</a>
-{% endif %}
+  <a href="/blocks/{{ curr }}">View all {{ name }} blocks</a>
+{% endfor %}
 {% endblock %}

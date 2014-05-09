@@ -42,13 +42,16 @@ def create_app(config='/config.yml', celery=False):
                 app.config['coinserv']['port'],
                 pool_kwargs=dict(maxsize=app.config.get('maxsize', 10))))
 
-    if app.config['merge']['enabled']:
-        app.merge_rpc_connection = AuthServiceProxy(
+    app.merge_rpc_connection = {}
+    for cfg in app.config['merge']:
+        if not cfg['enabled']:
+            continue
+        app.merge_rpc_connection[cfg['currency_name']] = AuthServiceProxy(
             "http://{0}:{1}@{2}:{3}/"
-            .format(app.config['merge']['coinserv']['username'],
-                    app.config['merge']['coinserv']['password'],
-                    app.config['merge']['coinserv']['address'],
-                    app.config['merge']['coinserv']['port'],
+            .format(cfg['coinserv']['username'],
+                    cfg['coinserv']['password'],
+                    cfg['coinserv']['address'],
+                    cfg['coinserv']['port'],
                     pool_kwargs=dict(maxsize=app.config.get('maxsize', 10))))
 
     # add the debug toolbar if we're in debug mode...
@@ -58,6 +61,9 @@ def create_app(config='/config.yml', celery=False):
         app.logger.handlers[0].setFormatter(logging.Formatter(
             '%(asctime)s %(levelname)s: %(message)s '
             '[in %(filename)s:%(lineno)d]'))
+
+    # map all our merged coins into something indexed by type for convenience
+    app.config['merged_cfg'] = {cfg['currency_name']: cfg for cfg in app.config['merge']}
 
     # register all our plugins
     db.init_app(app)

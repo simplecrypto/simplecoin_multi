@@ -19,7 +19,7 @@ from simplecoin.tasks import (cleanup, payout, server_status,
                               cache_user_donation)
 from simplecoin.models import (Transaction, Threshold, DonationPercent,
                                BonusPayout, OneMinuteType, FiveMinuteType,
-                               Block)
+                               Block, MergeAddress)
 from simplecoin.utils import setfee_command
 from flask import current_app, _request_ctx_stack
 
@@ -97,6 +97,22 @@ def cleanup_cmd(simulate):
     """ Manually runs old share cleanup in simulate mode by default. """
     simulate = simulate != "0"
     cleanup(simulate=simulate)
+
+
+@manager.option('file', type=file)
+def inject_mappings(file):
+    for ln in file:
+        user, merge_address = ln.strip().split("\t")
+        m = MergeAddress(user=user, merge_address=merge_address, merged_type='MON')
+        logging.info("Mapping user address {} => {}".format(user, merge_address))
+        db.session.add(m)
+    db.session.commit()
+
+
+@manager.command
+def dump_addr_mappings():
+    for addr in MergeAddress.query.with_entities(MergeAddress.user, MergeAddress.merge_address):
+        print addr.user + "\t" + addr.merge_address
 
 
 @manager.option('-t', '--txid', dest='transaction_id')

@@ -62,11 +62,11 @@ $(document).ready(function() {
 <div class="container">
   <div class="row page-header">
     <h2 style="word-wrap:break-word;margin-bottom:2px;">User Stats - {{ username }} </h2>
-    {% if merged_addr %}
-      <span style="padding-left:15px;">Merge mining payout address &nbsp; {{ merged_addr }}
-        <a style="color:gray;" href="/set_merge/{{ username }}"><i class="fa fa-edit" ></i></a>
+    {% for curr, name, merged_addr in merged_addrs %}
+      <span style="padding-left:15px;">Merge mining {{ name }} payout address : {{ merged_addr }}
+        <a style="color:gray;" href="/set_merge/{{ username }}/{{ curr }}"><i class="fa fa-edit" ></i></a>
       </span><br>
-    {% endif %}
+    {% endfor %}
     <span style="padding-left:15px;">Currently donating {{ donation_perc }}%
       <a style="color:gray;" href="/set_donation/{{ username }}"><i class="fa fa-edit" ></i></a>
     </span><br>
@@ -394,12 +394,14 @@ $(document).ready(function() {
     <div class="clearfix"></div>
     {% include "acct_table.html" %}
     <a href="/{{ username }}/account">View all account transactions</a>
-    {% if merged_acct_items %}
-      <h2>Merged Mining Account</h2>
+    {% for curr, name, merged_acct_items in merged_accounts %}
+    <h2>{{ name }} Merged Mining Account</h2>
       {% set acct_items = merged_acct_items %}
       {% include "acct_table.html" %}
-      <a href="/{{ username }}/merged_account">View all merged mining account transactions</a>
-    {% endif %}
+      <a href="/{{ username }}/account/{{ curr }}">
+        View all {{ name }} merged mining account transactions
+      </a>
+    {% endfor %}
   </div>
 
 

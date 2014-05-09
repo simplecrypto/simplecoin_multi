@@ -21,8 +21,8 @@ class CommandException(Exception):
 
 
 @cache.memoize(timeout=3600)
-def all_blocks(merged=False):
-    return (db.session.query(Block).filter_by(merged=merged).
+def all_blocks(merged_type=None):
+    return (db.session.query(Block).filter_by(merged_type=merged_type).
             order_by(Block.height.desc()).all())
 
 
@@ -37,14 +37,14 @@ def all_time_shares(address):
 
 
 @cache.memoize(timeout=60)
-def last_block_time(merged=False):
-    return last_block_time_nocache(merged=merged)
+def last_block_time(merged_type=None):
+    return last_block_time_nocache(merged_type=merged_type)
 
 
-def last_block_time_nocache(merged=False):
+def last_block_time_nocache(merged_type=None):
     """ Retrieves the last time a block was solved using progressively less
     accurate methods. Essentially used to calculate round time. """
-    last_block = Block.query.filter_by(merged=merged).order_by(Block.height.desc()).first()
+    last_block = Block.query.filter_by(merged_type=merged_type).order_by(Block.height.desc()).first()
     if last_block:
         return last_block.found_at
 
@@ -64,27 +64,27 @@ def last_block_time_nocache(merged=False):
 
 
 @cache.memoize(timeout=60)
-def last_block_share_id(merged=False):
-    return last_block_share_id_nocache(merged=merged)
+def last_block_share_id(merged_type=None):
+    return last_block_share_id_nocache(merged_type=merged_type)
 
 
-def last_block_share_id_nocache(merged=False):
-    last_block = Block.query.filter_by(merged=merged).order_by(Block.height.desc()).first()
-    if not last_block:
+def last_block_share_id_nocache(merged_type=None):
+    last_block = Block.query.filter_by(merged_type=merged_type).order_by(Block.height.desc()).first()
+    if not last_block or not last_block.last_share_id:
         return 0
     return last_block.last_share_id
 
 
 @cache.memoize(timeout=60)
-def last_block_found(merged=False):
-    last_block = Block.query.filter_by(merged=merged).order_by(Block.height.desc()).first()
+def last_block_found(merged_type=None):
+    last_block = Block.query.filter_by(merged_type=merged_type).order_by(Block.height.desc()).first()
     if not last_block:
         return None
     return last_block
 
 
-def last_blockheight(merged=False):
-    last = last_block_found(merged=merged)
+def last_blockheight(merged_type=None):
+    last = last_block_found(merged_type=merged_type)
     if not last:
         return 0
     return last.height
@@ -175,6 +175,7 @@ def get_pool_hashrate():
 def get_round_shares():
     """ Retrieves the total shares that have been submitted since the last
     round rollover. """
+    current_app.logger.info(last_block_share_id())
     round_shares = (db.session.query(func.sum(Share.shares)).
                     filter(Share.id > last_block_share_id()).scalar() or 0)
     return round_shares, datetime.datetime.utcnow()
@@ -245,9 +246,9 @@ def get_pool_acc_rej():
     return reject_total, accept_total
 
 
-def collect_acct_items(address, limit, merged=False):
-    payouts = Payout.query.filter_by(user=address, merged=merged).order_by(Payout.id.desc()).limit(limit)
-    bonuses = BonusPayout.query.filter_by(user=address, merged=merged).order_by(BonusPayout.id.desc()).limit(limit)
+def collect_acct_items(address, limit, merged_type=None):
+    payouts = Payout.query.filter_by(user=address, merged_type=merged_type).order_by(Payout.id.desc()).limit(limit)
+    bonuses = BonusPayout.query.filter_by(user=address, merged_type=merged_type).order_by(BonusPayout.id.desc()).limit(limit)
     return sorted(itertools.chain(payouts, bonuses),
                   key=lambda i: i.created_at, reverse=True)
 
@@ -356,17 +357,22 @@ def collect_user_stats(address):
     else:
         perc = perc.perc
 
-    # show their merged mining address
-    if current_app.config['merge']['enabled']:
-        addr = MergeAddress.query.filter_by(user=address).first()
+    # show their merged mining address and collect their payouts
+    merged_addrs = []
+    merged_accounts = []
+    for cfg in current_app.config['merge']:
+        if not cfg['enabled']:
+            continue
+        addr = MergeAddress.query.filter_by(user=address,
+                                            merged_type=cfg['currency_name']).first()
         if not addr:
-            merged_addr = "[not set]"
+            merged_addrs.append((cfg['currency_name'], cfg['name'], "[not set]"))
         else:
-            merged_addr = addr.merge_address
-        merged_acct_items = collect_acct_items(merged_addr, 20, merged=True)
-    else:
-        merged_addr = None
-        merged_acct_items = None
+            merged_addrs.append((cfg['currency_name'], cfg['name'], addr.merge_address))
+            acct_items = collect_acct_items(addr.merge_address,
+                                            20,
+                                            merged_type=cfg['currency_name'])
+            merged_accounts.append((cfg['currency_name'], cfg['name'], acct_items))
 
     user_last_10_shares = last_10_shares(address)
     last_10_hashrate = ((user_last_10_shares * 65536.0) / 1000000) / 600
@@ -393,7 +399,8 @@ def collect_user_stats(address):
                 pplns_cached_time=pplns_cached_time,
                 pplns_total_shares=pplns_total_shares,
                 acct_items=collect_acct_items(address, 20),
-                merged_acct_items=merged_acct_items,
+                merged_accounts=merged_accounts,
+                merged_addrs=merged_addrs,
                 total_earned=earned,
                 total_paid=total_payout_amount,
                 balance=balance,
@@ -425,19 +432,21 @@ def setfee_command(username, perc):
     db.session.commit()
 
 
-def setmerge_command(username, merge_address):
+def setmerge_command(username, merged_type, merge_address):
+    merged_cfg = current_app.config['merged_cfg'].get(merged_type, {})
     try:
         version = get_bcaddress_version(username)
     except Exception:
         version = False
-    if (merge_address[0] != current_app.config['merge']['prefix'] or
+    if (merge_address[0] != merged_cfg['prefix'] or
             not version):
             raise CommandException("Invalid address!")
 
-    if not current_app.config['merge']['enabled']:
+    if not merged_cfg['enabled']:
         raise CommandException("Merged mining not endabled!")
 
-    obj = MergeAddress(user=username, merge_address=merge_address)
+    obj = MergeAddress(user=username, merge_address=merge_address,
+                       merged_type=merged_type)
     db.session.merge(obj)
     db.session.commit()
 

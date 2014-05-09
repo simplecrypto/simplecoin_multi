@@ -3,19 +3,20 @@ from flask import current_app
 from . import coinserv, merge_coinserv
 
 
-def payout_many(recip, merged=False):
+def payout_many(recip, merged=None):
     if merged:
-        conn = merge_coinserv
+        merged_cfg = current_app.config['merged_cfg'][merged]
+        conn = merge_coinserv[merged]
+
+        fee = merged_cfg['payout_fee']
+        passphrase = merged_cfg['coinserv']['wallet_pass']
+        account = merged_cfg['coinserv']['account']
     else:
         conn = coinserv
-    if merged:
-        fee = current_app.config['merge']['payout_fee']
-        passphrase = current_app.config['merge']['coinserv']['wallet_pass']
-        account = current_app.config['merge']['coinserv']['account']
-    else:
         fee = current_app.config['payout_fee']
         passphrase = current_app.config['coinserv']['wallet_pass']
         account = current_app.config['coinserv']['account']
+
     if passphrase:
         wallet = conn.walletpassphrase(passphrase, 10)
         current_app.logger.info("Unlocking wallet: %s" % wallet)

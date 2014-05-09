@@ -81,10 +81,11 @@ class RPCClient(object):
         logger.info("Resetting requested bids and pids")
         self.post('update_payouts', data=data)
 
-    def proc_trans(self, simulate=False, merged=False):
+    def proc_trans(self, simulate=False, merged=None):
         logger.info("Running payouts for merged = {}".format(merged))
         if merged:
-            conn = merge_coinserv
+            merged_cfg = current_app.config['merged_cfg'][merged]
+            conn = merge_coinserv[merged]
         else:
             conn = coinserv
         self.poke_rpc(conn)
@@ -123,7 +124,7 @@ class RPCClient(object):
         pids = {}
         bids = {}
         if merged:
-            valid_prefix = current_app.config['merge']['payout_prefix']
+            valid_prefix = merged_cfg['payout_prefix']
         else:
             valid_prefix = current_app.config['payout_prefix']
         for user, amount, id in payouts:
@@ -210,7 +211,7 @@ def entry():
     proc = subparsers.add_parser('proc_trans',
                                  help='processes transactions locally by '
                                       'fetching from a remote server')
-    proc.add_argument('-m', '--merged', action='store_true', default=False)
+    proc.add_argument('-m', '--merged', default=None)
     reset = subparsers.add_parser('reset_trans',
                                   help='resets the lock state of a set of pids'
                                        ' and bids')

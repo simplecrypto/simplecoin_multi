@@ -59,7 +59,8 @@ class Block(base):
     # have payments been generated for it?
     processed = db.Column(db.Boolean, default=False)
     # is this a merge mined block, or a core block?
-    merged = db.Column(db.Boolean, default=False)
+    #merged = db.Column(db.Boolean, default=False)
+    merged_type = db.Column(db.String, default=None)
 
     standard_join = ['status', 'explorer_link', 'luck', 'total_value_float',
                      'difficulty', 'duration', 'found_at', 'time_started']
@@ -78,7 +79,7 @@ class Block(base):
 
     @classmethod
     def create(cls, user, height, total_value, transaction_fees, bits, hash,
-               time_started, merged=False):
+               time_started, merged_type=None):
         share = Share.query.order_by(Share.id.desc()).first()
         block = cls(user=user,
                     height=height,
@@ -89,7 +90,7 @@ class Block(base):
                     hash=hash,
                     time_started=time_started,
                     difficulty_avg=cache.get('difficulty_avg'),
-                    merged=merged)
+                    merged_type=merged_type)
         # add and flush
         db.session.add(block)
         db.session.flush()
@@ -97,10 +98,11 @@ class Block(base):
 
     @property
     def explorer_link(self):
-        if not self.merged:
+        if not self.merged_type:
             return current_app.config['block_link_prefix'] + self.hash
         else:
-            return current_app.config['merge']['block_link_prefix'] + self.hash
+            cfg = current_app.config['merged_cfg'][self.merged_type]
+            return cfg['block_link_prefix'] + self.hash
 
     @property
     def luck(self):
@@ -127,7 +129,7 @@ class Block(base):
     @property
     def confirms_remaining(self):
         bh = cache.get('blockheight')
-        if not bh:
+        if not bh or self.merged_type:
             return None
         confirms_req = current_app.config['block_mature_confirms']
         # prevent displaying negative confirms
@@ -274,6 +276,7 @@ class Event(base):
 
 class MergeAddress(base):
     user = db.Column(db.String, primary_key=True)
+    merged_type = db.Column(db.String, primary_key=True)
     merge_address = db.Column(db.String)
 
 
@@ -291,7 +294,8 @@ class Transfer(AbstractConcreteBase, base):
     # spending
     locked = db.Column(db.Boolean, default=False, server_default="FALSE")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    merged = db.Column(db.Boolean, default=False)
+    merged_type = db.Column(db.String, default=None)
+    #merged = db.Column(db.Boolean, default=False)
 
     @declared_attr
     def transaction_id(self):
@@ -327,7 +331,8 @@ class Transfer(AbstractConcreteBase, base):
         if not self.merged:
             return current_app.config['transaction_link_prefix'] + self.transaction_id
         else:
-            return current_app.config['merge']['transaction_link_prefix'] + self.transaction_id
+            cfg = current_app.config['merged_cfg'][self.merged_type]
+            return cfg['transaction_link_prefix'] + self.hash
 
     @property
     def amount_float(self):
@@ -350,7 +355,7 @@ class Payout(Transfer):
     )
 
     standard_join = ['status', 'created_at', 'explorer_link',
-                     'text_perc_applied', 'mined', 'amount_float']
+                     'text_perc_applied', 'mined', 'amount_float', 'height']
 
     @property
     def text_perc_applied(self):
@@ -364,15 +369,21 @@ class Payout(Transfer):
         return (self.amount + self.perc_applied) / 100000000.0
 
     @classmethod
-    def create(cls, user, amount, block, shares, perc, perc_applied, merged=False):
+    def create(cls, user, amount, block, shares, perc, perc_applied,
+               merged_type=None):
         payout = cls(user=user, amount=amount, block=block, shares=shares,
-                     perc=perc, perc_applied=perc_applied, merged=merged)
+                     perc=perc, perc_applied=perc_applied,
+                     merged_type=merged_type)
         db.session.add(payout)
         return payout
 
     @property
     def timestamp(self):
         return calendar.timegm(self.created_at.utctimetuple())
+
+    @property
+    def height(self):
+        return self.block.height
 
     @property
     def status(self):
@@ -406,9 +417,9 @@ class BonusPayout(Transfer):
     standard_join = ['status', 'created_at', 'explorer_link', 'amount_float']
 
     @classmethod
-    def create(cls, user, amount, description, block, merged=False):
+    def create(cls, user, amount, description, block, merged_type=None):
         bonus = cls(user=user, amount=amount, description=description,
-                    block=block, merged=merged)
+                    block=block, merged_type=merged_type)
         db.session.add(bonus)
         return bonus
 

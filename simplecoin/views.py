@@ -37,33 +37,25 @@ def news():
 
 
 @main.route("/blocks")
-def blocks():
-    blocks = all_blocks()
-    return render_template('blocks.html', blocks=blocks)
-
-
-@main.route("/merged_blocks")
-def merged_blocks():
-    blocks = all_blocks(merged=True)
+@main.route("/blocks/<currency>")
+def blocks(currency=None):
+    blocks = all_blocks(currency)
     return render_template('blocks.html', blocks=blocks)
 
 
 @main.route("/<address>/account")
-def account(address):
+@main.route("/<address>/account/<currency>")
+def account(address, currency=None):
+    if currency:
+        addr = MergeAddress.query.filter_by(user=address, merged_type=currency).first()
+        if not addr:
+            abort(404)
+        else:
+            address = addr.merge_address
     return render_template('account.html',
-                           acct_items=collect_acct_items(address, None))
-
-
-@main.route("/<address>/merged_account")
-def merged_account(address):
-    addr = MergeAddress.query.filter_by(user=address).first()
-    if not addr:
-        merged_addr = "[not set]"
-    else:
-        merged_addr = addr.merge_address
-    return render_template('account.html',
-                           acct_items=collect_acct_items(merged_addr, None,
-                                                         merged=True))
+                           acct_items=collect_acct_items(address,
+                                                         None,
+                                                         merged_type=currency))
 
 
 @main.route("/pool_stats")
@@ -72,11 +64,15 @@ def pool_stats():
                      'difficulty': cache.get('difficulty') or 0,
                      'height': cache.get('blockheight') or 0}
 
-    blocks = db.session.query(Block).filter_by(merged=False).order_by(Block.height.desc()).limit(10)
-    if current_app.config['merge']['enabled']:
-        merged_blocks = db.session.query(Block).filter_by(merged=True).order_by(Block.height.desc()).limit(10)
-    else:
-        merged_blocks = None
+    blocks = db.session.query(Block).filter_by(merged_type=None).order_by(Block.height.desc()).limit(10)
+    merged_blocks = []
+    for cfg in current_app.config['merge']:
+        if not cfg['enabled']:
+            continue
+        blks = (db.session.query(Block).
+                filter_by(merged_type=cfg['currency_name']).
+                order_by(Block.height.desc()).limit(10))
+        merged_blocks.append((cfg['currency_name'], cfg['name'], blks))
     pool_luck, effective_return, orphan_perc = get_block_stats(g.average_difficulty)
     reject_total, accept_total = get_pool_acc_rej()
     efficiency = get_pool_eff()
@@ -377,8 +373,9 @@ def address_api(address):
 
     stats = collect_user_stats(address)
     stats['acct_items'] = get_joined(stats['acct_items'])
-    if stats['merged_acct_items']:
-        stats['merged_acct_items'] = get_joined(stats['merged_acct_items'])
+
+    stats['merged_accounts'] = [(curr, name, get_joined(merged)) for
+                                curr, name, merged in stats['merged_accounts']]
     stats['total_earned'] = float(stats['total_earned'])
     if stats['pplns_cached_time']:
         stats['pplns_cached_time'] = calendar.timegm(stats['pplns_cached_time'].utctimetuple())
@@ -457,10 +454,11 @@ def faq():
     return render_template("faq.html")
 
 
-@main.route("/set_merge/<address>", methods=['POST', 'GET'])
-def set_merge(address):
-    if not current_app.config['merge']['enabled']:
-        abort(400)
+@main.route("/set_merge/<address>/<currency>", methods=['POST', 'GET'])
+def set_merge(address, currency):
+    merged_cfg = current_app.config['merged_cfg'].get(currency, {})
+    if not merged_cfg.get('enabled'):
+        abort(403)
 
     vals = request.form
     result = ""
@@ -473,7 +471,7 @@ def set_merge(address):
         else:
             result = "Successfully changed!"
 
-    addr = MergeAddress.query.filter_by(user=address).first()
+    addr = MergeAddress.query.filter_by(user=address, merged_type=currency).first()
     if not addr:
         addr = "[not set]"
     else:
@@ -481,10 +479,12 @@ def set_merge(address):
     return render_template("set_merge_address.html",
                            username=address,
                            result=result,
-                           addr=addr)
+                           addr=addr,
+                           name=merged_cfg['name'],
+                           currency_name=merged_cfg['currency_name'])
 
 
-@main.route("/set_donation/<address>", methods=['POST', 'GET'])
+@main.route("/set_donation/<address>/<currency>", methods=['POST', 'GET'])
 def set_donation(address):
     vals = request.form
     result = ""
