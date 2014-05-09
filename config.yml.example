@@ -143,6 +143,8 @@ leader-xs: "/img/doge-miner-xs.jpg"
 leader-sm: "/img/doge-miner-sm.jpg"
 # fullsize leader img
 leader: "/img/doge-miner.jpg"
+# URL for chat, if commented out chat link will not show
+chat_url: https://kiwiirc.com/client/irc.freenode.net/#simplecrypto
 # this url will have the transaction id appended to it to provide
 # information on a specific transaction for a payout
 transaction_link_prefix: http://dogechain.info/tx/
