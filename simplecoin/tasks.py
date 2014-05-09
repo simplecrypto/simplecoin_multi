@@ -271,7 +271,7 @@ def add_share(self, user, shares):
 
 @celery.task(bind=True)
 def add_block(self, user, height, total_value, transaction_fees, bits,
-              hash_hex, merged_type=None):
+              hash_hex, merged=None):
     """
     Insert a discovered block & blockchain data
 
@@ -287,23 +287,23 @@ def add_block(self, user, height, total_value, transaction_fees, bits,
                      transaction fees on new block = 6.5
                      transaction_fees = 650000000
     """
-    if merged_type is True:
-        merged_type = 'MON'
+    if merged is True:
+        merged = 'MON'
 
     logger.warn(
         "Recieved an add block notification!\nUser: {}\nHeight: {}\n"
         "Total Height: {}\nTransaction Fees: {}\nBits: {}\nHash Hex: {}"
         .format(user, height, total_value, transaction_fees, bits, hash_hex))
     try:
-        last = last_block_share_id_nocache(merged_type)
+        last = last_block_share_id_nocache(merged)
         block = Block.create(user,
                              height,
                              total_value,
                              transaction_fees,
                              bits,
                              hash_hex,
-                             time_started=last_block_time_nocache(merged_type),
-                             merged_type=merged_type)
+                             time_started=last_block_time_nocache(merged),
+                             merged=merged)
         db.session.flush()
         count = (db.session.query(func.sum(Share.shares)).
                  filter(Share.id > last).
@@ -311,7 +311,7 @@ def add_block(self, user, height, total_value, transaction_fees, bits,
         block.shares_to_solve = count
         db.session.commit()
         payout.delay(hash=hash_hex)
-        if not merged_type:
+        if not merged:
             new_block.delay(height, bits, total_value)
     except Exception as exc:
         logger.error("Unhandled exception in add_block", exc_info=True)
@@ -545,16 +545,7 @@ def payout(self, hash=None, simulate=False):
 
         logger.debug("Distribute_amnt: {}".format(block.total_value))
         if block.merged_type:
-            try:
-                # oh god why.... What a foolish config decision I've made
-                merge_cfg = [c for c in current_app.config['merge']
-                             if c['currency_name'] == block.merged_type][0]
-            except IndexError:
-                logger.warn("Unable to process block hash {} because no config"
-                            "for that merged currency_type exists"
-                            .format(block.hash))
-                return
-
+            merge_cfg = current_app.config['merged_cfg'][block.merged_type]
             new_user_shares = {merge_cfg['donate_address']: 0}
             # build a map of regular addresses to merged addresses
             query = (MergeAddress.query.filter_by(merged_type=block.merged_type).

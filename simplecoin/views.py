@@ -484,7 +484,7 @@ def set_merge(address, currency):
                            currency_name=merged_cfg['currency_name'])
 
 
-@main.route("/set_donation/<address>/<currency>", methods=['POST', 'GET'])
+@main.route("/set_donation/<address>", methods=['POST', 'GET'])
 def set_donation(address):
     vals = request.form
     result = ""
