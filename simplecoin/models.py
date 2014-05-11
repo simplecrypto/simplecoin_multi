@@ -332,7 +332,7 @@ class Transfer(AbstractConcreteBase, base):
             return current_app.config['transaction_link_prefix'] + self.transaction_id
         else:
             cfg = current_app.config['merged_cfg'][self.merged_type]
-            return cfg['transaction_link_prefix'] + self.hash
+            return cfg['transaction_link_prefix'] + self.transaction_id
 
     @property
     def amount_float(self):
