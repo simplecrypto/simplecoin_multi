@@ -175,7 +175,6 @@ def get_pool_hashrate():
 def get_round_shares():
     """ Retrieves the total shares that have been submitted since the last
     round rollover. """
-    current_app.logger.info(last_block_share_id())
     round_shares = (db.session.query(func.sum(Share.shares)).
                     filter(Share.id > last_block_share_id()).scalar() or 0)
     return round_shares, datetime.datetime.utcnow()
@@ -484,7 +483,7 @@ def verify_message(address, message, signature):
         except CommandException:
             raise
         except Exception:
-            current_app.logger.info("", exc_info=True)
+            current_app.logger.info("Invalid arguments for setfee", exc_info=True)
             raise Exception("Invalid arguments provided to command!")
     else:
         raise Exception("Invalid signature! Coinserver returned " + str(res))

@@ -328,7 +328,7 @@ class Transfer(AbstractConcreteBase, base):
     def explorer_link(self):
         if not self.transaction_id:
             return
-        if not self.merged:
+        if not self.merged_type:
             return current_app.config['transaction_link_prefix'] + self.transaction_id
         else:
             cfg = current_app.config['merged_cfg'][self.merged_type]
@@ -355,7 +355,8 @@ class Payout(Transfer):
     )
 
     standard_join = ['status', 'created_at', 'explorer_link',
-                     'text_perc_applied', 'mined', 'amount_float', 'height']
+                     'text_perc_applied', 'mined', 'amount_float', 'height',
+                     'transaction_id']
 
     @property
     def text_perc_applied(self):
@@ -414,7 +415,8 @@ class BonusPayout(Transfer):
         'polymorphic_identity': 'bonus_payout',
         'concrete': True
     }
-    standard_join = ['status', 'created_at', 'explorer_link', 'amount_float']
+    standard_join = ['status', 'created_at', 'explorer_link', 'amount_float',
+                     'transaction_id']
 
     @classmethod
     def create(cls, user, amount, description, block, merged_type=None):
