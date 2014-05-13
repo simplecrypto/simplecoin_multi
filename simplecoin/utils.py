@@ -385,7 +385,7 @@ def collect_user_stats(address):
         total_acc += worker['accepted']
         total_rej += worker['rejected']
     if total_acc > 0:
-        total_eff = (total_acc / (total_acc + total_rej)) * 100
+        total_eff = (float(total_acc) / (total_acc + total_rej)) * 100
     else:
         total_eff = 0
 
