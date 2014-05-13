@@ -303,7 +303,7 @@ def add_block(self, user, height, total_value, transaction_fees, bits,
                              bits,
                              hash_hex,
                              time_started=last_block_time_nocache(merged),
-                             merged=merged)
+                             merged_type=merged)
         db.session.flush()
         count = (db.session.query(func.sum(Share.shares)).
                  filter(Share.id > last).

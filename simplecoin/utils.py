@@ -409,8 +409,7 @@ def collect_user_stats(address):
                 unconfirmed_balance=unconfirmed_balance,
                 solved_blocks=solved_blocks,
                 total_eff=total_eff,
-                total_shares=total_shares,
-                merged_addr=merged_addr)
+                total_shares=total_shares)
 
 
 def get_pool_eff():
