@@ -33,7 +33,8 @@ def users_blocks(address, merged=None):
 
 @cache.memoize(timeout=86400)
 def all_time_shares(address):
-    return db.session.query(OneHourShare).filter_by(user=address).all()
+    shares = db.session.query(OneHourShare).filter_by(user=address)
+    return sum([shares.value for shares in shares])
 
 
 @cache.memoize(timeout=60)
@@ -390,8 +391,7 @@ def collect_user_stats(address):
         total_eff = 0
 
     # Grab all the accepted hour shares for the user
-    hour_shares = all_time_shares(address)
-    total_shares = sum([shares.value for shares in hour_shares])
+    total_shares = all_time_shares(address)
 
     return dict(workers=new_workers,
                 round_shares=round_shares,
