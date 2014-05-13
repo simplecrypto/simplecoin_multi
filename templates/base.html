@@ -31,25 +31,31 @@
       seconds = {{ g.round_duration }};
       total_round_shares = {{ g.total_round_shares }}
       khashpersec = {{ g.hashrate }};
-      shares_per_sec = (shares / seconds);
+      shares_per_sec = ((khashpersec * 1000) / Math.pow(2, 16));
       round_time = {{ g.shares_to_solve }} / shares_per_sec;
 
       function n(n){
           return n > 9 || n < -9 ? "" + n: "0" + n;
       }
 
+      page_view_seconds = 0;
       seconds = Math.round(seconds);
 
       setInterval(set_content = function(){
 
         seconds += 1;
-        additional_shares = shares_per_sec * seconds
+        page_view_seconds += 1;
+        additional_shares = shares + (shares_per_sec * page_view_seconds);
+
         shares_remaining = (total_round_shares/2) - Math.round(additional_shares);
         y = seconds%60
         minutes = n(Math.floor(seconds/60)%60);
         hours = n(Math.floor(seconds/3600));
 
         remaining_time = Math.abs(round_time - seconds);
+
+        {# Catch the case where pool has 0 hashrate #}
+        if (round_time == 'Infinity') { remaining_time = 0;}
 
         remaining_seconds = Math.floor(remaining_time%60);
         remaining_minutes = n(Math.floor(remaining_time/60)%60);

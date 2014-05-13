@@ -62,6 +62,13 @@ def set_fee(user, fee):
     """ Manually sets a fee percentage. """
     setfee_command(user, fee)
 
+@manager.option('user')
+@manager.option('address')
+@manager.option('')
+def set_fee(user, fee):
+    """ Manually sets a fee percentage. """
+    setfee_command(user, fee)
+
 
 @manager.option('blockhash', help="The blockhash that needs to mature for payout to occur")
 @manager.option('description', help="A plaintext description of the bonus payout")

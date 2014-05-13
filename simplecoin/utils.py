@@ -172,7 +172,7 @@ def get_pool_hashrate():
     return (float(ten_min) * (2 ** 16)) / 600000
 
 
-@cache.cached(timeout=60, key_prefix='round_shares')
+@cache.memoize(timeout=10)
 def get_round_shares():
     """ Retrieves the total shares that have been submitted since the last
     round rollover. """
@@ -181,15 +181,15 @@ def get_round_shares():
     return round_shares, datetime.datetime.utcnow()
 
 
-def get_adj_round_shares():
+def get_adj_round_shares(khashrate):
     """ Since round shares are cached we still want them to update on every
     page reload, so we extrapolate a new value based on computed average
     shares per second for the round, then add that for the time since we
     computed the real value. """
     round_shares, dt = get_round_shares()
-    # compute average shares/second
+    # # compute average shares/second
     now = datetime.datetime.utcnow()
-    sps = float(round_shares) / (now - last_block_time()).total_seconds()
+    sps = float(khashrate * 1000) / (2**16)
     round_shares += int(round((now - dt).total_seconds() * sps))
     return round_shares
 

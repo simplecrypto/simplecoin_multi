@@ -163,9 +163,9 @@ def add_pool_stats():
             pass
     except IndexError:
         pass
-    g.completed_block_shares = get_adj_round_shares()
     g.round_duration = (datetime.datetime.utcnow() - last_block_time()).total_seconds()
     g.hashrate = get_pool_hashrate()
+    g.completed_block_shares = get_adj_round_shares(g.hashrate)
 
     g.worker_count = cache.get('total_workers') or 0
     g.average_difficulty = cache.get('difficulty_avg') or 1
