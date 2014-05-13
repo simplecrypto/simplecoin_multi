@@ -24,6 +24,7 @@ $(document).ready(function() {
 });
 </script>
 
+<div class="alert alert-info"><b>Note: </b> There is currently a known bug with IE11. If you're using this browser, please use Firefox or Chrome for the time being until we get it fixed.</div>
 <div class="container">
   <div class="row page-header">
     <div class="col-lg-12">
@@ -37,7 +38,7 @@ $(document).ready(function() {
           <ul>
             <li>Open up your wallet application</li>
             <li>Open <b>file</b>, click <b>sign message</b></li>
-            <li>You'll need to put in <b>your</b> address and paste the message here.
+            <li>You'll need to put in <b>your</b> {{ config['coin_name'] }} ({{ username }}) address and paste the message here.
             the screens will look something like <a href="http://imgur.com/a/nUmZ0">these</a> </li>
             <li>Copy the signature, and paste it on our site</li>
           </ul>
@@ -49,7 +50,7 @@ $(document).ready(function() {
     {% if result %}
       <h1>{{ result }}</h1>
     {% endif %}
-    <h2 style="word-wrap:break-word;">Set merge address for - {{ username }}</h2>
+    <h2 style="word-wrap:break-word;">Set {{ name }} merge address for - {{ username }}</h2>
     <br>
     <form role="form" method="POST" action="">
       <div class="form-group">
