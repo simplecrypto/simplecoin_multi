@@ -291,7 +291,7 @@ def add_block(self, user, height, total_value, transaction_fees, bits,
         merged = 'MON'
 
     logger.warn(
-        "Recieved an add block notification!\nUser: {}\nHeight: {}\n"
+        "Received an add block notification!\nUser: {}\nHeight: {}\n"
         "Total Height: {}\nTransaction Fees: {}\nBits: {}\nHash Hex: {}"
         .format(user, height, total_value, transaction_fees, bits, hash_hex))
     try:
@@ -304,7 +304,11 @@ def add_block(self, user, height, total_value, transaction_fees, bits,
                              hash_hex,
                              time_started=last_block_time_nocache(merged),
                              merged_type=merged)
-        db.session.flush()
+        try:
+            db.session.flush()
+        except sqlalchemy.exc.IntegrityError:
+            logger.warn("A duplicate block notification was received, ignoring...!")
+            return
         count = (db.session.query(func.sum(Share.shares)).
                  filter(Share.id > last).
                  filter(Share.id <= block.last_share_id).scalar()) or 128
@@ -326,7 +330,7 @@ def add_one_minute(self, user, valid_shares, minute, worker='', dup_shares=0,
     Adds a new single minute entry for a user
 
     minute: timestamp (int)
-    shares: number of shares recieved over the timespan
+    shares: number of shares received over the timespan
     user: string of the user
     """
     def count_share(typ, amount, user_=user):
@@ -375,9 +379,9 @@ def new_block(self, blockheight, bits=None, reward=None):
     # prevent lots of duplicate rerunning...
     last_blockheight = cache.get('blockheight') or 0
     if blockheight == last_blockheight:
-        logger.warn("Recieving duplicate new_block notif, ignoring...")
+        logger.warn("Receiving duplicate new_block notif, ignoring...")
         return
-    logger.info("Recieved notice of new block height {}".format(blockheight))
+    logger.info("Received notice of new block height {}".format(blockheight))
 
     difficulty = bits_to_difficulty(bits)
     cache.set('blockheight', blockheight, timeout=1200)
@@ -484,8 +488,8 @@ def cleanup(self, simulate=False, chunk_size=None, sleep_interval=None):
         total_sleep = 0
         total = stale_id - stop_id
         remain = total
-        while remain > 0:
             # delete all shares that are sufficiently old
+        while remain > 0:
             bottom = stale_id - chunk_size
             res = (Share.query.filter(Share.id < stale_id).
                    filter(Share.id >= bottom).delete(synchronize_session=False))
@@ -846,7 +850,11 @@ def agent_receive(self, address, worker, typ, payload, timestamp):
         else:
             logger.warning("Powerpool sent an unkown agent message of type {}"
                            .format(typ))
-        db.session.commit()
+        try:
+            db.session.commit()
+        except sqlalchemy.exc.IntegrityError:
+            logger.warn("Received a duplicate agent msg of typ {}, ignoring...!"
+                        .format(typ))
     except Exception:
         logger.error("Unhandled exception in update_status", exc_info=True)
         db.session.rollback()

@@ -93,7 +93,6 @@ class Block(base):
                     merged_type=merged_type)
         # add and flush
         db.session.add(block)
-        db.session.flush()
         return block
 
     @property
