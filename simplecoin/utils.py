@@ -332,9 +332,9 @@ def collect_user_stats(address):
         workers.setdefault(name, def_worker.copy())
         workers[name]['online'] = True
         try:
-            workers[name]['server'] = current_app.config['monitor_addrs'][host]
+            workers[name]['server'] = current_app.config['monitor_addrs'][host]['stratum']
         except KeyError:
-            workers[name]['server'] = {}
+            workers[name]['server'] = ''
 
     # pre-calculate a few of the values here to abstract view logic
     for name, w in workers.iteritems():
