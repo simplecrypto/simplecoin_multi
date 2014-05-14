@@ -39,23 +39,31 @@ def news():
 @main.route("/blocks")
 @main.route("/blocks/<currency>")
 def blocks(currency=None):
-    blocks = all_blocks(currency)
-    return render_template('blocks.html', blocks=blocks)
+    page = int(request.args.get('page', 0))
+    if page < 0:
+        page = 0
+    offset = page * 100
+    blocks = (db.session.query(Block).filter_by(merged_type=currency).
+              order_by(Block.height.desc()).offset(offset).limit(100))
+    return render_template('blocks.html', blocks=blocks, page=page)
 
 
 @main.route("/<address>/account")
 @main.route("/<address>/account/<currency>")
 def account(address, currency=None):
+    page = int(request.args.get('page', 0))
+    if page < 0:
+        page = 0
+    offset = page * 100
     if currency:
         addr = MergeAddress.query.filter_by(user=address, merged_type=currency).first()
         if not addr:
             abort(404)
         else:
             address = addr.merge_address
-    return render_template('account.html',
-                           acct_items=collect_acct_items(address,
-                                                         None,
-                                                         merged_type=currency))
+
+    acct_items = collect_acct_items(address, limit=100, offset=offset, merged_type=currency)
+    return render_template('account.html', acct_items=acct_items, page=page)
 
 
 @main.route("/pool_stats")

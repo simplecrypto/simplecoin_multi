@@ -246,9 +246,11 @@ def get_pool_acc_rej():
     return reject_total, accept_total
 
 
-def collect_acct_items(address, limit, merged_type=None):
-    payouts = Payout.query.filter_by(user=address, merged_type=merged_type).order_by(Payout.id.desc()).limit(limit)
-    bonuses = BonusPayout.query.filter_by(user=address, merged_type=merged_type).order_by(BonusPayout.id.desc()).limit(limit)
+def collect_acct_items(address, limit, offset=0, merged_type=None):
+    payouts = (Payout.query.filter_by(user=address, merged_type=merged_type).
+               order_by(Payout.id.desc()).limit(limit).offset(offset))
+    bonuses = (BonusPayout.query.filter_by(user=address, merged_type=merged_type).
+               order_by(BonusPayout.id.desc()).limit(limit).offset(offset))
     return sorted(itertools.chain(payouts, bonuses),
                   key=lambda i: i.created_at, reverse=True)
 
@@ -271,7 +273,7 @@ def collect_user_stats(address):
     balance -= unconfirmed_balance
 
     pplns_cached_time = cache.get('pplns_cache_time')
-    if pplns_cached_time != None:
+    if pplns_cached_time is not None:
         pplns_cached_time.strftime("%Y-%m-%d %H:%M:%S")
 
     pplns_total_shares = cache.get('pplns_total_shares') or 0
