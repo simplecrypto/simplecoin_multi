@@ -52,15 +52,18 @@ class RPCClient(object):
     def get(self, url, *args, **kwargs):
         return self.remote(url, 'get', *args, **kwargs)
 
-    def remote(self, url, method, max_age=None, **kwargs):
+    def remote(self, url, method, max_age=None, signed=True, **kwargs):
         url = urljoin(self.config['rpc_url'], url)
         ret = getattr(requests, method)(url, **kwargs)
         if ret.status_code != 200:
-            raise RPCException("Non 200 from remote")
+            raise RPCException("Non 200 from remote: {}".format(ret.text))
 
         try:
             logger.debug("Got {} from remote".format(ret.text))
-            return self.serializer.loads(ret.text, max_age or self.max_age)
+            if signed:
+                return self.serializer.loads(ret.text, max_age or self.max_age)
+            else:
+                return ret.json()
         except BadData:
             raise RPCException("Invalid signature: {}".format(ret.text))
 
@@ -69,6 +72,28 @@ class RPCClient(object):
             conn.getinfo()
         except JSONRPCException:
             raise RPCException("Coinserver not awake")
+
+    def confirm_trans(self, simulate=False):
+        proc_pids = []
+        res = self.get('api/transaction?__filter_by={"confirmed":false}', signed=False)
+        if not res['success']:
+            logger.error("Failure from remote: {}".format(res))
+            return
+
+        tids = []
+        for obj in res['objects']:
+            if obj['merged_type']:
+                conn = merge_coinserv[obj['merged_type']]
+                confirms = current_app.config['merged_cfg'][obj['merged_type']]['trans_confirmations']
+            else:
+                conn = coinserv
+                confirms = current_app.config['trans_confirmations']
+            res = conn.gettransaction(obj['txid'])
+            if res['confirmations'] > confirms:
+                tids.append(obj['txid'])
+
+        data = {'tids': tids}
+        self.post('confirm_transactions', data=data)
 
     def reset_trans(self, pids, bids, simulate=False):
         proc_pids = []
@@ -185,7 +210,10 @@ class RPCClient(object):
         #coin_txid = "1111111111111111111111111111111111111111111111111111111111111111"
         logger.info("Got {} as txid for payout!".format(coin_txid))
 
-        data = {'coin_txid': coin_txid, 'pids': committed_pids, 'bids': committed_bids}
+        data = {'coin_txid': coin_txid,
+                'pids': committed_pids,
+                'bids': committed_bids,
+                'merged': merged}
         logger.info("Sending data back to confirm_payouts: " + str(data))
         while True:
             try:
@@ -208,6 +236,9 @@ def entry():
     parser.add_argument('-s', '--simulate', action='store_true', default=False)
     subparsers = parser.add_subparsers(title='main subcommands', dest='action')
 
+    subparsers.add_parser('confirm_trans',
+                                 help='fetches unconfirmed transactions and '
+                                      'tries to confirm them')
     proc = subparsers.add_parser('proc_trans',
                                  help='processes transactions locally by '
                                       'fetching from a remote server')

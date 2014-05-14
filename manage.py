@@ -19,7 +19,7 @@ from simplecoin.tasks import (cleanup, payout, server_status,
                               cache_user_donation)
 from simplecoin.models import (Transaction, Threshold, DonationPercent,
                                BonusPayout, OneMinuteType, FiveMinuteType,
-                               Block, MergeAddress)
+                               Block, MergeAddress, Payout)
 from simplecoin.utils import setfee_command
 from flask import current_app, _request_ctx_stack
 
@@ -62,13 +62,6 @@ def set_fee(user, fee):
     """ Manually sets a fee percentage. """
     setfee_command(user, fee)
 
-@manager.option('user')
-@manager.option('address')
-@manager.option('')
-def set_fee(user, fee):
-    """ Manually sets a fee percentage. """
-    setfee_command(user, fee)
-
 
 @manager.option('blockhash', help="The blockhash that needs to mature for payout to occur")
 @manager.option('description', help="A plaintext description of the bonus payout")
@@ -106,20 +99,13 @@ def cleanup_cmd(simulate):
     cleanup(simulate=simulate)
 
 
-@manager.option('file', type=file)
-def inject_mappings(file):
-    for ln in file:
-        user, merge_address = ln.strip().split("\t")
-        m = MergeAddress(user=user, merge_address=merge_address, merged_type='MON')
-        logging.info("Mapping user address {} => {}".format(user, merge_address))
-        db.session.add(m)
-    db.session.commit()
-
-
 @manager.command
-def dump_addr_mappings():
-    for addr in MergeAddress.query.with_entities(MergeAddress.user, MergeAddress.merge_address):
-        print addr.user + "\t" + addr.merge_address
+def correlate_transactions():
+    """ Derives transaction merged_type from attached payout's merged type """
+    for trans in Transaction.query:
+        if trans.merged_type is None:
+            trans.merged_type = Payout.query.filter_by(transaction_id=trans.txid).first().merged_type
+    db.session.commit()
 
 
 @manager.option('-t', '--txid', dest='transaction_id')

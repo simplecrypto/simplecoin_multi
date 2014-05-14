@@ -66,7 +66,8 @@ def update_transactions():
         abort(400)
 
     if 'coin_txid' in data:
-        coin_trans = Transaction.create(data['coin_txid'])
+        merged_type = data.get('merged', None)
+        coin_trans = Transaction.create(data['coin_txid'], merged_type=merged_type)
         db.session.flush()
         Payout.query.filter(Payout.id.in_(data['pids'])).update(
             {Payout.transaction_id: coin_trans.txid}, synchronize_session=False)
@@ -80,5 +81,26 @@ def update_transactions():
             {BonusPayout.locked: False}, synchronize_session=False)
         db.session.commit()
         return s.dumps(dict(success=True, result="Successfully reset"))
+
+    return s.dumps(True)
+
+
+@main.route("/confirm_transactions", methods=['POST'])
+def confirm_transactions():
+    """ Used to confirm that a transaction is now complete on the network. """
+    s = TimedSerializer(current_app.config['rpc_signature'])
+    data = s.loads(request.data)
+
+    # basic checking of input
+    try:
+        assert isinstance(data['tids'], list)
+    except AssertionError:
+        current_app.logger.warn("Invalid data passed to confirm_transactions",
+                                exc_info=True)
+        abort(400)
+
+    Transaction.query.filter(Transaction.txid.in_(data['tids'])).update(
+        {Transaction.confirmed: True}, synchronize_session=False)
+    db.session.commit()
 
     return s.dumps(True)

@@ -59,8 +59,8 @@ class Block(base):
     # have payments been generated for it?
     processed = db.Column(db.Boolean, default=False)
     # is this a merge mined block, or a core block?
-    #merged = db.Column(db.Boolean, default=False)
     merged_type = db.Column(db.String, default=None)
+    worker = db.Column(db.String, default=None)
 
     standard_join = ['status', 'explorer_link', 'luck', 'total_value_float',
                      'difficulty', 'duration', 'found_at', 'time_started']
@@ -153,10 +153,11 @@ class Transaction(base):
     txid = db.Column(db.String, primary_key=True)
     confirmed = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    merged_type = db.Column(db.String)
 
     @classmethod
-    def create(cls, txid):
-        trans = cls(txid=txid)
+    def create(cls, txid, merged_type=None):
+        trans = cls(txid=txid, merged_type=merged_type)
         db.session.add(trans)
         return trans
 
@@ -294,7 +295,6 @@ class Transfer(AbstractConcreteBase, base):
     locked = db.Column(db.Boolean, default=False, server_default="FALSE")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     merged_type = db.Column(db.String, default=None)
-    #merged = db.Column(db.Boolean, default=False)
 
     @declared_attr
     def transaction_id(self):

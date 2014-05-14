@@ -16,12 +16,11 @@ api = Blueprint('api_bp', __name__)
 @api.errorhandler(Exception)
 def api_error_handler(exc):
     # set some defaults
-    log = 'debug'
+    log = 'info'
     msg = "Exception occurred in error handling"
     code = 500
     extra = {}
     end_user = {}
-
     try:
         six.reraise(type(exc), exc, tb=sys.exc_info()[2])
     except LeverException as e:
