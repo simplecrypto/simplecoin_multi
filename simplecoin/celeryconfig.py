@@ -19,6 +19,10 @@ caching_tasks = {
         'task': 'simplecoin.tasks.server_status',
         'schedule': timedelta(minutes=2),
     },
+    'update_network': {
+        'task': 'simplecoin.tasks.update_network',
+        'schedule': timedelta(seconds=15),
+    },
 }
 
 database_tasks = {

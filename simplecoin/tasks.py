@@ -272,7 +272,7 @@ def add_share(self, user, shares):
 
 @celery.task(bind=True)
 def add_block(self, user, height, total_value, transaction_fees, bits,
-              hash_hex, merged=None):
+              hash_hex, merged=None, worker=None, **kwargs):
     """
     Insert a discovered block & blockchain data
 
@@ -304,7 +304,8 @@ def add_block(self, user, height, total_value, transaction_fees, bits,
                              bits,
                              hash_hex,
                              time_started=last_block_time_nocache(merged),
-                             merged_type=merged)
+                             merged_type=merged,
+                             worker=worker)
         try:
             db.session.flush()
         except sqlalchemy.exc.IntegrityError:
@@ -317,8 +318,6 @@ def add_block(self, user, height, total_value, transaction_fees, bits,
         block.shares_to_solve = count
         db.session.commit()
         payout.delay(hash=hash_hex)
-        if not merged:
-            new_block.delay(height, bits, total_value)
 
         # Expire cache values for round
         cache.delete_memoized(last_block_share_id)
@@ -383,39 +382,10 @@ def new_block(self, blockheight, bits=None, reward=None):
     Notification that a new block height has been reached in the network.
     Sets some things into the cache for display on the website, adds graphing
     for the network difficulty graph.
+
+    DEPRECATED
     """
-    # prevent lots of duplicate rerunning...
-    last_blockheight = cache.get('blockheight') or 0
-    if blockheight == last_blockheight:
-        logger.warn("Receiving duplicate new_block notif, ignoring...")
-        return
-    logger.info("Received notice of new block height {}".format(blockheight))
-
-    difficulty = bits_to_difficulty(bits)
-    cache.set('blockheight', blockheight, timeout=1200)
-    cache.set('difficulty', difficulty, timeout=1200)
-    cache.set('reward', reward, timeout=1200)
-
-    # keep the last 500 blocks in the cache for getting average difficulty
-    cache.cache._client.lpush('block_cache', bits)
-    cache.cache._client.ltrim('block_cache', 0, 500)
-    diff_list = cache.cache._client.lrange('block_cache', 0, 500)
-    total_diffs = sum([bits_to_difficulty(diff) for diff in diff_list])
-    cache.set('difficulty_avg', total_diffs / len(diff_list), timeout=120 * 60)
-
-    # add the difficulty as a one minute share
-    now = datetime.datetime.utcnow()
-    try:
-        m = OneMinuteType(typ='netdiff', value=difficulty * 1000, time=now)
-        db.session.add(m)
-        db.session.commit()
-    except sqlalchemy.exc.IntegrityError:
-        db.session.rollback()
-        slc = OneMinuteType.query.with_lockmode('update').filter_by(
-            time=now, typ='netdiff').one()
-        # just average the diff of two blocks that occured in the same second..
-        slc.value = ((difficulty * 1000) + slc.value) / 2
-        db.session.commit()
+    logger.warn("New Block call is now deprecated, please set send_new_block to False in powerpool")
 
 
 @celery.task(bind=True)
@@ -866,6 +836,60 @@ def agent_receive(self, address, worker, typ, payload, timestamp):
                         .format(typ))
     except Exception:
         logger.error("Unhandled exception in update_status", exc_info=True)
+        db.session.rollback()
+
+
+@celery.task(bind=True)
+def update_network(self):
+    """
+    Queries the RPC servers confirmed to update network stats information.
+    """
+    try:
+        def set_data(gbt, curr=None):
+            prefix = ""
+            if curr:
+                prefix = curr + "_"
+            difficulty = bits_to_difficulty(gbt['bits'])
+            prev_height = cache.get(prefix + 'blockheight') or 0
+            if gbt['height'] == prev_height:
+                logger.debug("Not updating {} net info, height {} already recorded."
+                             .format(curr or 'main', prev_height))
+                return
+            logger.info("Updating {} net info for height {}.".format(curr or 'main', gbt['height']))
+            # set general information for this network
+            cache.set(prefix + 'blockheight', gbt['height'], timeout=1200)
+            cache.set(prefix + 'difficulty', difficulty, timeout=1200)
+            cache.set(prefix + 'reward', gbt['coinbasevalue'], timeout=1200)
+
+            # keep the last 500 blocks in the cache for getting average difficulty
+            cache.cache._client.lpush(prefix + 'block_cache', gbt['bits'])
+            cache.cache._client.ltrim(prefix + 'block_cache', 0, 500)
+            diff_list = cache.cache._client.lrange(prefix + 'block_cache', 0, 500)
+            total_diffs = sum([bits_to_difficulty(diff) for diff in diff_list])
+            cache.set(prefix + 'difficulty_avg', total_diffs / len(diff_list), timeout=120 * 60)
+
+            # add the difficulty as a one minute share
+            now = datetime.datetime.utcnow()
+            try:
+                m = OneMinuteType(typ=prefix + 'netdiff', value=difficulty * 1000, time=now)
+                db.session.add(m)
+                db.session.commit()
+            except sqlalchemy.exc.IntegrityError:
+                db.session.rollback()
+                slc = OneMinuteType.query.with_lockmode('update').filter_by(
+                    time=now, typ=prefix + 'netdiff').one()
+                # just average the diff of two blocks that occured in the same second..
+                slc.value = ((difficulty * 1000) + slc.value) / 2
+                db.session.commit()
+
+        for merged_type, conf in current_app.config['merged_cfg'].iteritems():
+            gbt = merge_coinserv[merged_type].getblocktemplate()
+            set_data(gbt, curr=merged_type)
+
+        gbt = coinserv.getblocktemplate()
+        set_data(gbt)
+    except Exception:
+        logger.error("Unhandled exception in update_network", exc_info=True)
         db.session.rollback()
 
 

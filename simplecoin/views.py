@@ -115,6 +115,34 @@ def network_stats():
                            network_block_time=network_block_time)
 
 
+@main.route("/api/network_stats")
+def network_stats_api():
+    def collect_network(curr=None):
+        prefix = ""
+        if curr:
+            prefix = curr + "_"
+        return dict(network_difficulty=cache.get(prefix + 'difficulty') or 0,
+                    network_avg_difficulty=cache.get(prefix + 'difficulty_avg') or 0,
+                    network_blockheight=cache.get(prefix + 'blockheight') or 0)
+
+    merged = {}
+    for merged_type, conf in current_app.config['merged_cfg'].iteritems():
+        merged[merged_type] = collect_network(merged_type)
+
+    network_block_time = current_app.config['block_time']
+    network_difficulty = cache.get('difficulty') or 0
+    network_avg_difficulty = g.average_difficulty or 0
+    network_blockheight = cache.get('blockheight') or 0
+    network_hashrate = (network_difficulty * (2**32)) / network_block_time
+
+    return jsonify(network_difficulty=network_difficulty,
+                   network_avg_difficulty=network_avg_difficulty,
+                   network_blockheight=network_blockheight,
+                   network_hashrate=network_hashrate,
+                   network_block_time=network_block_time,
+                   merged=merged)
+
+
 @main.route("/network_stats/<graph_type>/<window>")
 def network_graph_data(graph_type=None, window="hour"):
     if not graph_type:

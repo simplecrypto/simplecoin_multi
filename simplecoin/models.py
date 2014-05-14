@@ -79,7 +79,7 @@ class Block(base):
 
     @classmethod
     def create(cls, user, height, total_value, transaction_fees, bits, hash,
-               time_started, merged_type=None):
+               time_started, merged_type=None, worker=None):
         share = Share.query.order_by(Share.id.desc()).first()
         block = cls(user=user,
                     height=height,
@@ -90,7 +90,8 @@ class Block(base):
                     hash=hash,
                     time_started=time_started,
                     difficulty_avg=cache.get('difficulty_avg'),
-                    merged_type=merged_type)
+                    merged_type=merged_type,
+                    worker=worker)
         # add and flush
         db.session.add(block)
         return block
