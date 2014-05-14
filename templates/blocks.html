@@ -6,7 +6,7 @@
 <br />
 {% include "block_table.html" %}
 <ul class="pager">
-  <li class="previous {% if not page %}disabled{% endif %}"><a href="?page={{ page - 1 }}">&larr; Older</a></li>
-  <li class="next"><a href="?page={{ page + 1 }}">Newer &rarr;</a></li>
+  <li class="previous {% if not page %}disabled{% endif %}"><a href="?page={{ page - 1 }}">&larr; Newer</a></li>
+  <li class="next"><a href="?page={{ page + 1 }}">Older &rarr;</a></li>
 </ul>
 {% endblock %}
