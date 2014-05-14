@@ -172,7 +172,7 @@ def get_pool_hashrate():
     return (float(ten_min) * (2 ** 16)) / 600000
 
 
-@cache.memoize(timeout=10)
+@cache.memoize(timeout=30)
 def get_round_shares():
     """ Retrieves the total shares that have been submitted since the last
     round rollover. """

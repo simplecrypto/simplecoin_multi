@@ -170,7 +170,8 @@ def add_pool_stats():
     g.worker_count = cache.get('total_workers') or 0
     g.average_difficulty = cache.get('difficulty_avg') or 1
     g.shares_to_solve = g.average_difficulty * (2 ** 16)
-    g.total_round_shares = g.shares_to_solve * current_app.config['last_n']
+    g.last_n = current_app.config['last_n']
+    g.pplns_size = g.shares_to_solve * g.last_n
     g.alerts = get_alerts()
 
 
@@ -188,7 +189,7 @@ def pool_stats_api():
     ret['hashrate'] = get_pool_hashrate()
     ret['workers'] = g.worker_count
     ret['completed_shares'] = g.completed_block_shares
-    ret['total_round_shares'] = g.total_round_shares
+    ret['total_round_shares'] = g.pplns_size
     ret['round_duration'] = g.round_duration
     sps = float(g.completed_block_shares) / g.round_duration
     ret['shares_per_sec'] = sps
@@ -394,7 +395,7 @@ def address_api(address):
     donation_perc = (1 - (stats['donation_perc'] / 100.0))
     rrwd = current_app.config['reward']
     stats['daily_est'] = daily_percentage * rrwd * donation_perc
-    stats['est_round_payout'] = (float(stats['round_shares']) / g.total_round_shares) * donation_perc * rrwd
+    stats['est_round_payout'] = (float(stats['round_shares']) / g.pplns_size) * donation_perc * rrwd
     return jsonify(**stats)
 
 

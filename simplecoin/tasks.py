@@ -11,7 +11,8 @@ import sqlalchemy
 
 from celery import Celery
 from simplecoin import db, coinserv, cache, merge_coinserv
-from simplecoin.utils import last_block_share_id_nocache, last_block_time_nocache, last_block_time, get_round_shares
+from simplecoin.utils import last_block_share_id_nocache, last_block_time_nocache, last_block_time, get_round_shares, \
+    last_block_share_id
 from simplecoin.models import (
     Share, Block, OneMinuteShare, Payout, Transaction, Blob, FiveMinuteShare,
     Status, OneMinuteReject, OneMinuteTemperature, FiveMinuteReject,
@@ -319,10 +320,9 @@ def add_block(self, user, height, total_value, transaction_fees, bits,
             new_block.delay(height, bits, total_value)
 
         # Expire cache values for round
+        cache.delete_memoized(last_block_share_id)
         cache.delete_memoized(last_block_time)
         cache.delete_memoized(get_round_shares)
-        cache.set('round_shares', 0, timeout=1)
-        logger.warn("deleting cache keys hopefully")
 
     except Exception as exc:
         logger.error("Unhandled exception in add_block", exc_info=True)

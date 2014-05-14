@@ -23,15 +23,18 @@
   <script src="{{ config['assets_address'] | safe }}/js/jquery.tablesorter.min.js"></Script>
   <script>
     $(document).ready(function() {
-      var shares, ten_min_hashrate, seconds, khashpersec, shares_per_sec, luck,
-          round_time, shares_to_solve;
+      var shares, seconds, khashpersec, shares_per_sec, luck,
+          round_time, pplns_size;
 
       {# Grab new pool stats #}
       shares = {{ g.completed_block_shares }};
       seconds = {{ g.round_duration }};
-      total_round_shares = {{ g.total_round_shares }}
+      pplns_size = {{ g.pplns_size }};
+      total_round_shares = pplns_size / {{ g.last_n }};
       khashpersec = {{ g.hashrate }};
+      {# Estimate shares solved per second based on pools hashrate #}
       shares_per_sec = ((khashpersec * 1000) / Math.pow(2, 16));
+      {# Estimate round time based on estimated shares per second #}
       round_time = {{ g.shares_to_solve }} / shares_per_sec;
 
       function n(n){
@@ -47,7 +50,7 @@
         page_view_seconds += 1;
         additional_shares = shares + (shares_per_sec * page_view_seconds);
 
-        shares_remaining = (total_round_shares/2) - Math.round(additional_shares);
+        shares_remaining = (total_round_shares) - Math.round(additional_shares);
         y = seconds%60
         minutes = n(Math.floor(seconds/60)%60);
         hours = n(Math.floor(seconds/3600));
@@ -66,13 +69,13 @@
           remaining_hours = "-" + remaining_hours
         }
 
-        luck = ((total_round_shares/2) / additional_shares) * 1000;
+        luck = ((total_round_shares) / additional_shares) * 1000;
         if (luck > 99999) {
           luck = 99999;
         }
 
         $('.odometer.shares').text(numberWithCommas(Math.round(additional_shares)));
-        $('.total_n').text(numberWithCommas(Math.round(total_round_shares)));
+        $('.total_n').text(numberWithCommas(Math.round(pplns_size)));
         $('.odometer.blockshares').text(numberWithCommas(Math.round(additional_shares)));
 
         $('.minutes').text(minutes);
