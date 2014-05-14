@@ -46,10 +46,13 @@ $(document).ready(function() {
         <li>Click change, and you're done!</li>
       </ol>
     </div>
-    <h2>Current merged mining address: {{ addr }}</h2>
     {% if result %}
-      <h1>{{ result }}</h1>
+      <div class="clearfix"></div>
+      <div class="alert alert-{{ alert_cls }}">
+        <h4 style="margin-bottom: 0px;">{{ result | safe }}</h4>
+      </div>
     {% endif %}
+    <h2>Current merged mining address: {{ addr }}</h2>
     <h2 style="word-wrap:break-word;">Set {{ name }} merge address for - {{ username }}</h2>
     <br>
     <form role="form" method="POST" action="">

@@ -18,7 +18,7 @@ from .utils import (compress_typ, get_typ, verify_message, get_pool_acc_rej,
                     get_pool_eff, last_10_shares, collect_user_stats, get_adj_round_shares,
                     get_pool_hashrate, last_block_time, get_alerts,
                     last_block_found, last_blockheight, resort_recent_visit,
-                    collect_acct_items, all_blocks, get_block_stats)
+                    collect_acct_items, all_blocks, get_block_stats, CommandException)
 
 
 main = Blueprint('main', __name__)
@@ -464,22 +464,33 @@ def faq():
     return render_template("faq.html")
 
 
+def handle_message(address):
+    alert_cls = "danger"
+    result = None
+    vals = request.form
+    if request.method == "POST":
+        try:
+            verify_message(address, vals['message'], vals['signature'])
+        except CommandException as e:
+            result = "Error: {}".format(e)
+        except Exception as e:
+            current_app.logger.info("Unhandled exception in Command validation",
+                                    exc_info=True)
+            result = "An unhandled error occurred: {}".format(e)
+        else:
+            result = "Successfully changed!"
+            alert_cls = "success"
+
+    return result, alert_cls
+
+
 @main.route("/set_merge/<address>/<currency>", methods=['POST', 'GET'])
 def set_merge(address, currency):
     merged_cfg = current_app.config['merged_cfg'].get(currency, {})
     if not merged_cfg.get('enabled'):
         abort(403)
 
-    vals = request.form
-    result = ""
-    if request.method == "POST":
-        try:
-            verify_message(address, vals['message'], vals['signature'])
-        except Exception as e:
-            current_app.logger.info("Failed to validate!", exc_info=True)
-            result = "An error occurred: " + str(e)
-        else:
-            result = "Successfully changed!"
+    result, alert_cls = handle_message(address)
 
     addr = MergeAddress.query.filter_by(user=address, merged_type=currency).first()
     if not addr:
@@ -491,26 +502,21 @@ def set_merge(address, currency):
                            result=result,
                            addr=addr,
                            name=merged_cfg['name'],
+                           alert_cls=alert_cls,
                            currency_name=merged_cfg['currency_name'])
 
 
 @main.route("/set_donation/<address>", methods=['POST', 'GET'])
 def set_donation(address):
-    vals = request.form
-    result = ""
-    if request.method == "POST":
-        try:
-            verify_message(address, vals['message'], vals['signature'])
-        except Exception as e:
-            current_app.logger.info("Failed to validate!", exc_info=True)
-            result = "An error occurred: " + str(e)
-        else:
-            result = "Successfully changed!"
+    result, alert_cls = handle_message(address)
 
     perc = DonationPercent.query.filter_by(user=address).first()
     if not perc:
         perc = current_app.config.get('default_perc', 0)
     else:
         perc = perc.perc
-    return render_template("set_donation.html", username=address, result=result,
+    return render_template("set_donation.html",
+                           username=address,
+                           result=result,
+                           alert_cls=alert_cls,
                            perc=perc)

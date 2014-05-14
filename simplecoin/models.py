@@ -359,7 +359,6 @@ class Payout(Transfer):
 
     @property
     def text_perc_applied(self):
-        current_app.logger.info( self.perc_applied / 100000000.0)
         if self.perc < 0:
             return "bonus of {}".format(sig_round(self.perc_applied * -1 / 100000000.0))
         else:

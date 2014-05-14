@@ -422,11 +422,13 @@ def get_pool_eff():
     else:
         return (float(acc) / (acc + rej)) * 100
 
-
+##############################################################################
+# Message validation and verification functions
+##############################################################################
 def setfee_command(username, perc):
     perc = round(float(perc), 2)
     if perc > 100.0 or perc < current_app.config['minimum_perc']:
-        raise CommandException("Invalid perc passed")
+        raise CommandException("Invalid percentage passed!")
     obj = DonationPercent(user=username, perc=perc)
     db.session.merge(obj)
     db.session.commit()
@@ -438,12 +440,12 @@ def setmerge_command(username, merged_type, merge_address):
         version = get_bcaddress_version(username)
     except Exception:
         version = False
-    if (merge_address[0] != merged_cfg['prefix'] or
-            not version):
-            raise CommandException("Invalid address!")
+    if (merge_address[0] != merged_cfg['prefix'] or not version):
+            raise CommandException("Invalid {merged_type} address! {merged_type} addresses start with a(n) {}."
+                                   .format(merged_cfg['prefix'], merged_type=merged_type))
 
     if not merged_cfg['enabled']:
-        raise CommandException("Merged mining not endabled!")
+        raise CommandException("Merged mining not enabled!")
 
     obj = MergeAddress(user=username, merge_address=merge_address,
                        merged_type=merged_type)
@@ -452,42 +454,42 @@ def setmerge_command(username, merged_type, merge_address):
 
 
 def verify_message(address, message, signature):
-    commands = {'SETFEE': setfee_command, 'SETMERGE': setmerge_command}
-    lines = message.split("\t")
-    parts = lines[0].split(" ")
-    command = parts[0]
-    args = parts[1:]
+    commands = {'SETFEE': setfee_command,
+                'SETMERGE': setmerge_command}
     try:
+        lines = message.split("\t")
+        parts = lines[0].split(" ")
+        command = parts[0]
+        args = parts[1:]
         stamp = int(lines[1])
-    except ValueError:
-        raise Exception("Second line must be integer timestamp!")
+    except (IndexError, ValueError):
+        raise CommandException("Invalid information provided in the message "
+                               "field. This could be the fault of the bug with "
+                               "IE11, or the generated message has an error")
+
     now = time.time()
     if abs(now - stamp) > current_app.config.get('message_expiry', 840):
-        raise Exception("Signature has expired!")
-
+        raise CommandException("Signature has expired!")
     if command not in commands:
-        raise Exception("Invalid command given!")
+        raise CommandException("Invalid command given!")
 
-    current_app.logger.error(u"Attempting to validate message '{}' with sig '{}' for address '{}'"
-                             .format(message, signature, address))
+    current_app.logger.info(u"Attempting to validate message '{}' with sig '{}' for address '{}'"
+                            .format(message, signature, address))
 
     try:
         res = coinserv.verifymessage(address, signature, message.encode('utf-8').decode('unicode-escape'))
-    except CoinRPCException:
-        raise Exception("Rejected by RPC server!")
+    except CoinRPCException as e:
+        raise CommandException("Rejected by RPC server for reason {}!"
+                               .format(e))
     except Exception:
         current_app.logger.error("Coinserver verification error!", exc_info=True)
-        raise Exception("Unable to communicate with coinserver!")
+        raise CommandException("Unable to communicate with coinserver!")
+
     if res:
-        try:
-            commands[command](address, *args)
-        except CommandException:
-            raise
-        except Exception:
-            current_app.logger.info("Invalid arguments for setfee", exc_info=True)
-            raise Exception("Invalid arguments provided to command!")
+        commands[command](address, *args)
     else:
-        raise Exception("Invalid signature! Coinserver returned " + str(res))
+        raise CommandException("Invalid signature! Coinserver returned {}"
+                               .format(res))
 
 
 def resort_recent_visit(recent):
