@@ -183,6 +183,8 @@ stratum_address: stratum.simpledoge.com
 stratum_port: 3333
 # link to a good beginner guide
 beginner_guide: <a href="http://www.reddit.com/r/dogemining/wiki/index/mining_guide" target="_blank">Reddit</a>
+# how many previously solved blocks to show on the pool stats page. defaults to 25
+#blocks_stats_page: 25
 
 # Logging
 # =======================================================================

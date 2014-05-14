@@ -68,18 +68,20 @@ def account(address, currency=None):
 
 @main.route("/pool_stats")
 def pool_stats():
+    blocks_show = current_app.config.get('blocks_stats_page', 25)
     current_block = {'reward': cache.get('reward') or 0,
                      'difficulty': cache.get('difficulty') or 0,
                      'height': cache.get('blockheight') or 0}
 
-    blocks = db.session.query(Block).filter_by(merged_type=None).order_by(Block.height.desc()).limit(10)
+    blocks = (db.session.query(Block).filter_by(merged_type=None).
+              order_by(Block.height.desc()).limit(blocks_show))
     merged_blocks = []
     for cfg in current_app.config['merge']:
         if not cfg['enabled']:
             continue
         blks = (db.session.query(Block).
                 filter_by(merged_type=cfg['currency_name']).
-                order_by(Block.height.desc()).limit(10))
+                order_by(Block.height.desc()).limit(blocks_show))
         merged_blocks.append((cfg['currency_name'], cfg['name'], blks))
     pool_luck, effective_return, orphan_perc = get_block_stats(g.average_difficulty)
     reject_total, accept_total = get_pool_acc_rej()
