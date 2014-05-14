@@ -309,6 +309,7 @@ def add_block(self, user, height, total_value, transaction_fees, bits,
             db.session.flush()
         except sqlalchemy.exc.IntegrityError:
             logger.warn("A duplicate block notification was received, ignoring...!")
+            db.session.rollback()
             return
         count = (db.session.query(func.sum(Share.shares)).
                  filter(Share.id > last).
@@ -860,6 +861,7 @@ def agent_receive(self, address, worker, typ, payload, timestamp):
         try:
             db.session.commit()
         except sqlalchemy.exc.IntegrityError:
+            db.session.rollback()
             logger.warn("Received a duplicate agent msg of typ {}, ignoring...!"
                         .format(typ))
     except Exception:
