@@ -350,52 +350,18 @@ $(document).ready(function() {
       <a style="color:gray;" href="/set_donation/{{ username }}"><i class="fa fa-edit" ></i></a>
     </small></h2>
     <br>
-    <div class="col-sm-3">
-      <div class="panel panel-default">
-        <div class="panel-body text-center">
-          <small>Balance</small>&nbsp;
-          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Current unpaid balance not including bonus payouts"></i>
-          <br><h4><p>{{ '{:8,}'.format(balance / 100000000) }} {{ config['coin_symbol'] | safe }}</p></h4>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-3">
-      <div class="panel panel-default">
-        <div class="panel-body text-center">
-          <small>Unconfirmed balance</small>&nbsp;
-          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Newly solved block earnings, rewards not yet confirmed. Doesn't including bonus payouts"></i>
-          <br><h4><p>{{ '{:8,}'.format(unconfirmed_balance / 100000000) }} {{ config['coin_symbol'] | safe }}</p></h4>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-3">
-      <div class="panel panel-default">
-        <div class="panel-body text-center">
-          <small>Total earned</small>&nbsp;
-          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Total ever earned by this address from mining. No bonus payments included."></i>
-          <br><h4><p>{{ '{:2,}'.format((total_earned / 100000000) | round(2)) }} {{ config['coin_symbol'] | safe }}</p></h4>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-3">
-      <div class="panel panel-default">
-        <div class="panel-body text-center">
-          <small>Total paid</small>&nbsp;
-          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Total paid out to this address from mining. Bonus payments are included in this amount.">
-          </i>
-          <br><h4><p>{{ '{:2,}'.format((total_paid / 100000000) | round(2)) }} {{ config['coin_symbol'] | safe }}</p></h4>
-        </div>
-      </div>
-    </div>
-    <div class="clearfix"></div>
+    {% set coin_symbol = config['coin_symbol'] %}
     {% include "acct_table.html" %}
     <a href="/{{ username }}/account">View all account transactions</a>
-    {% for curr, name, merged_acct_items in merged_accounts %}
+    {% for curr, name, merged_acct_items, total_merge_paid, total_merge_earned,
+        merge_unconfirmed_balance, merge_balance in merged_accounts %}
+      {% set total_paid = total_merge_paid %}
+      {% set total_earned = total_merge_earned %}
+      {% set unconfirmed_balance = merge_unconfirmed_balance %}
+      {% set balance = merge_balance %}
+      {% set coin_symbol = curr %}
     <h2>{{ name }} Merged Mining Account</h2>
+    <br>
       {% set acct_items = merged_acct_items %}
       {% include "acct_table.html" %}
       <a href="/{{ username }}/account/{{ curr }}">
@@ -403,7 +369,6 @@ $(document).ready(function() {
       </a>
     {% endfor %}
   </div>
-
 
 <!-- Modal -->
 <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">

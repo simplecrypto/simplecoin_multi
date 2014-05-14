@@ -211,16 +211,16 @@ def last_10_shares(user):
 
 
 @cache.memoize(timeout=60)
-def total_earned(user):
-    total_p = (Payout.query.filter_by(user=user).
+def total_earned(address, merged_type=None):
+    total_p = (Payout.query.filter_by(user=address, merged_type=merged_type).
                join(Payout.block, aliased=True).
                filter_by(orphan=False))
     return int(sum([payout.amount for payout in total_p]))
 
 
 @cache.memoize(timeout=60)
-def total_paid(user):
-    total_p = (Payout.query.filter_by(user=user).
+def total_paid(address, merged_type=None):
+    total_p = (Payout.query.filter_by(user=address, merged_type=merged_type).
                join(Payout.transaction, aliased=True).
                filter_by(confirmed=True))
     return int(sum([tx.amount for tx in total_p]))
@@ -230,6 +230,13 @@ def total_paid(user):
 def total_bonus(user):
     return int((db.session.query(func.sum(BonusPayout.amount)).
                 filter_by(user=user).scalar()) or 0.0)
+
+@cache.memoize(timeout=60)
+def total_unconfirmed(address, merged_type=None):
+    unconfirmed_balance = (Payout.query.filter_by(user=address, merged_type=merged_type).
+                           join(Payout.block, aliased=True).
+                           filter_by(mature=False, orphan=False))
+    return sum([payout.amount for payout in unconfirmed_balance])
 
 
 @cache.cached(timeout=3600, key_prefix='get_pool_acc_rej')
@@ -266,10 +273,7 @@ def collect_user_stats(address):
     # Add bonuses to total paid amount
     total_payout_amount = (paid + bonus)
 
-    unconfirmed_balance = (Payout.query.filter_by(user=address).
-                           join(Payout.block, aliased=True).
-                           filter_by(mature=False, orphan=False))
-    unconfirmed_balance = sum([payout.amount for payout in unconfirmed_balance])
+    unconfirmed_balance = total_unconfirmed(address)
     balance -= unconfirmed_balance
 
     pplns_cached_time = cache.get('pplns_cache_time')
@@ -374,7 +378,12 @@ def collect_user_stats(address):
             acct_items = collect_acct_items(addr.merge_address,
                                             20,
                                             merged_type=cfg['currency_name'])
-            merged_accounts.append((cfg['currency_name'], cfg['name'], acct_items))
+            merge_paid = total_paid(addr.merge_address, cfg['currency_name'])
+            merge_earned = total_earned(addr.merge_address, cfg['currency_name'])
+            merge_balance = merge_earned - merge_paid
+            merge_unconfirmed_balance = total_unconfirmed(addr.merge_address, cfg['currency_name'])
+            merge_balance -= merge_unconfirmed_balance
+            merged_accounts.append((cfg['currency_name'], cfg['name'], acct_items, merge_paid, merge_earned, merge_unconfirmed_balance, merge_balance))
 
     user_last_10_shares = last_10_shares(address)
     last_10_hashrate = ((user_last_10_shares * 65536.0) / 1000000) / 600
