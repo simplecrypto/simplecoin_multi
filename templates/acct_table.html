@@ -35,10 +35,10 @@
                 <tr>
                   <th data-sort-value="{{ payout.timestamp }}">{{ payout.created_at | time_ago }}</th>
                   <th>{{ '{:,}'.format(payout.shares) }}</th>
-                  <th>{{ '{:,.2f}'.format(payout.mined) }}</th>
+                  <th title="{{ payout.mined }}">{{ payout.mined | sig_round(2) }}</th>
                   <th>{{ '{:,}'.format(payout.perc) }}%</th>
                   <th data-sort-value="{{ perc_applied }}">{{ payout.text_perc_applied }}</th>
-                  <th>{{ '{:,}'.format((payout.amount / 100000000) | round(2)) }}</th>
+                  <th title="{{ payout.amount / 100000000.0 }}">{{ (payout.amount / 100000000.0) | sig_round(2) }}</th>
                   <th>{{ '{:,}'.format(payout.block.height) }}</th>
                   <th>{% if payout.transaction_id %}
                     <a href="{{ payout.explorer_link }}" target="_blank">

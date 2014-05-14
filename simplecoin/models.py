@@ -14,7 +14,7 @@ from sqlalchemy.dialects.postgresql import HSTORE, ARRAY
 
 from cryptokit import bits_to_difficulty
 from .model_lib import base
-from . import db, cache
+from . import db, cache, sig_round
 
 
 class Blob(base):
@@ -359,10 +359,11 @@ class Payout(Transfer):
 
     @property
     def text_perc_applied(self):
+        current_app.logger.info( self.perc_applied / 100000000.0)
         if self.perc < 0:
-            return "bonus {:,.2f}".format(self.perc_applied * -1 / 100000000.0)
+            return "bonus of {}".format(sig_round(self.perc_applied * -1 / 100000000.0))
         else:
-            return "donation {:,.2f}".format(self.perc_applied / 100000000.0)
+            return "donation of {}".format(sig_round(self.perc_applied / 100000000.0))
 
     @property
     def mined(self):

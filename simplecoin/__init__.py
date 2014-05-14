@@ -3,6 +3,7 @@ import subprocess
 import logging
 import os
 
+from math import log10, floor
 from flask import Flask, current_app
 from flask.ext.sqlalchemy import SQLAlchemy
 from jinja2 import FileSystemLoader
@@ -21,6 +22,12 @@ coinserv = LocalProxy(
     lambda: getattr(current_app, 'rpc_connection', None))
 merge_coinserv = LocalProxy(
     lambda: getattr(current_app, 'merge_rpc_connection', None))
+
+
+def sig_round(x, sig=2):
+    if x == 0:
+        return "0"
+    return "{:,f}".format(round(x, sig - int(floor(log10(abs(x)))) - 1)).rstrip('0').rstrip('.')
 
 
 def create_app(config='/config.yml', celery=False):
@@ -101,6 +108,10 @@ def create_app(config='/config.yml', celery=False):
         if val > perc2:
             return color2
         return color1
+
+    @app.template_filter('sig_round')
+    def sig_round_call(*args, **kwargs):
+        return sig_round(*args, **kwargs)
 
     @app.template_filter('time_ago')
     def pretty_date(time=False):
