@@ -12,48 +12,6 @@
     });
     </script>
     {% if acct_items %}
-    <div class="col-sm-3">
-      <div class="panel panel-default">
-        <div class="panel-body text-center">
-          <small>Balance</small>&nbsp;
-          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Current unpaid balance not including bonus payouts"></i>
-          <br><h4><p>{{ '{:8,}'.format(balance / 100000000) }} {{ coin_symbol | safe }}</p></h4>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-3">
-      <div class="panel panel-default">
-        <div class="panel-body text-center">
-          <small>Unconfirmed balance</small>&nbsp;
-          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Newly solved block earnings, rewards not yet confirmed. Doesn't including bonus payouts"></i>
-          <br><h4><p>{{ '{:8,}'.format(unconfirmed_balance / 100000000) }} {{ coin_symbol | safe }}</p></h4>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-3">
-      <div class="panel panel-default">
-        <div class="panel-body text-center">
-          <small>Total earned</small>&nbsp;
-          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Total ever earned by this address from mining. No bonus payments included."></i>
-          <br><h4><p>{{ '{:2,}'.format((total_earned / 100000000) | round(2)) }} {{ coin_symbol | safe }}</p></h4>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-3">
-      <div class="panel panel-default">
-        <div class="panel-body text-center">
-          <small>Total paid</small>&nbsp;
-          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Total paid out to this address from mining. Bonus payments are included in this amount.">
-          </i>
-          <br><h4><p>{{ '{:2,}'.format((total_paid / 100000000) | round(2)) }} {{ coin_symbol | safe }}</p></h4>
-        </div>
-      </div>
-    </div>
-    <div class="clearfix"></div>
     <div class="col-lg-12">
       <div class="bs-example table-responsive">
         <table class="table table-striped table-hover tablesorter" id="blockTable">
