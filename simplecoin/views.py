@@ -117,12 +117,12 @@ def network_data():
         else:
             block_time = current_app.config['block_time']
 
-        difficulty = cache.get(prefix + 'difficulty') or 0
-        return dict(difficulty=difficulty,
-                    avg_difficulty=cache.get(prefix + 'difficulty_avg') or 0,
+        avg_difficulty = cache.get(prefix + 'difficulty_avg') or 0
+        return dict(difficulty=cache.get(prefix + 'difficulty') or 0,
+                    avg_difficulty=avg_difficulty,
                     blockheight=cache.get(prefix + 'blockheight') or 0,
                     block_time=block_time,
-                    hashrate=(difficulty * (2**32)) / block_time)
+                    hashrate=(avg_difficulty * (2**32)) / block_time)
 
     merged = {}
     for merged_type, config in current_app.config['merged_cfg'].iteritems():
