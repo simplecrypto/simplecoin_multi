@@ -351,6 +351,7 @@ $(document).ready(function() {
     </small></h2>
     <br>
     {% set coin_symbol = config['coin_symbol'] %}
+    {% include "acct_header.html" %}
     {% include "acct_table.html" %}
     <a href="/{{ username }}/account">View all account transactions</a>
     {% for curr, name, merged_acct_items, total_merge_paid, total_merge_earned,
@@ -363,6 +364,7 @@ $(document).ready(function() {
     <h2>{{ name }} Merged Mining Account</h2>
     <br>
       {% set acct_items = merged_acct_items %}
+      {% include "acct_header.html" %}
       {% include "acct_table.html" %}
       <a href="/{{ username }}/account/{{ curr }}">
         View all {{ name }} merged mining account transactions
