@@ -31,6 +31,11 @@ merge:
       name: Monocle
       # BTC, LTC, etc..
       currency_name: MON
+      # required number of transaction confirmations before marking confirmed
+      trans_confirmations: 6
+      # the expected time for the network to find a block in seconds. used for
+      # computing network hashrate
+      block_time: 60
       # connection information for the merge coinserver RPC
       coinserv:
           port: 6888
@@ -155,6 +160,8 @@ reward: 250000
 # the expected time for the network to find a block in seconds. used for
 # computing network hashrate
 block_time: 60
+# required number of transaction confirmations before marking confirmed
+trans_confirmations: 6
 # the colloquial name of the coin
 coin_name: Doge
 site_title: Simple Doge

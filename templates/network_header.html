@@ -1,0 +1,52 @@
+  <div class="col-sm-3">
+    <div class="panel panel-default">
+      <div class="panel-body text-center">
+        <small>Avg Network Difficulty</small>&nbsp;
+        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                     title="The average difficulty for the last 500 blocks"></i>
+        <br>
+        <h4>
+          <p><span>{{ '{:8,}'.format(avg_difficulty|round(2)) }}</span></p>
+        </h4>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-3">
+    <div class="panel panel-default">
+      <div class="panel-body text-center">
+        <small>Network&nbsp;Difficulty</small>&nbsp;
+        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                     title="Difficulty to solve the current block"></i>
+        <br>
+        <h4>
+          <p><span>{{ '{:8,}'.format(difficulty|round(2)) }}</span></p>
+        </h4>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-3">
+    <div class="panel panel-default">
+      <div class="panel-body text-center">
+        <small>Network Hashrate</small>&nbsp;
+        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                     title="Total hashrate for the network"></i>
+        <br>
+        <h4>
+          <p><span>{{ '{:8,}'.format((hashrate/1000000) |round(2)) }}&nbsp;MH/sec</span></p>
+        </h4>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-3">
+    <div class="panel panel-default">
+      <div class="panel-body text-center">
+        <small>Blockheight</small>&nbsp;
+        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                     title="Number of blocks in the blockchain"></i>
+        <br>
+        <h4>
+          <p><span>{{ '{:8,}'.format(blockheight) }}</span></p>
+        </h4>
+      </div>
+    </div>
+  </div>

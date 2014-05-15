@@ -88,9 +88,13 @@ class RPCClient(object):
             else:
                 conn = coinserv
                 confirms = current_app.config['trans_confirmations']
+            logger.debug("Connecting to {} coinserv to lookup confirms for {}"
+                         .format(obj['merged_type'] or 'main', obj['txid']))
             res = conn.gettransaction(obj['txid'])
             if res['confirmations'] > confirms:
                 tids.append(obj['txid'])
+                logger.info("Confirmed txid {} with {} confirms"
+                            .format(obj['txid'], res['confirmations']))
 
         data = {'tids': tids}
         self.post('confirm_transactions', data=data)

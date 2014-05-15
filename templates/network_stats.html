@@ -6,71 +6,29 @@
 $(document).ready(function() {
   {# Initial graph generation #}
   generate_network_graph('netdifficulty-chart', 'hour', '%H:%M %p', 'netdiff', 0);
-  generate_network_graph('nethashrate-chart', 'hour', '%H:%M %p', 'netdiff', {{ network_block_time }});
+  generate_network_graph('nethashrate-chart', 'hour', '%H:%M %p', 'netdiff', {{ block_time }});
 });
 </script>
 
 <div class="row page-header">
-  <h2 style="word-wrap:break-word;">Network Stats</h2>
+  <h2 style="word-wrap:break-word;">{{ config['coin_name'] }} Network Stats</h2>
   <br>
-  <div class="col-sm-3">
-    <div class="panel panel-default">
-      <div class="panel-body text-center">
-        <small>Avg Network Difficulty</small>&nbsp;
-        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                     title="The average difficulty for the last 500 blocks"></i>
-        <br>
-        <h4>
-          <p><span>{{ '{:8,}'.format(network_avg_difficulty|round(2)) }}</span></p>
-        </h4>
-      </div>
-    </div>
-  </div>
-  <div class="col-sm-3">
-    <div class="panel panel-default">
-      <div class="panel-body text-center">
-        <small>Network&nbsp;Difficulty</small>&nbsp;
-        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                     title="Difficulty to solve the current block"></i>
-        <br>
-        <h4>
-          <p><span>{{ '{:8,}'.format(network_difficulty|round(2)) }}</span></p>
-        </h4>
-      </div>
-    </div>
-  </div>
-  <div class="col-sm-3">
-    <div class="panel panel-default">
-      <div class="panel-body text-center">
-        <small>Network Hashrate</small>&nbsp;
-        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                     title="Total hashrate for the network"></i>
-        <br>
-        <h4>
-          <p><span>{{ '{:8,}'.format((network_hashrate/1000000) |round(2)) }}&nbsp;MH/sec</span></p>
-        </h4>
-      </div>
-    </div>
-  </div>
-  <div class="col-sm-3">
-    <div class="panel panel-default">
-      <div class="panel-body text-center">
-        <small>Blockheight</small>&nbsp;
-        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                     title="Number of blocks in the blockchain"></i>
-        <br>
-        <h4>
-          <p><span>{{ '{:8,}'.format(network_blockheight) }}</span></p>
-        </h4>
-      </div>
-    </div>
-  </div>
+  {% include "network_header.html" %}
+  {% for curr, stats in merged.iteritems() %}
+    <h2>{{ curr }} Network Stats</h2>
+    <br>
+    {% set avg_difficulty = stats['avg_difficulty'] %}
+    {% set difficulty = stats['difficulty'] %}
+    {% set hashrate = stats['hashrate'] %}
+    {% set blockheight = stats['blockheight'] %}
+    {% include "network_header.html" %}
+  {% endfor %}
 </div>
 
 <div class="row row-header">
   <div class="alert alert-info"><b>Note: </b> There is a bug in the way network difficulty is shown at times it will be much spikier than it should (higher usually). This is a known bug and is in line to be fixed soon.</div>
   <div class="col-lg-12">
-    <h2>Network Difficulty</h2>
+    <h2>{{ config['coin_name'] }} Network Difficulty</h2>
     <br>
       <ul class="nav nav-tabs">
         <li class="active tab"><a id="hour" data-target="hour" data-format="%M:%S" data-html-target="netdifficulty-chart"
@@ -87,15 +45,15 @@ $(document).ready(function() {
 </div>
 <div class="row row-header">
   <div class="col-lg-12">
-    <h2>Network Hashrate</h2>
+    <h2>{{ config['coin_name'] }} Network Hashrate</h2>
     <br>
       <ul class="nav nav-tabs">
         <li class="active tab"><a id="hour" data-target="hour" data-format="%M:%S" data-html-target="nethashrate-chart"
-            data-graph-type="netdiff" data-net-block-time="{{ network_block_time }}">Hour</a></li>
+            data-graph-type="netdiff" data-net-block-time="{{ block_time }}">Hour</a></li>
         <li class="tab"><a id="day" data-target="day" data-format="%H:%M %p" data-html-target="nethashrate-chart"
-            data-graph-type="netdiff" data-net-block-time="{{ network_block_time }}">Day</a></li>
+            data-graph-type="netdiff" data-net-block-time="{{ block_time }}">Day</a></li>
         <li class="tab"><a id="month" data-target="month" data-format="%m/%d %H:%M" data-html-target="nethashrate-chart"
-            data-graph-type="netdiff" data-net-block-time="{{ network_block_time }}">Month</a></li>
+            data-graph-type="netdiff" data-net-block-time="{{ block_time }}">Month</a></li>
       </ul>
     <div id="nethashrate-chart" style="height:400px;">
       <img src="{{ config['assets_address'] | safe }}/img/712.GIF" style="position:absolute;padding-top:150px;padding-left:400px;"><svg></svg>

@@ -101,46 +101,35 @@ def pool_stats():
 
 @main.route("/network_stats")
 def network_stats():
-    network_block_time = current_app.config['block_time']
-    network_difficulty = cache.get('difficulty') or 0
-    network_avg_difficulty = g.average_difficulty or 0
-    network_blockheight = cache.get('blockheight') or 0
-    network_hashrate = (network_difficulty * (2**32)) / network_block_time
-
-    return render_template('network_stats.html',
-                           network_difficulty=network_difficulty,
-                           network_avg_difficulty=network_avg_difficulty,
-                           network_blockheight=network_blockheight,
-                           network_hashrate=network_hashrate,
-                           network_block_time=network_block_time)
+    return render_template('network_stats.html', **network_data())
 
 
 @main.route("/api/network_stats")
 def network_stats_api():
-    def collect_network(curr=None):
+    return jsonify(**network_data())
+
+def network_data():
+    def collect_network(curr=None, config=None):
         prefix = ""
         if curr:
             prefix = curr + "_"
-        return dict(network_difficulty=cache.get(prefix + 'difficulty') or 0,
-                    network_avg_difficulty=cache.get(prefix + 'difficulty_avg') or 0,
-                    network_blockheight=cache.get(prefix + 'blockheight') or 0)
+            block_time = config['block_time']
+        else:
+            block_time = current_app.config['block_time']
+
+        difficulty = cache.get(prefix + 'difficulty') or 0
+        return dict(difficulty=difficulty,
+                    avg_difficulty=cache.get(prefix + 'difficulty_avg') or 0,
+                    blockheight=cache.get(prefix + 'blockheight') or 0,
+                    block_time=block_time,
+                    hashrate=(difficulty * (2**32)) / block_time)
 
     merged = {}
-    for merged_type, conf in current_app.config['merged_cfg'].iteritems():
-        merged[merged_type] = collect_network(merged_type)
+    for merged_type, config in current_app.config['merged_cfg'].iteritems():
+        merged[merged_type] = collect_network(merged_type, config)
 
-    network_block_time = current_app.config['block_time']
-    network_difficulty = cache.get('difficulty') or 0
-    network_avg_difficulty = g.average_difficulty or 0
-    network_blockheight = cache.get('blockheight') or 0
-    network_hashrate = (network_difficulty * (2**32)) / network_block_time
-
-    return jsonify(network_difficulty=network_difficulty,
-                   network_avg_difficulty=network_avg_difficulty,
-                   network_blockheight=network_blockheight,
-                   network_hashrate=network_hashrate,
-                   network_block_time=network_block_time,
-                   merged=merged)
+    main_net = collect_network()
+    return dict(merged=merged, **main_net)
 
 
 @main.route("/network_stats/<graph_type>/<window>")
