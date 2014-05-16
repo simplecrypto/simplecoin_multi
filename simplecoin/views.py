@@ -402,8 +402,14 @@ def address_api(address):
     stats = collect_user_stats(address)
     stats['acct_items'] = get_joined(stats['acct_items'])
 
-    stats['merged_accounts'] = [(curr, name, get_joined(merged)) for
-                                curr, name, merged in stats['merged_accounts']]
+    stats['merged_accounts'] = {curr: dict(name=name,
+                                           acct=get_joined(merged_acct_items),
+                                           total_merge_paid=total_merge_paid,
+                                           total_merge_earned=total_merge_earned,
+                                           merge_unconfirmed_balance=merge_unconfirmed_balance,
+                                           merge_balance=merge_balance) for
+                                curr, name, merged_acct_items, total_merge_paid, total_merge_earned,
+                                merge_unconfirmed_balance, merge_balance in stats['merged_accounts']}
     stats['total_earned'] = float(stats['total_earned'])
     if stats['pplns_cached_time']:
         stats['pplns_cached_time'] = calendar.timegm(stats['pplns_cached_time'].utctimetuple())
