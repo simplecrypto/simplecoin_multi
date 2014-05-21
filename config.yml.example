@@ -46,8 +46,6 @@ merge:
           account: pool
       donate_address: MSEjpL5Wyam3bxzcLuFPoWdDWTx7SxT19W
       distribute_unassigned: False
-      # prefix that is checked for to payout the address
-      payout_prefix: M
       # this url will have the transaction id appended to it to provide
       # information on a specific transaction for a payout to merged mining
       transaction_link_prefix: http://cryptexplorer.com/tx/
@@ -136,9 +134,6 @@ payout_fee: 1.0
 rpc_signature: ''
 # where are we expecting the rpc server to be?
 rpc_url: http://www.simpledoge.com
-# what the address should start with to try paying it out. 1 for BTC, L for
-# LTC, etc
-payout_prefix: D
 
 # Mimic some MPOS stuff
 # ========================================================================

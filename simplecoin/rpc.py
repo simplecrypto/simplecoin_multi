@@ -110,6 +110,10 @@ class RPCClient(object):
         logger.info("Resetting requested bids and pids")
         self.post('update_payouts', data=data)
 
+    def validate_address(self, conn, address):
+        ret = conn.validateaddress(address)
+        return ret['isvalid']
+
     def proc_trans(self, simulate=False, merged=None):
         logger.info("Running payouts for merged = {}".format(merged))
         if merged:
@@ -152,12 +156,8 @@ class RPCClient(object):
         totals = {}
         pids = {}
         bids = {}
-        if merged:
-            valid_prefix = merged_cfg['payout_prefix']
-        else:
-            valid_prefix = current_app.config['payout_prefix']
         for user, amount, id in payouts:
-            if user.startswith(valid_prefix):
+            if self.validate_address(conn, user):
                 totals.setdefault(user, 0)
                 totals[user] += amount
                 pids.setdefault(user, [])
@@ -167,7 +167,7 @@ class RPCClient(object):
                             .format(user))
 
         for user, amount, id in bonus_payouts:
-            if user.startswith(valid_prefix):
+            if self.validate_address(conn, user):
                 totals.setdefault(user, 0)
                 totals[user] += amount
                 bids.setdefault(user, [])
