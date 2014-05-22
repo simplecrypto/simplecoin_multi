@@ -648,6 +648,9 @@ def payout(self, hash=None, simulate=False):
         else:
             # record the payout for each user
             for user, amount in user_payouts.iteritems():
+                if amount == 0.0:
+                    logger.info("Skip zero payout for USR: {}".format(user))
+                    continue
                 Payout.create(user, amount, block, user_shares[user],
                               user_perc[user], user_perc_applied.get(user, 0),
                               merged_type=block.merged_type)
