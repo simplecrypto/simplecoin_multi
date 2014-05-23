@@ -115,7 +115,8 @@ def get_block_stats(average_diff):
     else:
         pool_luck = 1
 
-    coins_per_day = ((current_app.config['reward'] / (average_diff * (2**32 / 86400))) * 1000000)
+    current_reward = (cache.get('reward') or 1) / 100000000.0
+    coins_per_day = ((current_reward / (average_diff * (2**32 / 86400))) * 1000000)
     effective_return = (coins_per_day * pool_luck) * ((100 - orphan_perc) / 100)
     return pool_luck, effective_return, orphan_perc
 
@@ -342,7 +343,7 @@ def collect_user_stats(address):
 
     # pre-calculate a few of the values here to abstract view logic
     for name, w in workers.iteritems():
-        workers[name]['last_10_hashrate'] = ((w['last_10_shares'] * 65536.0) / 1000000) / 600
+        workers[name]['last_10_hashrate'] = (shares_to_hashes(w['last_10_shares']) / 1000000) / 600
         if w['accepted'] or w['rejected']:
             workers[name]['efficiency'] = 100.0 * (float(w['accepted']) / (w['accepted'] + w['rejected']))
         else:
@@ -386,7 +387,7 @@ def collect_user_stats(address):
             merged_accounts.append((cfg['currency_name'], cfg['name'], acct_items, merge_paid, merge_earned, merge_unconfirmed_balance, merge_balance))
 
     user_last_10_shares = last_10_shares(address)
-    last_10_hashrate = ((user_last_10_shares * 65536.0) / 1000000) / 600
+    last_10_hashrate = (shares_to_hashes(user_last_10_shares) / 1000000) / 600
 
     solved_blocks = users_blocks(address)
 
@@ -430,6 +431,9 @@ def get_pool_eff():
         return 100
     else:
         return (float(acc) / (acc + rej)) * 100
+
+def shares_to_hashes(shares):
+    return float(current_app.config.get('hashes_per_share', 65536)) * shares
 
 ##############################################################################
 # Message validation and verification functions

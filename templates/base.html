@@ -22,6 +22,7 @@
   <script src="{{ config['assets_address'] | safe }}/js/bootstrap.min.js"></Script>
   <script src="{{ config['assets_address'] | safe }}/js/jquery.tablesorter.min.js"></Script>
   <script>
+    window.shares_per_hash = {{ config.get('hashes_per_share', 65536) }};
     $(document).ready(function() {
       var shares, seconds, khashpersec, shares_per_sec, luck,
           round_time, pplns_size;

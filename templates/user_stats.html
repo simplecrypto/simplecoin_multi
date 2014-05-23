@@ -16,7 +16,7 @@ $(document).ready(function() {
         n_multiplier, pplns_total_shares;
 
     {# load serverside info into js #}
-    round_reward = {{ config['reward'] or 0 }};
+    round_reward = {{ block_reward / 100000000.0 }};
     user_shares = {{ round_shares or 0 }};
     pplns_total_shares = {{ pplns_total_shares or 0}}
     last_10_shares = {{ last_10_shares or 0 }};

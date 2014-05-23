@@ -187,6 +187,14 @@ stratum_port: 3333
 beginner_guide: <a href="http://www.reddit.com/r/dogemining/wiki/index/mining_guide" target="_blank">Reddit</a>
 # how many previously solved blocks to show on the pool stats page. defaults to 25
 #blocks_stats_page: 25
+# The number of hashes required to find an N1 share on average
+#hashes_per_share: 65536
+# Share multiplication factor. The database doesn't store fractional difficulty
+# shares (N1 is lowest) so for coins like darkcoin you need to multiply the
+# number recieved from powerpool before storing in the database. This then in
+# turn effects the hashes_per_share above needed to reverse compute proper
+# hashrate
+#share_multiplier: 1
 
 # Logging
 # =======================================================================

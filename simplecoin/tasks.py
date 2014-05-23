@@ -262,7 +262,8 @@ def add_share(self, user, shares):
     shares: should be an integer representation of n1 shares
     """
     try:
-        Share.create(user=user, shares=shares)
+        share_mult = current_app.config.get('share_multiplier', 1)
+        Share.create(user=user, shares=shares * share_mult)
         db.session.commit()
     except Exception as exc:
         logger.error("Unhandled exception in add share", exc_info=True)
@@ -340,15 +341,16 @@ def add_one_minute(self, user, valid_shares, minute, worker='', dup_shares=0,
     shares: number of shares received over the timespan
     user: string of the user
     """
+    share_mult = current_app.config.get('share_multiplier', 1)
     def count_share(typ, amount, user_=user):
         logger.debug("Adding {} for {} of amount {}"
                      .format(typ.__name__, user_, amount))
         try:
-            typ.create(user_, amount, minute, worker)
+            typ.create(user_, amount * share_mult, minute, worker)
             db.session.commit()
         except sqlalchemy.exc.IntegrityError:
             db.session.rollback()
-            typ.add_value(user_, amount, minute, worker)
+            typ.add_value(user_, amount * share_mult, minute, worker)
             db.session.commit()
 
     try:

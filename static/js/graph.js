@@ -40,7 +40,7 @@ $(document).ready(function() {
 generate_graph = function(request_url, date_format, user) {
   //Calculate the hash rate based on the number of diff-1 shares generated in a minute
     var calculate_hash = function(sharesPerMin, seconds) {
-      var khashes = ((Math.pow(2, 16) * sharesPerMin)/seconds)/1000;
+      var khashes = ((window.shares_per_hash * sharesPerMin)/seconds)/1000;
       return khashes
     }
   //Calculate a value to return for the y-scale, in khash or mhash

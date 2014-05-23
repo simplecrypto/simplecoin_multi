@@ -5,7 +5,7 @@ function numberWithCommas(x) {
 }
 // Calculate est shares to complete the current round
 avg_shares_to_solve = function(difficulty){
-  return difficulty * Math.pow(2, 16);
+  return difficulty * window.shares_per_hash;
 }
 // Calculate estimated payout for next round
 round_payout = function(difficulty, user_shares, shares_to_solve, donate, round_reward, n_multiplier, pplns_total_shares){

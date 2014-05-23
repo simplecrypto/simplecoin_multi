@@ -5,7 +5,7 @@ import sqlalchemy
 
 from flask.ext.script import Manager, Shell
 from flask.ext.migrate import Migrate, MigrateCommand
-from simplecoin import create_app, db, coinserv
+from simplecoin import create_app, db, coinserv, cache
 
 app = create_app()
 manager = Manager(app)
@@ -124,6 +124,11 @@ def reload_cached():
     update_online_workers()
     cache_user_donation()
     server_status()
+    from simplecoin.utils import get_block_stats
+    current_app.logger.info(
+        "Refreshing the block stats (luck, effective return, orphan %)")
+    cache.delete_memoized(get_block_stats)
+    get_block_stats()
 
 
 @manager.command

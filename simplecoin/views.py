@@ -18,7 +18,8 @@ from .utils import (compress_typ, get_typ, verify_message, get_pool_acc_rej,
                     get_pool_eff, last_10_shares, collect_user_stats, get_adj_round_shares,
                     get_pool_hashrate, last_block_time, get_alerts,
                     last_block_found, last_blockheight, resort_recent_visit,
-                    collect_acct_items, all_blocks, get_block_stats, CommandException)
+                    collect_acct_items, all_blocks, get_block_stats, CommandException,
+                    shares_to_hashes)
 
 
 main = Blueprint('main', __name__)
@@ -289,7 +290,7 @@ def summary_page():
     if user_shares is not None:
         for user, shares in user_shares.iteritems():
             user = user[6:]
-            hashrate = (65536 * last_10_shares(user) / 600)
+            hashrate = shares_to_hashes(last_10_shares(user)) / 600
             total_hashrate += hashrate
             dat = {'hashrate': hashrate,
                    'shares': shares,
@@ -391,7 +392,10 @@ def user_dashboard(address=None):
     recent[address] += 1
     session['recent_user_counts'] = recent
     resort_recent_visit(recent)
-    return render_template('user_stats.html', username=address, **stats)
+    return render_template('user_stats.html',
+                           username=address,
+                           block_reward=cache.get('reward') or 1,
+                           **stats)
 
 
 @main.route("/api/<address>")
@@ -416,7 +420,7 @@ def address_api(address):
     day_shares = stats['last_10_shares'] * 6 * 24
     daily_percentage = float(day_shares) / g.shares_to_solve
     donation_perc = (1 - (stats['donation_perc'] / 100.0))
-    rrwd = current_app.config['reward']
+    rrwd = (cache.get('reward') or 1) / 100000000.0
     stats['daily_est'] = daily_percentage * rrwd * donation_perc
     stats['est_round_payout'] = (float(stats['round_shares']) / g.pplns_size) * donation_perc * rrwd
     return jsonify(**stats)
