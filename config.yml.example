@@ -195,6 +195,10 @@ beginner_guide: <a href="http://www.reddit.com/r/dogemining/wiki/index/mining_gu
 # turn effects the hashes_per_share above needed to reverse compute proper
 # hashrate
 #share_multiplier: 1
+# Difficulty multiplication factor. Used to determine the network hashrate
+# SHA256 uses 2^32
+# Scrypt uses 2^16
+difficulty_multiplier: 4294967296
 
 # Logging
 # =======================================================================

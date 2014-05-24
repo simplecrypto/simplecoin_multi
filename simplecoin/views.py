@@ -123,7 +123,7 @@ def network_data():
                     avg_difficulty=avg_difficulty,
                     blockheight=cache.get(prefix + 'blockheight') or 0,
                     block_time=block_time,
-                    hashrate=(avg_difficulty * (2**32)) / block_time)
+                    hashrate=(avg_difficulty * current_app.config['difficulty_multiplier']) / block_time)
 
     merged = {}
     for merged_type, config in current_app.config['merged_cfg'].iteritems():
@@ -183,11 +183,11 @@ def add_pool_stats():
         pass
     g.round_duration = (datetime.datetime.utcnow() - last_block_time()).total_seconds()
     g.hashrate = get_pool_hashrate()
-    g.completed_block_shares = get_adj_round_shares(g.hashrate)
+    g.completed_block_shares, g.shares_per_second = get_adj_round_shares(g.hashrate)
 
     g.worker_count = cache.get('total_workers') or 0
     g.average_difficulty = cache.get('difficulty_avg') or 1
-    g.shares_to_solve = g.average_difficulty * (2 ** 16)
+    g.shares_to_solve = (g.average_difficulty * (2 ** 32)) / current_app.config['hashes_per_share']
     g.last_n = current_app.config['last_n']
     g.pplns_size = g.shares_to_solve * g.last_n
     g.alerts = get_alerts()

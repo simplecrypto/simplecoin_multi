@@ -34,7 +34,7 @@
       total_round_shares = pplns_size / {{ g.last_n }};
       khashpersec = {{ g.hashrate }};
       {# Estimate shares solved per second based on pools hashrate #}
-      shares_per_sec = ((khashpersec * 1000) / Math.pow(2, 16));
+      shares_per_sec = {{ g.shares_per_second }};
       {# Estimate round time based on estimated shares per second #}
       round_time = {{ g.shares_to_solve }} / shares_per_sec;
 

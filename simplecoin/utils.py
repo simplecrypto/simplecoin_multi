@@ -90,7 +90,6 @@ def last_blockheight(merged_type=None):
         return 0
     return last.height
 
-
 @cache.cached(timeout=3600, key_prefix='block_stats')
 def get_block_stats(average_diff):
     blocks = all_blocks()
@@ -111,7 +110,7 @@ def get_block_stats(average_diff):
         orphan_perc = 0
 
     if total_shares > 0 and total_difficulty > 0:
-        pool_luck = (total_difficulty * (2**32)) / (total_shares * (2**16))
+        pool_luck = (total_difficulty * (2**32)) / (total_shares * current_app.config['hashes_per_share'])
     else:
         pool_luck = 1
 
@@ -170,7 +169,7 @@ def get_pool_hashrate():
     ten_min = sum([min.value for min in ten_min])
     # shares times hashes per n1 share divided by 600 seconds and 1000 to get
     # khash per second
-    return (float(ten_min) * (2 ** 16)) / 600000
+    return (float(ten_min) * current_app.config['hashes_per_share']) / 600000
 
 
 @cache.memoize(timeout=30)
@@ -190,9 +189,9 @@ def get_adj_round_shares(khashrate):
     round_shares, dt = get_round_shares()
     # # compute average shares/second
     now = datetime.datetime.utcnow()
-    sps = float(khashrate * 1000) / (2**16)
+    sps = float(khashrate * 1000) / current_app.config['hashes_per_share']
     round_shares += int(round((now - dt).total_seconds() * sps))
-    return round_shares
+    return round_shares, sps
 
 
 @cache.cached(timeout=60, key_prefix='alerts')

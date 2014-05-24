@@ -36,7 +36,7 @@ $(document).ready(function() {
         <th><span class="odometer blockluck">0</span>%</th>
         <th><span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span></th>
         <th>{{ (current_block['reward'] / 100000000) | sig_round(2) }}</th>
-        <th>{{ current_block['difficulty'] | sig_round(2) }}</th>
+        <th>{{ current_block['difficulty'] | round(4) }}</th>
         <th>...</th>
         <th>...</th>
         <th>{{ '{:,}'.format((current_block['height']) | int) }}</th>
