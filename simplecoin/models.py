@@ -106,7 +106,7 @@ class Block(base):
 
     @property
     def luck(self):
-        return ((self.difficulty * (2 ** 16)) / self.shares_to_solve) * 100
+        return ((self.difficulty * (2 ** 16) / current_app.config.get('share_multiplier', 1)) / self.shares_to_solve) * 100
 
     @property
     def total_value_float(self):
