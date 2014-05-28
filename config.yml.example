@@ -155,6 +155,8 @@ reward: 250000
 # the expected time for the network to find a block in seconds. used for
 # computing network hashrate
 block_time: 60
+# the number of blocks to average for difficulty
+difficulty_avg_period: 500
 # required number of transaction confirmations before marking confirmed
 trans_confirmations: 6
 # the colloquial name of the coin

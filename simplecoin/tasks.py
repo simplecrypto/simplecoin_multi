@@ -866,10 +866,10 @@ def update_network(self):
             cache.set(prefix + 'difficulty', difficulty, timeout=1200)
             cache.set(prefix + 'reward', gbt['coinbasevalue'], timeout=1200)
 
-            # keep the last 500 blocks in the cache for getting average difficulty
+            # keep a configured number of blocks in the cache for getting average difficulty
             cache.cache._client.lpush(prefix + 'block_cache', gbt['bits'])
-            cache.cache._client.ltrim(prefix + 'block_cache', 0, 500)
-            diff_list = cache.cache._client.lrange(prefix + 'block_cache', 0, 500)
+            cache.cache._client.ltrim(prefix + 'block_cache', 0, current_app.config['difficulty_avg_period'])
+            diff_list = cache.cache._client.lrange(prefix + 'block_cache', 0, current_app.config['difficulty_avg_period'])
             total_diffs = sum([bits_to_difficulty(diff) for diff in diff_list])
             cache.set(prefix + 'difficulty_avg', total_diffs / len(diff_list), timeout=120 * 60)
 
