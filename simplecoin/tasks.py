@@ -513,7 +513,7 @@ def payout(self, hash=None, simulate=False):
         logger.debug("Processing block height {}".format(block.height))
 
         mult = int(current_app.config['last_n'])
-        total_shares = (bits_to_shares(block.bits) * mult)
+        total_shares = int((bits_to_shares(block.bits) * mult) / current_app.config.get('share_multiplier', 1))
         logger.debug("Looking for up to {} total shares".format(total_shares))
         if block.last_share_id is None:
             logger.error("Can't process this block, it's shares have been deleted!")
