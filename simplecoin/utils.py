@@ -241,9 +241,9 @@ def total_unconfirmed(address, merged_type=None):
 
 @cache.cached(timeout=3600, key_prefix='get_pool_acc_rej')
 def get_pool_acc_rej():
-    rejects = db.session.query(OneHourReject).order_by(OneHourReject.time.asc())
+    rejects = db.session.query(OneHourReject).filter_by(user="pool_stale").order_by(OneHourReject.time.asc())
     reject_total = sum([hour.value for hour in rejects])
-    accepts = db.session.query(OneHourShare.value)
+    accepts = db.session.query(OneHourShare.value).filter_by(user="pool")
     # if we found rejects, set the earliest accepted share to consider as the
     # same time we've recieved a reject. This is a hack since we didn't
     # start tracking rejected shares until a few weeks after accepted...
