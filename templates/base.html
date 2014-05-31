@@ -8,14 +8,14 @@
 
   <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
 
-  <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css" rel="stylesheet">
-  <link href="//netdna.bootstrapcdn.com/bootswatch/3.1.1/superhero/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ config['assets_address'] | safe }}/css/font-awesome-4.1.0.min.css">
+  <link rel="stylesheet" href="{{ config['assets_address'] | safe }}/css/bootstrap-superhero.min.css">
   <link rel="stylesheet" href="{{ config['assets_address'] | safe }}/css/main.css?revision={{ config['hash'] }}">
   <link rel="stylesheet" href="{{ config['assets_address'] | safe }}/css/nv.d3.css?revision={{ config['hash'] }}">
-  <script src="//code.jquery.com/jquery-2.1.0.min.js"></script>
-  <script>window.jQuery || document.write('<script src="js/vendor/jquery-1.10.2.min.js"><\/script>')</script>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.4.2/d3.min.js"></script>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/zeroclipboard/1.3.3/ZeroClipboard.min.js"></script>
+  <script src="{{ config['assets_address'] | safe }}/js/jquery-2.1.0.min.js"></script>
+  <script>window.jQuery || document.write('<script src="//code.jquery.com/jquery-2.1.0.min.js"><\/script>')</script>
+  <script src="{{ config['assets_address'] | safe }}/js/d3-3.4.2.min.js"></script>
+  <script src="{{ config['assets_address'] | safe }}/js/ZeroClipboard-1.3.3.min.js"></script>
   <script src="{{ config['assets_address'] | safe }}/js/utils.js"></script>
   <script src="{{ config['assets_address'] | safe }}/js/nv.d3.min.js"></script>
   <script src="{{ config['assets_address'] | safe }}/js/graph.js?revision={{ config['hash'] }}"></Script>

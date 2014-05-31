@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% set active_page = "home" %}
-{% set page_title = "Home - A custom mining pool with no registration" %}
+{% set page_title = "Home - A custom {{ config['coin_name'] | safe }}coin mining pool with no registration" %}
 {% block body %}
 <script>
 $(document).ready(function() {
