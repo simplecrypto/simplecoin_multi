@@ -14,9 +14,9 @@ migrate = Migrate(app, db)
 root = os.path.abspath(os.path.dirname(__file__) + '/../')
 
 from bitcoinrpc.authproxy import AuthServiceProxy
-from simplecoin.tasks import (cleanup, payout, server_status,
-                              update_online_workers, update_pplns_est,
-                              cache_user_donation)
+from simplecoin.scheduler import (cleanup, payout, server_status,
+                                  update_online_workers, update_pplns_est,
+                                  cache_user_donation)
 from simplecoin.models import (Transaction, Threshold, DonationPercent,
                                BonusPayout, OneMinuteType, FiveMinuteType,
                                Block, MergeAddress, Payout)
