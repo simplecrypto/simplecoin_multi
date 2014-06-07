@@ -241,6 +241,7 @@ def update_block_state():
         db.session.commit()
 
 
+@crontab
 def cleanup(simulate=False, chunk_size=None, sleep_interval=None):
     """
     Finds all the shares that will no longer be used and removes them from
