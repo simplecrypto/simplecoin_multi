@@ -7,6 +7,7 @@ import sqlalchemy
 import setproctitle
 import decorator
 import argparse
+import json
 
 from sqlalchemy.sql import select
 from cryptokit import bits_to_shares, bits_to_difficulty
@@ -672,6 +673,7 @@ def server_status():
     cache
     """
     total_workers = 0
+    servers = []
     for i, pp_config in enumerate(current_app.config['monitor_addrs']):
         mon_addr = pp_config['mon_address']
         try:
@@ -682,10 +684,14 @@ def server_status():
                         .format(mon_addr))
             continue
         else:
-            cache.set('stratum_workers_' + str(i),
-                      data['stratum_clients'], timeout=1200)
-            total_workers += data['stratum_clients']
+            workers = data['stratum_clients']
+            hashrate = data['shares']['hour_total'] / 3600.0 * current_app.config['hashes_per_share']
+            servers.append(dict(workers=workers,
+                                hashrate=hashrate,
+                                name=pp_config['stratum']))
+            total_workers += workers
 
+    cache.set('server_status', json.dumps(servers), timeout=1200)
     cache.set('total_workers', total_workers, timeout=1200)
 
 

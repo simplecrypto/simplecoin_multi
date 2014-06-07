@@ -1,9 +1,9 @@
 import calendar
 import time
-
 import datetime
-
 import yaml
+import json
+
 from flask import (current_app, request, render_template, Blueprint, abort,
                    jsonify, g, session, Response)
 from lever import get_joined
@@ -74,6 +74,11 @@ def pool_stats():
                      'difficulty': cache.get('difficulty') or 0,
                      'height': cache.get('blockheight') or 0}
 
+    try:
+        server_status = json.loads(str(cache.get('server_status')))
+    except ValueError:
+        server_status = None
+
     blocks = (db.session.query(Block).filter_by(merged_type=None).
               order_by(Block.height.desc()).limit(blocks_show))
     merged_blocks = []
@@ -97,7 +102,8 @@ def pool_stats():
                            pool_luck=pool_luck,
                            effective_return=effective_return,
                            orphan_perc=orphan_perc,
-                           merged_blocks=merged_blocks)
+                           merged_blocks=merged_blocks,
+                           server_status=server_status)
 
 
 @main.route("/network_stats")
