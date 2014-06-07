@@ -548,3 +548,15 @@ def set_donation(address):
                            result=result,
                            alert_cls=alert_cls,
                            perc=perc)
+
+
+@main.route("/crontabs")
+def crontabs():
+    stats = {}
+    prefix = "cron_last_run_"
+    prefix_len = len(prefix)
+    for key in cache.cache._client.keys("{}*".format(prefix)):
+        stats[key[prefix_len:]] = cache.cache._client.hgetall(key)
+        stats[key[prefix_len:]]['runtime'] = 6030
+
+    return render_template("crontabs.html", stats=stats)

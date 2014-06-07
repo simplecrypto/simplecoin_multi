@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import subprocess
 import logging
 import os
@@ -113,6 +113,19 @@ def create_app(config='/config.yml', celery=False):
     def sig_round_call(*args, **kwargs):
         return sig_round(*args, **kwargs)
 
+    @app.template_filter('duration')
+    def time_format(seconds):
+        # microseconds
+        if seconds > 3600:
+            return "{}".format(timedelta(seconds=seconds))
+        if seconds > 60:
+            return "{:,.2f} mins".format(seconds / 60.0)
+        if seconds <= 1.0e-3:
+            return "{:,.4f} us".format(seconds * 1000000.0)
+        if seconds <= 1.0:
+            return "{:,.4f} ms".format(seconds * 1000.0)
+        return "{:,.4f} sec".format(seconds)
+
     @app.template_filter('time_ago')
     def pretty_date(time=False):
         """
@@ -123,7 +136,7 @@ def create_app(config='/config.yml', celery=False):
 
         now = datetime.utcnow()
         if type(time) is int:
-            diff = now - datetime.fromtimestamp(time)
+            diff = now - datetime.utcfromtimestamp(time)
         elif isinstance(time, datetime):
             diff = now - time
         elif not time:
