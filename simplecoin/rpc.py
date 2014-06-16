@@ -2,7 +2,8 @@ import os
 import logging
 import sys
 import argparse
-import pprint
+import time
+import json
 from urlparse import urljoin
 
 import six
@@ -10,7 +11,7 @@ from flask import current_app
 from itsdangerous import TimedSerializer, BadData
 
 import requests
-from bitcoinrpc.authproxy import JSONRPCException
+from bitcoinrpc.authproxy import JSONRPCException, CoinRPCException
 from .coinserv_cmds import payout_many
 from . import create_app, coinserv, merge_coinserv
 
@@ -54,18 +55,19 @@ class RPCClient(object):
 
     def remote(self, url, method, max_age=None, signed=True, **kwargs):
         url = urljoin(self.config['rpc_url'], url)
+        logger.debug("Makeing request to {}".format(url))
         ret = getattr(requests, method)(url, **kwargs)
         if ret.status_code != 200:
             raise RPCException("Non 200 from remote: {}".format(ret.text))
 
         try:
-            logger.debug("Got {} from remote".format(ret.text))
+            logger.debug("Got {} from remote".format(ret.text.encode('utf8')))
             if signed:
                 return self.serializer.loads(ret.text, max_age or self.max_age)
             else:
                 return ret.json()
         except BadData:
-            raise RPCException("Invalid signature: {}".format(ret.text))
+            raise RPCException("Invalid signature")
 
     def poke_rpc(self, conn):
         try:
@@ -74,7 +76,6 @@ class RPCClient(object):
             raise RPCException("Coinserver not awake")
 
     def confirm_trans(self, simulate=False):
-        proc_pids = []
         res = self.get('api/transaction?__filter_by={"confirmed":false}', signed=False)
         if not res['success']:
             logger.error("Failure from remote: {}".format(res))
@@ -99,25 +100,58 @@ class RPCClient(object):
         data = {'tids': tids}
         self.post('confirm_transactions', data=data)
 
+    def reset_trans_file(self, fo, simulate=False):
+        vals = json.load(fo)
+        self.reset_trans(simulate=simulate, **vals)
+
+    def associate_trans_file(self, fo, simulate=False):
+        vals = json.load(fo)
+        self.associate_trans(simulate=simulate, **vals)
+
+    def string_to_list(self, string):
+        return [int(i.strip()) for i in string.split(',')]
+
     def reset_trans(self, pids, bids, simulate=False):
-        proc_pids = []
-        if pids:
-            proc_pids = [int(i) for i in pids.split(',')]
-        proc_bids = []
-        if bids:
-            proc_bids = [int(i) for i in bids.split(',')]
-        data = {'pids': proc_pids, 'bids': proc_bids, 'reset': True}
-        logger.info("Resetting requested bids and pids")
+        if isinstance(pids, basestring):
+            pids = self.string_to_list(pids)
+        if isinstance(bids, basestring):
+            bids = self.string_to_list(bids)
+
+        data = {'pids': pids, 'bids': bids, 'reset': True}
+        logger.info("Resetting {:,} bonus ids and {:,} payout ids."
+                    .format(len(bids), len(pids)))
+        if simulate:
+            logger.info("Just kidding, we're simulating... Exit.")
+            exit(0)
+
         self.post('update_payouts', data=data)
 
     def validate_address(self, conn, address):
         ret = conn.validateaddress(address)
         return ret['isvalid']
 
-    def proc_trans(self, simulate=False, merged=None):
+    def associate_trans(self, pids, bids, transaction_id, simulate=False):
+        if isinstance(pids, basestring):
+            pids = self.string_to_list(pids)
+        if isinstance(bids, basestring):
+            bids = self.string_to_list(bids)
+        data = {'coin_txid': transaction_id, 'pids': pids, 'bids': bids}
+        logger.info("Associating {:,} payout ids and {:,} bonus ids with txid {}"
+                    .format(len(pids), len(bids), transaction_id))
+
+        if simulate:
+            logger.info("Just kidding, we're simulating... Exit.")
+            exit(0)
+
+        if self.post('update_payouts', data=data):
+            logger.info("Sucessfully associated!")
+            return True
+        logger.info("Failed to associate!")
+        return False
+
+    def proc_trans(self, simulate=False, merged=None, datadir=None):
         logger.info("Running payouts for merged = {}".format(merged))
         if merged:
-            merged_cfg = current_app.config['merged_cfg'][merged]
             conn = merge_coinserv[merged]
         else:
             conn = coinserv
@@ -137,17 +171,20 @@ class RPCClient(object):
         pids = [t[2] for t in payouts]
         bids = [t[2] for t in bonus_payouts]
         if not simulate:
-            logger.warn("Locked all recieved payout ids and bonus payout ids. In "
-                        "the event of an error, run the following command to unlock"
-                        "for a retried payout.\nsc_rpc reset_trans '{}' '{}'"
-                        .format(",".join(str(p) for p in pids),
-                                ",".join(str(b) for b in bids)))
+            backup_fname = os.path.join(os.path.abspath(datadir),
+                                        'locked_ids.{}'.format(int(time.time())))
+            fo = open(backup_fname, 'w')
+            json.dump(dict(pids=payouts, bids=bonus_payouts), fo)
+            fo.close()
+            logger.info("Locked pid information stored at {0}. Call sc_rpc "
+                        "reset_trans_file {0} to reset these transactions"
+                        .format(backup_fname))
 
         if not len(pids) and not len(bids):
             logger.info("No payouts to process..")
             return
 
-        logger.info("Recieved {} payouts and {} bonus payouts from the server"
+        logger.info("Recieved {:,} payouts and {:,} bonus payouts from the server"
                     .format(len(pids), len(bids)))
 
         # builds two dictionaries, one that tracks the total payouts to a user,
@@ -196,62 +233,92 @@ class RPCClient(object):
             committed_bids.extend(bids.get(user, []))
 
         logger.info("Total user payouts")
-        logger.info(pprint.pformat(users))
-        logger.info("Total bonus IDs")
-        logger.info(pprint.pformat(bids))
-        logger.info("Total payout IDs")
-        logger.info(pprint.pformat(pids))
+        logger.info(users)
+
+        logger.debug("Total bonus IDs")
+        logger.debug(bids)
+        logger.debug("Total payout IDs")
+        logger.debug(pids)
+
         logger.info("List of payout ids to be committed")
         logger.info(committed_pids)
         logger.info("List of bonus payout ids to be committed")
         logger.info(committed_bids)
 
         if simulate:
+            logger.info("Just kidding, we're simulating... Exit.")
             exit(0)
 
-        # now actually pay them
-        coin_txid = payout_many(users, merged=merged)
-        #coin_txid = "1111111111111111111111111111111111111111111111111111111111111111"
-        logger.info("Got {} as txid for payout!".format(coin_txid))
+        try:
+            # now actually pay them
+            coin_txid = payout_many(users, merged=merged)
+            #coin_txid = "1111111111111111111111111111111111111111111111111111111111111111"
+        except CoinRPCException as e:
+            if isinstance(e.error, dict) and e.error.get('message') == 'Insufficient funds':
+                logger.error("Insufficient funds, reseting...")
+                self.reset_trans(pids, bids)
+            else:
+                logger.error("Unkown RPC error, you'll need to manually reset the payouts", exc_info=True)
 
-        data = {'coin_txid': coin_txid,
-                'pids': committed_pids,
-                'bids': committed_bids,
-                'merged': merged}
-        logger.info("Sending data back to confirm_payouts: " + str(data))
-        while True:
-            try:
-                if self.post('update_payouts', data=data):
+        else:
+            logger.info("Got {} as txid for payout, now pushing result to server!"
+                        .format(coin_txid))
+
+            retries = 0
+            while retries < 5:
+                if self.associate_trans(committed_pids, committed_bids, coin_txid):
                     logger.info("Recieved success response from the server.")
                     break
-                else:
-                    logger.error("Server returned failure response")
-            except Exception:
-                logger.error("Error recieved, press enter to retry",
-                             exc_info=True)
-                raw_input()
+                logger.error("Server returned failure response, retrying "
+                             "{} more times.".format(4 - retries))
+                retries += 1
+                time.sleep(15)
+            else:
+                backup_fname = os.path.join(os.path.abspath(datadir),
+                                            'associated_ids.{}'.format(int(time.time())))
+                fo = open(backup_fname, 'w')
+                json.dump(dict(pids=committed_pids,
+                               bids=committed_bids,
+                               transaction_id=coin_txid), fo)
+                fo.close()
+                logger.info("Failed transaction_id association data stored in {0}. Call sc_rpc "
+                            "associate_trans_file {0} to retry manually".format(backup_fname))
 
 
 def entry():
     parser = argparse.ArgumentParser(prog='simplecoin RPC')
     parser.add_argument('-l', '--log-level',
                         choices=['DEBUG', 'INFO', 'WARN', 'ERROR'],
-                        default='WARN')
+                        default='INFO')
     parser.add_argument('-s', '--simulate', action='store_true', default=False)
     subparsers = parser.add_subparsers(title='main subcommands', dest='action')
 
     subparsers.add_parser('confirm_trans',
-                                 help='fetches unconfirmed transactions and '
-                                      'tries to confirm them')
+                          help='fetches unconfirmed transactions and tries to confirm them')
     proc = subparsers.add_parser('proc_trans',
                                  help='processes transactions locally by '
                                       'fetching from a remote server')
     proc.add_argument('-m', '--merged', default=None)
+    proc.add_argument('-d', '--datadir', required=True,
+                      help='a folder that data will be stored in for resetting failed transactions')
     reset = subparsers.add_parser('reset_trans',
                                   help='resets the lock state of a set of pids'
                                        ' and bids')
     reset.add_argument('pids')
     reset.add_argument('bids')
+    reset_file = subparsers.add_parser('reset_trans_file',
+                                       help='resets the lock state of a set of pids'
+                                       ' and bids by providing json file')
+    reset_file.add_argument('fo', type=argparse.FileType('r'))
+
+    confirm = subparsers.add_parser('associate_trans',
+                                    help='associates pids/bids with transactions')
+    confirm.add_argument('pids')
+    confirm.add_argument('bids')
+    confirm.add_argument('transaction_id')
+    confirm_file = subparsers.add_parser('associate_trans_file',
+                                         help='associates bids/pids with a txid by providing json file')
+    confirm_file.add_argument('fo', type=argparse.FileType('r'))
     args = parser.parse_args()
 
     ch.setLevel(getattr(logging, args.log_level))
