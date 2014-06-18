@@ -143,6 +143,8 @@ def update_pplns_est():
     logger.info("Recomputing PPLNS for users")
     # grab configured N
     mult = int(current_app.config['last_n'])
+    # grab configured hashes in a n1 share
+    hashes_per_share = current_app.config.get('hashes_per_share', 65536)
     # generate average diff from last 500 blocks
     diff = cache.get('difficulty_avg')
     if diff is None:
@@ -150,7 +152,7 @@ def update_pplns_est():
         return
 
     # Calculate the total shares to that are 'counted'
-    total_shares = (float(diff) * (2 ** 16)) * mult
+    total_shares = ((float(diff) * (2 ** 16)) / hashes_per_share) * mult
 
     # Loop through all shares, descending order, until we'd distributed the
     # shares
