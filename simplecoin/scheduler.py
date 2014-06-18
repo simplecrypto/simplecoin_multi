@@ -152,7 +152,7 @@ def update_pplns_est():
         return
 
     # Calculate the total shares to that are 'counted'
-    total_shares = ((float(diff) * (2 ** 16)) / hashes_per_share) * mult
+    total_shares = ((float(diff) * (2 ** 32)) / hashes_per_share) * mult
 
     # Loop through all shares, descending order, until we'd distributed the
     # shares
