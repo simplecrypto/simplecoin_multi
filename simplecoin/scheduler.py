@@ -694,9 +694,9 @@ def server_status():
             else:
                 workers = data['stratum_clients']
                 hashrate = data['shares']['hour_total'] / 3600.0 * current_app.config['hashes_per_share']
-                servers.append(dict(workers=workers,
-                                    hashrate=hashrate,
-                                    name=pp_config['stratum']))
+            servers.append(dict(workers=workers,
+                                hashrate=hashrate,
+                                name=pp_config['stratum']))
             total_workers += workers
 
     cache.set('raw_server_status', json.dumps(raw_servers), timeout=1200)
