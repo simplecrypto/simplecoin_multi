@@ -689,7 +689,7 @@ def server_status():
         else:
             if 'server' in data:
                 workers = data['stratum_manager']['client_count_authed']
-                hashrate = data['stratum_manager']['mhps']
+                hashrate = data['stratum_manager']['mhps'] * 1000000
                 raw_servers[pp_config['stratum']] = data
             else:
                 workers = data['stratum_clients']
