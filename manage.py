@@ -104,7 +104,14 @@ def correlate_transactions():
     """ Derives transaction merged_type from attached payout's merged type """
     for trans in Transaction.query:
         if trans.merged_type is None:
-            trans.merged_type = Payout.query.filter_by(transaction_id=trans.txid).first().merged_type
+            payout = Payout.query.filter_by(transaction_id=trans.txid).first()
+            if payout is not None:
+                trans.merged_type = payout.merged_type
+                current_app.logger.info("Updated txid {} to merged_type {}"
+                                        .format(trans.txid, payout.merged_type))
+            else:
+                current_app.logger.info("Unable to get merged_type for txid "
+                                        "{}, no payouts!".format(trans.txid))
     db.session.commit()
 
 

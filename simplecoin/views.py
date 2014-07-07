@@ -10,9 +10,9 @@ from lever import get_joined
 
 from .models import (OneMinuteShare, Block, OneMinuteType, FiveMinuteType,
                      FiveMinuteShare, OneHourShare, Status, DonationPercent,
-                     FiveMinuteHashrate, OneMinuteHashrate, OneHourHashrate, OneMinuteTemperature,
-                     FiveMinuteTemperature, OneHourTemperature, OneHourType,
-                     MergeAddress)
+                     FiveMinuteHashrate, OneMinuteHashrate, OneHourHashrate,
+                     OneMinuteTemperature, FiveMinuteTemperature,
+                     OneHourTemperature, OneHourType, MergeAddress)
 from . import db, root, cache
 from .utils import (compress_typ, get_typ, verify_message, get_pool_acc_rej,
                     get_pool_eff, last_10_shares, collect_user_stats, get_adj_round_shares,

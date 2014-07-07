@@ -91,11 +91,19 @@ class RPCClient(object):
                 confirms = current_app.config['trans_confirmations']
             logger.debug("Connecting to {} coinserv to lookup confirms for {}"
                          .format(obj['merged_type'] or 'main', obj['txid']))
-            res = conn.gettransaction(obj['txid'])
-            if res['confirmations'] > confirms:
-                tids.append(obj['txid'])
-                logger.info("Confirmed txid {} with {} confirms"
-                            .format(obj['txid'], res['confirmations']))
+            try:
+                res = conn.gettransaction(obj['txid'])
+            except CoinRPCException:
+                logger.error("Unable to fetch txid {} from {} rpc server!"
+                             .format(obj['txid'], obj['merged_type']))
+            except Exception:
+                logger.error("Unable to fetch txid {} from {} rpc server!"
+                             .format(obj['txid'], obj['merged_type']), exc_info=True)
+            else:
+                if res['confirmations'] > confirms:
+                    tids.append(obj['txid'])
+                    logger.info("Confirmed txid {} with {} confirms"
+                                .format(obj['txid'], res['confirmations']))
 
         data = {'tids': tids}
         self.post('confirm_transactions', data=data)
@@ -130,12 +138,12 @@ class RPCClient(object):
         ret = conn.validateaddress(address)
         return ret['isvalid']
 
-    def associate_trans(self, pids, bids, transaction_id, simulate=False):
+    def associate_trans(self, pids, bids, transaction_id, merged, simulate=False):
         if isinstance(pids, basestring):
             pids = self.string_to_list(pids)
         if isinstance(bids, basestring):
             bids = self.string_to_list(bids)
-        data = {'coin_txid': transaction_id, 'pids': pids, 'bids': bids}
+        data = {'coin_txid': transaction_id, 'pids': pids, 'bids': bids, 'merged': merged}
         logger.info("Associating {:,} payout ids and {:,} bonus ids with txid {}"
                     .format(len(pids), len(bids), transaction_id))
 
@@ -266,11 +274,13 @@ class RPCClient(object):
 
             retries = 0
             while retries < 5:
-                if self.associate_trans(committed_pids, committed_bids, coin_txid):
-                    logger.info("Recieved success response from the server.")
-                    break
-                logger.error("Server returned failure response, retrying "
-                             "{} more times.".format(4 - retries))
+                try:
+                    if self.associate_trans(committed_pids, committed_bids, coin_txid, merged=merged):
+                        logger.info("Recieved success response from the server.")
+                        break
+                except Exception:
+                    logger.error("Server returned failure response, retrying "
+                                "{} more times.".format(4 - retries), exc_info=True)
                 retries += 1
                 time.sleep(15)
             else:
@@ -279,7 +289,8 @@ class RPCClient(object):
                 fo = open(backup_fname, 'w')
                 json.dump(dict(pids=committed_pids,
                                bids=committed_bids,
-                               transaction_id=coin_txid), fo)
+                               transaction_id=coin_txid,
+                               merged=merged), fo)
                 fo.close()
                 logger.info("Failed transaction_id association data stored in {0}. Call sc_rpc "
                             "associate_trans_file {0} to retry manually".format(backup_fname))
@@ -316,6 +327,7 @@ def entry():
     confirm.add_argument('pids')
     confirm.add_argument('bids')
     confirm.add_argument('transaction_id')
+    confirm.add_argument('merged')
     confirm_file = subparsers.add_parser('associate_trans_file',
                                          help='associates bids/pids with a txid by providing json file')
     confirm_file.add_argument('fo', type=argparse.FileType('r'))
