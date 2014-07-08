@@ -10,14 +10,29 @@ from cryptokit.base58 import get_bcaddress_version
 
 from bitcoinrpc import CoinRPCException
 from . import db, coinserv, cache, root
+from .utils import db, coinserv, cache, root
 from .models import (DonationPercent, OneMinuteReject, OneMinuteShare,
                      FiveMinuteShare, FiveMinuteReject, Payout, BonusPayout,
                      Block, OneHourShare, OneHourReject, Share, Status,
-                     MergeAddress)
+                     MergeAddress, TransactionSummary)
 
 
 class CommandException(Exception):
     pass
+
+
+def timeit(method):
+    def timed(*args, **kw):
+        ts = time.time()
+        result = method(*args, **kw)
+        te = time.time()
+
+        current_app.logger.info('{} (args {}, kwargs {}) in {}'
+                                .format(method.__name__,
+                                        args, kw, time_format(te - ts)))
+        return result
+
+    return timed
 
 
 @cache.memoize(timeout=3600)
@@ -211,32 +226,27 @@ def last_10_shares(user):
 
 
 @cache.memoize(timeout=60)
-def total_earned(address, merged_type=None):
-    total_p = (Payout.query.filter_by(user=address, merged_type=merged_type).
-               join(Payout.block, aliased=True).
-               filter_by(orphan=False))
-    return int(sum([payout.amount for payout in total_p]))
-
-
-@cache.memoize(timeout=60)
 def total_paid(address, merged_type=None):
-    total_p = (Payout.query.filter_by(user=address, merged_type=merged_type).
-               join(Payout.transaction, aliased=True).
-               filter_by(confirmed=True))
+    total_p = (TransactionSummary.query.filter_by(user=address).
+               join(TransactionSummary.transaction, aliased=True).
+               filter_by(merged_type=merged_type))
+    current_app.logger.info((merged_type, len(total_p.all())))
     return int(sum([tx.amount for tx in total_p]))
 
 
 @cache.memoize(timeout=60)
-def total_bonus(user):
-    return int((db.session.query(func.sum(BonusPayout.amount)).
-                filter_by(user=user).scalar()) or 0.0)
+def total_unpaid(address, merged_type=None):
+    """ Fetches all payouts that haven't been paid out to a user, but unconfirmed
+    and confirmed. """
+    confirmed = 0
+    unconfirmed = 0
+    for p in Payout.query.filter_by(user=address, merged_type=merged_type, transaction_id=None).options(db.joinedload('block')):
+        if p.block.mature:
+            confirmed += p.amount
+        elif not p.block.mature and not p.block.orphan:
+            unconfirmed += p.amount
 
-@cache.memoize(timeout=60)
-def total_unconfirmed(address, merged_type=None):
-    unconfirmed_balance = (Payout.query.filter_by(user=address, merged_type=merged_type).
-                           join(Payout.block, aliased=True).
-                           filter_by(mature=False, orphan=False))
-    return sum([payout.amount for payout in unconfirmed_balance])
+    return confirmed, unconfirmed
 
 
 @cache.cached(timeout=3600, key_prefix='get_pool_acc_rej')
@@ -265,16 +275,9 @@ def collect_acct_items(address, limit, offset=0, merged_type=None):
 def collect_user_stats(address):
     """ Accumulates all aggregate user data for serving via API or rendering
     into main user stats page """
-    earned = total_earned(address)
     paid = total_paid(address)
-    bonus = total_bonus(address)
-
-    balance = earned - paid
-    # Add bonuses to total paid amount
-    total_payout_amount = (paid + bonus)
-
-    unconfirmed_balance = total_unconfirmed(address)
-    balance -= unconfirmed_balance
+    balance, unconfirmed_balance = total_unpaid(address)
+    earned = paid + balance + unconfirmed_balance
 
     pplns_cached_time = cache.get('pplns_cache_time')
     if pplns_cached_time is not None:
@@ -375,15 +378,20 @@ def collect_user_stats(address):
             merged_addrs.append((cfg['currency_name'], cfg['name'], "[not set]"))
         else:
             merged_addrs.append((cfg['currency_name'], cfg['name'], addr.merge_address))
-            acct_items = collect_acct_items(addr.merge_address,
-                                            20,
-                                            merged_type=cfg['currency_name'])
-            merge_paid = total_paid(addr.merge_address, cfg['currency_name'])
-            merge_earned = total_earned(addr.merge_address, cfg['currency_name'])
-            merge_balance = merge_earned - merge_paid
-            merge_unconfirmed_balance = total_unconfirmed(addr.merge_address, cfg['currency_name'])
-            merge_balance -= merge_unconfirmed_balance
-            merged_accounts.append((cfg['currency_name'], cfg['name'], acct_items, merge_paid, merge_earned, merge_unconfirmed_balance, merge_balance))
+            acct_items = collect_acct_items(
+                addr.merge_address, 20, merged_type=cfg['currency_name'])
+
+            merge_paid = total_paid(addr.merge_address, merged_type=cfg['currency_name'])
+            merge_balance, merge_unconfirmed_balance = total_unpaid(
+                addr.merge_address, merged_type=cfg['currency_name'])
+            merge_earned = merge_paid + merge_balance + merge_unconfirmed_balance
+            merged_accounts.append((cfg['currency_name'],
+                                    cfg['name'],
+                                    acct_items,
+                                    merge_paid,
+                                    merge_earned,
+                                    merge_unconfirmed_balance,
+                                    merge_balance))
 
     user_last_10_shares = last_10_shares(address)
     last_10_hashrate = (shares_to_hashes(user_last_10_shares) / 1000000) / 600
@@ -412,7 +420,7 @@ def collect_user_stats(address):
                 merged_accounts=merged_accounts,
                 merged_addrs=merged_addrs,
                 total_earned=earned,
-                total_paid=total_payout_amount,
+                total_paid=paid,
                 balance=balance,
                 donation_perc=perc,
                 last_10_shares=user_last_10_shares,
@@ -431,8 +439,10 @@ def get_pool_eff():
     else:
         return (float(acc) / (acc + rej)) * 100
 
+
 def shares_to_hashes(shares):
     return float(current_app.config.get('hashes_per_share', 65536)) * shares
+
 
 ##############################################################################
 # Message validation and verification functions
@@ -520,3 +530,26 @@ def resort_recent_visit(recent):
     total = float(sum([t[1] for t in session['recent_users']]))
     session['recent_users'] = [(addr, (visits / total))
                                for addr, visits in session['recent_users']]
+
+
+class Benchmark(object):
+    def __init__(self, name):
+        self.name = name
+
+    def __enter__(self):
+        self.start = time.time()
+
+    def __exit__(self, ty, val, tb):
+        end = time.time()
+        current_app.logger.info("BENCHMARK: {} in {}"
+                                .format(self.name, time_format(end - self.start)))
+        return False
+
+
+def time_format(seconds):
+    # microseconds
+    if seconds <= 1.0e-3:
+        return "{:,.4f} us".format(seconds * 1000000.0)
+    if seconds <= 1.0:
+        return "{:,.4f} ms".format(seconds * 1000.0)
+    return "{:,.4f} sec".format(seconds)
