@@ -15,9 +15,9 @@ migrate = Migrate(app, db)
 root = os.path.abspath(os.path.dirname(__file__) + '/../')
 
 from bitcoinrpc.authproxy import AuthServiceProxy
-from simplecoin.scheduler import (cleanup, payout, server_status,
+from simplecoin.scheduler import (cleanup, run_payouts, server_status,
                                   update_online_workers, update_pplns_est,
-                                  cache_user_donation)
+                                  cache_user_donation, general_cleanup)
 from simplecoin.models import (Transaction, Threshold, DonationPercent,
                                BonusPayout, OneMinuteType, FiveMinuteType,
                                Block, MergeAddress, Payout, TransactionSummary)
@@ -102,7 +102,8 @@ def cleanup_cmd(simulate):
 
 @manager.command
 def correlate_transactions():
-    """ Derives transaction merged_type from attached payout's merged type """
+    """ Derives transaction merged_type from attached payout's merged type.
+    Intended as a migration assistant, not to be run for regular use. """
     for trans in Transaction.query:
         if trans.merged_type is None:
             payout = Payout.query.filter_by(transaction_id=trans.txid).first()
@@ -211,7 +212,7 @@ def test_email():
                 help='blockheight to start working backward from')
 def historical_update(blockheight):
     """ Very long running task. Fills out the network difficulty values for all
-    blocks before the site was running (or potentially recording block diff). """
+    blocks before the site was running. """
 
     def add_one_minute_diff(diff, time):
         try:
@@ -244,7 +245,13 @@ def historical_update(blockheight):
 def payout_cmd(simulate):
     """ Runs the payout task manually. Simulate mode is default. """
     simulate = simulate != "0"
-    payout(simulate=simulate)
+    run_payouts(simulate=simulate)
+
+
+@manager.command
+def general_cleanup_cmd():
+    """ Runs the payout task manually. Simulate mode is default. """
+    general_cleanup()
 
 
 def make_context():

@@ -331,15 +331,16 @@ def cleanup(simulate=False, chunk_size=None, sleep_interval=None):
         logger.info("Deleted {:,} rows from {:,} to {:,}\t{:,.4f}\t{:,}"
                     .format(res, stale_id, bottom, remain * 100.0 / total, remain))
         stale_id -= chunk_size
-        sleep(sleep_interval)
-        total_sleep += sleep_interval
+        if res:  # only sleep if we actually deleted something
+            sleep(sleep_interval)
+            total_sleep += sleep_interval
 
     logger.info("Time to completion {}".format(datetime.timedelta(time.time() - t)))
     logger.info("Time spent sleeping {}".format(datetime.timedelta(seconds=total_sleep)))
 
 
 @crontab
-def run_payouts():
+def run_payouts(simulate=False):
     """ Loops through all the blocks that haven't been paid out and attempts
     to pay them out """
     blocks = Block.query.filter_by(processed=False).order_by(Block.found_at)
@@ -349,7 +350,7 @@ def run_payouts():
         if block.last_share_id is None:
             logger.warn("Can't process this block, it's shares have been deleted!")
             continue
-        payout(hash=block.hash)
+        payout(hash=block.hash, simulate=simulate)
 
 
 def payout(hash=None, simulate=False):
@@ -364,8 +365,7 @@ def payout(hash=None, simulate=False):
     if hash:
         block = Block.query.filter_by(processed=False, hash=hash).first()
     else:
-        block = (Block.query.filter_by(processed=False).
-                    order_by(Block.found_at).first())
+        block = (Block.query.filter_by(processed=False).order_by(Block.found_at).first())
 
     if block is None:
         logger.debug("No block found, exiting...")
@@ -394,10 +394,10 @@ def payout(hash=None, simulate=False):
         new_user_shares = {merge_cfg['donate_address']: 0}
         # build a map of regular addresses to merged addresses
         query = (MergeAddress.query.filter_by(merged_type=block.merged_type).
-                    filter(MergeAddress.user.in_(user_shares.keys())))
+                 filter(MergeAddress.user.in_(user_shares.keys())))
         merge_addr_map = {m.user: m.merge_address for m in query}
         logger.debug("Looking up merged mappings for merged_type {}, found {}"
-                        .format(block.merged_type, len(merge_addr_map)))
+                     .format(block.merged_type, len(merge_addr_map)))
 
         for user in user_shares:
             merge_addr = merge_addr_map.get(user)
@@ -536,8 +536,8 @@ def payout(hash=None, simulate=False):
         block_bonus = current_app.config.get('block_bonus', 0)
         if block_bonus > 0 and not block.merged_type:
             BonusPayout.create(block.user, block_bonus,
-                                "Blockfinder bonus for block {}"
-                                .format(block.height), block)
+                               "Blockfinder bonus for block {}"
+                               .format(block.height), block)
             logger.info("Added bonus payout for blockfinder {} for {}"
                         .format(block.user, block_bonus / 100000000.0))
 
@@ -577,6 +577,42 @@ def general_cleanup():
     one_hour_ago = now - datetime.timedelta(hours=1)
     Status.query.filter(Status.time < ten_hour_ago).delete()
     Event.query.filter(Event.time < one_hour_ago).delete()
+    db.session.commit()
+
+    sleep_interval = 0.0
+    chunk_size = 100000
+    one_week_ago = now - datetime.timedelta(days=7)
+    logger.info("Removing all payouts older than {}".format(one_week_ago))
+    start = Payout.query.filter(Payout.created_at < one_week_ago).order_by(Payout.id.desc()).first()
+    if not start:
+        current_app.logger.info("Payouts already cleaned up, exiting")
+        return
+    start_id = start.id + 1
+    stop_id = Payout.query.filter(Payout.created_at < one_week_ago).first().id
+    logger.info("Diff between first share {:,} and last {:,}: {:,}"
+                .format(stop_id, start_id, start_id - stop_id))
+
+    t = time.time()
+    total_sleep = 0
+    total = start_id - stop_id
+    remain = total
+    # delete all shares that are sufficiently old
+    while remain > 0:
+        bottom = start_id - chunk_size
+        res = (Payout.query.filter(Payout.id < start_id).
+               filter(Payout.created_at < one_week_ago).
+               filter(Payout.id >= bottom).delete(synchronize_session=False))
+        db.session.commit()
+        remain -= chunk_size
+        logger.info("Deleted {:,} rows from {:,} to {:,}\t{:,.4f}\t{:,}"
+                    .format(res, start_id, bottom, remain * 100.0 / total, remain))
+        start_id -= chunk_size
+        if res:  # only sleep if we actually deleted something
+            sleep(sleep_interval)
+            total_sleep += sleep_interval
+
+    logger.info("Time to completion {}".format(datetime.timedelta(seconds=time.time() - t)))
+    logger.info("Time spent sleeping {}".format(datetime.timedelta(seconds=total_sleep)))
     db.session.commit()
 
 
