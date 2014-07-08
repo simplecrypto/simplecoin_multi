@@ -589,14 +589,16 @@ def update_network():
         prefix = ""
         if curr:
             prefix = curr + "_"
-        difficulty = bits_to_difficulty(gbt['bits'])
         prev_height = cache.get(prefix + 'blockheight') or 0
+
         if gbt['height'] == prev_height:
             logger.debug("Not updating {} net info, height {} already recorded."
-                            .format(curr or 'main', prev_height))
+                         .format(curr or 'main', prev_height))
             return
         logger.info("Updating {} net info for height {}.".format(curr or 'main', gbt['height']))
+
         # set general information for this network
+        difficulty = bits_to_difficulty(gbt['bits'])
         cache.set(prefix + 'blockheight', gbt['height'], timeout=1200)
         cache.set(prefix + 'difficulty', difficulty, timeout=1200)
         cache.set(prefix + 'reward', gbt['coinbasevalue'], timeout=1200)
@@ -608,19 +610,20 @@ def update_network():
         total_diffs = sum([bits_to_difficulty(diff) for diff in diff_list])
         cache.set(prefix + 'difficulty_avg', total_diffs / len(diff_list), timeout=120 * 60)
 
-        # add the difficulty as a one minute share
-        now = datetime.datetime.utcnow()
-        try:
-            m = OneMinuteType(typ=prefix + 'netdiff', value=difficulty * 1000, time=now)
-            db.session.add(m)
-            db.session.commit()
-        except sqlalchemy.exc.IntegrityError:
-            db.session.rollback()
-            slc = OneMinuteType.query.with_lockmode('update').filter_by(
-                time=now, typ=prefix + 'netdiff').one()
-            # just average the diff of two blocks that occured in the same second..
-            slc.value = ((difficulty * 1000) + slc.value) / 2
-            db.session.commit()
+        # add the difficulty as a one minute share, unless we're staging
+        if not current_app.config.get('stage', False):
+            now = datetime.datetime.utcnow()
+            try:
+                m = OneMinuteType(typ=prefix + 'netdiff', value=difficulty * 1000, time=now)
+                db.session.add(m)
+                db.session.commit()
+            except sqlalchemy.exc.IntegrityError:
+                db.session.rollback()
+                slc = OneMinuteType.query.with_lockmode('update').filter_by(
+                    time=now, typ=prefix + 'netdiff').one()
+                # just average the diff of two blocks that occured in the same second..
+                slc.value = ((difficulty * 1000) + slc.value) / 2
+                db.session.commit()
 
     for merged_type, conf in current_app.config['merged_cfg'].iteritems():
         try:
@@ -748,8 +751,6 @@ if __name__ == "__main__":
             sched.add_cron_job(compress_minute, minute='0,5,10,15,20,25,30,35,40,45,50,55', second=20)
             # every hour 2.5 minutes after the hour
             sched.add_cron_job(compress_five_minute, minute=2, second=30)
-            # every minute 10 seconds after the minute
-            sched.add_cron_job(update_network, second=10)
             # every 15 minutes 2 seconds after the minute
             sched.add_cron_job(update_block_state, minute='0,15,30,45', second=2)
             # every minute on the minute
@@ -762,5 +763,7 @@ if __name__ == "__main__":
         sched.add_cron_job(update_pplns_est, minute='0,15,30,45', second=2)
         sched.add_cron_job(cache_user_donation, minute='0,15,30,45', second=15)
         sched.add_cron_job(server_status, second=15)
+        # every minute 10 seconds after the minute
+        sched.add_cron_job(update_network, second=10)
 
         sched.start()
