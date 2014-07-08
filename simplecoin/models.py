@@ -163,6 +163,24 @@ class Transaction(base):
         return trans
 
 
+class TransactionSummary(base):
+    transaction_id = db.Column(db.String, db.ForeignKey('transaction.txid'), primary_key=True)
+    transaction = db.relationship('Transaction', backref='summaries')
+    user = db.Column(db.String, primary_key=True)
+    amount = db.Column(db.BigInteger)
+    count = db.Column(db.SmallInteger)
+
+    @classmethod
+    def create(cls, txid, user, amount, count=None):
+        trans = cls(transaction_id=txid, user=user, amount=amount, count=count)
+        db.session.add(trans)
+        return trans
+
+    __table_args__ = (
+        db.Index('summary_user_idx', 'user'),
+    )
+
+
 class Status(base):
     """ This class generates a table containing every share accepted for a
     round """
@@ -301,10 +319,6 @@ class Transfer(AbstractConcreteBase, base):
     def transaction_id(self):
         return db.Column(db.String, db.ForeignKey('transaction.txid'))
 
-    @declared_attr
-    def transaction(self):
-        return db.relationship('Transaction')
-
     @property
     def status(self):
         if self.transaction:
@@ -346,6 +360,7 @@ class Payout(Transfer):
     shares = db.Column(db.BigInteger)
     perc = db.Column(db.Float, default=0.0, server_default="0")
     perc_applied = db.Column(db.BigInteger, default=0, server_default="0")
+    transaction = db.relationship('Transaction', backref='payouts')
     __mapper_args__ = {
         'polymorphic_identity': 'payout',
         'concrete': True
@@ -417,6 +432,8 @@ class BonusPayout(Transfer):
     }
     standard_join = ['status', 'created_at', 'explorer_link', 'amount_float',
                      'transaction_id']
+
+    transaction = db.relationship('Transaction', backref='bonus_payouts')
 
     @classmethod
     def create(cls, user, amount, description, block, merged_type=None):

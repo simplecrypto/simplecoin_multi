@@ -25,6 +25,8 @@ redacted_addresses:
 
 merge:
     - enabled: False
+      # A list of valid address versions. used for payout atm
+      address_version: [71]
       # The letter that a valid merged mining address must start with
       prefix: M
       # Full name of what to label the merged coin on the site
@@ -87,7 +89,7 @@ celery:
     #    doge:
     #        exchange: doge
     #        binding_key: doge
-    BROKER_URL: 'amqp://guest:guest@localhost:5672/doge'
+    BROKER_URL: 'amqp://guest:guest@localhost:5672/'
 # set this to true and celery will only run scheduled tasks to refresh cache
 # objects. This allows you to run a staging version on the same database,
 # but with separate caches
@@ -110,15 +112,15 @@ last_n: 2
 cleanup_n: 4
 # default donation/bonus percentage applied to payouts if no custom is
 # defined
-default_perc: 0
+default_perc: 1
 # sets to lowest that a user is allowed to set their fee percentage
-minimum_perc: -5.0
+minimum_perc: 0
 # address where all donated percents (or fees) will go
-donate_address: DAbhwsnEq5TjtBP5j76TinhUqqLTktDAnD
+donate_address: 
 # address where all mining from invalid addresses goes
-catchall_address: DAbhwsnEq5TjtBP5j76TinhUqqLTktDAnD
+catchall_address: 
 # block find reward. set to zero or comment out to not use. in satoshi
-block_bonus: 1000000000000
+block_bonus: 0
 
 # RPC Payout configs
 # ========================================================================
@@ -145,13 +147,11 @@ mpos_api_keys:
 # =======================================================================
 # Website name
 site_name: Simple Doge
-# Website title
+# Website title. Used when describing the website in signed messages
 site_url: simpledoge.com
 # the path that will be postfixed with the current git hash in the footer.
 # comment out to remove the footer mark
 repopath: https://github.com/simplecrypto/simplecoin/commit/
-# the block reward. Used to calculate averages, etc
-reward: 250000
 # the expected time for the network to find a block in seconds. used for
 # computing network hashrate
 block_time: 60
@@ -189,18 +189,20 @@ stratum_port: 3333
 beginner_guide: <a href="http://www.reddit.com/r/dogemining/wiki/index/mining_guide" target="_blank">Reddit</a>
 # how many previously solved blocks to show on the pool stats page. defaults to 25
 #blocks_stats_page: 25
-# The number of hashes required to find an N1 share on average
-#hashes_per_share: 65536
+# The number of hashes required to find an N1 share on average. Will change
+# if you change the share multiplication factor
+hashes_per_share: 65536
 # Share multiplication factor. The database doesn't store fractional difficulty
 # shares (N1 is lowest) so for coins like darkcoin you need to multiply the
 # number recieved from powerpool before storing in the database. This then in
 # turn effects the hashes_per_share above needed to reverse compute proper
 # hashrate
 #share_multiplier: 1
-# Difficulty multiplication factor. Used to determine the network hashrate
-# SHA256 uses 2^32
-# Scrypt uses 2^16
+# Difficulty multiplication factor. Used to determine the network hashrate.
+# 2^32 for most networks
 difficulty_multiplier: 4294967296
+# A list of valid address versions
+address_version: [71]
 
 # Logging
 # =======================================================================

@@ -286,9 +286,9 @@ def cleanup(simulate=False, chunk_size=None, sleep_interval=None):
     # id that is oldest required to be kept
     while counted_shares < total_shares and start_id > stop_id:
         res = (db.engine.execute(select([Share.shares, Share.id]).
-                                    order_by(Share.id.desc()).
-                                    where(Share.id >= start_id - chunk_size).
-                                    where(Share.id < start_id)))
+                                 order_by(Share.id.desc()).
+                                 where(Share.id >= start_id - chunk_size).
+                                 where(Share.id < start_id)))
         chunk = res.fetchall()
         for shares, id in chunk:
             rows += 1
@@ -428,7 +428,7 @@ def payout(hash=None, simulate=False):
         accrued += user_payouts[user]
 
     logger.debug("Total accrued after trunated iteration {}; {}%"
-                    .format(accrued, (accrued / float(block.total_value)) * 100))
+                 .format(accrued, (accrued / float(block.total_value)) * 100))
     # loop over the dictionary indefinitely until we've distributed
     # all the remaining funds
     i = 0
@@ -441,8 +441,7 @@ def payout(hash=None, simulate=False):
             if accrued >= block.total_value:
                 break
 
-    logger.debug("Ran round robin distro {} times to finish distrib"
-                    .format(i))
+    logger.debug("Ran round robin distro {} times to finish distrib".format(i))
 
     # now handle donation or bonus distribution for each user
     donation_total = 0
@@ -469,7 +468,7 @@ def payout(hash=None, simulate=False):
         if perc > 0:
             donation = int(ceil((perc / 100.0) * payout))
             logger.debug("Donation of\t{}\t({}%)\tcollected from\t{}"
-                            .format(donation / 100000000.0, perc, user))
+                         .format(donation / 100000000.0, perc, user))
             donation_total += donation
             user_payouts[user] -= donation
             user_perc_applied[user] = donation
@@ -479,7 +478,7 @@ def payout(hash=None, simulate=False):
             perc *= -1
             bonus = int(floor((perc / 100.0) * payout))
             logger.debug("Bonus of\t{}\t({}%)\tpaid to\t{}"
-                            .format(bonus / 100000000.0, perc, user))
+                         .format(bonus / 100000000.0, perc, user))
             user_payouts[user] += bonus
             bonus_total += bonus
             user_perc_applied[user] = -1 * bonus
@@ -515,8 +514,8 @@ def payout(hash=None, simulate=False):
                 logger.info("Skip zero payout for USR: {}".format(user))
                 continue
             Payout.create(user, amount, block, user_shares[user],
-                            user_perc[user], user_perc_applied.get(user, 0),
-                            merged_type=block.merged_type)
+                          user_perc[user], user_perc_applied.get(user, 0),
+                          merged_type=block.merged_type)
         # update the block status and collected amounts
         block.processed = True
         block.donated = donation_total

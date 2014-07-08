@@ -4,13 +4,14 @@ import sys
 import argparse
 import time
 import json
-from urlparse import urljoin
-
 import six
+import requests
+
+from urlparse import urljoin
+from cryptokit.base58 import get_bcaddress_version
 from flask import current_app
 from itsdangerous import TimedSerializer, BadData
 
-import requests
 from bitcoinrpc.authproxy import JSONRPCException, CoinRPCException
 from .coinserv_cmds import payout_many
 from . import create_app, coinserv, merge_coinserv
@@ -35,7 +36,7 @@ class RPCException(Exception):
 
 class RPCClient(object):
     def __init__(self, config_path='/config.yml', root_suffix='/../',
-                 max_age=5):
+                 max_age=10):
         self.root = os.path.abspath(os.path.dirname(__file__) + root_suffix)
         self.config = current_app.config
         del current_app.logger.handlers[0]
@@ -55,8 +56,8 @@ class RPCClient(object):
 
     def remote(self, url, method, max_age=None, signed=True, **kwargs):
         url = urljoin(self.config['rpc_url'], url)
-        logger.debug("Makeing request to {}".format(url))
-        ret = getattr(requests, method)(url, **kwargs)
+        logger.debug("Making request to {}".format(url))
+        ret = getattr(requests, method)(url, timeout=270, **kwargs)
         if ret.status_code != 200:
             raise RPCException("Non 200 from remote: {}".format(ret.text))
 
@@ -67,6 +68,7 @@ class RPCClient(object):
             else:
                 return ret.json()
         except BadData:
+            current_app.logger.error("Invalid data returned from remote!", exc_info=True)
             raise RPCException("Invalid signature")
 
     def poke_rpc(self, conn):
@@ -134,10 +136,6 @@ class RPCClient(object):
 
         self.post('update_payouts', data=data)
 
-    def validate_address(self, conn, address):
-        ret = conn.validateaddress(address)
-        return ret['isvalid']
-
     def associate_trans(self, pids, bids, transaction_id, merged, simulate=False):
         if isinstance(pids, basestring):
             pids = self.string_to_list(pids)
@@ -161,8 +159,10 @@ class RPCClient(object):
         logger.info("Running payouts for merged = {}".format(merged))
         if merged:
             conn = merge_coinserv[merged]
+            valid_address_versions = current_app.config['merged_cfg'][merged]['address_version']
         else:
             conn = coinserv
+            valid_address_versions = current_app.config['address_version']
         self.poke_rpc(conn)
 
         lock = True
@@ -178,19 +178,20 @@ class RPCClient(object):
 
         pids = [t[2] for t in payouts]
         bids = [t[2] for t in bonus_payouts]
-        if not simulate:
-            backup_fname = os.path.join(os.path.abspath(datadir),
-                                        'locked_ids.{}'.format(int(time.time())))
-            fo = open(backup_fname, 'w')
-            json.dump(dict(pids=payouts, bids=bonus_payouts), fo)
-            fo.close()
-            logger.info("Locked pid information stored at {0}. Call sc_rpc "
-                        "reset_trans_file {0} to reset these transactions"
-                        .format(backup_fname))
 
         if not len(pids) and not len(bids):
             logger.info("No payouts to process..")
             return
+
+        if not simulate:
+            backup_fname = os.path.join(os.path.abspath(datadir),
+                                        'locked_ids.{}'.format(int(time.time())))
+            fo = open(backup_fname, 'w')
+            json.dump(dict(pids=pids, bids=bids), fo)
+            fo.close()
+            logger.info("Locked pid information stored at {0}. Call sc_rpc "
+                        "reset_trans_file {0} to reset these transactions"
+                        .format(backup_fname))
 
         logger.info("Recieved {:,} payouts and {:,} bonus payouts from the server"
                     .format(len(pids), len(bids)))
@@ -202,7 +203,7 @@ class RPCClient(object):
         pids = {}
         bids = {}
         for user, amount, id in payouts:
-            if self.validate_address(conn, user):
+            if get_bcaddress_version(user) in valid_address_versions:
                 totals.setdefault(user, 0)
                 totals[user] += amount
                 pids.setdefault(user, [])
@@ -212,7 +213,7 @@ class RPCClient(object):
                             .format(user))
 
         for user, amount, id in bonus_payouts:
-            if self.validate_address(conn, user):
+            if get_bcaddress_version(user) in valid_address_versions:
                 totals.setdefault(user, 0)
                 totals[user] += amount
                 bids.setdefault(user, [])
@@ -269,31 +270,35 @@ class RPCClient(object):
                 logger.error("Unkown RPC error, you'll need to manually reset the payouts", exc_info=True)
 
         else:
-            logger.info("Got {} as txid for payout, now pushing result to server!"
-                        .format(coin_txid))
+            associated = False
+            try:
+                logger.info("Got {} as txid for payout, now pushing result to server!"
+                            .format(coin_txid))
 
-            retries = 0
-            while retries < 5:
-                try:
-                    if self.associate_trans(committed_pids, committed_bids, coin_txid, merged=merged):
-                        logger.info("Recieved success response from the server.")
-                        break
-                except Exception:
-                    logger.error("Server returned failure response, retrying "
-                                "{} more times.".format(4 - retries), exc_info=True)
-                retries += 1
-                time.sleep(15)
-            else:
-                backup_fname = os.path.join(os.path.abspath(datadir),
-                                            'associated_ids.{}'.format(int(time.time())))
-                fo = open(backup_fname, 'w')
-                json.dump(dict(pids=committed_pids,
-                               bids=committed_bids,
-                               transaction_id=coin_txid,
-                               merged=merged), fo)
-                fo.close()
-                logger.info("Failed transaction_id association data stored in {0}. Call sc_rpc "
-                            "associate_trans_file {0} to retry manually".format(backup_fname))
+                retries = 0
+                while retries < 5:
+                    try:
+                        if self.associate_trans(committed_pids, committed_bids, coin_txid, merged=merged):
+                            logger.info("Recieved success response from the server.")
+                            associated = True
+                            break
+                    except Exception:
+                        logger.error("Server returned failure response, retrying "
+                                     "{} more times.".format(4 - retries), exc_info=True)
+                    retries += 1
+                    time.sleep(15)
+            finally:
+                if not associated:
+                    backup_fname = os.path.join(os.path.abspath(datadir),
+                                                'associated_ids.{}'.format(int(time.time())))
+                    fo = open(backup_fname, 'w')
+                    json.dump(dict(pids=committed_pids,
+                                   bids=committed_bids,
+                                   transaction_id=coin_txid,
+                                   merged=merged), fo)
+                    fo.close()
+                    logger.info("Failed transaction_id association data stored in {0}. Call sc_rpc "
+                                "associate_trans_file {0} to retry manually".format(backup_fname))
 
 
 def entry():

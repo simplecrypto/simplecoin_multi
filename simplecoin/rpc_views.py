@@ -1,7 +1,8 @@
 from itsdangerous import TimedSerializer
 from flask import current_app, request, abort
 
-from .models import Transaction, Payout, BonusPayout
+from .models import Transaction, Payout, BonusPayout, TransactionSummary
+from .utils import Benchmark
 from .views import main
 from . import db
 
@@ -20,21 +21,24 @@ def get_payouts():
     if isinstance(args, dict) and args['merged']:
         merged = args['merged']
 
-    payouts = (Payout.query.filter_by(transaction_id=None, locked=False, merged_type=merged).
-               join(Payout.block, aliased=True).filter_by(mature=True)).all()
-    bonus_payouts = (BonusPayout.query.filter_by(transaction_id=None, locked=False, merged_type=merged).
-                     join(BonusPayout.block, aliased=True).filter_by(mature=True)).all()
+    with Benchmark("Fetching payout information"):
+        pids = [(p.user, p.amount, p.id) for p in Payout.query.filter_by(transaction_id=None, locked=False, merged_type=merged).
+                join(Payout.block, aliased=True).filter_by(mature=True)]
+        bids = [(p.user, p.amount, p.id) for p in BonusPayout.query.filter_by(transaction_id=None, locked=False, merged_type=merged).
+                join(BonusPayout.block, aliased=True).filter_by(mature=True)]
 
-    pids = [(p.user, p.amount, p.id) for p in payouts]
-    bids = [(p.user, p.amount, p.id) for p in bonus_payouts]
-
-    if lock:
-        current_app.logger.info("Locking pids and bids at retriever request.")
-        for payout in payouts:
-            payout.locked = True
-        for payout in bonus_payouts:
-            payout.locked = True
-        db.session.commit()
+        if lock:
+            if bids:
+                current_app.logger.info("Locking {} bonus ids at retriever request."
+                                        .format(len(bids)))
+                (BonusPayout.query.filter(BonusPayout.id.in_(p[2] for p in bids))
+                 .update({BonusPayout.locked: True}, synchronize_session=False))
+            if pids:
+                current_app.logger.info("Locking {} payout ids at retriever request."
+                                        .format(len(pids)))
+                (Payout.query.filter(Payout.id.in_(p[2] for p in pids))
+                 .update({Payout.locked: True}, synchronize_session=False))
+            db.session.commit()
     return s.dumps([pids, bids, lock])
 
 
@@ -66,20 +70,46 @@ def update_transactions():
         abort(400)
 
     if 'coin_txid' in data:
-        merged_type = data.get('merged', None)
-        coin_trans = Transaction.create(data['coin_txid'], merged_type=merged_type)
-        db.session.flush()
-        Payout.query.filter(Payout.id.in_(data['pids'])).update(
-            {Payout.transaction_id: coin_trans.txid}, synchronize_session=False)
-        BonusPayout.query.filter(BonusPayout.id.in_(data['bids'])).update(
-            {BonusPayout.transaction_id: coin_trans.txid}, synchronize_session=False)
-        db.session.commit()
+        with Benchmark("Associating payout transaction ids"):
+            merged_type = data.get('merged', None)
+            coin_trans = Transaction.create(data['coin_txid'], merged_type=merged_type)
+            db.session.flush()
+            user_amounts = {}
+            user_counts = {}
+            for payout in Payout.query.filter(Payout.id.in_(data['pids'])):
+                user_counts.setdefault(payout.user, 0)
+                user_amounts.setdefault(payout.user, 0)
+                user_amounts[payout.user] += payout.amount
+                user_counts[payout.user] += 1
+
+            for payout in BonusPayout.query.filter(BonusPayout.id.in_(data['bids'])):
+                user_counts.setdefault(payout.user, 0)
+                user_amounts.setdefault(payout.user, 0)
+                user_amounts[payout.user] += payout.amount
+                user_counts[payout.user] += 1
+
+            for user in user_counts:
+                TransactionSummary.create(
+                    coin_trans.txid, user, user_amounts[user], user_counts[user])
+
+            if data['pids']:
+                Payout.query.filter(Payout.id.in_(data['pids'])).update(
+                    {Payout.transaction_id: coin_trans.txid}, synchronize_session=False)
+            if data['bids']:
+                BonusPayout.query.filter(BonusPayout.id.in_(data['bids'])).update(
+                    {BonusPayout.transaction_id: coin_trans.txid}, synchronize_session=False)
+
+            db.session.commit()
     elif data['reset']:
-        Payout.query.filter(Payout.id.in_(data['pids'])).update(
-            {Payout.locked: False}, synchronize_session=False)
-        BonusPayout.query.filter(BonusPayout.id.in_(data['bids'])).update(
-            {BonusPayout.locked: False}, synchronize_session=False)
-        db.session.commit()
+        with Benchmark("Resetting {:,} payouts and {:,} bonus payouts locked status"
+                       .format(len(data['pids']), len(data['bids']))):
+            if data['pids']:
+                Payout.query.filter(Payout.id.in_(data['pids'])).update(
+                    {Payout.locked: False}, synchronize_session=False)
+            if data['bids']:
+                BonusPayout.query.filter(BonusPayout.id.in_(data['bids'])).update(
+                    {BonusPayout.locked: False}, synchronize_session=False)
+            db.session.commit()
         return s.dumps(dict(success=True, result="Successfully reset"))
 
     return s.dumps(True)
