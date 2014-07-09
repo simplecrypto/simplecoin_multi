@@ -264,12 +264,21 @@ def get_pool_acc_rej(timedelta=None):
     """ Get accepted and rejected share count totals for the last month """
     if timedelta is None:
         timedelta = datetime.timedelta(days=30)
+
+    # Pull from five minute shares if we're looking at a day timespan
+    if timedelta <= datetime.timedelta(days=1):
+        rej_typ = FiveMinuteReject
+        acc_typ = FiveMinuteShare
+    else:
+        rej_typ = OneHourReject
+        acc_typ = OneHourShare
+
     one_month_ago = datetime.datetime.utcnow() - timedelta
-    rejects = (OneHourReject.query.
-               filter(OneHourReject.time >= one_month_ago).
-               filter_by(user="pool_stale").order_by(OneHourReject.time.asc()))
-    accepts = (OneHourShare.query.
-               filter(OneHourShare.time >= one_month_ago).
+    rejects = (rej_typ.query.
+               filter(rej_typ.time >= one_month_ago).
+               filter_by(user="pool_stale"))
+    accepts = (acc_typ.query.
+               filter(acc_typ.time >= one_month_ago).
                filter_by(user="pool"))
     reject_total = sum([hour.value for hour in rejects])
     accept_total = sum([hour.value for hour in accepts])
