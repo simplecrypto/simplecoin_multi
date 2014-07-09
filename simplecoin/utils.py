@@ -107,14 +107,16 @@ def last_blockheight(merged_type=None):
     return last.height
 
 
-@cache.memoize(timeout=3600)
-def get_block_stats():
+#@cache.memoize(timeout=3600)
+def get_block_stats(timedelta=None):
+    if timedelta is None:
+        timedelta = datetime.timedelta(days=30)
     average_diff = g.average_difficulty
     blocks = all_blocks()
     total_shares = 0
     total_difficulty = 0
     total_orphans = 0
-    one_month_ago = datetime.datetime.utcnow() - datetime.timedelta(days=30)
+    one_month_ago = datetime.datetime.utcnow() - timedelta
     for shares_to_solve, bits, orphan in (
         db.engine.execution_options(stream_results=True).
         execute(select([Block.shares_to_solve, Block.bits, Block.orphan]).
@@ -239,7 +241,6 @@ def total_paid(address, merged_type=None):
     total_p = (TransactionSummary.query.filter_by(user=address).
                join(TransactionSummary.transaction, aliased=True).
                filter_by(merged_type=merged_type))
-    current_app.logger.info((merged_type, len(total_p.all())))
     return int(sum([tx.amount for tx in total_p]))
 
 

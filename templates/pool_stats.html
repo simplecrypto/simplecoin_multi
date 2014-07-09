@@ -4,11 +4,30 @@
 {% block body %}
 <script>
 $(document).ready(function() {
-
   {# Initial graph generation #}
   generate_graph('hour', '%H:%M %p', 'pool');
-
-
+  var stats;
+  $("#toggleHidden").click(function (){
+    console.log("clicked");
+    if ($("#detailedStats").html()) {
+      $("#detailedStats").html('');
+      $(".collapse-button").html('[ + ]');
+    } else {
+      if (stats == undefined) {
+        $("#detailedStats").html("<img src='{{ config['assets_address'] | safe }}/img/712.GIF' style='margin-left: auto; margin-right:auto; display:block; padding:35px;'>");
+        $.ajax({
+          url: "/extra_pool_stats",
+        }).done(function(data) {
+          stats = data;
+          $(".collapse-button").html('[ - ]');
+          $("#detailedStats").html(stats);
+        });
+      } else {
+        $(".collapse-button").html('[ - ]');
+        $("#detailedStats").html(stats);
+      }
+    }
+  });
 });
 </script>
 
@@ -141,6 +160,14 @@ $(document).ready(function() {
           <p><span>{{ orphan_perc | round(2) }}%</span></p>
         </h4>
       </div>
+    </div>
+  </div>
+  <div class="clearfix"></div>
+  <div class="panel panel-default pointer" id="toggleHidden" style="background-color:#243749;">
+    <div class="panel-body" style="padding: 0px;">
+      <div class="btn btn-default pull-right btn-sm collapse-button">[ + ]</div>
+      <h4 style="padding: 10px;">Detailed Stats</h4>
+      <div id="detailedStats"></div>
     </div>
   </div>
 </div>

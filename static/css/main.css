@@ -179,6 +179,10 @@ g.axis {
     min-width:42px;
 }
 
+.pointer {
+  cursor: pointer;
+}
+
 /*************
 Default Theme
 *************/

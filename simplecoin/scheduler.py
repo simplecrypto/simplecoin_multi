@@ -588,7 +588,7 @@ def general_cleanup():
         current_app.logger.info("Payouts already cleaned up, exiting")
         return
     start_id = start.id + 1
-    stop_id = Payout.query.filter(Payout.created_at < one_week_ago).first().id
+    stop_id = Payout.query.filter(Payout.created_at < one_week_ago).order_by(Payout.id).first().id
     logger.info("Diff between first share {:,} and last {:,}: {:,}"
                 .format(stop_id, start_id, start_id - stop_id))
 

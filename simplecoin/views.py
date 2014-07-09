@@ -140,6 +140,17 @@ def network_data():
     return dict(merged=merged, **main_net)
 
 
+@main.route("/extra_pool_stats")
+def extra_pool_stats():
+    data = []
+    for timedelta, title in [(datetime.timedelta(days=1), "Last 24 Hours"),
+                             (datetime.timedelta(days=7), "Last Week"),
+                             (datetime.timedelta(days=30), "Last Month"),
+                             (datetime.timedelta(days=365), "All Time")]:
+        data.append((title, get_block_stats(timedelta)))
+    return render_template('extra_pool_stats.html', data=data)
+
+
 @main.route("/network_stats/<graph_type>/<window>")
 def network_graph_data(graph_type=None, window="hour"):
     if not graph_type:
@@ -224,7 +235,7 @@ def pool_stats_api():
         ret['est_sec_remaining'] = (float(g.shares_to_solve) - g.completed_block_shares) / sps
     else:
         ret['est_sec_remaining'] = 'infinite'
-    ret['pool_luck'], ret['effective_return'], ret['orphan_perc'] = get_block_stats(g.average_difficulty)
+    ret['pool_luck'], ret['effective_return'], ret['orphan_perc'] = get_block_stats()
     return jsonify(**ret)
 
 

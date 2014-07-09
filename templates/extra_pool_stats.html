@@ -1,0 +1,14 @@
+<div class="bs-example table-responsive">
+  <table class="table table-striped table-hover tablesorter" id="blockTable">
+    <tbody>
+      {% for title, (pool_luck, effective_return, orphan_perc) in data %}
+      <tr>
+        <th>{{ title }}</th>
+        <th>{{ (pool_luck * 100) | round(2) }}%</th>
+        <th>{{ "{:,.4f}".format(effective_return) }}&nbsp;{{ config['coin_symbol'] | safe }}/MH/Day</th>
+        <th>{{ orphan_perc | sig_round(2) }}%</th>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
