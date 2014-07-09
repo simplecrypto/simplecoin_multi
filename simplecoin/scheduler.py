@@ -579,8 +579,8 @@ def general_cleanup():
     Event.query.filter(Event.time < one_hour_ago).delete()
     db.session.commit()
 
-    sleep_interval = 0.0
-    chunk_size = 100000
+    sleep_interval = 4.0
+    chunk_size = 10000
     one_week_ago = now - datetime.timedelta(days=7)
     logger.info("Removing all payouts older than {}".format(one_week_ago))
     start = Payout.query.filter(Payout.created_at < one_week_ago).order_by(Payout.id.desc()).first()
