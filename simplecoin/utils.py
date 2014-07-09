@@ -2,15 +2,16 @@ import calendar
 import datetime
 import time
 import itertools
-
 import yaml
-from flask import current_app, session
+
+from sqlalchemy.sql import select
+from flask import current_app, session, g
 from sqlalchemy.sql import func
 from cryptokit.base58 import get_bcaddress_version
-
+from cryptokit import bits_to_difficulty
 from bitcoinrpc import CoinRPCException
+
 from . import db, coinserv, cache, root
-from .utils import db, coinserv, cache, root
 from .models import (DonationPercent, OneMinuteReject, OneMinuteShare,
                      FiveMinuteShare, FiveMinuteReject, Payout, BonusPayout,
                      Block, OneHourShare, OneHourReject, Share, Status,
@@ -105,16 +106,24 @@ def last_blockheight(merged_type=None):
         return 0
     return last.height
 
-@cache.cached(timeout=3600, key_prefix='block_stats')
-def get_block_stats(average_diff):
+
+@cache.memoize(timeout=3600)
+def get_block_stats():
+    average_diff = g.average_difficulty
     blocks = all_blocks()
     total_shares = 0
     total_difficulty = 0
     total_orphans = 0
-    for block in blocks:
-        total_shares += block.shares_to_solve
-        total_difficulty += block.difficulty
-        if block.orphan is True:
+    one_month_ago = datetime.datetime.utcnow() - datetime.timedelta(days=30)
+    for shares_to_solve, bits, orphan in (
+        db.engine.execution_options(stream_results=True).
+        execute(select([Block.shares_to_solve, Block.bits, Block.orphan]).
+                where(Block.merged_type == None).
+                where(Block.found_at >= one_month_ago).
+                order_by(Block.height.desc()))):
+        total_shares += shares_to_solve
+        total_difficulty += bits_to_difficulty(bits)
+        if orphan is True:
             total_orphans += 1
 
     total_blocks = len(blocks)
@@ -251,19 +260,21 @@ def total_unpaid(address, merged_type=None):
 
 @cache.cached(timeout=3600, key_prefix='get_pool_acc_rej')
 def get_pool_acc_rej():
-    rejects = db.session.query(OneHourReject).filter_by(user="pool_stale").order_by(OneHourReject.time.asc())
+    """ Get accepted and rejected share count totals for the last month """
+    one_month_ago = datetime.datetime.utcnow() - datetime.timedelta(days=30)
+    rejects = (OneHourReject.query.
+               filter(OneHourReject.time >= one_month_ago).
+               filter_by(user="pool_stale").order_by(OneHourReject.time.asc()))
+    accepts = (OneHourShare.query.
+               filter(OneHourShare.time >= one_month_ago).
+               filter_by(user="pool"))
     reject_total = sum([hour.value for hour in rejects])
-    accepts = db.session.query(OneHourShare.value).filter_by(user="pool")
-    # if we found rejects, set the earliest accepted share to consider as the
-    # same time we've recieved a reject. This is a hack since we didn't
-    # start tracking rejected shares until a few weeks after accepted...
-    if reject_total:
-        accepts = accepts.filter(OneHourShare.time >= rejects[0].time)
     accept_total = sum([hour.value for hour in accepts])
     return reject_total, accept_total
 
 
 def collect_acct_items(address, limit, offset=0, merged_type=None):
+    """ Get account items for a specific user """
     payouts = (Payout.query.filter_by(user=address, merged_type=merged_type).
                order_by(Payout.id.desc()).limit(limit).offset(offset))
     bonuses = (BonusPayout.query.filter_by(user=address, merged_type=merged_type).

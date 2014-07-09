@@ -46,7 +46,7 @@ $(document).ready(function() {
       <div class="panel-body text-center">
         <small>Pool Efficiency</small>&nbsp;
         <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                     title="All time efficiency for shares at least 25 hours old. Accepted / Total = {{ accept_total }} / ({{ reject_total }} + {{ accept_total }}). Updated hourly."></i>
+                     title="Last 30 days efficiency for shares at least 25 hours old. Accepted / Total = {{ accept_total }} / ({{ reject_total }} + {{ accept_total }}). Updated hourly."></i>
         <br>
         <h4>
           <p><span>{{ efficiency | round(2) }}%</span></p>
@@ -109,7 +109,7 @@ $(document).ready(function() {
       <div class="panel-body text-center">
         <small>Pool&nbsp;Luck</small>&nbsp;
         <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                     title="All time luck for the pool. Over time this will approach 100%. Lower numbers are worse, higher numbers are better"></i>
+                     title="Last 30 days luck for the pool. Over time this will approach 100%. Lower numbers are worse, higher numbers are better"></i>
         <br>
         <h4>
           <p><span>{{ (pool_luck*100)| round(2) }}%</span></p>
@@ -122,7 +122,7 @@ $(document).ready(function() {
       <div class="panel-body text-center">
         <small>Current&nbsp;Effective&nbsp;Return</small>
         <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                     title="Expected return per Megahash per day, based on current all time pool luck, the average difficulty for the last 500 blocks, and removes the percentage of orphaned blocks."></i>
+                     title="Expected return per Megahash per day, based on last 30 days pool luck, the average difficulty for the last 500 blocks, and removes the percentage of orphaned blocks."></i>
         <br>
         <h4>
           <p><span>{{ effective_return | round(2) }}&nbsp;{{ config['coin_symbol'] | safe }}/MH/Day</span></p>
@@ -135,7 +135,7 @@ $(document).ready(function() {
       <div class="panel-body text-center">
         <small>Orphan&nbsp;Percentage</small>
         <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                     title="All time percentage of blocks that are orphaned"></i>
+                     title="Last 30 days percentage of blocks that are orphaned"></i>
         <br>
         <h4>
           <p><span>{{ orphan_perc | round(2) }}%</span></p>

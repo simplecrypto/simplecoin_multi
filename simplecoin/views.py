@@ -89,7 +89,7 @@ def pool_stats():
                 filter_by(merged_type=cfg['currency_name']).
                 order_by(Block.height.desc()).limit(blocks_show))
         merged_blocks.append((cfg['currency_name'], cfg['name'], blks))
-    pool_luck, effective_return, orphan_perc = get_block_stats(g.average_difficulty)
+    pool_luck, effective_return, orphan_perc = get_block_stats()
     reject_total, accept_total = get_pool_acc_rej()
     efficiency = get_pool_eff()
 
@@ -114,6 +114,7 @@ def network_stats():
 @main.route("/api/network_stats")
 def network_stats_api():
     return jsonify(**network_data())
+
 
 def network_data():
     def collect_network(curr=None, config=None):
