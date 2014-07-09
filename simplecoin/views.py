@@ -147,7 +147,7 @@ def extra_pool_stats():
                              (datetime.timedelta(days=7), "Last Week"),
                              (datetime.timedelta(days=30), "Last Month"),
                              (datetime.timedelta(days=365), "All Time")]:
-        data.append((title, get_block_stats(timedelta)))
+        data.append((title, get_block_stats(timedelta), get_pool_eff(timedelta)))
     return render_template('extra_pool_stats.html', data=data)
 
 

@@ -165,7 +165,7 @@ $(document).ready(function() {
   <div class="clearfix"></div>
   <div class="panel panel-default pointer" id="toggleHidden" style="background-color:#243749;">
     <div class="panel-body" style="padding: 0px;">
-      <div class="btn btn-default pull-right btn-sm collapse-button">[ + ]</div>
+      <div class="btn btn-default pull-right btn-sm" style="font-weight:bold; margin:15px;">[ + ]</div>
       <h4 style="padding: 10px;">Detailed Stats</h4>
       <div id="detailedStats"></div>
     </div>
@@ -179,6 +179,6 @@ $(document).ready(function() {
   {% set blocks = block_list %}
   <h2>Merge Mined {{ name }} Blocks</h2>
   {% include "block_table.html" %}
-  <a href="/blocks/{{ curr }}">View all {{ name }} blocks</a>
+  <a, get_pool_eff(timedelta) href="/blocks/{{ curr }}">View all {{ name }} blocks</a>
 {% endfor %}
 {% endblock %}

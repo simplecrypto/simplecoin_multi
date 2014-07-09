@@ -259,10 +259,12 @@ def total_unpaid(address, merged_type=None):
     return confirmed, unconfirmed
 
 
-@cache.cached(timeout=3600, key_prefix='get_pool_acc_rej')
-def get_pool_acc_rej():
+@cache.memoize(timeout=3600)
+def get_pool_acc_rej(timedelta=None):
     """ Get accepted and rejected share count totals for the last month """
-    one_month_ago = datetime.datetime.utcnow() - datetime.timedelta(days=30)
+    if timedelta is None:
+        timedelta = datetime.timedelta(days=30)
+    one_month_ago = datetime.datetime.utcnow() - timedelta
     rejects = (OneHourReject.query.
                filter(OneHourReject.time >= one_month_ago).
                filter_by(user="pool_stale").order_by(OneHourReject.time.asc()))
@@ -443,8 +445,8 @@ def collect_user_stats(address):
                 total_shares=total_shares)
 
 
-def get_pool_eff():
-    rej, acc = get_pool_acc_rej()
+def get_pool_eff(timedelta=None):
+    rej, acc = get_pool_acc_rej(timedelta)
     # avoid zero division error
     if not rej and not acc:
         return 100
