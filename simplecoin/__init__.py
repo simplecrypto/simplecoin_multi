@@ -1,27 +1,26 @@
-from datetime import datetime, timedelta
 import subprocess
 import logging
 import os
-
-from math import log10, floor
-from flask import Flask, current_app
-from flask.ext.sqlalchemy import SQLAlchemy
-from jinja2 import FileSystemLoader
-
-from werkzeug.local import LocalProxy
 import yaml
 
+from redis import Redis
+from datetime import datetime, timedelta
+from math import log10, floor
+from flask import Flask, current_app
 from flask.ext.cache import Cache
+from flask.ext.sqlalchemy import SQLAlchemy
+from jinja2 import FileSystemLoader
+from werkzeug.local import LocalProxy
 from bitcoinrpc import AuthServiceProxy
 
 
 root = os.path.abspath(os.path.dirname(__file__) + '/../')
 db = SQLAlchemy()
 cache = Cache()
-coinserv = LocalProxy(
-    lambda: getattr(current_app, 'rpc_connection', None))
-merge_coinserv = LocalProxy(
-    lambda: getattr(current_app, 'merge_rpc_connection', None))
+coinservs = LocalProxy(
+    lambda: getattr(current_app, 'rpc_connections', None))
+redis = LocalProxy(
+    lambda: getattr(current_app, 'redis', None))
 
 
 def sig_round(x, sig=2):
@@ -77,6 +76,7 @@ def create_app(config='/config.yml', celery=False):
     cache_config = {'CACHE_TYPE': 'redis'}
     cache_config.update(app.config.get('main_cache', {}))
     cache.init_app(app, config=cache_config)
+    app.redis = Redis(**app.config.get('main_cache', {}))
 
     if not celery:
         hdlr = logging.FileHandler(app.config.get('log_file', 'webserver.log'))

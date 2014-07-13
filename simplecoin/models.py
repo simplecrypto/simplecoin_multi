@@ -17,13 +17,6 @@ from .model_lib import base
 from . import db, cache, sig_round
 
 
-class Blob(base):
-    """ Used to store misc single value blobs of data, such as the current
-    block height and difficulty. """
-    key = db.Column(db.String, primary_key=True)
-    data = db.Column(HSTORE, default=dict)
-
-
 class Block(base):
     """ This class stores metadata on all blocks found by the pool """
     # the hash of the block for orphan checking
@@ -136,20 +129,6 @@ class Block(base):
         return max(0, confirms_req - (bh - self.height))
 
 
-class Share(base):
-    """ This class generates a table containing every share accepted for a
-    round """
-    id = db.Column(db.BigInteger, primary_key=True)
-    user = db.Column(db.String)
-    shares = db.Column(db.Integer)
-
-    @classmethod
-    def create(cls, user, shares):
-        share = cls(user=user, shares=shares)
-        db.session.add(share)
-        return share
-
-
 class Transaction(base):
     txid = db.Column(db.String, primary_key=True)
     confirmed = db.Column(db.Boolean, default=False)
@@ -179,124 +158,6 @@ class TransactionSummary(base):
     __table_args__ = (
         db.Index('summary_user_idx', 'user'),
     )
-
-
-class Status(base):
-    """ This class generates a table containing every share accepted for a
-    round """
-    user = db.Column(db.String, primary_key=True)
-    worker = db.Column(db.String, primary_key=True)
-    status = db.Column(db.String)
-    time = db.Column(db.DateTime)
-
-    @property
-    def parsed_status(self):
-        return json.loads(self.status)
-
-    def pretty_json(self, gpu=0):
-        return json.dumps(json.loads(self.status)['gpus'][gpu], indent=4, sort_keys=True)
-
-    @property
-    def stale(self):
-        ten_min_ago = datetime.utcnow() - timedelta(minutes=10)
-        if ten_min_ago >= self.time:
-            return True
-        else:
-            return False
-
-
-class Threshold(base):
-    """ Notification Thresholds for workers """
-    user = db.Column(db.String, primary_key=True)
-    worker = db.Column(db.String, primary_key=True)
-    temp_thresh = db.Column(db.Integer)
-    offline_thresh = db.Column(db.Integer)
-    hashrate_thresh = db.Column(db.Integer)
-    # Is there an error with any of these thresholds
-    hashrate_err = db.Column(db.Boolean, default=False)
-    temp_err = db.Column(db.Boolean, default=False)
-    offline_err = db.Column(db.Boolean, default=False)
-    # whether we should notify of the condition becoming fixed
-    green_notif = db.Column(db.Boolean, default=True)
-    emails = db.Column(ARRAY(db.String))
-
-    def report_condition(self, message, typ, new_state):
-        db.session.refresh(self, lockmode='update')
-        # we got beat in a race condition...
-        if getattr(self, typ) == new_state:
-            current_app.logger.info("Ignored sending of report_condition due "
-                                    "to race condition resolution")
-            return
-        setattr(self, typ, new_state)
-
-        # if we shouldn't notify of state going up
-        if new_state and not self.green_notif:
-            return
-        current_app.logger.info("Reporting '{}' for worker {}; addr: {}"
-                                .format(message, self.worker, self.user))
-
-        # get all the events that happened for these addresses in the last hour
-        hour_ago = datetime.utcnow() - timedelta(hours=1)
-        events = (Event.query.filter_by(worker=self.worker, user=self.user).
-                  filter(Event.address.in_(self.emails)).
-                  filter(Event.time >= hour_ago).all())
-
-        try:
-            econf = current_app.config['email']
-            if not econf.get('enabled', True):
-                current_app.logger.warn("Skipping actual email send because disabled!")
-                return True
-
-            send_addr = econf['send_address']
-            host = smtplib.SMTP(
-                host=econf['server'],
-                port=econf['port'],
-                local_hostname=econf['ehlo'],
-                timeout=econf['timeout'])
-            host.set_debuglevel(econf['debug'])
-            if econf['tls']:
-                host.starttls()
-            if econf['ehlo']:
-                host.ehlo()
-
-            host.login(econf['username'], econf['password'])
-            email_limit = current_app.config.get('emails_per_hour_cap', 6)
-            # Send the message via our own SMTP server, but don't include the
-            # envelope header.
-            for address in self.emails:
-                count = len([a for a in events if a.address == address])
-                if count <= email_limit:
-                    msg = MIMEText('http://simpledoge.com/{}'.format(self.user))
-                    msg['Subject'] = message
-                    msg['From'] = 'Simple Doge <simpledogepool@gmail.com>'
-                    msg['To'] = address
-                    host.sendmail(send_addr, address, msg.as_string())
-                else:
-                    current_app.logger.info(
-                        "Not sending email to {} because over limit"
-                        .format(address, email_limit))
-                ev = Event(user=self.user, worker=self.worker, address=address)
-                db.session.add(ev)
-        except smtplib.SMTPException:
-            current_app.logger.warn('Email unable to send', exc_info=True)
-            return False
-        else:
-            host.quit()
-
-        return True
-
-
-class Event(base):
-    time = db.Column(db.DateTime, primary_key=True, default=datetime.utcnow)
-    user = db.Column(db.String, primary_key=True)
-    worker = db.Column(db.String, primary_key=True)
-    address = db.Column(db.String, primary_key=True)
-
-
-class MergeAddress(base):
-    user = db.Column(db.String, primary_key=True)
-    merged_type = db.Column(db.String, primary_key=True)
-    merge_address = db.Column(db.String)
 
 
 class DonationPercent(base):

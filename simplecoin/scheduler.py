@@ -10,16 +10,16 @@ import argparse
 import json
 
 from sqlalchemy.sql import select
-from cryptokit import bits_to_shares, bits_to_difficulty
 from bitcoinrpc import CoinRPCException
 from flask import current_app
 from time import sleep
 from apscheduler.scheduler import Scheduler
 from apscheduler.threadpool import ThreadPool
 from math import ceil, floor
+from cryptokit.base58 import get_bcaddress_version
 
 from simplecoin import create_app
-from simplecoin import db, coinserv, cache, merge_coinserv
+from simplecoin import db, coinserv, cache, merge_coinserv, redis
 from simplecoin.models import (
     Share, Block, OneMinuteShare, Payout, Transaction, Blob, FiveMinuteShare,
     Status, OneMinuteReject, OneMinuteTemperature, FiveMinuteReject,
@@ -136,36 +136,6 @@ def update_online_workers():
 
 
 @crontab
-def update_pplns_est():
-    """
-    Generates redis cached value for share counts of all users based on PPLNS window
-    """
-    logger.info("Recomputing PPLNS for users")
-    # grab configured N
-    mult = int(current_app.config['last_n'])
-    # grab configured hashes in a n1 share
-    hashes_per_share = current_app.config.get('hashes_per_share', 65536)
-    # generate average diff from last 500 blocks
-    diff = cache.get('difficulty_avg')
-    if diff is None:
-        logger.warn("Difficulty average is blank, can't calculate pplns estimate")
-        return
-
-    # Calculate the total shares to that are 'counted'
-    total_shares = ((float(diff) * (2 ** 32)) / hashes_per_share) * mult
-
-    # Loop through all shares, descending order, until we'd distributed the
-    # shares
-    user_shares, total_grabbed = get_sharemap(None, total_shares)
-    user_shares = {'pplns_' + k: v for k, v in user_shares.iteritems()}
-
-    cache.set('pplns_total_shares', total_grabbed, timeout=40 * 60)
-    cache.set('pplns_cache_time', datetime.datetime.utcnow(), timeout=40 * 60)
-    cache.set_many(user_shares, timeout=40 * 60)
-    cache.set('pplns_user_shares', user_shares, timeout=40 * 60)
-
-
-@crontab
 def cache_user_donation():
     """
     Grab all user donations and loop through them then cache donation %
@@ -245,101 +215,6 @@ def update_block_state():
 
 
 @crontab
-def cleanup(simulate=False, chunk_size=None, sleep_interval=None):
-    """
-    Finds all the shares that will no longer be used and removes them from
-    the database.
-    """
-    t = time.time()
-    # allow overridable configuration defaults
-    chunk_size = chunk_size or current_app.config.get('cleanup_chunk_size', 10000)
-    sleep_interval = sleep_interval or current_app.config.get('cleanup_sleep_interval', 1.0)
-
-    diff = cache.get('difficulty_avg')
-    if diff is None:
-        logger.warn("Difficulty average is blank, can't safely cleanup")
-        return
-    # count all unprocessed blocks
-    unproc_blocks = len(Block.query.filter_by(processed=False, merged_type=None).all())
-    # make sure we leave the right number of shares for unprocessed block
-    # to be distributed
-    unproc_n = unproc_blocks * current_app.config['last_n']
-    # plus our requested cleanup n for a safe margin
-    cleanup_n = current_app.config.get('cleanup_n', 4) + current_app.config['last_n']
-    # calculate how many n1 shares that is
-    total_shares = int(round(((float(diff) * (2 ** 16)) * (cleanup_n + unproc_n))))
-
-    logger.info("Chunk size {:,}; Sleep time {}".format(chunk_size, sleep_interval))
-    logger.info("Unprocessed blocks: {}; {} Extra N kept".format(unproc_blocks, unproc_n))
-    logger.info("Safety margin N from config: {}".format(cleanup_n))
-    logger.info("Total shares being saved: {:,}".format(total_shares))
-    # upper and lower iteration bounds
-    start_id = Share.query.order_by(Share.id.desc()).first().id + 1
-    stop_id = Share.query.order_by(Share.id).first().id
-    logger.info("Diff between first share {:,} and last {:,}: {:,}"
-                .format(stop_id, start_id, start_id - stop_id))
-
-    rows = 0
-    counted_shares = 0
-    stale_id = 0
-    # iterate through shares in newest to oldest order to find the share
-    # id that is oldest required to be kept
-    while counted_shares < total_shares and start_id > stop_id:
-        res = (db.engine.execute(select([Share.shares, Share.id]).
-                                 order_by(Share.id.desc()).
-                                 where(Share.id >= start_id - chunk_size).
-                                 where(Share.id < start_id)))
-        chunk = res.fetchall()
-        for shares, id in chunk:
-            rows += 1
-            counted_shares += shares
-            if counted_shares >= total_shares:
-                stale_id = id
-                break
-        logger.info("Fetched rows {:,} to {:,}. Found {:,} shares so far. Avg share/row {:,.2f}"
-                    .format(start_id - chunk_size, start_id, counted_shares, counted_shares / rows))
-        start_id -= chunk_size
-
-    if not stale_id:
-        logger.info("Stale ID is 0, deleting nothing.")
-        return
-
-    logger.info("Time to identify proper id {}"
-                .format(datetime.timedelta(seconds=time.time() - t)))
-    logger.info("Rows iterated to find stale id: {:,}".format(rows))
-    logger.info("Cleaning all shares older than id {:,}, up to {:,} rows. Saving {:,} rows."
-                .format(stale_id, stale_id - stop_id, stale_id - start_id))
-    if simulate:
-        logger.info("Simulate mode, exiting")
-        return
-
-    # To prevent integrity errors, all blocks linking to a share that's
-    # going to be deleted needs to be updated to remove reference
-    Block.query.filter(Block.last_share_id <= stale_id).update({Block.last_share_id: None})
-    db.session.commit()
-
-    total_sleep = 0
-    total = stale_id - stop_id
-    remain = total
-    # delete all shares that are sufficiently old
-    while remain > 0:
-        bottom = stale_id - chunk_size
-        res = (Share.query.filter(Share.id < stale_id).
-                filter(Share.id >= bottom).delete(synchronize_session=False))
-        db.session.commit()
-        remain -= chunk_size
-        logger.info("Deleted {:,} rows from {:,} to {:,}\t{:,.4f}\t{:,}"
-                    .format(res, stale_id, bottom, remain * 100.0 / total, remain))
-        stale_id -= chunk_size
-        if res:  # only sleep if we actually deleted something
-            sleep(sleep_interval)
-            total_sleep += sleep_interval
-
-    logger.info("Time to completion {}".format(datetime.timedelta(time.time() - t)))
-    logger.info("Time spent sleeping {}".format(datetime.timedelta(seconds=total_sleep)))
-
-
-@crontab
 def run_payouts(simulate=False):
     """ Loops through all the blocks that haven't been paid out and attempts
     to pay them out """
@@ -372,49 +247,18 @@ def payout(hash=None, simulate=False):
         return
 
     logger.debug("Processing block height {}".format(block.height))
+    raw = redis.hgetall('block_shares_{}'.format(block.hash))
+    user_shares = {k: v for k, v in raw.iteritems() if get_bcaddress_version(k)}
+    total_shares = sum(user_shares.itervalues())
 
-    mult = int(current_app.config['last_n'])
-    total_shares = int((bits_to_shares(block.bits) * mult) / current_app.config.get('share_multiplier', 1))
-    logger.debug("Looking for up to {} total shares".format(total_shares))
-    if block.last_share_id is None:
-        logger.error("Can't process this block, it's shares have been deleted!")
-        return
-    logger.debug("Identified last matching share id as {}".format(block.last_share_id))
-
-    # if we found less than n, use what we found as the total
-    user_shares, total_shares = get_sharemap(block.last_share_id, total_shares)
-    logger.debug("Found {} shares".format(total_shares))
     if simulate:
-        out = "\n".join(["\t".join((user, str((amount * 100.0) / total_shares), str((amount * block.total_value) // total_shares), str(amount))) for user, amount in user_shares.iteritems()])
+        out = "\n".join(["\t".join((user,
+                                    str((amount * 100.0) / total_shares),
+                                    str((amount * block.total_value) // total_shares),
+                                    str(amount))) for user, amount in user_shares.iteritems()])
         logger.debug("Share distribution:\nUSR\t%\tBLK_PAY\tSHARE\n{}".format(out))
 
     logger.debug("Distribute_amnt: {}".format(block.total_value))
-    if block.merged_type:
-        merge_cfg = current_app.config['merged_cfg'][block.merged_type]
-        new_user_shares = {merge_cfg['donate_address']: 0}
-        # build a map of regular addresses to merged addresses
-        query = (MergeAddress.query.filter_by(merged_type=block.merged_type).
-                 filter(MergeAddress.user.in_(user_shares.keys())))
-        merge_addr_map = {m.user: m.merge_address for m in query}
-        logger.debug("Looking up merged mappings for merged_type {}, found {}"
-                     .format(block.merged_type, len(merge_addr_map)))
-
-        for user in user_shares:
-            merge_addr = merge_addr_map.get(user)
-            # if this user didn't set a merged mining address
-            if not merge_addr:
-                # give the excess to the donation address if set to not
-                # distribute unassigned
-                if not merge_cfg['distribute_unassigned']:
-                    new_user_shares[merge_cfg['donate_address']] += user_shares[user]
-                else:
-                    total_shares -= user_shares[user]
-                continue
-
-            new_user_shares.setdefault(merge_addr, 0)
-            new_user_shares[merge_addr] += user_shares[user]
-
-        user_shares = new_user_shares
 
     assert total_shares == sum(user_shares.itervalues())
 
@@ -449,15 +293,12 @@ def payout(hash=None, simulate=False):
     # dictionary keyed by address to hold donate/bonus percs and amnts
     user_perc_applied = {}
     user_perc = {}
-    if not block.merged_type:
-        default_perc = current_app.config.get('default_perc', 0)
-        # convert our custom percentages that apply to these users into an
-        # easy to access dictionary
-        custom_percs = DonationPercent.query.filter(DonationPercent.user.in_(user_shares.keys()))
-        custom_percs = {d.user: d.perc for d in custom_percs}
-    else:
-        default_perc = merge_cfg.get('default_perc', 0)
-        custom_percs = {}
+
+    default_perc = current_app.config.get('default_perc', 0)
+    # convert our custom percentages that apply to these users into an
+    # easy to access dictionary
+    custom_percs = DonationPercent.query.filter(DonationPercent.user.in_(user_shares.keys()))
+    custom_percs = {d.user: d.perc for d in custom_percs}
 
     for user, payout in user_payouts.iteritems():
         # use the custom perc, or fallback to the default
@@ -509,39 +350,12 @@ def payout(hash=None, simulate=False):
         db.session.rollback()
     else:
         # record the payout for each user
-        for user, amount in user_payouts.iteritems():
-            if amount == 0.0:
-                logger.info("Skip zero payout for USR: {}".format(user))
-                continue
-            Payout.create(user, amount, block, user_shares[user],
-                          user_perc[user], user_perc_applied.get(user, 0),
-                          merged_type=block.merged_type)
+        redis.hmset('block_payout_{}'.format(block.hash), user_payouts)
+
         # update the block status and collected amounts
         block.processed = True
         block.donated = donation_total
         block.bonus_payed = bonus_total
-        # record the donations as a bonus payout to the donate address
-        if donation_total > 0:
-            if block.merged_type:
-                donate_address = merge_cfg['donate_address']
-            else:
-                donate_address = current_app.config['donate_address']
-            BonusPayout.create(donate_address, donation_total,
-                                "Total donations from block {}"
-                                .format(block.height), block,
-                                merged_type=block.merged_type)
-            logger.info("Added bonus payout to donation address {} for {}"
-                        .format(donate_address, donation_total / 100000000.0))
-
-        block_bonus = current_app.config.get('block_bonus', 0)
-        if block_bonus > 0 and not block.merged_type:
-            BonusPayout.create(block.user, block_bonus,
-                               "Blockfinder bonus for block {}"
-                               .format(block.height), block)
-            logger.info("Added bonus payout for blockfinder {} for {}"
-                        .format(block.user, block_bonus / 100000000.0))
-
-        db.session.commit()
 
 
 @crontab
@@ -563,146 +377,6 @@ def compress_five_minute():
     FiveMinuteTemperature.compress()
     FiveMinuteHashrate.compress()
     FiveMinuteType.compress()
-    db.session.commit()
-
-
-@crontab
-def general_cleanup():
-    """ Cleans up old database items.
-    - Event for email rate limiting older than 1 hr.
-    - Old status messages
-    """
-    now = datetime.datetime.utcnow()
-    ten_hour_ago = now - datetime.timedelta(hours=12)
-    one_hour_ago = now - datetime.timedelta(hours=1)
-    Status.query.filter(Status.time < ten_hour_ago).delete()
-    Event.query.filter(Event.time < one_hour_ago).delete()
-    db.session.commit()
-
-    sleep_interval = 4.0
-    chunk_size = 10000
-    one_week_ago = now - datetime.timedelta(days=7)
-    logger.info("Removing all payouts older than {}".format(one_week_ago))
-    start = Payout.query.filter(Payout.created_at < one_week_ago).order_by(Payout.id.desc()).first()
-    if not start:
-        current_app.logger.info("Payouts already cleaned up, exiting")
-        return
-    start_id = start.id + 1
-    stop_id = Payout.query.filter(Payout.created_at < one_week_ago).order_by(Payout.id).first().id
-    logger.info("Diff between first share {:,} and last {:,}: {:,}"
-                .format(stop_id, start_id, start_id - stop_id))
-
-    t = time.time()
-    total_sleep = 0
-    total = start_id - stop_id
-    remain = total
-    # delete all shares that are sufficiently old
-    while remain > 0:
-        bottom = start_id - chunk_size
-        res = (Payout.query.filter(Payout.id < start_id).
-               filter(Payout.created_at < one_week_ago).
-               filter(Payout.id >= bottom).delete(synchronize_session=False))
-        db.session.commit()
-        remain -= chunk_size
-        logger.info("Deleted {:,} rows from {:,} to {:,}\t{:,.4f}\t{:,}"
-                    .format(res, start_id, bottom, remain * 100.0 / total, remain))
-        start_id -= chunk_size
-        if res:  # only sleep if we actually deleted something
-            sleep(sleep_interval)
-            total_sleep += sleep_interval
-
-    logger.info("Time to completion {}".format(datetime.timedelta(seconds=time.time() - t)))
-    logger.info("Time spent sleeping {}".format(datetime.timedelta(seconds=total_sleep)))
-    db.session.commit()
-
-
-@crontab
-def update_network():
-    """
-    Queries the RPC servers confirmed to update network stats information.
-    """
-    def set_data(gbt, curr=None):
-        prefix = ""
-        if curr:
-            prefix = curr + "_"
-        prev_height = cache.get(prefix + 'blockheight') or 0
-
-        if gbt['height'] == prev_height:
-            logger.debug("Not updating {} net info, height {} already recorded."
-                         .format(curr or 'main', prev_height))
-            return
-        logger.info("Updating {} net info for height {}.".format(curr or 'main', gbt['height']))
-
-        # set general information for this network
-        difficulty = bits_to_difficulty(gbt['bits'])
-        cache.set(prefix + 'blockheight', gbt['height'], timeout=1200)
-        cache.set(prefix + 'difficulty', difficulty, timeout=1200)
-        cache.set(prefix + 'reward', gbt['coinbasevalue'], timeout=1200)
-
-        # keep a configured number of blocks in the cache for getting average difficulty
-        cache.cache._client.lpush(prefix + 'block_cache', gbt['bits'])
-        cache.cache._client.ltrim(prefix + 'block_cache', 0, current_app.config['difficulty_avg_period'])
-        diff_list = cache.cache._client.lrange(prefix + 'block_cache', 0, current_app.config['difficulty_avg_period'])
-        total_diffs = sum([bits_to_difficulty(diff) for diff in diff_list])
-        cache.set(prefix + 'difficulty_avg', total_diffs / len(diff_list), timeout=120 * 60)
-
-        # add the difficulty as a one minute share, unless we're staging
-        if not current_app.config.get('stage', False):
-            now = datetime.datetime.utcnow()
-            try:
-                m = OneMinuteType(typ=prefix + 'netdiff', value=difficulty * 1000, time=now)
-                db.session.add(m)
-                db.session.commit()
-            except sqlalchemy.exc.IntegrityError:
-                db.session.rollback()
-                slc = OneMinuteType.query.with_lockmode('update').filter_by(
-                    time=now, typ=prefix + 'netdiff').one()
-                # just average the diff of two blocks that occured in the same second..
-                slc.value = ((difficulty * 1000) + slc.value) / 2
-                db.session.commit()
-
-    for merged_type, conf in current_app.config['merged_cfg'].iteritems():
-        try:
-            gbt = merge_coinserv[merged_type].getblocktemplate()
-        except (urllib3.exceptions.HTTPError, CoinRPCException) as e:
-            logger.error("Unable to communicate with {} RPC server: {}"
-                            .format(conf['name'], e))
-        else:
-            set_data(gbt, curr=merged_type)
-
-    try:
-        gbt = coinserv.getblocktemplate()
-    except (urllib3.exceptions.HTTPError, CoinRPCException) as e:
-        logger.error("Unable to communicate with main RPC server: {}"
-                        .format(e))
-    else:
-        set_data(gbt)
-
-
-@crontab
-def check_down():
-    """
-    Checks for latest OneMinuteShare from users that have a Threshold defined
-    for their downtime.
-    """
-    for thresh in Threshold.query.filter(Threshold.offline_thresh != None):
-        last = Status.query.filter_by(worker=thresh.worker, user=thresh.user).first()
-        if not last:
-            continue
-        diff = int((datetime.datetime.utcnow() - last.time).total_seconds() / 60)
-        if not thresh.offline_err and diff > thresh.offline_thresh:
-            thresh.report_condition("Worker {} offline for {} minutes"
-                                    .format(thresh.worker, diff),
-                                    'offline_err',
-                                    True)
-
-        # if there's an error registered and it's not showing offline
-        elif thresh.offline_err and diff <= thresh.offline_thresh:
-            thresh.report_condition("Worker {} now back online"
-                                    .format(thresh.worker),
-                                    'offline_err',
-                                    False)
-
     db.session.commit()
 
 

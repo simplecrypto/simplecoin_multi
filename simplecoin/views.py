@@ -106,89 +106,6 @@ def pool_stats():
                            server_status=server_status)
 
 
-@main.route("/network_stats")
-def network_stats():
-    return render_template('network_stats.html', **network_data())
-
-
-@main.route("/api/network_stats")
-def network_stats_api():
-    return jsonify(**network_data())
-
-
-def network_data():
-    def collect_network(curr=None, config=None):
-        prefix = ""
-        if curr:
-            prefix = curr + "_"
-            block_time = config['block_time']
-        else:
-            block_time = current_app.config['block_time']
-
-        avg_difficulty = cache.get(prefix + 'difficulty_avg') or 0
-        return dict(difficulty=cache.get(prefix + 'difficulty') or 0,
-                    avg_difficulty=avg_difficulty,
-                    blockheight=cache.get(prefix + 'blockheight') or 0,
-                    block_time=block_time,
-                    hashrate=(avg_difficulty * current_app.config['difficulty_multiplier']) / block_time)
-
-    merged = {}
-    for merged_type, config in current_app.config['merged_cfg'].iteritems():
-        merged[merged_type] = collect_network(merged_type, config)
-
-    main_net = collect_network()
-    return dict(merged=merged, **main_net)
-
-
-@main.route("/extra_pool_stats")
-def extra_pool_stats():
-    data = []
-    for timedelta, title in [(datetime.timedelta(days=1), "Last 24 Hours"),
-                             (datetime.timedelta(days=7), "Last Week"),
-                             (datetime.timedelta(days=30), "Last Month"),
-                             (datetime.timedelta(days=365), "All Time")]:
-        data.append((title, get_block_stats(timedelta), get_pool_eff(timedelta)))
-    return render_template('extra_pool_stats.html', data=data)
-
-
-@main.route("/network_stats/<graph_type>/<window>")
-def network_graph_data(graph_type=None, window="hour"):
-    if not graph_type:
-        return None
-
-    type_map = {'hour': OneMinuteType,
-                'month': OneHourType,
-                'day': FiveMinuteType}
-    typ = type_map[window]
-    types = {}
-
-    compress = None
-    if window == "day":
-        compress = OneMinuteType
-    elif window == "month":
-        compress = FiveMinuteType
-
-    if compress:
-        for slc in get_typ(compress, q_typ=graph_type):
-            slice_dt = compress.floor_time(slc.time)
-            stamp = calendar.timegm(slice_dt.utctimetuple())
-            types.setdefault(slc.typ, {})
-            types[slc.typ].setdefault(stamp, 0)
-            types[slc.typ][stamp] += slc.value
-
-    for m in get_typ(typ, q_typ=graph_type):
-        stamp = calendar.timegm(m.time.utctimetuple())
-        types.setdefault(m.typ, {})
-        types[m.typ].setdefault(stamp, 0)
-        types[m.typ][stamp] += m.value
-
-    step = typ.slice_seconds
-    end = ((int(time.time()) // step) * step) - (step * 2)
-    start = end - typ.window.total_seconds() + (step * 2)
-
-    return jsonify(start=start, end=end, step=step, workers=types)
-
-
 @main.before_request
 def add_pool_stats():
     try:
@@ -219,109 +136,9 @@ def close_alert(id):
     return Response('success')
 
 
-@main.route("/api/pool_stats")
-def pool_stats_api():
-    ret = {}
-    ret['hashrate'] = get_pool_hashrate()
-    ret['workers'] = g.worker_count
-    ret['completed_shares'] = g.completed_block_shares
-    ret['total_round_shares'] = g.pplns_size
-    ret['round_duration'] = g.round_duration
-    sps = float(g.completed_block_shares) / g.round_duration
-    ret['shares_per_sec'] = sps
-    ret['last_block_found'] = last_blockheight()
-    ret['shares_to_solve'] = g.shares_to_solve
-    if sps > 0:
-        ret['est_sec_remaining'] = (float(g.shares_to_solve) - g.completed_block_shares) / sps
-    else:
-        ret['est_sec_remaining'] = 'infinite'
-    ret['pool_luck'], ret['effective_return'], ret['orphan_perc'] = get_block_stats()
-    return jsonify(**ret)
-
-
-@main.route("/api/last_block")
-def last_block_api():
-    b = last_block_found()
-    if not b:
-        return jsonify()
-    return jsonify(difficulty=b.difficulty,
-                   duration=str(b.duration),
-                   shares_to_solve=b.shares_to_solve,
-                   found_by=b.user,
-                   luck=b.luck,
-                   height=b.height,
-                   hash=b.hash)
-
-
-@main.route("/index.php")
-def mpos_pool_stats_api():
-    ret = {}
-    action = request.args.get('action', 'none')
-    api_key = request.args.get('api_key', 'none')
-    if (action == 'getpoolstatus') & (api_key in current_app.config['mpos_api_keys']):
-        sps = float(g.completed_block_shares) / g.round_duration
-        difficulty = cache.get('difficulty') or 0
-        blockheight = cache.get('blockheight') or 0
-        data = {"pool_name": current_app.config['site_url'],
-                "hashrate": round(get_pool_hashrate(), 0),
-                "efficiency": round(get_pool_eff(), 2),
-                "workers": g.worker_count,
-                "currentnetworkblock": blockheight,
-                "nextnetworkblock": blockheight+1,
-                "lastblock": last_blockheight(),
-                "networkdiff": difficulty,
-                "esttime": round((float(g.shares_to_solve) - g.completed_block_shares) / sps, 0),
-                "estshares": round(g.shares_to_solve, 0),
-                "timesincelast": round(g.round_duration, 0),
-                "nethashrate": round((difficulty * 2**32) / current_app.config['block_time'], 0)
-                }
-        ret['getpoolstatus'] = {"version": "0.3", "runtime": 0, "data": data}
-
-    return jsonify(**ret)
-
-
 @main.route("/stats")
 def user_stats():
     return render_template('stats.html')
-
-
-@main.route("/round_summary")
-def summary_page():
-
-    user_shares = cache.get('pplns_user_shares')
-    cached_time = cache.get('pplns_cache_time')
-    cached_donation = cache.get('user_donations')
-
-    def user_match(user):
-        if cached_donation is not None:
-            if user in cached_donation:
-                return cached_donation[user]
-            else:
-                return current_app.config['default_perc']
-
-    if cached_time is not None:
-        cached_time = cached_time.replace(second=0, microsecond=0).strftime("%Y-%m-%d %H:%M")
-
-    redacted = set(current_app.config.get('redacted_addresses', set()))
-    user_list = []
-    total_hashrate = 0.0
-    if user_shares is not None:
-        for user, shares in user_shares.iteritems():
-            user = user[6:]
-            hashrate = shares_to_hashes(last_10_shares(user)) / 600
-            total_hashrate += hashrate
-            dat = {'hashrate': hashrate,
-                   'shares': shares,
-                   'user': user if user not in redacted else None,
-                   'donation_perc': user_match(user)}
-            user_list.append(dat)
-        user_list = sorted(user_list, key=lambda x: x['shares'], reverse=True)
-
-    return render_template('round_summary.html',
-                           users=user_list,
-                           blockheight=cache.get('blockheight') or 0,
-                           cached_time=cached_time,
-                           total_hashrate=total_hashrate)
 
 
 @main.route("/exc_test")
@@ -416,34 +233,6 @@ def user_dashboard(address=None):
                            **stats)
 
 
-@main.route("/api/<address>")
-def address_api(address):
-    if len(address) != 34:
-        abort(404)
-
-    stats = collect_user_stats(address)
-    stats['acct_items'] = get_joined(stats['acct_items'])
-
-    stats['merged_accounts'] = {curr: dict(name=name,
-                                           acct=get_joined(merged_acct_items),
-                                           total_merge_paid=total_merge_paid,
-                                           total_merge_earned=total_merge_earned,
-                                           merge_unconfirmed_balance=merge_unconfirmed_balance,
-                                           merge_balance=merge_balance) for
-                                curr, name, merged_acct_items, total_merge_paid, total_merge_earned,
-                                merge_unconfirmed_balance, merge_balance in stats['merged_accounts']}
-    stats['total_earned'] = float(stats['total_earned'])
-    if stats['pplns_cached_time']:
-        stats['pplns_cached_time'] = calendar.timegm(stats['pplns_cached_time'].utctimetuple())
-    day_shares = stats['last_10_shares'] * 6 * 24
-    daily_percentage = float(day_shares) / g.shares_to_solve
-    donation_perc = (1 - (stats['donation_perc'] / 100.0))
-    rrwd = (cache.get('reward') or 1) / 100000000.0
-    stats['daily_est'] = daily_percentage * rrwd * donation_perc
-    stats['est_round_payout'] = (float(stats['round_shares']) / g.pplns_size) * donation_perc * rrwd
-    return jsonify(**stats)
-
-
 @main.route("/<address>/clear")
 def address_clear(address=None):
     # remove address from the recently viewed
@@ -494,22 +283,6 @@ def handle_error(error):
     return render_template("500.html")
 
 
-@main.route("/guides")
-@main.route("/guides/")
-def guides_index():
-    return render_template("guides/index.html")
-
-
-@main.route("/guides/<guide>")
-def guides(guide):
-    return render_template("guides/" + guide + ".html")
-
-
-@main.route("/faq")
-def faq():
-    return render_template("faq.html")
-
-
 def handle_message(address):
     alert_cls = "danger"
     result = None
@@ -528,28 +301,6 @@ def handle_message(address):
             alert_cls = "success"
 
     return result, alert_cls
-
-
-@main.route("/set_merge/<address>/<currency>", methods=['POST', 'GET'])
-def set_merge(address, currency):
-    merged_cfg = current_app.config['merged_cfg'].get(currency, {})
-    if not merged_cfg.get('enabled'):
-        abort(403)
-
-    result, alert_cls = handle_message(address)
-
-    addr = MergeAddress.query.filter_by(user=address, merged_type=currency).first()
-    if not addr:
-        addr = "[not set]"
-    else:
-        addr = addr.merge_address
-    return render_template("set_merge_address.html",
-                           username=address,
-                           result=result,
-                           addr=addr,
-                           name=merged_cfg['name'],
-                           alert_cls=alert_cls,
-                           currency_name=merged_cfg['currency_name'])
 
 
 @main.route("/set_donation/<address>", methods=['POST', 'GET'])
