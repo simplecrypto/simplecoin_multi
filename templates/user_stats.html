@@ -7,7 +7,9 @@
 $(document).ready(function() {
 
   {# Initial graph generation #}
-  generate_graph('hour', '%H:%M %p', '{{ username }}_X11' );
+  {% for algo, cfg in config['algos'].iteritems() %}
+    generate_graph('{{ username }}_{{ algo }}', {{ cfg['hashes_per_share'] }}, $('#chart_{{ algo }}'));
+  {% endfor %}
 });
 </script>
 
@@ -25,16 +27,19 @@ $(document).ready(function() {
     <br>
   </div>
   <div class="row row-header">
-    <div class="col-lg-12">
+  {% for algo, cfg in config['algos'].iteritems() %}
+    <h2>{{ algo }} Worker Hashrates</h2>
+    <div class="col-lg-12" id="chart_{{ algo }}">
         <ul class="nav nav-tabs">
-          <li class="active tab"><a id="hour" data-target="hour" data-format="%M:%S" data-user="{{ username }}_X11">Hour</a></li>
-          <li class="tab"><a id="day" data-target="day" data-format="%H:%M %p" data-user="{{ username }}_X11">Day</a></li>
-          <li class="tab"><a id="month" data-target="month" data-format="%m/%d %H:%M" data-user="{{ username }}_X11">Month</a></li>
+          <li class="tab hour"><a>Hour</a></li>
+          <li class="tab day"><a>Day</a></li>
+          <li class="tab month"><a>Month</a></li>
         </ul>
-      <div id="chart" style="height:200px;">
+      <div style="height:400px;">
         <img src="{{ config['assets_address'] | safe }}/img/712.GIF" style="position:absolute;padding-top:150px;padding-left:400px;"><svg></svg>
       </div>
     </div>
+  {% endfor %}
   </div>
 
   <div class="row page-header">
