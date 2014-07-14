@@ -218,17 +218,14 @@ def update_block_state():
 def run_payouts(simulate=False):
     """ Loops through all the blocks that haven't been paid out and attempts
     to pay them out """
-    blocks = Block.query.filter_by(processed=False).order_by(Block.found_at)
-    for block in blocks:
-        logger.info("Attempting to payout block height {} on chain {}; hash {}"
-                    .format(block.height, block.merged_type or "main", block.hash))
-        if block.last_share_id is None:
-            logger.warn("Can't process this block, it's shares have been deleted!")
-            continue
-        payout(hash=block.hash, simulate=simulate)
+    unproc_blocks = redis.keys("unproc_block*")
+    for key in unproc_blocks:
+        hash = key[12:]
+        logger.info("Attempting to process block hash {}".format(hash))
+        payout(key, simulate=simulate)
 
 
-def payout(hash=None, simulate=False):
+def payout(key, simulate=False):
     """
     Calculates payouts for users from share records for the latest found block.
     """
@@ -236,31 +233,26 @@ def payout(hash=None, simulate=False):
         logger.debug("Running in simulate mode, no commit will be performed")
         logger.setLevel(logging.DEBUG)
 
-    # find the oldest un-processed block
-    if hash:
-        block = Block.query.filter_by(processed=False, hash=hash).first()
-    else:
-        block = (Block.query.filter_by(processed=False).order_by(Block.found_at).first())
+    data = {}
+    user_shares = {}
+    raw = redis.hgetall(key)
+    for key, value in raw.iteritems():
+        if get_bcaddress_version(key):
+            user_shares[key] = value
+        else:
+            data[key] = value
 
-    if block is None:
-        logger.debug("No block found, exiting...")
-        return
-
-    logger.debug("Processing block height {}".format(block.height))
-    raw = redis.hgetall('block_shares_{}'.format(block.hash))
-    user_shares = {k: v for k, v in raw.iteritems() if get_bcaddress_version(k)}
+    logger.debug("Processing block with details {}".format(data))
     total_shares = sum(user_shares.itervalues())
 
     if simulate:
         out = "\n".join(["\t".join((user,
                                     str((amount * 100.0) / total_shares),
-                                    str((amount * block.total_value) // total_shares),
+                                    str((amount * data['total_value']) // total_shares),
                                     str(amount))) for user, amount in user_shares.iteritems()])
         logger.debug("Share distribution:\nUSR\t%\tBLK_PAY\tSHARE\n{}".format(out))
 
-    logger.debug("Distribute_amnt: {}".format(block.total_value))
-
-    assert total_shares == sum(user_shares.itervalues())
+    logger.debug("Distribute_amnt: {}".format(data['total_value']))
 
     # Below calculates the truncated portion going to each miner. because
     # of fractional pieces the total accrued wont equal the disitrubte_amnt
@@ -268,21 +260,21 @@ def payout(hash=None, simulate=False):
     accrued = 0
     user_payouts = {}
     for user, share_count in user_shares.iteritems():
-        user_payouts[user] = float(share_count * block.total_value) // total_shares
+        user_payouts[user] = float(share_count * data['total_value']) // total_shares
         accrued += user_payouts[user]
 
     logger.debug("Total accrued after trunated iteration {}; {}%"
-                 .format(accrued, (accrued / float(block.total_value)) * 100))
+                 .format(accrued, (accrued / float(data['total_value'])) * 100))
     # loop over the dictionary indefinitely until we've distributed
     # all the remaining funds
     i = 0
-    while accrued < block.total_value:
+    while accrued < data['total_value']:
         for key in user_payouts:
             i += 1
             user_payouts[key] += 1
             accrued += 1
             # exit if we've exhausted
-            if accrued >= block.total_value:
+            if accrued >= data['total_value']:
                 break
 
     logger.debug("Ran round robin distro {} times to finish distrib".format(i))
@@ -333,29 +325,77 @@ def payout(hash=None, simulate=False):
     logger.info("Net income from block {}"
                 .format((donation_total - bonus_total) / 100000000.0))
 
-    assert accrued == block.total_value
+    assert accrued == data['total_value']
     logger.info("Successfully distributed all rewards among {} users."
                 .format(len(user_payouts)))
 
     # run another safety check
     user_sum = sum(user_payouts.values())
-    assert user_sum == (block.total_value + bonus_total - donation_total)
+    assert user_sum == (data['total_value'] + bonus_total - donation_total)
     logger.info("Double check for payout distribution."
                 " Total user payouts {}, total block value {}."
-                .format(user_sum, block.total_value))
+                .format(user_sum, data['total_value']))
 
     if simulate:
-        out = "\n".join(["\t".join((user, str(amount / 100000000.0))) for user, amount in user_payouts.iteritems()])
+        out = "\n".join(["\t".join(
+            (user, str(amount / 100000000.0)))
+            for user, amount in user_payouts.iteritems()])
         logger.debug("Final payout distribution:\nUSR\tAMNT\n{}".format(out))
         db.session.rollback()
     else:
         # record the payout for each user
-        redis.hmset('block_payout_{}'.format(block.hash), user_payouts)
+        for user, amount in user_payouts.iteritems():
+            if amount == 0.0:
+                logger.info("Skip zero payout for USR: {}".format(user))
+                continue
+            Payout.create(amount=amount,
+                          block=hash,
+                          shares_contributed=user_shares[user],
+                          perc=user_perc[user])
+
+        block = Block.create(
+            user=data['address'],
+            total_value=data['total_subsidy'],
+            transaction_fees=data['fees'],
+            bits=data['bits'],
+            found_at=datetime.datetime.utcfromtimestamp(data['solve_time']),
+            currency=data['currency'],
+            hash=data['hash'],
+            height=data['height'],
+            time_started=datetime.datetime.utcfromtimestamp(data.get('start_time')) or )
 
         # update the block status and collected amounts
-        block.processed = True
         block.donated = donation_total
         block.bonus_payed = bonus_total
+
+
+@crontab
+def collect_minutes():
+    """ Grabs all the pending minute shares out of redis and puts them in the
+    database """
+    share_mult = current_app.config.get('share_multiplier', 1)
+    def count_share(typ, amount, user_=user):
+        logger.debug("Adding {} for {} of amount {}"
+                     .format(typ.__name__, user_, amount))
+        try:
+            typ.create(user_, amount * share_mult, minute, worker)
+            db.session.commit()
+        except sqlalchemy.exc.IntegrityError:
+            db.session.rollback()
+            typ.add_value(user_, amount * share_mult, minute, worker)
+            db.session.commit()
+
+    last = ((time.time() // 60) * 60) - 60
+    for stamp in xrange(last, last - 600, -60):
+        for algo in current_app.config['algos']:
+            for share_type in ["acc", "dup", "low", "stale"]:
+                key = "{}-min-{}-{}".format(share_type, algo, stamp)
+                try:
+                    redis.rename(key, "processing_shares")
+                except redis.ResponseError:
+                    pass
+                else:
+                    for user, shares in redis.hgetall("processing_shares").iteritems():
 
 
 @crontab
@@ -451,10 +491,6 @@ if __name__ == "__main__":
         # All these tasks actually change the database, and shouldn't
         # be run by the staging server
         if not current_app.config.get('stage', False):
-            # every hour at 10 minutes after
-            sched.add_cron_job(cleanup, minute=10, second=45)
-            # every two hours at 5 minutes after
-            sched.add_cron_job(general_cleanup, hour='0,2,4,6,8,10,12,14,16,18,20,22', minute=5, second=30)
             # every minute at 55 seconds after the minute
             sched.add_cron_job(run_payouts, second=55)
             # every five minutes 20 seconds after the minute
@@ -463,17 +499,11 @@ if __name__ == "__main__":
             sched.add_cron_job(compress_five_minute, minute=2, second=30)
             # every 15 minutes 2 seconds after the minute
             sched.add_cron_job(update_block_state, minute='0,15,30,45', second=2)
-            # every minute on the minute
-            sched.add_cron_job(check_down, second=0)
         else:
             logger.info("Stage mode has been set in the configuration, not "
                         "running scheduled database altering cron tasks")
 
         sched.add_cron_job(update_online_workers, minute='0,5,10,15,20,25,30,35,40,45,50,55', second=30)
-        sched.add_cron_job(update_pplns_est, minute='0,15,30,45', second=2)
         sched.add_cron_job(cache_user_donation, minute='0,15,30,45', second=15)
         sched.add_cron_job(server_status, second=15)
-        # every minute 10 seconds after the minute
-        sched.add_cron_job(update_network, second=10)
-
         sched.start()

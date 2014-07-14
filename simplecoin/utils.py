@@ -11,7 +11,7 @@ from cryptokit.base58 import get_bcaddress_version
 from cryptokit import bits_to_difficulty
 from bitcoinrpc import CoinRPCException
 
-from . import db, coinserv, cache, root
+from . import db, coinserv, cache, root, redis
 from .models import (DonationPercent, OneMinuteReject, OneMinuteShare,
                      FiveMinuteShare, FiveMinuteReject, Payout, BonusPayout,
                      Block, OneHourShare, OneHourReject, Share, Status,
@@ -37,20 +37,17 @@ def timeit(method):
 
 
 @cache.memoize(timeout=3600)
-def all_blocks(merged_type=None):
-    return (db.session.query(Block).filter_by(merged_type=merged_type).
-            order_by(Block.height.desc()).all())
-
-
-@cache.memoize(timeout=3600)
-def users_blocks(address, merged=None):
-    return db.session.query(Block).filter_by(user=address, merged_type=None).count()
+def users_blocks(address, algo=None, merged=None):
+    q = db.session.query(Block).filter_by(user=address, merged_type=None)
+    if algo:
+        q.filter_by(algo=algo)
+    return algo.count()
 
 
 @cache.memoize(timeout=86400)
 def all_time_shares(address):
     shares = db.session.query(OneHourShare).filter_by(user=address)
-    return sum([shares.value for shares in shares])
+    return sum([share.value for share in shares])
 
 
 @cache.memoize(timeout=60)
@@ -58,10 +55,10 @@ def last_block_time(merged_type=None):
     return last_block_time_nocache(merged_type=merged_type)
 
 
-def last_block_time_nocache(merged_type=None):
+def last_block_time_nocache(algo, merged_type=None):
     """ Retrieves the last time a block was solved using progressively less
     accurate methods. Essentially used to calculate round time. """
-    last_block = Block.query.filter_by(merged_type=merged_type).order_by(Block.height.desc()).first()
+    last_block = Block.query.filter_by(merged_type=merged_type, algo=algo).order_by(Block.height.desc()).first()
     if last_block:
         return last_block.found_at
 
@@ -81,11 +78,11 @@ def last_block_time_nocache(merged_type=None):
 
 
 @cache.memoize(timeout=60)
-def last_block_share_id(merged_type=None):
-    return last_block_share_id_nocache(merged_type=merged_type)
+def last_block_share_id(currency, merged_type=None):
+    return last_block_share_id_nocache(currency, merged_type=merged_type)
 
 
-def last_block_share_id_nocache(merged_type=None):
+def last_block_share_id_nocache(algorithm=None, merged_type=None):
     last_block = Block.query.filter_by(merged_type=merged_type).order_by(Block.height.desc()).first()
     if not last_block or not last_block.last_share_id:
         return 0
@@ -93,7 +90,7 @@ def last_block_share_id_nocache(merged_type=None):
 
 
 @cache.memoize(timeout=60)
-def last_block_found(merged_type=None):
+def last_block_found(algorithm=None, merged_type=None):
     last_block = Block.query.filter_by(merged_type=merged_type).order_by(Block.height.desc()).first()
     if not last_block:
         return None
@@ -105,45 +102,6 @@ def last_blockheight(merged_type=None):
     if not last:
         return 0
     return last.height
-
-
-#@cache.memoize(timeout=3600)
-def get_block_stats(timedelta=None):
-    if timedelta is None:
-        timedelta = datetime.timedelta(days=30)
-    average_diff = g.average_difficulty
-    blocks = all_blocks()
-    total_shares = 0
-    total_difficulty = 0
-    total_orphans = 0
-    one_month_ago = datetime.datetime.utcnow() - timedelta
-    for shares_to_solve, bits, orphan in (
-        db.engine.execution_options(stream_results=True).
-        execute(select([Block.shares_to_solve, Block.bits, Block.orphan]).
-                where(Block.merged_type == None).
-                where(Block.found_at >= one_month_ago).
-                order_by(Block.height.desc()))):
-        total_shares += shares_to_solve
-        total_difficulty += bits_to_difficulty(bits)
-        if orphan is True:
-            total_orphans += 1
-
-    total_blocks = len(blocks)
-
-    if total_orphans > 0 and total_blocks > 0:
-        orphan_perc = (float(total_orphans) / total_blocks) * 100
-    else:
-        orphan_perc = 0
-
-    if total_shares > 0 and total_difficulty > 0:
-        pool_luck = (total_difficulty * (2**32)) / (total_shares * current_app.config['hashes_per_share'])
-    else:
-        pool_luck = 1
-
-    current_reward = (cache.get('reward') or 1) / 100000000.0
-    coins_per_day = ((current_reward / (average_diff * (2**32 / 86400))) * 1000000)
-    effective_return = (coins_per_day * pool_luck) * ((100 - orphan_perc) / 100)
-    return pool_luck, effective_return, orphan_perc
 
 
 def get_typ(typ, address=None, window=True, worker=None, q_typ=None):
@@ -185,7 +143,7 @@ def compress_typ(typ, workers, address=None, worker=None):
 
 
 @cache.cached(timeout=60, key_prefix='pool_hashrate')
-def get_pool_hashrate():
+def get_pool_hashrate(algo):
     """ Retrieves the pools hashrate average for the last 10 minutes. """
     dt = datetime.datetime.utcnow()
     twelve_ago = dt - datetime.timedelta(minutes=12)
@@ -199,12 +157,13 @@ def get_pool_hashrate():
 
 
 @cache.memoize(timeout=30)
-def get_round_shares():
+def get_round_shares(algo, merged_type=None):
     """ Retrieves the total shares that have been submitted since the last
     round rollover. """
-    round_shares = (db.session.query(func.sum(Share.shares)).
-                    filter(Share.id > last_block_share_id()).scalar() or 0)
-    return round_shares, datetime.datetime.utcnow()
+    suffix = algo
+    if merged_type:
+        suffix += "_" + merged_type
+    return sum(redis.hvals('current_block_' + suffix)), datetime.datetime.utcnow()
 
 
 def get_adj_round_shares(khashrate):
@@ -236,84 +195,21 @@ def last_10_shares(user):
     return 0
 
 
-@cache.memoize(timeout=60)
-def total_paid(address, merged_type=None):
-    total_p = (TransactionSummary.query.filter_by(user=address).
-               join(TransactionSummary.transaction, aliased=True).
-               filter_by(merged_type=merged_type))
-    return int(sum([tx.amount for tx in total_p]))
-
-
-@cache.memoize(timeout=60)
-def total_unpaid(address, merged_type=None):
-    """ Fetches all payouts that haven't been paid out to a user, but unconfirmed
-    and confirmed. """
-    confirmed = 0
-    unconfirmed = 0
-    for p in Payout.query.filter_by(user=address, merged_type=merged_type, transaction_id=None).options(db.joinedload('block')):
-        if p.block.mature:
-            confirmed += p.amount
-        elif not p.block.mature and not p.block.orphan:
-            unconfirmed += p.amount
-
-    return confirmed, unconfirmed
-
-
-@cache.memoize(timeout=3600)
-def get_pool_acc_rej(timedelta=None):
-    """ Get accepted and rejected share count totals for the last month """
-    if timedelta is None:
-        timedelta = datetime.timedelta(days=30)
-
-    # Pull from five minute shares if we're looking at a day timespan
-    if timedelta <= datetime.timedelta(days=1):
-        rej_typ = FiveMinuteReject
-        acc_typ = FiveMinuteShare
-    else:
-        rej_typ = OneHourReject
-        acc_typ = OneHourShare
-
-    one_month_ago = datetime.datetime.utcnow() - timedelta
-    rejects = (rej_typ.query.
-               filter(rej_typ.time >= one_month_ago).
-               filter_by(user="pool_stale"))
-    accepts = (acc_typ.query.
-               filter(acc_typ.time >= one_month_ago).
-               filter_by(user="pool"))
-    reject_total = sum([hour.value for hour in rejects])
-    accept_total = sum([hour.value for hour in accepts])
-    return reject_total, accept_total
-
-
-def collect_acct_items(address, limit, offset=0, merged_type=None):
+def collect_acct_items(address, limit=None, offset=0, merged_type=None):
     """ Get account items for a specific user """
     payouts = (Payout.query.filter_by(user=address, merged_type=merged_type).
                order_by(Payout.id.desc()).limit(limit).offset(offset))
-    bonuses = (BonusPayout.query.filter_by(user=address, merged_type=merged_type).
-               order_by(BonusPayout.id.desc()).limit(limit).offset(offset))
-    return sorted(itertools.chain(payouts, bonuses),
-                  key=lambda i: i.created_at, reverse=True)
+    return payouts
 
 
 def collect_user_stats(address):
     """ Accumulates all aggregate user data for serving via API or rendering
     into main user stats page """
-    paid = total_paid(address)
-    balance, unconfirmed_balance = total_unpaid(address)
-    earned = paid + balance + unconfirmed_balance
-
-    pplns_cached_time = cache.get('pplns_cache_time')
-    if pplns_cached_time is not None:
-        pplns_cached_time.strftime("%Y-%m-%d %H:%M:%S")
-
-    pplns_total_shares = cache.get('pplns_total_shares') or 0
-    round_shares = cache.get('pplns_' + address) or 0
-
     # store all the raw data of we're gonna grab
     workers = {}
     # blank worker template
     def_worker = {'accepted': 0, 'rejected': 0, 'last_10_shares': 0,
-                  'online': False, 'status': None, 'server': {}}
+                  'online': False, 'server': {}}
     # for picking out the last 10 minutes worth shares...
     now = datetime.datetime.utcnow().replace(second=0, microsecond=0)
     twelve_ago = now - datetime.timedelta(minutes=12)
@@ -332,31 +228,6 @@ def collect_user_stats(address):
         workers.setdefault(m.worker, def_worker.copy())
         workers[m.worker]['rejected'] += m.value
 
-    # grab and collect all the ppagent status information for easy use
-    for st in Status.query.filter_by(user=address):
-        workers.setdefault(st.worker, def_worker.copy())
-        workers[st.worker]['status'] = st.parsed_status
-        workers[st.worker]['status_stale'] = st.stale
-        workers[st.worker]['status_time'] = st.time
-        workers[st.worker]['total_hashrate'] = sum([gpu['MHS av'] for gpu in workers[st.worker]['status']['gpus']])
-        try:
-            workers[st.worker]['wu'] = sum(
-                [(gpu['Difficulty Accepted'] / gpu['Device Elapsed']) * 60
-                 for gpu in workers[st.worker]['status']['gpus']])
-        except KeyError:
-            workers[st.worker]['wu'] = 0
-
-        try:
-            workers[st.worker]['wue'] = workers[st.worker]['wu'] / (workers[st.worker]['total_hashrate']*1000)
-        except ZeroDivisionError:
-            workers[st.worker]['wue'] = 0.0
-
-        ver = workers[st.worker]['status'].get('v', '0.2.0').split('.')
-        try:
-            workers[st.worker]['status_version'] = [int(part) for part in ver]
-        except ValueError:
-            workers[st.worker]['status_version'] = "Unsupp"
-
     # pull online status from cached pull direct from powerpool servers
     for name, host in cache.get('addr_online_' + address) or []:
         workers.setdefault(name, def_worker.copy())
@@ -374,12 +245,11 @@ def collect_user_stats(address):
         else:
             workers[name]['efficiency'] = None
 
-    # sort the workers
+    # sort the workers by their name
     new_workers = []
     for name, data in workers.iteritems():
         new_workers.append(data)
         new_workers[-1]['name'] = name
-
     new_workers = sorted(new_workers, key=lambda x: x['name'])
 
     # show their donation percentage
@@ -389,69 +259,14 @@ def collect_user_stats(address):
     else:
         perc = perc.perc
 
-    # show their merged mining address and collect their payouts
-    merged_addrs = []
-    merged_accounts = []
-    for cfg in current_app.config['merge']:
-        if not cfg['enabled']:
-            continue
-        addr = MergeAddress.query.filter_by(user=address,
-                                            merged_type=cfg['currency_name']).first()
-        if not addr:
-            merged_addrs.append((cfg['currency_name'], cfg['name'], "[not set]"))
-        else:
-            merged_addrs.append((cfg['currency_name'], cfg['name'], addr.merge_address))
-            acct_items = collect_acct_items(
-                addr.merge_address, 20, merged_type=cfg['currency_name'])
-
-            merge_paid = total_paid(addr.merge_address, merged_type=cfg['currency_name'])
-            merge_balance, merge_unconfirmed_balance = total_unpaid(
-                addr.merge_address, merged_type=cfg['currency_name'])
-            merge_earned = merge_paid + merge_balance + merge_unconfirmed_balance
-            merged_accounts.append((cfg['currency_name'],
-                                    cfg['name'],
-                                    acct_items,
-                                    merge_paid,
-                                    merge_earned,
-                                    merge_unconfirmed_balance,
-                                    merge_balance))
-
     user_last_10_shares = last_10_shares(address)
     last_10_hashrate = (shares_to_hashes(user_last_10_shares) / 1000000) / 600
 
-    solved_blocks = users_blocks(address)
-
-    # Calculate 24 hour efficiency for all workers
-    total_acc = 0
-    total_rej = 0
-    for worker in new_workers:
-        total_acc += worker['accepted']
-        total_rej += worker['rejected']
-    if total_acc > 0:
-        total_eff = (float(total_acc) / (total_acc + total_rej)) * 100
-    else:
-        total_eff = 0
-
-    # Grab all the accepted hour shares for the user
-    total_shares = all_time_shares(address)
-
     return dict(workers=new_workers,
-                round_shares=round_shares,
-                pplns_cached_time=pplns_cached_time,
-                pplns_total_shares=pplns_total_shares,
                 acct_items=collect_acct_items(address, 20),
-                merged_accounts=merged_accounts,
-                merged_addrs=merged_addrs,
-                total_earned=earned,
-                total_paid=paid,
-                balance=balance,
                 donation_perc=perc,
                 last_10_shares=user_last_10_shares,
-                last_10_hashrate=last_10_hashrate,
-                unconfirmed_balance=unconfirmed_balance,
-                solved_blocks=solved_blocks,
-                total_eff=total_eff,
-                total_shares=total_shares)
+                last_10_hashrate=last_10_hashrate)
 
 
 def get_pool_eff(timedelta=None):

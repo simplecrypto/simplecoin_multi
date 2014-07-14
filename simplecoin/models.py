@@ -1,18 +1,14 @@
 import calendar
 import logging
-import json
-import smtplib
-from email.mime.text import MIMEText
+
+from math import ceil, floor
 from collections import namedtuple
-
 from datetime import datetime, timedelta
-
 from flask import current_app
 from sqlalchemy.schema import CheckConstraint
 from sqlalchemy.ext.declarative import AbstractConcreteBase, declared_attr
-from sqlalchemy.dialects.postgresql import HSTORE, ARRAY
-
 from cryptokit import bits_to_difficulty
+
 from .model_lib import base
 from . import db, cache, sig_round
 
@@ -24,8 +20,9 @@ class Block(base):
     height = db.Column(db.Integer, nullable=False)
     # User who discovered block
     user = db.Column(db.String)
+    worker = db.Column(db.String)
     # When block was found
-    found_at = db.Column(db.DateTime, default=datetime.utcnow)
+    found_at = db.Column(db.DateTime, nullable=False)
     # # Time started on block
     time_started = db.Column(db.DateTime, nullable=False)
     # Is block now orphaned?
@@ -43,17 +40,8 @@ class Block(base):
     bonus_payed = db.Column(db.BigInteger)
     # Difficulty of block when solved
     bits = db.Column(db.String(8), nullable=False)
-    # Average difficulty of last x (default 500..) blocks when it was solved
-    difficulty_avg = db.Column(db.Integer)
-    # the last share id that was processed when the block was entered.
-    # used as a marker for calculating last n shares
-    last_share_id = db.Column(db.BigInteger, db.ForeignKey('share.id'))
-    last_share = db.relationship('Share', foreign_keys=[last_share_id])
-    # have payments been generated for it?
-    processed = db.Column(db.Boolean, default=False)
     # is this a merge mined block, or a core block?
-    merged_type = db.Column(db.String, default=None)
-    worker = db.Column(db.String, default=None)
+    currency = db.Column(db.String, nullable=False)
 
     standard_join = ['status', 'explorer_link', 'luck', 'total_value_float',
                      'difficulty', 'duration', 'found_at', 'time_started']
@@ -72,18 +60,16 @@ class Block(base):
 
     @classmethod
     def create(cls, user, height, total_value, transaction_fees, bits, hash,
-               time_started, merged_type=None, worker=None):
-        share = Share.query.order_by(Share.id.desc()).first()
+               time_started, currency, worker, found_at):
         block = cls(user=user,
                     height=height,
                     total_value=total_value,
                     transaction_fees=transaction_fees,
                     bits=bits,
-                    last_share=share,
                     hash=hash,
                     time_started=time_started,
-                    difficulty_avg=cache.get('difficulty_avg'),
-                    merged_type=merged_type,
+                    currency=currency,
+                    found_at=found_at,
                     worker=worker)
         # add and flush
         db.session.add(block)
@@ -140,6 +126,68 @@ class Transaction(base):
         trans = cls(txid=txid, merged_type=merged_type)
         db.session.add(trans)
         return trans
+
+
+class Payout(base):
+    blockhash = db.Column(db.String, db.ForeignKey('block.hash'), primary_key=True)
+    block = db.relationship('Block', foreign_keys=[blockhash])
+    user = db.Column(db.String, primary_key=True)
+    amount = db.Column(db.BigInteger, CheckConstraint('amount > 0', 'min_payout_amount'))
+
+    locked = db.Column(db.Boolean, default=False)
+    shares = db.Column(db.Integer)
+    perc = db.Column(db.Float)
+    transaction = db.relationship('Transaction', backref='payouts')
+
+    standard_join = ['status', 'created_at', 'explorer_link',
+                     'text_perc_applied', 'mined', 'amount_float', 'height',
+                     'transaction_id']
+
+    @property
+    def perc_applied(self):
+        if self.perc >= 0:
+            return int(ceil((self.perc / 100.0) * self.amount))
+        return int(floor((self.perc / 100.0) * self.amount))
+
+    @property
+    def text_perc_applied(self):
+        if self.perc < 0:
+            return "bonus of {}".format(sig_round(self.perc_applied * -1 / 100000000.0))
+        else:
+            return "donation of {}".format(sig_round(self.perc_applied / 100000000.0))
+
+    @property
+    def mined(self):
+        return (self.amount + self.perc_applied) / 100000000.0
+
+    @classmethod
+    def create(cls, user, amount, block, shares, perc):
+        payout = cls(user=user, amount=amount, block=block, shares=shares, perc=perc)
+        db.session.add(payout)
+        return payout
+
+    @property
+    def height(self):
+        return self.block.height
+
+    @property
+    def status(self):
+        if self.transaction:
+            if self.transaction.confirmed is True:
+                return "Payout Transaction Confirmed"
+            else:
+                return "Payout Transaction Pending"
+        elif self.block.orphan:
+            return "Block Orphaned"
+        elif not self.block.mature:
+
+            confirms = self.block.confirms_remaining
+            if confirms is not None:
+                return "{} Block Confirms Remaining".format(confirms)
+            else:
+                return "Pending Block Confirmation"
+        else:
+            return "Payout Pending"
 
 
 class TransactionSummary(base):
