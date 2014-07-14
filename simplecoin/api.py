@@ -5,8 +5,7 @@ from flask import Blueprint, current_app, jsonify
 from lever import (API, LeverException)
 import six
 
-from .models import (Block, Share, Transaction, Payout, OneMinuteShare, Status,
-                     Blob, BonusPayout)
+from .models import Block, Transaction, Payout, OneMinuteShare
 from . import db
 
 
@@ -76,31 +75,11 @@ class OneMinuteShareAPI(APIBase):
     model = OneMinuteShare
 
 
-class ShareAPI(APIBase):
-    model = Share
-
-
 class TransactionAPI(APIBase):
     model = Transaction
 
 
-class StatusAPI(APIBase):
-    model = Status
-
-
-class BlobAPI(APIBase):
-    model = Blob
-
-
-class BonusPayoutAPI(APIBase):
-    model = BonusPayout
-
-
-BlobAPI.register(api, '/blob')
 BlockAPI.register(api, '/block')
 PayoutAPI.register(api, '/payout')
-BonusPayoutAPI.register(api, '/bonus_payout')
 OneMinuteShareAPI.register(api, '/onemin')
-ShareAPI.register(api, '/share')
 TransactionAPI.register(api, '/transaction')
-StatusAPI.register(api, '/status')

@@ -6,7 +6,7 @@ import sqlalchemy
 
 from flask.ext.script import Manager, Shell
 from flask.ext.migrate import Migrate, MigrateCommand
-from simplecoin import create_app, db, coinserv, cache
+from simplecoin import create_app, db, coinservs, cache
 
 app = create_app()
 manager = Manager(app)
@@ -16,11 +16,10 @@ root = os.path.abspath(os.path.dirname(__file__) + '/../')
 
 from bitcoinrpc.authproxy import AuthServiceProxy
 from simplecoin.scheduler import (cleanup, run_payouts, server_status,
-                                  update_online_workers, update_pplns_est,
-                                  cache_user_donation, general_cleanup)
-from simplecoin.models import (Transaction, Threshold, DonationPercent,
-                               BonusPayout, OneMinuteType, FiveMinuteType,
-                               Block, MergeAddress, Payout, TransactionSummary)
+                                  update_online_workers, collect_minutes,
+                                  cache_user_donation)
+from simplecoin.models import (Transaction, DonationPercent, OneMinuteType,
+                               FiveMinuteType, Block, Payout, TransactionSummary)
 from simplecoin.utils import setfee_command
 from flask import current_app, _request_ctx_stack
 
@@ -62,17 +61,6 @@ def update_minimum_fee():
 def set_fee(user, fee):
     """ Manually sets a fee percentage. """
     setfee_command(user, fee)
-
-
-@manager.option('blockhash', help="The blockhash that needs to mature for payout to occur")
-@manager.option('description', help="A plaintext description of the bonus payout")
-@manager.option('amount', help="The amount in satoshi")
-@manager.option('user', help="The users address")
-def give_bonus(user, amount, description, blockhash):
-    """ Manually create a BonusPayout for a user """
-    block = Block.query.filter_by(hash=blockhash).one()
-    BonusPayout.create(user, amount, description, block)
-    db.session.commit()
 
 
 @manager.command
@@ -159,12 +147,6 @@ def reset_payouts(merged_type="all"):
     if merged_type != "all":
         base_q = base_q.filter_by(merged_type=merged_type)
     base_q.update({Payout.locked: False})
-
-    # bonus
-    base_q = BonusPayout.query.filter_by(locked=True)
-    if merged_type != "all":
-        base_q = base_q.filter_by(merged_type=merged_type)
-    base_q.update({BonusPayout.locked: False})
     db.session.commit()
 
 
@@ -190,55 +172,14 @@ def confirm_trans(transaction_id):
 def reload_cached():
     """ Recomputes all the cached values that normally get refreshed by tasks.
     Good to run if celery has been down, site just setup, etc. """
-    update_pplns_est()
     update_online_workers()
     cache_user_donation()
     server_status()
-    from simplecoin.utils import get_block_stats
-    current_app.logger.info(
-        "Refreshing the block stats (luck, effective return, orphan %)")
-    cache.delete_memoized(get_block_stats)
-    get_block_stats()
-
-
-@manager.command
-def test_email():
-    """ Sends a testing email to the send address """
-    thresh = Threshold(emails=[current_app.config['email']['send_address']])
-    thresh.report_condition("Test condition")
-
-
-@manager.option('-b', '--blockheight', dest='blockheight', type=int,
-                help='blockheight to start working backward from')
-def historical_update(blockheight):
-    """ Very long running task. Fills out the network difficulty values for all
-    blocks before the site was running. """
-
-    def add_one_minute_diff(diff, time):
-        try:
-            m = OneMinuteType(typ='netdiff', value=diff, time=time)
-            db.session.add(m)
-            db.session.commit()
-        except sqlalchemy.exc.IntegrityError:
-            db.session.rollback()
-            slc = OneMinuteType.query.with_lockmode('update').filter_by(
-                time=time, typ='netdiff').one()
-            # just average the diff of two blocks that occured in the same second..
-            slc.value = (diff + slc.value) / 2
-            db.session.commit()
-
-    for ht in xrange(blockheight, 0, -1):
-        hsh = coinserv.getblockhash(ht)
-        info = coinserv.getblock(hsh)
-        add_one_minute_diff(info['difficulty'] * 1000,
-                            datetime.datetime.utcfromtimestamp(info['time']))
-        current_app.logger.info("Processed block height {}".format(ht))
-
-    db.session.commit()
-    OneMinuteType.compress()
-    db.session.commit()
-    FiveMinuteType.compress()
-    db.session.commit()
+    #from simplecoin.utils import get_block_stats
+    #current_app.logger.info(
+    #    "Refreshing the block stats (luck, effective return, orphan %)")
+    #cache.delete_memoized(get_block_stats)
+    #get_block_stats()
 
 
 @manager.option('-s', '--simulate', dest='simulate', default=True)
@@ -249,9 +190,9 @@ def payout_cmd(simulate):
 
 
 @manager.command
-def general_cleanup_cmd():
-    """ Runs the payout task manually. Simulate mode is default. """
-    general_cleanup()
+def collect_minutes_cmd():
+    """ Runs the collect minutes task manually. """
+    collect_minutes()
 
 
 def make_context():

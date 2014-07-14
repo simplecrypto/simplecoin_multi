@@ -5,17 +5,17 @@ import itertools
 import yaml
 
 from sqlalchemy.sql import select
+from sqlalchemy.orm import joinedload
 from flask import current_app, session, g
 from sqlalchemy.sql import func
 from cryptokit.base58 import get_bcaddress_version
 from cryptokit import bits_to_difficulty
 from bitcoinrpc import CoinRPCException
 
-from . import db, coinserv, cache, root, redis
+from . import db, cache, root, redis_conn
 from .models import (DonationPercent, OneMinuteReject, OneMinuteShare,
-                     FiveMinuteShare, FiveMinuteReject, Payout, BonusPayout,
-                     Block, OneHourShare, OneHourReject, Share, Status,
-                     MergeAddress, TransactionSummary)
+                     FiveMinuteShare, FiveMinuteReject, Payout, Block,
+                     OneHourShare, OneHourReject, TransactionSummary)
 
 
 class CommandException(Exception):
@@ -37,6 +37,32 @@ def timeit(method):
 
 
 @cache.memoize(timeout=3600)
+def get_pool_acc_rej(timedelta=None):
+    """ Get accepted and rejected share count totals for the last month """
+    if timedelta is None:
+        timedelta = datetime.timedelta(days=30)
+
+    # Pull from five minute shares if we're looking at a day timespan
+    if timedelta <= datetime.timedelta(days=1):
+        rej_typ = FiveMinuteReject
+        acc_typ = FiveMinuteShare
+    else:
+        rej_typ = OneHourReject
+        acc_typ = OneHourShare
+
+    one_month_ago = datetime.datetime.utcnow() - timedelta
+    rejects = (rej_typ.query.
+               filter(rej_typ.time >= one_month_ago).
+               filter_by(user="pool_stale"))
+    accepts = (acc_typ.query.
+               filter(acc_typ.time >= one_month_ago).
+               filter_by(user="pool"))
+    reject_total = sum([hour.value for hour in rejects])
+    accept_total = sum([hour.value for hour in accepts])
+    return reject_total, accept_total
+
+
+@cache.memoize(timeout=3600)
 def users_blocks(address, algo=None, merged=None):
     q = db.session.query(Block).filter_by(user=address, merged_type=None)
     if algo:
@@ -51,13 +77,16 @@ def all_time_shares(address):
 
 
 @cache.memoize(timeout=60)
-def last_block_time(merged_type=None):
-    return last_block_time_nocache(merged_type=merged_type)
+def last_block_time(algo, merged_type=None):
+    return last_block_time_nocache(algo, merged_type=merged_type)
 
 
 def last_block_time_nocache(algo, merged_type=None):
     """ Retrieves the last time a block was solved using progressively less
-    accurate methods. Essentially used to calculate round time. """
+    accurate methods. Essentially used to calculate round time.
+    TODO XXX: Add pool selector to each of the share queries to grab only x11,
+    etc
+    """
     last_block = Block.query.filter_by(merged_type=merged_type, algo=algo).order_by(Block.height.desc()).first()
     if last_block:
         return last_block.found_at
@@ -153,7 +182,7 @@ def get_pool_hashrate(algo):
     ten_min = sum([min.value for min in ten_min])
     # shares times hashes per n1 share divided by 600 seconds and 1000 to get
     # khash per second
-    return (float(ten_min) * current_app.config['hashes_per_share']) / 600000
+    return float(ten_min) / 600000
 
 
 @cache.memoize(timeout=30)
@@ -163,7 +192,7 @@ def get_round_shares(algo, merged_type=None):
     suffix = algo
     if merged_type:
         suffix += "_" + merged_type
-    return sum(redis.hvals('current_block_' + suffix)), datetime.datetime.utcnow()
+    return sum(redis_conn.hvals('current_block_' + suffix)), datetime.datetime.utcnow()
 
 
 def get_adj_round_shares(khashrate):
@@ -174,7 +203,7 @@ def get_adj_round_shares(khashrate):
     round_shares, dt = get_round_shares()
     # # compute average shares/second
     now = datetime.datetime.utcnow()
-    sps = float(khashrate * 1000) / current_app.config['hashes_per_share']
+    sps = float(khashrate * 1000)
     round_shares += int(round((now - dt).total_seconds() * sps))
     return round_shares, sps
 
@@ -195,10 +224,10 @@ def last_10_shares(user):
     return 0
 
 
-def collect_acct_items(address, limit=None, offset=0, merged_type=None):
+def collect_acct_items(address, limit=None, offset=0):
     """ Get account items for a specific user """
-    payouts = (Payout.query.filter_by(user=address, merged_type=merged_type).
-               order_by(Payout.id.desc()).limit(limit).offset(offset))
+    payouts = (Payout.query.filter_by(user=address).join(Payout.block).
+               order_by(Block.found_at.desc()).limit(limit).offset(offset))
     return payouts
 
 
@@ -294,28 +323,8 @@ def setfee_command(username, perc):
     db.session.commit()
 
 
-def setmerge_command(username, merged_type, merge_address):
-    merged_cfg = current_app.config['merged_cfg'].get(merged_type, {})
-    try:
-        version = get_bcaddress_version(username)
-    except Exception:
-        version = False
-    if (merge_address[0] != merged_cfg['prefix'] or not version):
-            raise CommandException("Invalid {merged_type} address! {merged_type} addresses start with a(n) {}."
-                                   .format(merged_cfg['prefix'], merged_type=merged_type))
-
-    if not merged_cfg['enabled']:
-        raise CommandException("Merged mining not enabled!")
-
-    obj = MergeAddress(user=username, merge_address=merge_address,
-                       merged_type=merged_type)
-    db.session.merge(obj)
-    db.session.commit()
-
-
 def verify_message(address, message, signature):
-    commands = {'SETFEE': setfee_command,
-                'SETMERGE': setmerge_command}
+    commands = {'SETFEE': setfee_command}
     try:
         lines = message.split("\t")
         parts = lines[0].split(" ")

@@ -19,7 +19,7 @@ db = SQLAlchemy()
 cache = Cache()
 coinservs = LocalProxy(
     lambda: getattr(current_app, 'rpc_connections', None))
-redis = LocalProxy(
+redis_conn = LocalProxy(
     lambda: getattr(current_app, 'redis', None))
 
 
@@ -76,7 +76,7 @@ def create_app(config='/config.yml', celery=False):
     cache_config = {'CACHE_TYPE': 'redis'}
     cache_config.update(app.config.get('main_cache', {}))
     cache.init_app(app, config=cache_config)
-    app.redis = Redis(**app.config.get('main_cache', {}))
+    app.redis = Redis(**app.config.get('redis_conn', {}))
 
     if not celery:
         hdlr = logging.FileHandler(app.config.get('log_file', 'webserver.log'))
@@ -167,9 +167,6 @@ def create_app(config='/config.yml', celery=False):
         if day_diff < 365:
             return str(day_diff/30) + " months ago"
         return str(day_diff/365) + " years ago"
-
-    from .tasks import celery
-    celery.conf.update(app.config)
 
     # Route registration
     # =========================================================================

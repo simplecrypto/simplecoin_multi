@@ -8,6 +8,7 @@ import setproctitle
 import decorator
 import argparse
 import json
+import redis
 
 from sqlalchemy.sql import select
 from bitcoinrpc import CoinRPCException
@@ -18,14 +19,14 @@ from apscheduler.threadpool import ThreadPool
 from math import ceil, floor
 from cryptokit.base58 import get_bcaddress_version
 
-from simplecoin import create_app
-from simplecoin import db, coinserv, cache, merge_coinserv, redis
-from simplecoin.models import (
-    Share, Block, OneMinuteShare, Payout, Transaction, Blob, FiveMinuteShare,
-    Status, OneMinuteReject, OneMinuteTemperature, FiveMinuteReject,
-    OneMinuteHashrate, Threshold, Event, DonationPercent, BonusPayout,
-    FiveMinuteTemperature, FiveMinuteHashrate, FiveMinuteType, OneMinuteType,
-    MergeAddress)
+from simplecoin import db, coinservs, cache, redis_conn, create_app
+from simplecoin.utils import last_block_time
+from simplecoin.models import (Block, OneMinuteShare, Payout, Transaction,
+                               FiveMinuteShare, OneMinuteReject,
+                               OneMinuteTemperature, FiveMinuteReject,
+                               OneMinuteHashrate, DonationPercent,
+                               FiveMinuteTemperature, FiveMinuteHashrate,
+                               FiveMinuteType, OneMinuteType)
 
 logger = logging.getLogger('apscheduler.scheduler')
 
@@ -53,62 +54,9 @@ def crontab(func, *args, **kwargs):
     return res
 
 
-def get_sharemap(start_id, shares_to_fetch, chunk_size=None, sleep_interval=None):
-    """ Give a share id to start at and a number of shares to fetch (round size),
-    returns a map of {user_address: share_count} format and how many shares
-    were actually accrued """
-    # allow overridable configuration defaults
-    chunk_size = chunk_size or current_app.config.get('sharemap_chunk_size', 10000)
-    sleep_interval = sleep_interval or current_app.config.get('sharemap_sleep_interval', 0.1)
-    # hold all user shares here
-    user_shares = {}
-    stop_id = Share.query.order_by(Share.id).first().id  # last share to look for
-    if start_id is None:
-        # start at beginning
-        start_id = Share.query.order_by(Share.id.desc()).first().id
-    # iterate through shares in newest to oldest order to find the share
-    # id that is oldest needed id
-    remain = shares_to_fetch
-    rows = 0
-    sleep_total = 0
-    start_time = time.time()
-    while remain > 0 and start_id > stop_id:
-        res = (db.engine.execution_options(stream_results=True).
-               execute(select([Share.shares, Share.user]).
-                       order_by(Share.id.desc()).
-                       where(Share.id > start_id - chunk_size).
-                       where(Share.id <= start_id)))
-        chunk = res.fetchall()
-        logger.debug("Fetching rows {:,} to {:,}".format(start_id - chunk_size, start_id))
-        for shares, user in chunk:
-            rows += 1
-            user_shares.setdefault(user, 0)
-            if remain > shares:
-                user_shares[user] += shares
-                remain -= shares
-            else:
-                user_shares[user] += remain
-                remain = 0
-                break
-        else:
-            # grab another batch, we've still got shares to find
-            sleep(sleep_interval)
-            sleep_total += sleep_interval
-            start_id -= 10000
-            continue
-
-        # if we broke from the for loop we're done, exit
-        break
-
-    logger.info("Slept for a total of {}"
-                .format(datetime.timedelta(seconds=sleep_total)))
-    logger.info("Queried and summed for a total of {}"
-                .format(datetime.timedelta(seconds=time.time() - start_time - sleep_total)))
-    logger.info("Iterated {:,} rows to find {:,} shares"
-                .format(rows, shares_to_fetch))
-    logger.info("Found {:,} unique users in share log".format(len(user_shares)))
-
-    return user_shares, shares_to_fetch - remain
+@crontab
+def cleanup():
+    pass
 
 
 @crontab
@@ -218,14 +166,18 @@ def update_block_state():
 def run_payouts(simulate=False):
     """ Loops through all the blocks that haven't been paid out and attempts
     to pay them out """
-    unproc_blocks = redis.keys("unproc_block*")
+    unproc_blocks = redis_conn.keys("unproc_block*")
     for key in unproc_blocks:
-        hash = key[12:]
+        hash = key[13:]
         logger.info("Attempting to process block hash {}".format(hash))
-        payout(key, simulate=simulate)
+        try:
+            payout(key, simulate=simulate)
+        except Exception:
+            db.session.rollback()
+            logger.error("Unable to payout block {}".format(hash), exc_info=True)
 
 
-def payout(key, simulate=False):
+def payout(redis_key, simulate=False):
     """
     Calculates payouts for users from share records for the latest found block.
     """
@@ -235,24 +187,46 @@ def payout(key, simulate=False):
 
     data = {}
     user_shares = {}
-    raw = redis.hgetall(key)
+    raw = redis_conn.hgetall(redis_key)
     for key, value in raw.iteritems():
         if get_bcaddress_version(key):
-            user_shares[key] = value
+            user_shares[key] = float(value)
         else:
             data[key] = value
 
+    if not user_shares:
+        user_shares[data['address']] = 1
+
     logger.debug("Processing block with details {}".format(data))
+    merged_type = data.get('merged_type')
+    if 'start_time' in data:
+        time_started = datetime.datetime.utcfromtimestamp(float(data.get('start_time')))
+    else:
+        time_started = last_block_time(data['algo'], merged_type=merged_type)
+    block = Block.create(
+        user=data['address'],
+        height=data['height'],
+        total_value=int(data['total_subsidy']),
+        transaction_fees=int(data['fees']),
+        bits=data['hex_bits'],
+        hash=data['hash'],
+        time_started=time_started,
+        currency=data['currency'],
+        worker=data.get('worker'),
+        found_at=datetime.datetime.utcfromtimestamp(float(data['solve_time'])),
+        algo=data['algo'],
+        merged_type=merged_type)
+
     total_shares = sum(user_shares.itervalues())
 
     if simulate:
         out = "\n".join(["\t".join((user,
                                     str((amount * 100.0) / total_shares),
-                                    str((amount * data['total_value']) // total_shares),
+                                    str((amount * block.total_value) // total_shares),
                                     str(amount))) for user, amount in user_shares.iteritems()])
         logger.debug("Share distribution:\nUSR\t%\tBLK_PAY\tSHARE\n{}".format(out))
 
-    logger.debug("Distribute_amnt: {}".format(data['total_value']))
+    logger.debug("Distribute_amnt: {}".format(block.total_value))
 
     # Below calculates the truncated portion going to each miner. because
     # of fractional pieces the total accrued wont equal the disitrubte_amnt
@@ -260,21 +234,21 @@ def payout(key, simulate=False):
     accrued = 0
     user_payouts = {}
     for user, share_count in user_shares.iteritems():
-        user_payouts[user] = float(share_count * data['total_value']) // total_shares
+        user_payouts[user] = float(share_count * block.total_value) // total_shares
         accrued += user_payouts[user]
 
     logger.debug("Total accrued after trunated iteration {}; {}%"
-                 .format(accrued, (accrued / float(data['total_value'])) * 100))
+                 .format(accrued, (accrued / float(block.total_value)) * 100))
     # loop over the dictionary indefinitely until we've distributed
     # all the remaining funds
     i = 0
-    while accrued < data['total_value']:
+    while accrued < block.total_value:
         for key in user_payouts:
             i += 1
             user_payouts[key] += 1
             accrued += 1
             # exit if we've exhausted
-            if accrued >= data['total_value']:
+            if accrued >= block.total_value:
                 break
 
     logger.debug("Ran round robin distro {} times to finish distrib".format(i))
@@ -325,16 +299,16 @@ def payout(key, simulate=False):
     logger.info("Net income from block {}"
                 .format((donation_total - bonus_total) / 100000000.0))
 
-    assert accrued == data['total_value']
+    assert accrued == block.total_value
     logger.info("Successfully distributed all rewards among {} users."
                 .format(len(user_payouts)))
 
     # run another safety check
     user_sum = sum(user_payouts.values())
-    assert user_sum == (data['total_value'] + bonus_total - donation_total)
+    assert user_sum == (block.total_value + bonus_total - donation_total)
     logger.info("Double check for payout distribution."
                 " Total user payouts {}, total block value {}."
-                .format(user_sum, data['total_value']))
+                .format(user_sum, block.total_value))
 
     if simulate:
         out = "\n".join(["\t".join(
@@ -349,53 +323,68 @@ def payout(key, simulate=False):
                 logger.info("Skip zero payout for USR: {}".format(user))
                 continue
             Payout.create(amount=amount,
-                          block=hash,
-                          shares_contributed=user_shares[user],
+                          block=block,
+                          user=user,
+                          shares=user_shares[user],
                           perc=user_perc[user])
-
-        block = Block.create(
-            user=data['address'],
-            total_value=data['total_subsidy'],
-            transaction_fees=data['fees'],
-            bits=data['bits'],
-            found_at=datetime.datetime.utcfromtimestamp(data['solve_time']),
-            currency=data['currency'],
-            hash=data['hash'],
-            height=data['height'],
-            time_started=datetime.datetime.utcfromtimestamp(data.get('start_time')) or )
 
         # update the block status and collected amounts
         block.donated = donation_total
         block.bonus_payed = bonus_total
+        db.session.commit()
+        redis_conn.delete(redis_key)
 
 
 @crontab
 def collect_minutes():
     """ Grabs all the pending minute shares out of redis and puts them in the
     database """
-    share_mult = current_app.config.get('share_multiplier', 1)
-    def count_share(typ, amount, user_=user):
+    def count_share(typ, minute, amount, user, worker=''):
         logger.debug("Adding {} for {} of amount {}"
-                     .format(typ.__name__, user_, amount))
+                     .format(typ.__name__, user, amount))
         try:
-            typ.create(user_, amount * share_mult, minute, worker)
+            typ.create(user, amount, minute, worker)
             db.session.commit()
         except sqlalchemy.exc.IntegrityError:
             db.session.rollback()
-            typ.add_value(user_, amount * share_mult, minute, worker)
+            typ.add_value(user, amount, minute, worker)
             db.session.commit()
 
-    last = ((time.time() // 60) * 60) - 60
-    for stamp in xrange(last, last - 600, -60):
-        for algo in current_app.config['algos']:
-            for share_type in ["acc", "dup", "low", "stale"]:
-                key = "{}-min-{}-{}".format(share_type, algo, stamp)
-                try:
-                    redis.rename(key, "processing_shares")
-                except redis.ResponseError:
-                    pass
-                else:
-                    for user, shares in redis.hgetall("processing_shares").iteritems():
+    unproc_mins = redis_conn.keys("min_*")
+    for key in unproc_mins:
+        current_app.logger.info("Processing key {}".format(key))
+        share_type, algo, stamp = key.split("_")[1:]
+        minute = datetime.datetime.utcfromtimestamp(float(stamp))
+        if stamp < (time.time() - 30):
+            current_app.logger.info("Skipping timestamp {}, too young".format(minute))
+            continue
+        redis_conn.rename(key, "processing_shares")
+        for user, shares in redis_conn.hgetall("processing_shares").iteritems():
+            # messily parse out the worker/address combo...
+            parts = user.split(".")
+            if len(parts) > 0:
+                worker = parts[1]
+            else:
+                worker = ''
+            address = parts[0]
+
+            # we want to log how much of each type of reject for the whole pool
+            if address == "pool":
+                if share_type == "acc":
+                    count_share(OneMinuteShare, minute, shares, "pool_{}".format(algo))
+                if share_type == "low":
+                    count_share(OneMinuteReject, minute, shares, "pool_low_diff_{}".format(algo))
+                if share_type == "dup":
+                    count_share(OneMinuteReject, minute, shares, "pool_dup_{}".format(algo))
+                if share_type == "stale":
+                    count_share(OneMinuteReject, minute, shares, "pool_stale_{}".format(algo))
+            # only log a total reject on a per-user basis
+            else:
+                if share_type == "acc":
+                    count_share(OneMinuteShare, minute, shares, "{}_{}".format(address, algo))
+                if share_type == "stale":
+                    count_share(OneMinuteReject, minute, shares, "{}_{}".format(address, algo))
+        redis_conn.delete("processing_shares")
 
 
 @crontab
@@ -493,6 +482,8 @@ if __name__ == "__main__":
         if not current_app.config.get('stage', False):
             # every minute at 55 seconds after the minute
             sched.add_cron_job(run_payouts, second=55)
+            # every minute at 55 seconds after the minute
+            sched.add_cron_job(collect_minutes, second=35)
             # every five minutes 20 seconds after the minute
             sched.add_cron_job(compress_minute, minute='0,5,10,15,20,25,30,35,40,45,50,55', second=20)
             # every hour 2.5 minutes after the hour

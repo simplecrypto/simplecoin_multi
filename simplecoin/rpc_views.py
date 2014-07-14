@@ -1,7 +1,7 @@
 from itsdangerous import TimedSerializer
 from flask import current_app, request, abort
 
-from .models import Transaction, Payout, BonusPayout, TransactionSummary
+from .models import Transaction, Payout, TransactionSummary
 from .utils import Benchmark
 from .views import main
 from . import db
@@ -24,22 +24,15 @@ def get_payouts():
     with Benchmark("Fetching payout information"):
         pids = [(p.user, p.amount, p.id) for p in Payout.query.filter_by(transaction_id=None, locked=False, merged_type=merged).
                 join(Payout.block, aliased=True).filter_by(mature=True)]
-        bids = [(p.user, p.amount, p.id) for p in BonusPayout.query.filter_by(transaction_id=None, locked=False, merged_type=merged).
-                join(BonusPayout.block, aliased=True).filter_by(mature=True)]
 
         if lock:
-            if bids:
-                current_app.logger.info("Locking {} bonus ids at retriever request."
-                                        .format(len(bids)))
-                (BonusPayout.query.filter(BonusPayout.id.in_(p[2] for p in bids))
-                 .update({BonusPayout.locked: True}, synchronize_session=False))
             if pids:
                 current_app.logger.info("Locking {} payout ids at retriever request."
                                         .format(len(pids)))
                 (Payout.query.filter(Payout.id.in_(p[2] for p in pids))
                  .update({Payout.locked: True}, synchronize_session=False))
             db.session.commit()
-    return s.dumps([pids, bids, lock])
+    return s.dumps([pids, lock])
 
 
 @main.route("/update_payouts", methods=['POST'])
@@ -82,12 +75,6 @@ def update_transactions():
                 user_amounts[payout.user] += payout.amount
                 user_counts[payout.user] += 1
 
-            for payout in BonusPayout.query.filter(BonusPayout.id.in_(data['bids'])):
-                user_counts.setdefault(payout.user, 0)
-                user_amounts.setdefault(payout.user, 0)
-                user_amounts[payout.user] += payout.amount
-                user_counts[payout.user] += 1
-
             for user in user_counts:
                 TransactionSummary.create(
                     coin_trans.txid, user, user_amounts[user], user_counts[user])
@@ -95,9 +82,6 @@ def update_transactions():
             if data['pids']:
                 Payout.query.filter(Payout.id.in_(data['pids'])).update(
                     {Payout.transaction_id: coin_trans.txid}, synchronize_session=False)
-            if data['bids']:
-                BonusPayout.query.filter(BonusPayout.id.in_(data['bids'])).update(
-                    {BonusPayout.transaction_id: coin_trans.txid}, synchronize_session=False)
 
             db.session.commit()
     elif data['reset']:
@@ -106,9 +90,6 @@ def update_transactions():
             if data['pids']:
                 Payout.query.filter(Payout.id.in_(data['pids'])).update(
                     {Payout.locked: False}, synchronize_session=False)
-            if data['bids']:
-                BonusPayout.query.filter(BonusPayout.id.in_(data['bids'])).update(
-                    {BonusPayout.locked: False}, synchronize_session=False)
             db.session.commit()
         return s.dumps(dict(success=True, result="Successfully reset"))
 

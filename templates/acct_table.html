@@ -29,39 +29,23 @@
             </tr>
           </thead>
           <tbody>
-            {% for obj in acct_items %}
-              {% if obj.__tablename__ == 'payout' %}
-                {% set payout = obj %}
-                <tr>
-                  <th data-sort-value="{{ payout.timestamp }}">{{ payout.created_at | time_ago }}</th>
-                  <th>{{ '{:,}'.format(payout.shares) }}</th>
-                  <th title="{{ payout.mined }}">{{ payout.mined | sig_round(2) }}</th>
-                  <th>{{ '{:,}'.format(payout.perc) }}%</th>
-                  <th data-sort-value="{{ perc_applied }}">{{ payout.text_perc_applied }}</th>
-                  <th title="{{ payout.amount / 100000000.0 }}">{{ (payout.amount / 100000000.0) | sig_round(2) }}</th>
-                  <th>{{ '{:,}'.format(payout.block.height) }}</th>
-                  <th>{% if payout.transaction_id %}
-                    <a href="{{ payout.explorer_link }}" target="_blank">
-                      {{ payout.transaction_id | truncate(15, True) }}
-                    </a>
-                    {% endif %}
-                  </th>
-                  <th>{{ payout.status }}</th>
-                </tr>
-              {% else %}
-                <tr>
-                  <th>{{ obj.created_at | time_ago }}</th>
-                  <th colspan="4"><span style="color:#2ca02c;">Bonus:</span> {{ obj.description }}</th>
-                  <th colspan="2">{{ '{:,}'.format(obj.amount / 100000000 | round(2)) }}</th>
-                  <th>{% if obj.transaction_id %}
-                    <a href="{{ config['transaction_link_prefix'] }}{{ obj.transaction_id }}" target="_blank">
-                      {{ obj.transaction_id | truncate(15, True) }}
-                    </a>
-                    {% endif %}
-                  </th>
-                  <th>{{ obj.status }}</th>
-                </tr>
-              {% endif %}
+            {% for payout in acct_items %}
+              <tr>
+                <th data-sort-value="{{ payout.timestamp }}">{{ payout.created_at | time_ago }}</th>
+                <th>{{ '{:,}'.format(payout.shares) }}</th>
+                <th title="{{ payout.mined }}">{{ payout.mined | sig_round(2) }}</th>
+                <th>{{ '{:,}'.format(payout.perc) }}%</th>
+                <th data-sort-value="{{ perc_applied }}">{{ payout.text_perc_applied }}</th>
+                <th title="{{ payout.amount / 100000000.0 }}">{{ (payout.amount / 100000000.0) | sig_round(2) }}</th>
+                <th>{{ '{:,}'.format(payout.block.height) }}</th>
+                <th>{% if payout.transaction_id %}
+                  <a href="{{ payout.explorer_link }}" target="_blank">
+                    {{ payout.transaction_id | truncate(15, True) }}
+                  </a>
+                  {% endif %}
+                </th>
+                <th>{{ payout.status }}</th>
+              </tr>
             {% endfor %}
 
           </tbody>

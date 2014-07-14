@@ -7,55 +7,7 @@
 $(document).ready(function() {
 
   {# Initial graph generation #}
-  generate_graph('hour', '%H:%M %p', '{{ username }}' );
-
-  {# Generate user stats #}
-  setTimeout(function(){
-    var hashrate, last_10_shares, difficulty, user_shares, est_payout,
-        round_reward, shares_to_solve, donate, coin_rate,
-        n_multiplier, pplns_total_shares;
-
-    {# load serverside info into js #}
-    round_reward = {{ block_reward / 100000000.0 }};
-    user_shares = {{ round_shares or 0 }};
-    pplns_total_shares = {{ g.pplns_size or 0}}
-    last_10_shares = {{ last_10_shares or 0 }};
-    hashrate = {{ last_10_hashrate }};
-    difficulty = {{ g.average_difficulty or 'NaN' }};
-    donate = {{ donation_perc or 0 }};
-    n_multiplier = {{ config['last_n'] or 2}}
-
-    {# Run calculation functions #}
-    shares_to_solve = {{ g.shares_to_solve }};
-    est_payout = round_payout(difficulty, user_shares, shares_to_solve, donate, round_reward, n_multiplier, pplns_total_shares);
-    coin_rate = daily_est(last_10_shares, shares_to_solve, donate, round_reward);
-
-    setInterval(set_content = function(){
-      $('.odometer.hashrate').text(numberWithCommas(Math.round(hashrate * 1000) / 1000));
-      $('.odometer.usershares').text(numberWithCommas(Math.round(user_shares)));
-      $('.odometer.estpayout').text(numberWithCommas(Math.round(est_payout * 1000) / 1000));
-      $('.odometer.coinrate').text(numberWithCommas(Math.round(coin_rate * 1000) / 1000));
-    },1000);
-
-    set_content();
-
-  },1000);
-
-  $('table.worker-table > tbody > tr.gpu').bind( "click", function() {
-    // row was clicked
-    var jqxhr = $.ajax($(this).attr('data-url') )
-    .always(function(data) {
-      $('pre#modal-json').html(data['output']);
-      $('#myModal').modal()
-    });
-  });
-
-  $('div.collapse-button').bind( "click", function() {
-      $(this).text(function(i,old){
-          return old=='[ - ]' ?  '[ + ]' : '[ - ]';
-      });
-  });
-
+  generate_graph('hour', '%H:%M %p', '{{ username }}_X11' );
 });
 </script>
 
@@ -71,55 +23,15 @@ $(document).ready(function() {
       <a style="color:gray;" href="/set_donation/{{ username }}"><i class="fa fa-edit" ></i></a>
     </span><br>
     <br>
-    <div class="col-sm-3">
-      <div class="panel panel-default">
-        <div class="panel-body text-center">
-          <small>PPLN Shares</small>&nbsp;
-          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Total shares being counted towards your next payout"></i>
-          <br><h4><p><span class="odometer usershares">...</span></p></h4>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-3">
-      <div class="panel panel-default">
-        <div class="panel-body text-center">
-          <small>Est. Round Payout</small>&nbsp;
-          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-             title="Payout estimate based on PPLNS (Last updated {{ pplns_cached_time }}). This estimate will be very close to your actual payout."></i>
-          <br><h4><p><span class="odometer estpayout">...</span> {{ config['coin_symbol'] | safe }}</p></h4>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-3">
-      <div class="panel panel-default">
-        <div class="panel-body text-center">
-          <small>Average Hashrate</small>&nbsp;
-          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Your average hashrate over the last 10 minutes based on your accepted shares, NOT PPAgent."></i>
-          <br><h4><p><span class="odometer hashrate">...</span> MHashes/sec</p></h4>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-3">
-      <div class="panel panel-default">
-        <div class="panel-body text-center">
-          <small>Est. {{ config['coin_name'] | safe }}/day</small>&nbsp;
-          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="An estimate based on your hashrate for the last ten minutes, constant mining at that hashrate, and 100% round luck. Your actual payout will fluctuate based on round luck!"></i>
-          <br><h4><p><span class="odometer coinrate">...</span> {{ config['coin_symbol'] | safe }}</p></h4>
-        </div>
-      </div>
-    </div>
   </div>
   <div class="row row-header">
     <div class="col-lg-12">
         <ul class="nav nav-tabs">
-          <li class="active tab"><a id="hour" data-target="hour" data-format="%M:%S" data-user="{{ username }}">Hour</a></li>
-          <li class="tab"><a id="day" data-target="day" data-format="%H:%M %p" data-user="{{ username }}">Day</a></li>
-          <li class="tab"><a id="month" data-target="month" data-format="%m/%d %H:%M" data-user="{{ username }}">Month</a></li>
+          <li class="active tab"><a id="hour" data-target="hour" data-format="%M:%S" data-user="{{ username }}_X11">Hour</a></li>
+          <li class="tab"><a id="day" data-target="day" data-format="%H:%M %p" data-user="{{ username }}_X11">Day</a></li>
+          <li class="tab"><a id="month" data-target="month" data-format="%m/%d %H:%M" data-user="{{ username }}_X11">Month</a></li>
         </ul>
-      <div id="chart" style="height:400px;">
+      <div id="chart" style="height:200px;">
         <img src="{{ config['assets_address'] | safe }}/img/712.GIF" style="position:absolute;padding-top:150px;padding-left:400px;"><svg></svg>
       </div>
     </div>
@@ -170,179 +82,10 @@ $(document).ready(function() {
             </div>
             <div class="clearfix"></div>
           </div>
-          {# if there are miner status loop through them #}
-          {% if worker['status'] %}
-          {% set stat = worker['status'] %}
-          <div class="table-responsive bs-component worker-table-wrapper">
-            <div class="worker-wrapper">
-              <b>{{ stat['type'] }} status</b>
-            {% if not worker['name'] %}
-              {# Show a warning about unnamed workers #}
-              <small style="font-size:14px;color:#ff0000;font-weight:400;">
-                Multiple unnamed workers will do wonky things!
-              </small>
-            {% endif %}
-            {% if worker['status_stale'] == True %}
-              {# if stale then show a warning #}
-              <small colspan="3" style="font-size:14px;color:#EEA236;"> <i>Updated {{ worker['status_time'] | time_ago }}</i></small>
-              <div class="btn btn-default btn-sm collapse-button" data-toggle="collapse" data-target="#worker-{{ worker['name'] }}">
-                [ + ]
-              </div>
-            {% else %}
-              {# Not stale - show last updated time #}
-              <small colspan="3" style=" font-size:14px;font-weight:300;">
-                <i>Updated {{ worker['status_time'] | time_ago }}</i>
-              </small>
-              <div class="btn btn-default btn-sm collapse-button"
-                   data-toggle="collapse" data-target="#worker-{{ worker['name'] }}">
-                [ - ]
-              </div>
-            {% endif %}
-            </div>
-            {# Worker's miner stats #}
-            <div id="worker-{{ worker['name'] }}" class="collapse{% if worker['status_stale'] == False %} in{% endif %}">
-              <div class="table-responsive  bs-component" style="position:relative;padding:9px;">
-                <div class="col-xs-3 text-center">
-                  <h4>WU: {{ worker['wu'] | round(2) }}&nbsp;
-                    <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                         title="Work Utility is calculated from accepted n1 shares/time mining. This results in a number that represents the effective contributions, rather than the raw hashrate."></i></h4>
-                </div>
-                <div class="col-xs-3 text-center">
-                  <h4>KHash/sec: {{ '{:,}'.format((worker['total_hashrate']*1000)|int) }}&nbsp;
-                    <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                         title="Summation of the reported average hashrates"></i>
-                  </h4>
-                </div>
-                <div class="col-xs-3 text-center">
-                  <h4>
-                    {% if worker['wue'] < 0.80 %}
-                    <i class="fa fa-circle" style="color:red"></i>&nbsp;
-                    {% elif (worker['wue'] < 0.87) and (worker['wue'] >= 0.80) %}
-                    <i class="fa fa-circle" style="color:yellow"></i>&nbsp;
-                    {% elif worker['wue'] >= 0.87 %}
-                    <i class="fa fa-circle" style="color:green"></i>&nbsp;
-                    {% endif %}
-                    WUE: {{ (worker['wue']*100)| round(2)}}%&nbsp;
-                    <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                         title="This value is calculated from the reported WU({{ worker['wu'] }}) / reported average hashrate({{ (worker['total_hashrate']*1000)|int }}). A value of 90%+ is ideal. To increase your WUE make sure your rig is not having hardware errors"></i></h4>
-                </div>
-                <div class="col-xs-3 text-center">
-                  <h4><i class="fa fa-bar-chart-o"></i> <a href="/{{ username }}/{{ worker['name'] }}">Detailed view</a></h4>
-                </div>
-                <div class="clearfix"></div>
-              </div>
-              <table class="table table-striped table-hover worker-table">
-                <thead>
-                  <tr>
-                    <th>GPU</th>
-                    <th>KHash/sec</th>
-                    <th>WUE</th>
-                    <th>Accepted/Rejected(%)</th>
-                    <th>HW Errors</th>
-                    <th>Temperature</th>
-                    <th>Fan Speed</th>
-                    <th>Core/Memory Clock</th>
-                  </tr>
-                </thead>
-                <tbody>
-                {% for gpu in stat['gpus'] %}
-                  <tr class="gpu" data-url="/{{ username }}/{{ worker['name'] }}/details/{{ loop.index0 }}">
-                    <th>{{ loop.index0 }}</th>
-                    <th>
-                      {{ (gpu.get('MHS av', 0)*1000)|round|int }}
-                    </th>
-                    <th>
-                      {% set accepted = gpu.get('Difficulty Accepted', 0) %}
-                      {% if accepted != 0 and gpu.get('Device Elapsed', 0) !=0 %}
-                        {% set WU = (accepted / gpu['Device Elapsed'])*60 %}
-                      {% else %}
-                        {% set WU = 0 %}
-                      {% endif %}
-                      {% if WU == 0 or (gpu.get('MHS av', 0.0001) == 0) %}
-                        -/-
-                      {% else %}
-                        {{ ( (WU / (gpu.get('MHS av', 0.0001)*1000) ) * 100 ) | round(1) }}%
-                      {% endif %}
-                    </th>
-                    <th>
-                      {{ '{:,}'.format(accepted|int) }} / {{ '{:,}'.format(gpu.get('Difficulty Rejected', 0)|int) }}
-                      {% if accepted != 0 %}
-                        &nbsp;({{ (((accepted - gpu.get('Difficulty Rejected', 0)) / accepted)*100)|round(2) }}%)
-                      {% else %}
-                        (0)
-                      {% endif %}
-                    </th>
-                    <th>{{ gpu.get('Hardware Errors', 0) }}</th>
-                    <th {% if gpu.get('temp', 0) > 90 %}class="danger"{% endif %}>{{ gpu.get('temp', 0) }}</th>
-                    <th>{{ gpu.get('Fan Percent', 0) }}%</th>
-                    <th>{{ gpu.get('GPU Clock', 0) }}/{{ gpu.get('Memory Clock', 0) }}</th>
-                  </tr>
-                {% endfor %}
-                  <tr>
-                    <th colspan="8" style="text-align:left;">
-                      <small>Running PPAgent v{{ stat.get('v', '0.2') }}</small>&nbsp;
-                      {% if worker['status_version'] < config['latest_ppagent'] %}
-                        {# Notice about out of date ppagent #}
-                        <a href="https://github.com/icook/ppagent#upgrade">
-                          <small style="color:#FFD600;font-weight:400;">
-                            Newer version available here
-                          </small>
-                        </a>&nbsp;&nbsp;
-                      {% endif %}
-                    </th>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-          {% else %}
-          {# No recorded workers, suggest using PPAgent           #}
-          <div class="worker-wrapper">
-            <small>
-            Setup <a href="http://www.github.com/icook/ppagent/">PPAgent</a> to start reporting cgminer stats directly
-            </small>
-          </div>
-
-          {% endif %}
         </div>
       </div>
     </div>
     {% endfor %}
-  </div>
-
-  <div class="row row-header">
-    <h2>Address Stats</h2>
-    <br>
-    <div class="col-sm-4">
-      <div class="panel panel-default">
-        <div class="panel-body text-center">
-          <small>24hr Efficiency</small>&nbsp;
-          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Efficiency of all workers over a 24 hour period."></i>
-          <br><h4><p>{{ total_eff | round(2) }}%</p></h4>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-4">
-      <div class="panel panel-default">
-        <div class="panel-body text-center">
-          <small>Total accepted shares</small>&nbsp;
-          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Total number of shares accepted older than 24 hours, updated daily."></i>
-          <br><h4><p>{{ '{:,}'.format(total_shares) }}</p></h4>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-4">
-      <div class="panel panel-default">
-        <div class="panel-body text-center">
-          <small>Blocks Solved</small>&nbsp;
-          <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Total number of blocks solved by this address, updated hourly"></i>
-          <br><h4><p>{{ '{:,}'.format(solved_blocks) }}</p></h4>
-        </div>
-      </div>
-    </div>
   </div>
 
   <div class="row row-header">
@@ -351,43 +94,7 @@ $(document).ready(function() {
     </small></h2>
     <br>
     {% set coin_symbol = config['coin_symbol'] %}
-    {% include "acct_header.html" %}
     {% include "acct_table.html" %}
     <a href="/{{ username }}/account">View all account transactions</a>
-    {% for curr, name, merged_acct_items, total_merge_paid, total_merge_earned,
-        merge_unconfirmed_balance, merge_balance in merged_accounts %}
-      {% set total_paid = total_merge_paid %}
-      {% set total_earned = total_merge_earned %}
-      {% set unconfirmed_balance = merge_unconfirmed_balance %}
-      {% set balance = merge_balance %}
-      {% set coin_symbol = curr %}
-    <h2>{{ name }} Merged Mining Account</h2>
-    <br>
-      {% set acct_items = merged_acct_items %}
-      {% include "acct_header.html" %}
-      {% include "acct_table.html" %}
-      <a href="/{{ username }}/account/{{ curr }}">
-        View all {{ name }} merged mining account transactions
-      </a>
-    {% endfor %}
   </div>
-
-<!-- Modal -->
-<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="myModalLabel">GPU Details</h4>
-      </div>
-      <div class="modal-body">
-        <pre id="modal-json"></pre>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 {% endblock %}

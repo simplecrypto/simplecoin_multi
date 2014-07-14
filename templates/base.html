@@ -21,91 +21,6 @@
   <script src="{{ config['assets_address'] | safe }}/js/graph.js?revision={{ config['hash'] }}"></Script>
   <script src="{{ config['assets_address'] | safe }}/js/bootstrap.min.js"></Script>
   <script src="{{ config['assets_address'] | safe }}/js/jquery.tablesorter.min.js"></Script>
-  <script>
-    window.shares_per_hash = {{ config.get('hashes_per_share', 65536) }};
-    $(document).ready(function() {
-      var shares, seconds, khashpersec, shares_per_sec, luck,
-          round_time, pplns_size;
-
-      {# Grab new pool stats #}
-      shares = {{ g.completed_block_shares }};
-      seconds = {{ g.round_duration }};
-      pplns_size = {{ g.pplns_size }};
-      total_round_shares = pplns_size / {{ g.last_n }};
-      khashpersec = {{ g.hashrate }};
-      {# Estimate shares solved per second based on pools hashrate #}
-      shares_per_sec = {{ g.shares_per_second }};
-      {# Estimate round time based on estimated shares per second #}
-      round_time = {{ g.shares_to_solve }} / shares_per_sec;
-
-      function n(n){
-          return n > 9 || n < -9 ? "" + n: "0" + n;
-      }
-
-      page_view_seconds = 0;
-      seconds = Math.round(seconds);
-
-      setInterval(set_content = function(){
-
-        seconds += 1;
-        page_view_seconds += 1;
-        additional_shares = shares + (shares_per_sec * page_view_seconds);
-
-        shares_remaining = (total_round_shares) - Math.round(additional_shares);
-        y = seconds%60
-        minutes = n(Math.floor(seconds/60)%60);
-        hours = n(Math.floor(seconds/3600));
-
-        remaining_time = Math.abs(round_time - seconds);
-
-        {# Catch the case where pool has 0 hashrate #}
-        if (round_time == 'Infinity') { remaining_time = 0;}
-
-        remaining_seconds = Math.floor(remaining_time%60);
-        remaining_minutes = n(Math.floor(remaining_time/60)%60);
-        remaining_hours = n(Math.floor(remaining_time/3600));
-
-        {# show a negative sign if we passed the expected solve time #}
-        if (round_time - seconds < 0) {
-          remaining_hours = "-" + remaining_hours
-        }
-
-        luck = ((total_round_shares) / additional_shares) * 1000;
-        if (luck > 99999) {
-          luck = 99999;
-        }
-
-        $('.odometer.shares').text(numberWithCommas(Math.round(additional_shares)));
-        $('.total_n').text(numberWithCommas(Math.round(pplns_size)));
-        $('.odometer.blockshares').text(numberWithCommas(Math.round(additional_shares)));
-
-        $('.minutes').text(minutes);
-        $('.seconds').text(n(y));
-        $('.hours').text(hours);
-
-        // for pool stats page
-        $('.est_remaining_minutes').text(remaining_minutes);
-        $('.est_remaining_seconds').text(n(remaining_seconds));
-        $('.est_remaining_hours').text(remaining_hours);
-
-        $('.odometer.hashes').text(numberWithCommas(Math.round(khashpersec/100)/10));
-        $('.odometer.phashrate').text(numberWithCommas(Math.round(khashpersec/100)/10));
-        $('.odometer.luck').text(numberWithCommas(Math.round(luck) / 10));
-        $('.odometer.blockluck').text(numberWithCommas(Math.round(luck) / 10));
-        $('.odometer.remaining_shares').text(numberWithCommas(Math.round(shares_remaining)));
-
-      },1000);
-
-      set_content();
-
-      {# pass the alert close action to the server to add it to the session #}
-      $('.alert').bind('closed.bs.alert', function () {
-          var id = $(this).attr('data-alert-id');
-          $.get('close/'+id);
-      });
-
-    });
-  </script>
 </head>
 <body>
   <div class="container">
@@ -122,34 +37,17 @@
         </div>
         <div class="col-md-7 no-padding">
           <h5 class="stats">
-            <div class="col-sm-4">
-              <strong data-toggle="tooltip" data-placement="right"
-                title="Total hashrate for the pool, represented in Megahashes per second">Pool&nbsp;Hashrate
-              </strong>:&nbsp;<span class="odometer hashes">...</span> MH/s
-              <br>
-              <strong data-placement="right"
-                title="Total active clients mining on Simple {{ config['coin_name'] | safe }}">
-                Active&nbsp;Workers</strong>:&nbsp;{{ g.worker_count }}
-            </div>
-            <div class="col-sm-4">
-              <strong data-placement="right"
-                title="Total time since the last block was solved">Round&nbsp;Time
-              </strong>:&nbsp;
-              <span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span>
-              <br>
-              <strong data-placement="right"
-                title="Estimated time remaining until the next block is found. It assumes round luck will be 100% and that difficulty will not change.">
-                Est.&nbsp;Time&nbsp;Left</strong>:&nbsp;<span class="est_remaining_hours">00</span>:<span class="est_remaining_minutes">00</span>:<span class="est_remaining_seconds">00</span>
-            </div>
-            <div class="col-sm-4">
-              <strong data-placement="right"
-                title="Total 1 difficulty shares submitted since the last block was solved">Round&nbsp;Shares
-              </strong>:&nbsp;<span class="odometer shares">...</span>
-              <br>
-              <strong data-placement="right"
-                title="Calculated from (shares expected to solve a block)/(shares currently submitted). This results in a percentage that decreases the unluckier the pool is in finding a block. Additionally, the expected number of shares to solve a block is dependent upon the current difficulty, and so large spikes or drops in difficulty often result in strange jumps in round luck">
-                Round&nbsp;Luck</strong>:&nbsp;<span class="odometer luck">...</span>%
-            </div>
+            {% for algo in g.worker_count %}
+              <div class="col-sm-4">
+                <strong data-toggle="tooltip" data-placement="right"
+                  title="Total hashrate for the pool, represented in Megahashes per second">{{ algo }}&nbsp;Pool&nbsp;Hashrate
+                </strong>:&nbsp;{{ g.worker_count[algo] }} MH/s
+                <br>
+                <strong data-placement="right"
+                  title="Total active clients mining on Simple {{ config['coin_name'] | safe }}">
+                  {{ algo }}&nbsp;Active&nbsp;Workers</strong>:&nbsp;{{ g.worker_count[algo] }}
+              </div>
+            {% endfor %}
           </h5>
         </div>
     </div>
@@ -219,11 +117,6 @@
     <div class="col-lg-8 col-lg-offset-2 text-center">
       <br>
       <small>
-        {% if 'repopath' in config %}
-        Running revision <a href="{{ config['repopath'] }}{{ config['hash'] }}">{{ config['hash'] }}</a>
-        released on {{ config['revdate'] }}.
-        {% endif %}
-        <br>
         Donate to the devs:
         DOGE <a href="dogecoin:DAbhwsnEq5TjtBP5j76TinhUqqLTktDAnD">DAbhwsnEq5TjtBP5j76TinhUqqLTktDAnD</a><br>
         BTC <a href="bitcoin:185cYTmEaTtKmBZc8aSGCr9v2VCDLqQHgR">185cYTmEaTtKmBZc8aSGCr9v2VCDLqQHgR</a><br>

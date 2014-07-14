@@ -40,8 +40,9 @@ class Block(base):
     bonus_payed = db.Column(db.BigInteger)
     # Difficulty of block when solved
     bits = db.Column(db.String(8), nullable=False)
-    # is this a merge mined block, or a core block?
     currency = db.Column(db.String, nullable=False)
+    merged_type = db.Column(db.String)
+    algo = db.Column(db.String, nullable=False)
 
     standard_join = ['status', 'explorer_link', 'luck', 'total_value_float',
                      'difficulty', 'duration', 'found_at', 'time_started']
@@ -60,7 +61,7 @@ class Block(base):
 
     @classmethod
     def create(cls, user, height, total_value, transaction_fees, bits, hash,
-               time_started, currency, worker, found_at):
+               time_started, currency, worker, found_at, algo, merged_type=None):
         block = cls(user=user,
                     height=height,
                     total_value=total_value,
@@ -68,6 +69,8 @@ class Block(base):
                     bits=bits,
                     hash=hash,
                     time_started=time_started,
+                    algo=algo,
+                    merged_type=merged_type,
                     currency=currency,
                     found_at=found_at,
                     worker=worker)
@@ -138,10 +141,15 @@ class Payout(base):
     shares = db.Column(db.Integer)
     perc = db.Column(db.Float)
     transaction = db.relationship('Transaction', backref='payouts')
+    transaction_id = db.Column(db.String, db.ForeignKey('transaction.txid'))
 
     standard_join = ['status', 'created_at', 'explorer_link',
                      'text_perc_applied', 'mined', 'amount_float', 'height',
                      'transaction_id']
+
+    @property
+    def amount_float(self):
+        return self.amount / 100000000.0
 
     @property
     def perc_applied(self):
@@ -211,145 +219,6 @@ class TransactionSummary(base):
 class DonationPercent(base):
     user = db.Column(db.String, primary_key=True)
     perc = db.Column(db.Float)
-
-
-class Transfer(AbstractConcreteBase, base):
-    """ Represents a users payout for a single round """
-    id = db.Column(db.Integer, primary_key=True)
-    user = db.Column(db.String)
-    amount = db.Column(db.BigInteger, CheckConstraint('amount>0', 'min_payout_amount'))
-    # allows us to lock a transfer while doing a payout. prevents double
-    # spending
-    locked = db.Column(db.Boolean, default=False, server_default="FALSE")
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    merged_type = db.Column(db.String, default=None)
-
-    @declared_attr
-    def transaction_id(self):
-        return db.Column(db.String, db.ForeignKey('transaction.txid'))
-
-    @property
-    def status(self):
-        if self.transaction:
-            if self.transaction.confirmed is True:
-                return "Payout Transaction Confirmed"
-            else:
-                return "Payout Transaction Pending"
-        elif self.block.orphan:
-            return "Block Orphaned"
-        elif not self.block.mature:
-
-            confirms = self.block.confirms_remaining
-            if confirms is not None:
-                return "{} Block Confirms Remaining".format(confirms)
-            else:
-                return "Pending Block Confirmation"
-        else:
-            return "Payout Pending"
-
-    @property
-    def explorer_link(self):
-        if not self.transaction_id:
-            return
-        if not self.merged_type:
-            return current_app.config['transaction_link_prefix'] + self.transaction_id
-        else:
-            cfg = current_app.config['merged_cfg'][self.merged_type]
-            return cfg['transaction_link_prefix'] + self.transaction_id
-
-    @property
-    def amount_float(self):
-        return self.amount / 100000000.0
-
-
-class Payout(Transfer):
-    __tablename__ = "payout"
-    blockhash = db.Column(db.String, db.ForeignKey('block.hash'))
-    block = db.relationship('Block', foreign_keys=[blockhash])
-    shares = db.Column(db.BigInteger)
-    perc = db.Column(db.Float, default=0.0, server_default="0")
-    perc_applied = db.Column(db.BigInteger, default=0, server_default="0")
-    transaction = db.relationship('Transaction', backref='payouts')
-    __mapper_args__ = {
-        'polymorphic_identity': 'payout',
-        'concrete': True
-    }
-    __table_args__ = (
-        db.UniqueConstraint("user", "blockhash"),
-    )
-
-    standard_join = ['status', 'created_at', 'explorer_link',
-                     'text_perc_applied', 'mined', 'amount_float', 'height',
-                     'transaction_id']
-
-    @property
-    def text_perc_applied(self):
-        if self.perc < 0:
-            return "bonus of {}".format(sig_round(self.perc_applied * -1 / 100000000.0))
-        else:
-            return "donation of {}".format(sig_round(self.perc_applied / 100000000.0))
-
-    @property
-    def mined(self):
-        return (self.amount + self.perc_applied) / 100000000.0
-
-    @classmethod
-    def create(cls, user, amount, block, shares, perc, perc_applied,
-               merged_type=None):
-        payout = cls(user=user, amount=amount, block=block, shares=shares,
-                     perc=perc, perc_applied=perc_applied,
-                     merged_type=merged_type)
-        db.session.add(payout)
-        return payout
-
-    @property
-    def timestamp(self):
-        return calendar.timegm(self.created_at.utctimetuple())
-
-    @property
-    def height(self):
-        return self.block.height
-
-    @property
-    def status(self):
-        if self.transaction:
-            if self.transaction.confirmed is True:
-                return "Payout Transaction Confirmed"
-            else:
-                return "Payout Transaction Pending"
-        elif self.block.orphan:
-            return "Block Orphaned"
-        elif not self.block.mature:
-
-            confirms = self.block.confirms_remaining
-            if confirms is not None:
-                return "{} Block Confirms Remaining".format(confirms)
-            else:
-                return "Pending Block Confirmation"
-        else:
-            return "Payout Pending"
-
-
-class BonusPayout(Transfer):
-    __tablename__ = "bonus_payout"
-    description = db.Column(db.String)
-    blockhash = db.Column(db.String, db.ForeignKey('block.hash'))
-    block = db.relationship('Block', foreign_keys=[blockhash])
-    __mapper_args__ = {
-        'polymorphic_identity': 'bonus_payout',
-        'concrete': True
-    }
-    standard_join = ['status', 'created_at', 'explorer_link', 'amount_float',
-                     'transaction_id']
-
-    transaction = db.relationship('Transaction', backref='bonus_payouts')
-
-    @classmethod
-    def create(cls, user, amount, description, block, merged_type=None):
-        bonus = cls(user=user, amount=amount, description=description,
-                    block=block, merged_type=merged_type)
-        db.session.add(bonus)
-        return bonus
 
 
 class SliceMixin(object):
@@ -451,7 +320,7 @@ class WorkerTimeSlice(AbstractConcreteBase, SliceMixin, base):
     user = db.Column(db.String, primary_key=True)
     time = db.Column(db.DateTime, primary_key=True)
     worker = db.Column(db.String, primary_key=True)
-    value = db.Column(db.Integer)
+    value = db.Column(db.Float)
 
     combine = sum_combine
     key = namedtuple('Key', ['user', 'worker'])
