@@ -13,6 +13,50 @@ from .model_lib import base
 from . import db, cache, sig_round
 
 
+class TradeRequest(base):
+    """
+    Used to provide info necessary to external applications for trading currencies
+
+    Created rows will be checked + updated + removed externally
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    # Currency to be traded
+    currency = db.Column(db.String)
+    # Quantity of currency to be traded
+    quantity = db.Column(db.Integer)
+    desired_currency = db.Column(db.String)
+    locked = db.Column(db.Boolean, default=False)
+
+    # Total Satoshi of the desired currency
+    exchanged_quantity = db.Column(db.BigInteger, default=None)
+    _status = db.Column(db.Integer, default=0)
+
+    @property
+    def status(self):
+        if self._status == 0:
+            return "Pending Exchange Deposit"
+        elif self._status == 2:
+            return "Trading on Exchange"
+        elif self._status == 4:
+            return "Trading complete"
+        elif self._status == 6:
+            return "Withdrawing from Exchange"
+
+
+    @classmethod
+    def create(cls, blocks, currency, quantity, desired_currency):
+        tr = cls(currency=currency,
+                 quantity=quantity,
+                 desired_currency=desired_currency)
+
+        for block in blocks:
+            tr.blocks.append(block)
+
+        # add and flush
+        db.session.add(tr)
+        return tr
+
+
 class Block(base):
     """ This class stores metadata on all blocks found by the pool """
     # the hash of the block for orphan checking

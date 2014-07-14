@@ -1,10 +1,109 @@
 from itsdangerous import TimedSerializer
 from flask import current_app, request, abort
 
-from .models import Transaction, Payout, TransactionSummary
+from .models import Transaction, Payout, TransactionSummary, TradeRequest
 from .utils import Benchmark
 from .views import main
 from . import db
+
+
+@main.route("/get_trade_requests", methods=['POST'])
+def get_trade_requests():
+    """ Used by remote procedure call to retrieve a list of transactions to
+    be processed. Transaction information is signed for safety. """
+    s = TimedSerializer(current_app.config['rpc_signature'])
+    args = s.loads(request.data)
+    current_app.logger.info("get_trade_requests being called, args of {}!".format(args))
+    lock = False
+    if isinstance(args, dict) and args['lock']:
+        lock = True
+
+    if isinstance(args, dict) and args['sell_requests']:
+        trade_requests = TradeRequest.query.filter_by(_status=0, locked=False, desired_currency='BTC').all()
+    elif isinstance(args, dict) and args['buy_requests']:
+        trade_requests = TradeRequest.query.filter_by(_status=0, locked=False, currency='BTC').all()
+    else:
+        trade_requests = TradeRequest.query.filter_by(_status=0, locked=False).all()
+
+    trs = [(t.id, t.currency, t.quantity, t.desired_currency) for t in trade_requests]
+
+    if lock:
+        current_app.logger.info("Locking trade requests at retriever request.")
+        for tr in trade_requests:
+            tr.locked = True
+        db.session.commit()
+    return s.dumps([trs, lock])
+
+
+@main.route("/update_trade_requests", methods=['POST'])
+def update_trade_requests():
+    """ Used as a response from an rpc trade request system. This will update the amount received for
+    a trade request. Both request and response are signed. """
+    s = TimedSerializer(current_app.config['rpc_signature'])
+    data = s.loads(request.data)
+
+    # basic checking of input
+    try:
+        assert 'completed_trs' in data
+        assert isinstance(data['completed_trs'], dict)
+        for tr_id, quantity in data['completed_trs'].iteritems():
+            assert isinstance(tr_id, int)
+            assert isinstance(quantity, int)
+    except AssertionError:
+        current_app.logger.warn("Invalid data passed to update_trade_requests", exc_info=True)
+        abort(400)
+
+    if data['update'] and data['completed_trs']:
+        for tr_id, quantity in data['completed_trs']:
+            tr = TradeRequest.query.filter(TradeRequest).filter_by(id=tr_id).first()
+            tr.exchanged_quantity = quantity
+            tr._status = 4
+        db.session.commit()
+        return s.dumps(dict(success=True, result="Trade requests successfully updated."))
+
+    return s.dumps(True)
+
+
+@main.route("/reset_trade_requests", methods=['POST'])
+def reset_trade_requests():
+    """ Used as a response from an rpc trade request system. This will reset
+    the locked status of a list of trade requests upon failure on the remote
+    side. Both request and response are signed. """
+    s = TimedSerializer(current_app.config['rpc_signature'])
+    data = s.loads(request.data)
+
+    # basic checking of input
+    try:
+        assert 'reset' in data
+        assert isinstance(data['reset'], bool)
+        assert isinstance(data['tr_ids'], list)
+        for id in data['tr_ids']:
+            assert isinstance(id, int)
+    except AssertionError:
+        current_app.logger.warn("Invalid data passed to reset_trade_requests", exc_info=True)
+        abort(400)
+
+    if data['reset'] and data['tr_ids']:
+        TradeRequest.query.filter(TradeRequest.id.in_(data['tr_ids'])).update(
+            {TradeRequest.locked: False}, synchronize_session=False)
+        db.session.commit()
+        return s.dumps(dict(success=True, result="Successfully reset"))
+
+    return s.dumps(True)
+
+@main.route("/get_final_payouts", methods=['GET'])
+def get_trade_requests():
+    """ Used by remote procedure call to retrieve a list of final payouts to
+    be processed. Information is signed for safety. """
+    s = TimedSerializer(current_app.config['rpc_signature'])
+    args = s.loads(request.data)
+    current_app.logger.info("get_trade_requests being called, args of {}!".format(args))
+
+    final_payouts = []
+
+    trs = [(fp.id, fp.quantity, fp.desired_currency) for fp in final_payouts]
+
+    return s.dumps([trs])
 
 
 @main.route("/get_payouts", methods=['POST'])
