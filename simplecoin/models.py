@@ -144,7 +144,7 @@ class Block(base):
 
     @property
     def timestamp(self):
-        return calendar.timegm(self.found_at.utctimetuple())
+        return calendar.timegm(self.block.found_at.utctimetuple())
 
     @property
     def duration(self):
@@ -182,7 +182,7 @@ class Payout(base):
     amount = db.Column(db.BigInteger, CheckConstraint('amount > 0', 'min_payout_amount'))
 
     locked = db.Column(db.Boolean, default=False)
-    shares = db.Column(db.Integer)
+    shares = db.Column(db.Float)
     perc = db.Column(db.Float)
     transaction = db.relationship('Transaction', backref='payouts')
     transaction_id = db.Column(db.String, db.ForeignKey('transaction.txid'))

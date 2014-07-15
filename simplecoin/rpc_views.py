@@ -91,8 +91,9 @@ def reset_trade_requests():
 
     return s.dumps(True)
 
+
 @main.route("/get_final_payouts", methods=['GET'])
-def get_trade_requests():
+def get_final_payouts():
     """ Used by remote procedure call to retrieve a list of final payouts to
     be processed. Information is signed for safety. """
     s = TimedSerializer(current_app.config['rpc_signature'])

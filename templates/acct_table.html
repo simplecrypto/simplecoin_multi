@@ -31,7 +31,7 @@
           <tbody>
             {% for payout in acct_items %}
               <tr>
-                <th data-sort-value="{{ payout.timestamp }}">{{ payout.created_at | time_ago }}</th>
+                <th data-sort-value="{{ payout.timestamp }}">{{ payout.block.found_at | time_ago }}</th>
                 <th>{{ '{:,}'.format(payout.shares) }}</th>
                 <th title="{{ payout.mined }}">{{ payout.mined | sig_round(2) }}</th>
                 <th>{{ '{:,}'.format(payout.perc) }}%</th>
