@@ -40,7 +40,7 @@ $(document).ready(function() {
 <b>Port:</b> {{ config['stratum_port'] }}
 <b>Username: </b>[Your wallet address].[Worker Name]
 <b>Password: </b>anything
-<b>cgminer example:</b> ./cgminer -o stratum+tcp://{{ config['stratum_address'] }}:{{ config['stratum_port'] }} -u {{ config['catchall_address'] }}.worker1 -p x -I 13</pre>
+<b>cgminer example:</b> ./cgminer -o stratum+tcp://{{ config['stratum_address'] }}:{{ config['stratum_port'] }} -u {{ config['donate_address'] }}.worker1 -p x -I 13</pre>
             </small>
           </li>
           <li>Check your stats and estimated payout by entering your {{ config['coin_name'] }} address below:</li>

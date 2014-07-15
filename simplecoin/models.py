@@ -154,12 +154,7 @@ class Block(base):
 
     @property
     def confirms_remaining(self):
-        bh = cache.get('blockheight')
-        if not bh or self.merged_type:
-            return None
-        confirms_req = current_app.config['block_mature_confirms']
-        # prevent displaying negative confirms
-        return max(0, confirms_req - (bh - self.height))
+        return None
 
 
 class Transaction(base):

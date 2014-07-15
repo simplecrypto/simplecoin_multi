@@ -2,6 +2,7 @@ import subprocess
 import logging
 import os
 import yaml
+import sys
 
 from redis import Redis
 from datetime import datetime, timedelta
@@ -17,10 +18,23 @@ from bitcoinrpc import AuthServiceProxy
 root = os.path.abspath(os.path.dirname(__file__) + '/../')
 db = SQLAlchemy()
 cache = Cache()
-coinservs = LocalProxy(
-    lambda: getattr(current_app, 'rpc_connections', None))
+currencies = LocalProxy(
+    lambda: getattr(current_app, 'currencies', None))
 redis_conn = LocalProxy(
     lambda: getattr(current_app, 'redis', None))
+
+
+class Currency(object):
+    def __init__(self, key, bootstrap):
+        self.key = key
+        self.__dict__.update(bootstrap)
+        self.coinserv = AuthServiceProxy(
+            "http://{0}:{1}@{2}:{3}/"
+            .format(bootstrap['coinserv']['username'],
+                    bootstrap['coinserv']['password'],
+                    bootstrap['coinserv']['address'],
+                    bootstrap['coinserv']['port'],
+                    pool_kwargs=dict(maxsize=bootstrap.get('maxsize', 10))))
 
 
 def sig_round(x, sig=2):
@@ -38,41 +52,35 @@ def create_app(config='/config.yml', celery=False):
     config_vars = yaml.load(open(root + config))
     # inject all the yaml configs
     app.config.update(config_vars)
-    app.logger.info(app.config)
 
-    app.rpc_connection = AuthServiceProxy(
-        "http://{0}:{1}@{2}:{3}/"
-        .format(app.config['coinserv']['username'],
-                app.config['coinserv']['password'],
-                app.config['coinserv']['address'],
-                app.config['coinserv']['port'],
-                pool_kwargs=dict(maxsize=app.config.get('maxsize', 10))))
-
-    app.merge_rpc_connection = {}
-    for cfg in app.config['merge']:
-        if not cfg['enabled']:
-            continue
-        app.merge_rpc_connection[cfg['currency_name']] = AuthServiceProxy(
-            "http://{0}:{1}@{2}:{3}/"
-            .format(cfg['coinserv']['username'],
-                    cfg['coinserv']['password'],
-                    cfg['coinserv']['address'],
-                    cfg['coinserv']['port'],
-                    pool_kwargs=dict(maxsize=app.config.get('maxsize', 10))))
+    app.currencies = AttrDict()
+    for currency, dct in app.config['currencies'].iteritems():
+        app.currencies[currency] = Currency(currency, dct)
 
     # add the debug toolbar if we're in debug mode...
+    # ##################
     if app.config['DEBUG']:
+        class LoggerWriter:
+            def __init__(self, logger, level):
+                self.logger = logger
+                self.level = level
+
+            def write(self, message):
+                if message != '\n':
+                    self.logger.log(self.level, message)
+
+        sys.stdout = LoggerWriter(app.logger, logging.INFO)
+        sys.stderr = LoggerWriter(app.logger, logging.INFO)
         from flask_debugtoolbar import DebugToolbarExtension
         DebugToolbarExtension(app)
         app.logger.handlers[0].setFormatter(logging.Formatter(
             '%(asctime)s %(levelname)s: %(message)s '
             '[in %(filename)s:%(lineno)d]'))
 
-    # map all our merged coins into something indexed by type for convenience
-    app.config['merged_cfg'] = {cfg['currency_name']: cfg for cfg in app.config['merge']}
-
     # register all our plugins
+    # ##################
     db.init_app(app)
+    # Redis connection configuration
     cache_config = {'CACHE_TYPE': 'redis'}
     cache_config.update(app.config.get('main_cache', {}))
     cache.init_app(app, config=cache_config)
@@ -175,3 +183,5 @@ def create_app(config='/config.yml', celery=False):
     app.register_blueprint(api.api, url_prefix='/api')
 
     return app
+
+from .utils import AttrDict

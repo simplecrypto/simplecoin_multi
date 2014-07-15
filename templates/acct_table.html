@@ -18,6 +18,7 @@
           <thead>
             <tr>
               <th>Time</th>
+              <th>Currency</th>
               <th>Shares Contributed</th>
               <th>Mined</th>
               <th>Donation %</th>
@@ -32,6 +33,7 @@
             {% for payout in acct_items %}
               <tr>
                 <th data-sort-value="{{ payout.timestamp }}">{{ payout.block.found_at | time_ago }}</th>
+                <th>{{ payout.block.currency }}</th>
                 <th>{{ '{:,}'.format(payout.shares) }}</th>
                 <th title="{{ payout.mined }}">{{ payout.mined | sig_round(2) }}</th>
                 <th>{{ '{:,}'.format(payout.perc) }}%</th>

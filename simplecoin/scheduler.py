@@ -8,25 +8,22 @@ import setproctitle
 import decorator
 import argparse
 import json
-import redis
 
-from sqlalchemy.sql import select
 from bitcoinrpc import CoinRPCException
 from flask import current_app
-from time import sleep
 from apscheduler.scheduler import Scheduler
 from apscheduler.threadpool import ThreadPool
 from math import ceil, floor
 from cryptokit.base58 import get_bcaddress_version
 
-from simplecoin import db, coinservs, cache, redis_conn, create_app
+from simplecoin import db, cache, redis_conn, create_app, currencies
 from simplecoin.utils import last_block_time
-from simplecoin.models import (Block, OneMinuteShare, Payout, Transaction,
-                               FiveMinuteShare, OneMinuteReject,
-                               OneMinuteTemperature, FiveMinuteReject,
-                               OneMinuteHashrate, DonationPercent,
-                               FiveMinuteTemperature, FiveMinuteHashrate,
-                               FiveMinuteType, OneMinuteType)
+from simplecoin.models import (Block, OneMinuteShare, Payout, FiveMinuteShare,
+                               OneMinuteReject, OneMinuteTemperature,
+                               FiveMinuteReject, OneMinuteHashrate,
+                               DonationPercent, FiveMinuteTemperature,
+                               FiveMinuteHashrate, FiveMinuteType,
+                               OneMinuteType)
 
 logger = logging.getLogger('apscheduler.scheduler')
 
@@ -105,30 +102,28 @@ def update_block_state():
     First checks to see if blocks are orphaned,
     then it checks to see if they are now matured.
     """
+    heights = {}
+    def get_blockheight(currency):
+        if currency not in heights:
+            try:
+                heights[currency.key] = currency.coinserv.getblockcount()
+            except (urllib3.exceptions.HTTPError, CoinRPCException) as e:
+                logger.error("Unable to communicate with {} RPC server: {}"
+                             .format(currency.key, e))
+                return None
+        return heights[currency.key]
+
     # Select all immature & non-orphaned blocks
     immature = Block.query.filter_by(mature=False, orphan=False)
     for block in immature:
         logger.info("Checking state of {} block height {}"
                     .format(block.merged_type or "main", block.height))
-        if block.merged_type:
-            merged_cfg = current_app.config['merged_cfg'][block.merged_type]
-            mature_diff = merged_cfg['block_mature_confirms']
-            rpc = merge_coinserv[block.merged_type]
-            name = merged_cfg['name']
-        else:
-            mature_diff = current_app.config['block_mature_confirms']
-            rpc = coinserv
-            name = "main"
+        currency = currencies[block.currency]
 
-        try:
-            blockheight = rpc.getblockcount()
-        except (urllib3.exceptions.HTTPError, CoinRPCException) as e:
-            logger.error("Unable to communicate with {} RPC server: {}"
-                         .format(name, e))
-            continue
+        blockheight = get_blockheight(currency)
 
         # ensure that our RPC server has more than caught up...
-        if blockheight - 10 < block.height:
+        if blockheight - 1 < block.height:
             logger.info("Skipping block {}:{} because blockchain isn't caught up."
                         "Block is height {} and blockchain is at {}"
                         .format(block.height, block.hash, block.height, blockheight))
@@ -137,26 +132,29 @@ def update_block_state():
         logger.info("Checking block height: {}".format(block.height))
         # Check to see if the block hash exists in the block chain
         try:
-            output = rpc.getblock(block.hash)
+            output = currency.coinserv.getblock(block.hash)
             logger.debug("Confirms: {}; Height diff: {}"
                          .format(output['confirmations'],
                                  blockheight - block.height))
         except urllib3.exceptions.HTTPError as e:
             logger.error("Unable to communicate with {} RPC server: {}"
-                         .format(name, e))
+                         .format(currency.key, e))
             continue
         except CoinRPCException:
             logger.info("Block {}:{} not in coin database, assume orphan!"
                         .format(block.height, block.hash))
             block.orphan = True
         else:
-            if output['confirmations'] > mature_diff:
+            if output['confirmations'] > currency.block_mature_confirms:
                 logger.info("Block {}:{} meets {} confirms, mark mature"
-                            .format(block.height, block.hash, mature_diff))
+                            .format(block.height, block.hash,
+                                    currency.block_mature_confirms))
                 block.mature = True
-            elif (blockheight - block.height) > mature_diff and output['confirmations'] < mature_diff:
+            elif ((blockheight - block.height) > currency.block_mature_confirms
+                  and output['confirmations'] < currency.block_mature_confirms):
                 logger.info("Block {}:{} {} height ago, but not enough confirms. Marking orphan."
-                            .format(block.height, block.hash, mature_diff))
+                            .format(block.height, block.hash,
+                                    currency.block_mature_confirms))
                 block.orphan = True
 
         db.session.commit()

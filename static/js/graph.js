@@ -39,10 +39,6 @@ generate_graph = function(user, hashes_per_share, selector) {
                 for (var i = start; i <= end; i += step) {
                     if (i in worker) {
                         values.push([i * 1000, worker[i]]);
-                        //If this is an hour loop build a total value for last 10min
-                        if (i > (end - (10 * step)) && timespan == 'hour') {
-                            last_10min += worker[i];
-                        }
                     } else {
                         values.push([i * 1000, 0]);
                     }
