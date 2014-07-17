@@ -1,7 +1,15 @@
 #- title: Awesome, it works!
+#  notify: all
 #  severity: success
 #  date: 3/27/2014
 #  # make each of these unique. session stores if it's been closed...
 #  key: 0
 #  body: |
 #      Woo!
+#- title: Watch out!
+#  notify: VkbHY8ua2TjxdL7gY2uMfCz3TxMzMPgmRR
+#  severity: danger
+#  date: 3/27/2014
+#  key: 0
+#  body: |
+#      Ahhhh!

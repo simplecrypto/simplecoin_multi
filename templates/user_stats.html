@@ -12,7 +12,21 @@ $(document).ready(function() {
   {% endfor %}
 });
 </script>
-
+{% if g.alerts  %}
+  {% for alert in g.alerts %}
+  {# We only want to display user level alerts here #}
+  {% if alert['notify'] == username %}
+  <div data-alert-id={{ alert['key'] }} class="alert alert-dismissable alert-{{ alert['severity'] }}">
+    <h4>{{ alert['title']|safe }} -
+      <span class="text-muted small" style="color:#fff;">
+        {{ alert['date'] }}
+      </span>
+    </h4>
+    <p>{{ alert['body']|safe }}</p>
+  </div>
+  {% endif %}
+  {% endfor %}
+{% endif %}
 <div class="container">
   <div class="row page-header">
     <h2 style="word-wrap:break-word;margin-bottom:2px;">User Stats - {{ username }} </h2>
