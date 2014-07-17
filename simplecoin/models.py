@@ -13,21 +13,21 @@ from .model_lib import base
 from . import db, cache, sig_round
 
 
-class TradeRequest(base):
+class SellRequest(base):
     """
     Used to provide info necessary to external applications for trading currencies
 
-    Created rows will be checked + updated + removed externally
+    Created rows will be checked + updated externally
     """
     id = db.Column(db.Integer, primary_key=True)
     # Currency to be traded
-    currency = db.Column(db.String)
+    currency = db.Column(db.String, nullable=False)
     # Quantity of currency to be traded
-    quantity = db.Column(db.Integer)
-    desired_currency = db.Column(db.String)
+    quantity = db.Column(db.Integer, nullable=False)
     locked = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Total Satoshi of the desired currency
+    # These values should only be updated by sctrader
     exchanged_quantity = db.Column(db.BigInteger, default=None)
     _status = db.Column(db.Integer, default=0)
 
@@ -36,21 +36,17 @@ class TradeRequest(base):
         if self._status == 0:
             return "Pending Exchange Deposit"
         elif self._status == 2:
-            return "Trading on Exchange"
+            return "Selling on Exchange"
         elif self._status == 4:
-            return "Trading complete"
+            return "Pending Exchange Withdrawal"
         elif self._status == 6:
-            return "Withdrawing from Exchange"
+            return "Complete"
 
 
     @classmethod
-    def create(cls, blocks, currency, quantity, desired_currency):
+    def create(cls, currency, quantity):
         tr = cls(currency=currency,
-                 quantity=quantity,
-                 desired_currency=desired_currency)
-
-        for block in blocks:
-            tr.blocks.append(block)
+                 quantity=quantity)
 
         # add and flush
         db.session.add(tr)

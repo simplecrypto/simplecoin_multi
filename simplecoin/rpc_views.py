@@ -1,73 +1,67 @@
 from itsdangerous import TimedSerializer
 from flask import current_app, request, abort
 
-from .models import Transaction, Payout, TransactionSummary, TradeRequest
+from .models import Transaction, Payout, TransactionSummary, SellRequest
 from .utils import Benchmark
 from .views import main
 from . import db
 
 
-@main.route("/get_trade_requests", methods=['POST'])
-def get_trade_requests():
-    """ Used by remote procedure call to retrieve a list of transactions to
+@main.route("/get_sell_requests", methods=['POST'])
+def get_sell_requests():
+    """ Used by remote procedure call to retrieve a list of sell requests to
     be processed. Transaction information is signed for safety. """
     s = TimedSerializer(current_app.config['rpc_signature'])
     args = s.loads(request.data)
-    current_app.logger.info("get_trade_requests being called, args of {}!".format(args))
+    current_app.logger.info("get_sell_requests being called, args of {}!".format(args))
     lock = False
     if isinstance(args, dict) and args['lock']:
         lock = True
 
-    if isinstance(args, dict) and args['sell_requests']:
-        trade_requests = TradeRequest.query.filter_by(_status=0, locked=False, desired_currency='BTC').all()
-    elif isinstance(args, dict) and args['buy_requests']:
-        trade_requests = TradeRequest.query.filter_by(_status=0, locked=False, currency='BTC').all()
-    else:
-        trade_requests = TradeRequest.query.filter_by(_status=0, locked=False).all()
-
-    trs = [(t.id, t.currency, t.quantity, t.desired_currency) for t in trade_requests]
+    sell_requests = SellRequest.query.filter_by(_status=0, locked=False).all()
+    srs = [(sr.id, sr.currency, sr.quantity) for sr in sell_requests]
 
     if lock:
-        current_app.logger.info("Locking trade requests at retriever request.")
-        for tr in trade_requests:
-            tr.locked = True
+        current_app.logger.info("Locking sell requests at retriever request.")
+        for sr in sell_requests:
+            sr.locked = True
         db.session.commit()
-    return s.dumps([trs, lock])
+    return s.dumps([srs, lock])
 
 
-@main.route("/update_trade_requests", methods=['POST'])
-def update_trade_requests():
-    """ Used as a response from an rpc trade request system. This will update the amount received for
-    a trade request. Both request and response are signed. """
+@main.route("/update_sell_requests", methods=['POST'])
+def update_sell_requests():
+    """ Used as a response from an rpc sell request system. This will update the amount received for
+    a sell request and its status. Both request and response are signed. """
     s = TimedSerializer(current_app.config['rpc_signature'])
     data = s.loads(request.data)
 
     # basic checking of input
     try:
-        assert 'completed_trs' in data
-        assert isinstance(data['completed_trs'], dict)
-        for tr_id, quantity in data['completed_trs'].iteritems():
-            assert isinstance(tr_id, int)
+        assert 'completed_srs' in data
+        assert isinstance(data['completed_srs'], dict)
+        for sr_id, quantity in data['completed_srs'].iteritems():
+            assert isinstance(sr_id, int)
             assert isinstance(quantity, int)
     except AssertionError:
-        current_app.logger.warn("Invalid data passed to update_trade_requests", exc_info=True)
+        current_app.logger.warn("Invalid data passed to update_sell_requests", exc_info=True)
         abort(400)
 
-    if data['update'] and data['completed_trs']:
-        for tr_id, quantity in data['completed_trs']:
-            tr = TradeRequest.query.filter(TradeRequest).filter_by(id=tr_id).first()
-            tr.exchanged_quantity = quantity
-            tr._status = 4
+    if data['update'] and data['completed_srs']:
+        for ts_id, quantity in data['completed_srs'].iteritems():
+            ts = SellRequest.query.filter(SellRequest).filter_by(id=ts_id).first()
+            ts.exchanged_quantity = quantity
+            ts._status = 4
         db.session.commit()
-        return s.dumps(dict(success=True, result="Trade requests successfully updated."))
+        return s.dumps(dict(success=True, result="Sell requests successfully updated."))
 
     return s.dumps(True)
 
 
-@main.route("/reset_trade_requests", methods=['POST'])
-def reset_trade_requests():
-    """ Used as a response from an rpc trade request system. This will reset
-    the locked status of a list of trade requests upon failure on the remote
+@main.route("/reset_sell_requests", methods=['POST'])
+def reset_sell_requests():
+    """ Used as a response from an rpc sell request system. This will reset
+    the locked status of a list of sell requests upon failure on the remote
     side. Both request and response are signed. """
     s = TimedSerializer(current_app.config['rpc_signature'])
     data = s.loads(request.data)
@@ -76,16 +70,17 @@ def reset_trade_requests():
     try:
         assert 'reset' in data
         assert isinstance(data['reset'], bool)
-        assert isinstance(data['tr_ids'], list)
-        for id in data['tr_ids']:
+        assert isinstance(data['sr_ids'], list)
+        for id in data['sr_ids']:
             assert isinstance(id, int)
     except AssertionError:
-        current_app.logger.warn("Invalid data passed to reset_trade_requests", exc_info=True)
+        current_app.logger.warn("Invalid data passed to reset_sell_requests", exc_info=True)
         abort(400)
 
-    if data['reset'] and data['tr_ids']:
-        TradeRequest.query.filter(TradeRequest.id.in_(data['tr_ids'])).update(
-            {TradeRequest.locked: False}, synchronize_session=False)
+    if data['reset'] and data['sr_ids']:
+        srs = SellRequest.query.filter(SellRequest.id.in_(data['sr_ids'])).all()
+        for sr in srs:
+            sr.locked = False
         db.session.commit()
         return s.dumps(dict(success=True, result="Successfully reset"))
 
@@ -98,13 +93,13 @@ def get_final_payouts():
     be processed. Information is signed for safety. """
     s = TimedSerializer(current_app.config['rpc_signature'])
     args = s.loads(request.data)
-    current_app.logger.info("get_trade_requests being called, args of {}!".format(args))
+    current_app.logger.info("get_final_payouts being called, args of {}!".format(args))
 
     final_payouts = []
 
-    trs = [(fp.id, fp.quantity, fp.desired_currency) for fp in final_payouts]
+    fps = [(fp.id, fp.quantity, fp.desired_currency) for fp in final_payouts]
 
-    return s.dumps([trs])
+    return s.dumps([fps])
 
 
 @main.route("/get_payouts", methods=['POST'])
