@@ -104,7 +104,7 @@ def update_block_state():
     """
     heights = {}
     def get_blockheight(currency):
-        if currency not in heights:
+        if currency.key not in heights:
             try:
                 heights[currency.key] = currency.coinserv.getblockcount()
             except (urllib3.exceptions.HTTPError, CoinRPCException) as e:
@@ -117,21 +117,19 @@ def update_block_state():
     immature = Block.query.filter_by(mature=False, orphan=False)
     for block in immature:
         logger.info("Checking state of {} block height {}"
-                    .format(block.merged_type or "main", block.height))
+                    .format(block.currency, block.height))
         currency = currencies[block.currency]
-
         blockheight = get_blockheight(currency)
 
-        # ensure that our RPC server has more than caught up...
-        if blockheight - 1 < block.height:
-            logger.info("Skipping block {}:{} because blockchain isn't caught up."
-                        "Block is height {} and blockchain is at {}"
-                        .format(block.height, block.hash, block.height, blockheight))
+        # Skip checking if height difference isnt' suficcient. Avoids polling
+        # the RPC server excessively
+        if (blockheight - block.height) < currency.block_mature_confirms:
+            logger.info("Not doing confirm check on block {}:{} since it's not"
+                        "at confirm threshold".format(block.height, block.hash))
             continue
 
-        logger.info("Checking block height: {}".format(block.height))
-        # Check to see if the block hash exists in the block chain
         try:
+            # Check to see if the block hash exists in the block chain
             output = currency.coinserv.getblock(block.hash)
             logger.debug("Confirms: {}; Height diff: {}"
                          .format(output['confirmations'],
@@ -145,13 +143,14 @@ def update_block_state():
                         .format(block.height, block.hash))
             block.orphan = True
         else:
+            # if the block has the proper number of confirms
             if output['confirmations'] > currency.block_mature_confirms:
                 logger.info("Block {}:{} meets {} confirms, mark mature"
                             .format(block.height, block.hash,
                                     currency.block_mature_confirms))
-                block.mature = True
-            elif ((blockheight - block.height) > currency.block_mature_confirms
-                  and output['confirmations'] < currency.block_mature_confirms):
+                block.set_mature()
+            # else if the result shows insufficient confirms, mark orphan
+            elif output['confirmations'] < currency.block_mature_confirms:
                 logger.info("Block {}:{} {} height ago, but not enough confirms. Marking orphan."
                             .format(block.height, block.hash,
                                     currency.block_mature_confirms))

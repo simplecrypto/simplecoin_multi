@@ -31,7 +31,7 @@ $(document).ready(function() {
       <tbody>
       {% for block in blocks %}
       <tr>
-        <th data-sort-value="{{ block.timestamp }}">{{ block.found_at | time_ago }}</th>
+        <th data-sort-value="{{ block.timestamp }}">{{ block.found_at | human_date }}</th>
         <th>{{ '{:,}'.format(block.shares_to_solve) }}</th>
         <th>{{ '{:,}'.format(block.luck | round(1)) }} %</th>
         <th data-sort-value="{{ block.duration.total_seconds() }}">{{ block.duration }}</th>

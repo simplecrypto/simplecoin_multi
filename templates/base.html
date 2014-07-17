@@ -66,9 +66,6 @@
             {% endif %}
             <li class="{% if active_page == "pool_stats" %} active{% endif %}"><a href="/pool_stats"><i class="fa fa-bar-chart-o too-damn-bright"></i> &nbsp;Pool Stats</a></li>
             <li class="{% if active_page == "stats" %} active{% endif %}"><a href="/stats"><i class="fa fa-user too-damn-bright"></i> &nbsp;User Stats</a></li>
-            <li class="{% if active_page == "network_stats" %} active{% endif %}"><a href="/network_stats"><i class="fa fa-globe too-damn-bright"></i> &nbsp;Network Stats</a></li>
-            <li class="{% if active_page == "round_summary" %} active{% endif %}"><a href="/round_summary"><i class="fa fa-flag too-damn-bright"></i> &nbsp;Round Summary</a></li>
-            <li{% if active_page == "guides" %} class="active"{% endif %}><a href="/guides/"><i class="fa fa-book too-damn-bright"></i> &nbsp;Guides</a></li>
           </ul>
           <ul class="nav navbar-nav hidden-lg">
             <li class="dropdown{% if active_page == "stats" or active_page == "pool_stats" or active_page == "round_summary" %} active{% endif %}">

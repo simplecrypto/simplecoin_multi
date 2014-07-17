@@ -18,7 +18,7 @@
         {% for command, data in stats.iteritems() %}
         <tr>
           <td>{{ command }}</td>
-          <td>{{ data['time'] | int | time_ago }}</td>
+          <td>{{ data['time'] | int | human_date }}</td>
           <td>{{ data['runtime'] | float | duration }}</td>
         </tr>
         {% endfor %}

@@ -118,6 +118,15 @@ class Block(base):
         db.session.add(block)
         return block
 
+    def set_mature(self):
+        """ Matures the block and debits all users balance objects to add their
+        portion of the block. """
+        for payout in self.payouts:
+            Balance.add_balance(payout.user, self.currency, payout.amount)
+
+        self.mature = True
+        db.session.commit()
+
     @property
     def explorer_link(self):
         if not self.merged_type:
@@ -153,6 +162,28 @@ class Block(base):
         return None
 
 
+class Balance(base):
+    user = db.Column(db.String, primary_key=True)
+    currency = db.Column(db.String, primary_key=True)
+    amount = db.Column(db.BigInteger, CheckConstraint('amount > 0', 'min_payout_amount'))
+
+    @classmethod
+    def add_balance(cls, user, currency, amount):
+        """ Utility that adds to a preexisting balance object or increments an
+        already existent one. May fail if used concurrenctly, but will never
+        overlap causing invalid balance increments. """
+        ret = (cls.query.filter_by(user=user, currency=currency).
+               update({cls.amount: cls.amount + amount}))
+        # if the update affected nothing
+        if ret == 0:
+            new = cls(user=user, currency=currency, amount=amount)
+            db.session.add(new)
+
+    @property
+    def amount_float(self):
+        return self.amount / 100000000.0
+
+
 class Transaction(base):
     txid = db.Column(db.String, primary_key=True)
     confirmed = db.Column(db.Boolean, default=False)
@@ -168,7 +199,7 @@ class Transaction(base):
 
 class Payout(base):
     blockhash = db.Column(db.String, db.ForeignKey('block.hash'), primary_key=True)
-    block = db.relationship('Block', foreign_keys=[blockhash])
+    block = db.relationship('Block', foreign_keys=[blockhash], backref='payouts')
     user = db.Column(db.String, primary_key=True)
     amount = db.Column(db.BigInteger, CheckConstraint('amount > 0', 'min_payout_amount'))
 

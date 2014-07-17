@@ -15,7 +15,8 @@ from bitcoinrpc import CoinRPCException
 from . import db, cache, root, redis_conn
 from .models import (DonationPercent, OneMinuteReject, OneMinuteShare,
                      FiveMinuteShare, FiveMinuteReject, Payout, Block,
-                     OneHourShare, OneHourReject, TransactionSummary)
+                     OneHourShare, OneHourReject, TransactionSummary,
+                     Balance)
 
 
 class CommandException(Exception):
@@ -296,12 +297,19 @@ def collect_user_stats(address):
 
     user_last_10_shares = last_10_shares(address)
     last_10_hashrate = (shares_to_hashes(user_last_10_shares) / 1000000) / 600
+    balances = Balance.query.filter_by(user=address).filter(Balance.amount > 0)
+    now = datetime.datetime.now()
+    next_exchange = now.replace(minute=0, second=0, microsecond=0, hour=((now.hour // 2) * 2) + 2)
+    next_payout = now.replace(minute=0, second=0, microsecond=0, hour=0)
 
     return dict(workers=new_workers,
                 acct_items=collect_acct_items(address, 20),
                 donation_perc=perc,
                 last_10_shares=user_last_10_shares,
-                last_10_hashrate=last_10_hashrate)
+                last_10_hashrate=last_10_hashrate,
+                balances=balances,
+                next_payout=next_payout,
+                next_exchange=next_exchange)
 
 
 def get_pool_eff(timedelta=None):

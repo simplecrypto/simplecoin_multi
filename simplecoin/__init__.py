@@ -3,9 +3,10 @@ import logging
 import os
 import yaml
 import sys
+import ago
 
 from redis import Redis
-from datetime import datetime, timedelta
+from datetime import timedelta
 from math import log10, floor
 from flask import Flask, current_app
 from flask.ext.cache import Cache
@@ -134,47 +135,9 @@ def create_app(config='/config.yml', celery=False):
             return "{:,.4f} ms".format(seconds * 1000.0)
         return "{:,.4f} sec".format(seconds)
 
-    @app.template_filter('time_ago')
-    def pretty_date(time=False):
-        """
-        Get a datetime object or a int() Epoch timestamp and return a
-        pretty string like 'an hour ago', 'Yesterday', '3 months ago',
-        'just now', etc
-        """
-
-        now = datetime.utcnow()
-        if type(time) is int:
-            diff = now - datetime.utcfromtimestamp(time)
-        elif isinstance(time, datetime):
-            diff = now - time
-        elif not time:
-            diff = now - now
-        second_diff = diff.seconds
-        day_diff = diff.days
-
-        if day_diff < 0:
-            return ''
-
-        if day_diff == 0:
-            if second_diff < 60:
-                return str(second_diff) + " seconds ago"
-            if second_diff < 120:
-                return "a minute ago"
-            if second_diff < 3600:
-                return str(second_diff / 60) + " minutes ago"
-            if second_diff < 7200:
-                return "an hour ago"
-            if second_diff < 86400:
-                return str(second_diff / 3600) + " hours ago"
-        if day_diff == 1:
-            return "Yesterday"
-        if day_diff < 7:
-            return str(day_diff) + " days ago"
-        if day_diff < 31:
-            return str(day_diff/7) + " weeks ago"
-        if day_diff < 365:
-            return str(day_diff/30) + " months ago"
-        return str(day_diff/365) + " years ago"
+    @app.template_filter('human_date')
+    def pretty_date(*args, **kwargs):
+        return ago.human(*args, **kwargs)
 
     # Route registration
     # =========================================================================
