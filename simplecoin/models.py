@@ -23,7 +23,7 @@ class SellRequest(base):
     # Currency to be traded
     currency = db.Column(db.String, nullable=False)
     # Quantity of currency to be traded
-    quantity = db.Column(db.Integer, nullable=False)
+    quantity = db.Column(db.BigInteger, nullable=False)
     locked = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
