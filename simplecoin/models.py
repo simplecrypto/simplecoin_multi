@@ -34,6 +34,12 @@ class TradeRequest(base):
     _status = db.Column(db.SmallInteger, default=0)
 
     @property
+    def payouts(self):
+        if self.type == "sell":
+            return self.sell_payouts
+        return self.buy_payouts
+
+    @property
     def status(self):
         if self._status == 0:
             return "Pending Exchange Deposit"
@@ -120,17 +126,6 @@ class Block(base):
         db.session.add(block)
         return block
 
-    def set_mature(self):
-        """ Matures the block and debits all users balance objects to add their
-        portion of the block. """
-        for payout in self.payouts:
-            # pay it out to them directly if it doesn't need conversion
-            if not payout.needs_convert:
-                Balance.add_balance(payout.user, self.currency, payout.amount)
-
-        self.mature = True
-        db.session.commit()
-
     @property
     def explorer_link(self):
         if not self.merged_type:
@@ -194,7 +189,7 @@ class Payout(base):
     payable = db.Column(db.Boolean, default=False)
 
     aggregate = db.relationship('PayoutAggregate', backref='payouts')
-    aggregate_id = db.Column(db.Integer, db.ForeignKey('payout_aggregates.id'))
+    aggregate_id = db.Column(db.Integer, db.ForeignKey('payout_aggregate.id'))
 
     __table_args__ = (
         db.Index('payable_idx', 'payable'),
@@ -244,22 +239,22 @@ class Payout(base):
 
     @property
     def status(self):
-        if self.transaction:
-            if self.transaction.confirmed is True:
-                return "Payout Transaction Confirmed"
-            else:
-                return "Payout Transaction Pending"
-        elif self.block.orphan:
-            return "Block Orphaned"
-        elif not self.block.mature:
-
-            confirms = self.block.confirms_remaining
-            if confirms is not None:
-                return "{} Block Confirms Remaining".format(confirms)
-            else:
-                return "Pending Block Confirmation"
-        else:
+        if self.payable:
+            if self.aggregate:
+                if self.aggregate.transaction:
+                    if self.aggregate.transaction.confirmed is True:
+                        return "Payout Transaction {} Confirmed".format(self.aggregate.transaction.txid)
+                    else:
+                        return "Payout Transaction {} Pending".format(self.aggregate.transaction.txid)
+                else:
+                    return "Pending batching for payout"
             return "Payout Pending"
+
+        if self.block.orphan:
+            return "Block Orphaned"
+
+        if not self.block.mature:
+            return "Pending Block Confirmation"
 
     @property
     def final_amount(self):
@@ -271,37 +266,52 @@ class PayoutExchange(Payout):
     """
     id = db.Column(db.Integer, db.ForeignKey('payout.id'), primary_key=True)
     sell_req_id = db.Column(db.Integer, db.ForeignKey('trade_request.id'))
-    sell_req = db.relationship('TradeRequest', foreign_keys=[sell_req_id], backref='buy_payouts')
+    sell_req = db.relationship('TradeRequest', foreign_keys=[sell_req_id], backref='sell_payouts')
     sell_amount = db.Column(db.BigInteger)
     buy_req_id = db.Column(db.Integer, db.ForeignKey('trade_request.id'))
-    buy_req = db.relationship('TradeRequest', foreign_keys=[buy_req_id], backref='sell_payouts')
+    buy_req = db.relationship('TradeRequest', foreign_keys=[buy_req_id], backref='buy_payouts')
     buy_amount = db.Column(db.BigInteger)
 
     @property
     def status(self):
         if self.payable:
-            return "Payout Pending"
-
-        if self.transaction:
-            if self.transaction.confirmed is True:
-                return "Payout Transaction Confirmed"
-            else:
-                return "Payout Transaction Pending"
-
-        # Don't say we're purchasing if we'd be shown as purchasing BTC to
-        # avoid confusion
-        if self.buy_req and currencies.lookup(
-                get_bcaddress_version(self.user)).key != "BTC":
-            return "Purchasing desired currency"
-
-        if self.sell_req:
-            return "Selling on exchange"
+            if self.aggregate:
+                if self.aggregate.transaction:
+                    if self.aggregate.transaction.confirmed is True:
+                        return "Payout Transaction {} Confirmed".format(self.aggregate.transaction.txid)
+                    else:
+                        return "Payout Transaction {} Pending".format(self.aggregate.transaction.txid)
+                return "Payout Pending"
+            return "Pending batching for payout"
 
         if self.block.orphan:
             return "Block Orphaned"
 
         if not self.block.mature:
             return "Pending Block Confirmation"
+
+        if self.aggregate:
+            if self.aggregate.transaction:
+                if self.aggregate.transaction.confirmed is True:
+                    return "Payout Transaction {} Confirmed".format(self.aggregate.transaction.txid)
+                else:
+                    return "Payout Transaction {} Pending".format(self.aggregate.transaction.txid)
+            else:
+                return "Pending batching for payout"
+
+        # Don't say we're purchasing if we'd be shown as purchasing BTC to
+        # avoid confusion
+        btc = currencies.lookup(get_bcaddress_version(self.payout_address)).key == "BTC"
+        if self.buy_req and not btc:
+            return "Purchasing desired currency"
+
+        if self.sell_req and self.sell_req._status == 6:
+            if btc:
+                return "Pending Payout"
+            else:
+                return "Sold on exchange, pending purchase"
+
+        return "Pending sale on exchange"
 
     @property
     def final_amount(self):

@@ -164,8 +164,8 @@ def worker_stats(address=None, worker=None, stat_type=None, window="hour"):
             workers[m.worker].setdefault(stamp, 0)
             workers[m.worker][stamp] += m.value
     step = typ.slice_seconds
-    end = ((int(time.time()) // step) * step) - (step * 2)
-    start = end - typ.window.total_seconds() + (step * 2)
+    end = ((int(time.time()) // step) * step) - step
+    start = end - typ.window.total_seconds() + step
 
     return jsonify(start=start, end=end, step=step, workers=workers)
 

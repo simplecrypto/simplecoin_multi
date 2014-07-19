@@ -16,11 +16,11 @@ generate_graph = function(user, hashes_per_share, selector) {
         var seconds;
         switch(timespan) {
             case "hour":
-                date_format = "%M:%S";
+                date_format = "%H:%M";
                 seconds = 60;
                 break;
             case "day":
-                date_format = "%H:%M %p";
+                date_format = "%a %H:%M %p";
                 seconds = 300;
                 break;
             case "month":

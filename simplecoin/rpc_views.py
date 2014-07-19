@@ -1,7 +1,7 @@
 from itsdangerous import TimedSerializer
 from flask import current_app, request, abort
 
-from .models import Transaction, Payout, TransactionSummary, TradeRequest
+from .models import Transaction, Payout, TradeRequest
 from .utils import Benchmark
 from .views import main
 from . import db
@@ -41,21 +41,63 @@ def update_sell_requests():
         assert 'completed_srs' in data
         assert isinstance(data['completed_srs'], dict)
         for sr_id, quantity in data['completed_srs'].iteritems():
-            assert isinstance(sr_id, int)
+            assert isinstance(sr_id, basestring)
             assert isinstance(quantity, int)
     except AssertionError:
         current_app.logger.warn("Invalid data passed to update_sell_requests", exc_info=True)
         abort(400)
 
-    if data['update'] and data['completed_srs']:
-        for ts_id, quantity in data['completed_srs'].iteritems():
-            ts = TradeRequest.query.filter(TradeRequest).filter_by(id=ts_id).first()
-            ts.exchanged_quantity = quantity
-            ts._status = 4
-        db.session.commit()
-        return s.dumps(dict(success=True, result="Sell requests successfully updated."))
+    for ts_id, quantity in data['completed_srs'].iteritems():
+        ts_id = int(ts_id)
+        ts = (TradeRequest.query.filter_by(id=ts_id). with_lockmode('update').one())
+        if not ts.payouts:
+            raise Exception("Trade request has no attached payouts")
+        ts.exchanged_quantity = quantity
+        ts._status = 6
 
-    return s.dumps(True)
+        # truncated delivery based on the payouts percentage of the total
+        # exchanged value
+        distributed = 0
+        for payout in ts.payouts:
+            if ts.type == "sell":
+                assert payout.sell_amount is None
+                payout.sell_amount = float(
+                    payout.amount * ts.exchanged_quantity) // ts.quantity
+                distributed += payout.sell_amount
+            elif ts.type == "buy":
+                assert payout.buy_amount is None
+                payout.buy_amount = float(
+                    payout.sell_amount * ts.exchanged_quantity) // ts.quantity
+                distributed += payout.buy_amount
+            else:
+                raise AttributeError("Invalid tr type")
+
+        # round robin distribution of the remaining fractional satoshi
+        i = 0
+        while distributed < ts.exchanged_quantity:
+            for payout in ts.payouts:
+                if ts.type == "sell":
+                    payout.sell_amount += 1
+                elif ts.type == "buy":
+                    payout.buy_amount += 1
+                distributed += 1
+                i += 1
+
+                # exit if we've exhausted
+                if distributed >= ts.exchanged_quantity:
+                    break
+
+        current_app.logger.debug("Ran round robin distro {} times to finish "
+                                 "distrib".format(i))
+
+        # double check complete and exact distribution
+        if ts.type == "sell":
+            assert sum([p.sell_amount for p in ts.payouts]) == ts.exchanged_quantity
+        elif ts.type == "buy":
+            assert sum([p.buy_amount for p in ts.payouts]) == ts.exchanged_quantity
+
+    db.session.commit()
+    return s.dumps(dict(success=True, result="Trade requests successfully updated."))
 
 
 @main.route("/reset_sell_requests", methods=['POST'])
@@ -157,29 +199,7 @@ def update_transactions():
         current_app.logger.warn("Invalid data passed to confirm", exc_info=True)
         abort(400)
 
-    if 'coin_txid' in data:
-        with Benchmark("Associating payout transaction ids"):
-            merged_type = data.get('merged', None)
-            coin_trans = Transaction.create(data['coin_txid'], merged_type=merged_type)
-            db.session.flush()
-            user_amounts = {}
-            user_counts = {}
-            for payout in Payout.query.filter(Payout.id.in_(data['pids'])):
-                user_counts.setdefault(payout.user, 0)
-                user_amounts.setdefault(payout.user, 0)
-                user_amounts[payout.user] += payout.amount
-                user_counts[payout.user] += 1
-
-            for user in user_counts:
-                TransactionSummary.create(
-                    coin_trans.txid, user, user_amounts[user], user_counts[user])
-
-            if data['pids']:
-                Payout.query.filter(Payout.id.in_(data['pids'])).update(
-                    {Payout.transaction_id: coin_trans.txid}, synchronize_session=False)
-
-            db.session.commit()
-    elif data['reset']:
+    if data['reset']:
         with Benchmark("Resetting {:,} payouts and {:,} bonus payouts locked status"
                        .format(len(data['pids']), len(data['bids']))):
             if data['pids']:

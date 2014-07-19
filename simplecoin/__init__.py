@@ -4,6 +4,7 @@ import os
 import yaml
 import sys
 import ago
+import datetime
 
 from redis import Redis
 from datetime import timedelta
@@ -138,6 +139,10 @@ def create_app(config='/config.yml', celery=False):
     @app.template_filter('human_date')
     def pretty_date(*args, **kwargs):
         return ago.human(*args, **kwargs)
+
+    @app.template_filter('human_date_utc')
+    def pretty_date(*args, **kwargs):
+        return ago.human(datetime.datetime.utcnow() - args[0], *args[1:], **kwargs)
 
     # Route registration
     # =========================================================================

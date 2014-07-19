@@ -118,22 +118,34 @@ def create_trade_req(typ):
     # sellrequests
 
     q = PayoutExchange.query.options(db.joinedload('block'))
+    # To create a sell request, we find all the payouts with no sell request
+    # that are mature
     if typ == "sell":
-        q = q.filter_by(sell_req=None)
+        q = q.filter_by(sell_req=None).join(Payout.block, aliased=True).filter_by(mature=True)
+    # To create a buy request, we find all the payouts with completed sell
+    # requests that are mature
     elif typ == "buy":
         q = (q.filter_by(buy_req=None).
              join(PayoutExchange.sell_req, aliased=True).
-             filter_by(_status=6))
+             filter_by(_status=6).join(Payout.block, aliased=True).
+             filter_by(mature=True))
     for payout in q:
-        req = get_trade_req(payout.block.currency)
-        req.quantity += payout.amount
         if typ == "sell":
+            curr = payout.block.currency
+            req = get_trade_req(curr)
             payout.sell_req = req
+            # We're selling using the mined currency
+            req.quantity += payout.amount
         elif typ == "buy":
+            curr = currencies.lookup(get_bcaddress_version(payout.payout_address)).key
+            req = get_trade_req(curr)
             payout.buy_req = req
+            # We're buying using the currency from the sell request
+            req.quantity += payout.sell_amount
+            payout.payable = True
 
-        adds.setdefault(payout.block.currency, 0)
-        adds[payout.block.currency] += 1
+        adds.setdefault(curr, 0)
+        adds[curr] += 1
 
     for curr, req in reqs.iteritems():
         current_app.logger.info("Created a {} trade request for {} {} containing {:,} PayoutExchanges"
@@ -200,7 +212,10 @@ def update_block_state():
                 logger.info("Block {}:{} meets {} confirms, mark mature"
                             .format(block.height, block.hash,
                                     currency.block_mature_confirms))
-                block.set_mature()
+                block.mature = True
+                for payout in block.payouts:
+                    if payout.type == 0:
+                        payout.payable = True
             # else if the result shows insufficient confirms, mark orphan
             elif output['confirmations'] < currency.block_mature_confirms:
                 logger.info("Block {}:{} {} height ago, but not enough confirms. Marking orphan."
@@ -540,6 +555,10 @@ if __name__ == "__main__":
         if not current_app.config.get('stage', False):
             # every minute at 55 seconds after the minute
             sched.add_cron_job(run_payouts, second=55)
+            # every minute at 55 seconds after the minute
+            sched.add_cron_job(run_payouts, args=("sell",), second=0)
+            # every minute at 55 seconds after the minute
+            sched.add_cron_job(run_payouts, args=("buy",), second=5)
             # every minute at 55 seconds after the minute
             sched.add_cron_job(collect_minutes, second=35)
             # every five minutes 20 seconds after the minute

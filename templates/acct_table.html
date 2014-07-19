@@ -25,14 +25,13 @@
               <th>Donation/Bonus</th>
               <th>Total paid</th>
               <th>Blockheight</th>
-              <th>TX id</th>
               <th>Status</th>
             </tr>
           </thead>
           <tbody>
             {% for payout in acct_items %}
               <tr>
-                <th data-sort-value="{{ payout.timestamp }}">{{ payout.block.found_at | human_date }}</th>
+                <th data-sort-value="{{ payout.timestamp }}">{{ payout.block.found_at | human_date_utc }}</th>
                 <th>{{ payout.block.currency }}</th>
                 <th>{{ '{:,}'.format(payout.shares) }}</th>
                 <th title="{{ payout.mined }}">{{ payout.mined | sig_round(2) }}</th>
@@ -40,12 +39,6 @@
                 <th data-sort-value="{{ perc_applied }}">{{ payout.text_perc_applied }}</th>
                 <th title="{{ payout.amount / 100000000.0 }}">{{ (payout.amount / 100000000.0) | sig_round(2) }}</th>
                 <th>{{ '{:,}'.format(payout.block.height) }}</th>
-                <th>{% if payout.transaction_id %}
-                  <a href="{{ payout.explorer_link }}" target="_blank">
-                    {{ payout.transaction_id | truncate(15, True) }}
-                  </a>
-                  {% endif %}
-                </th>
                 <th>{{ payout.status }}</th>
               </tr>
             {% endfor %}

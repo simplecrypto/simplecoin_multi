@@ -17,8 +17,7 @@ from simplecoin.scheduler import (cleanup, run_payouts, server_status,
                                   update_online_workers, collect_minutes,
                                   cache_user_donation, update_block_state,
                                   create_trade_req)
-from simplecoin.models import (Transaction, DonationPercent, Payout,
-                               TransactionSummary)
+from simplecoin.models import Transaction, DonationPercent, Payout
 from simplecoin.utils import setfee_command
 from flask import current_app, _request_ctx_stack
 
@@ -104,38 +103,6 @@ def correlate_transactions():
     db.session.commit()
 
 
-@manager.command
-def generate_transaction_summaries():
-    """ Looks through all the transactions that have no summaries and generates
-    summaries for them. Used to upgrade to a summary based SQL. """
-    total = len([t for t in Transaction.query if t.summaries == []])
-    print "Looking to process {} total transactions that are missing summaries".format(total)
-    for i, trans in enumerate(Transaction.query):
-        if trans.summaries == []:
-            user_amounts = {}
-            user_counts = {}
-            t = time.time()
-            for payout in trans.payouts:
-                user_counts.setdefault(payout.user, 0)
-                user_amounts.setdefault(payout.user, 0)
-                user_amounts[payout.user] += payout.amount
-                user_counts[payout.user] += 1
-
-            for user in user_counts:
-                TransactionSummary.create(trans.txid, user, user_amounts[user],
-                                          user_counts[user])
-
-            print("{:.2f}% done. {:.2f} ms, total {} summaries, avg counts {}, txid {}, "
-                  "merged_type {}".format(float(i) / total * 100,
-                                          (time.time() - t) * 1000,
-                                          len(user_counts),
-                                          sum(user_counts.values()) / (len(user_counts) or 1),
-                                          trans.txid,
-                                          trans.merged_type))
-
-        db.session.commit()
-
-
 @manager.option('-m', '--merged-type')
 def reset_payouts(merged_type="all"):
     """ A utility that resets all payouts to an unlocked state. Use with care!
@@ -146,16 +113,6 @@ def reset_payouts(merged_type="all"):
     if merged_type != "all":
         base_q = base_q.filter_by(merged_type=merged_type)
     base_q.update({Payout.locked: False})
-    db.session.commit()
-
-
-@manager.command
-def wipe_fake_payout(merged_type="all"):
-    """ If running the payout command in a way that pushes fake payout data
-    for testing this will clear all the fake payout information """
-    Payout.query.filter_by(transaction_id="1111111111111111111111111111111111111111111111111111111111111111").update({Payout.transaction_id: None})
-    TransactionSummary.query.filter_by(transaction_id="1111111111111111111111111111111111111111111111111111111111111111").delete()
-    Transaction.query.filter_by(txid="1111111111111111111111111111111111111111111111111111111111111111").delete()
     db.session.commit()
 
 
