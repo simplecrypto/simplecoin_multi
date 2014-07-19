@@ -23,10 +23,20 @@ class CommandException(Exception):
     pass
 
 
-class AttrDict(dict):
+class CurrencyKeeper(dict):
+    __getattr__ = dict.__getitem__
+
     def __init__(self, *args, **kwargs):
-        super(AttrDict, self).__init__(*args, **kwargs)
-        self.__dict__ = self
+        super(CurrencyKeeper, self).__init__(*args, **kwargs)
+        self.version_lut = {}
+
+    def setcurr(self, val):
+        setattr(self, val.currency_name, val)
+        for ver in val.address_version:
+            self.version_lut[ver] = val
+
+    def lookup(self, version):
+        return self.version_lut[version]
 
 
 def timeit(method):

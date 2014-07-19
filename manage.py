@@ -15,7 +15,8 @@ root = os.path.abspath(os.path.dirname(__file__) + '/../')
 from bitcoinrpc.authproxy import AuthServiceProxy
 from simplecoin.scheduler import (cleanup, run_payouts, server_status,
                                   update_online_workers, collect_minutes,
-                                  cache_user_donation, update_block_state)
+                                  cache_user_donation, update_block_state,
+                                  create_trade_req)
 from simplecoin.models import (Transaction, DonationPercent, Payout,
                                TransactionSummary)
 from simplecoin.utils import setfee_command
@@ -183,6 +184,16 @@ def reload_cached():
 @manager.command
 def update_block_state_cmd():
     update_block_state()
+
+
+@manager.command
+def create_buy_req_cmd():
+    create_trade_req("buy")
+
+
+@manager.command
+def create_sell_req_cmd():
+    create_trade_req("sell")
 
 
 @manager.option('-s', '--simulate', dest='simulate', default=True)

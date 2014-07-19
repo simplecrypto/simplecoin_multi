@@ -6,14 +6,15 @@ from collections import namedtuple
 from datetime import datetime, timedelta
 from flask import current_app
 from sqlalchemy.schema import CheckConstraint
-from sqlalchemy.ext.declarative import AbstractConcreteBase, declared_attr
+from sqlalchemy.ext.declarative import AbstractConcreteBase
 from cryptokit import bits_to_difficulty
+from cryptokit.base58 import get_bcaddress_version
 
 from .model_lib import base
-from . import db, cache, sig_round
+from . import db, sig_round, currencies
 
 
-class SellRequest(base):
+class TradeRequest(base):
     """
     Used to provide info necessary to external applications for trading currencies
 
@@ -26,10 +27,11 @@ class SellRequest(base):
     quantity = db.Column(db.BigInteger, nullable=False)
     locked = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    type = db.Column(db.Enum("sell", "buy", name="req_type"), nullable=False)
 
     # These values should only be updated by sctrader
     exchanged_quantity = db.Column(db.BigInteger, default=None)
-    _status = db.Column(db.Integer, default=0)
+    _status = db.Column(db.SmallInteger, default=0)
 
     @property
     def status(self):
@@ -41,7 +43,7 @@ class SellRequest(base):
             return "Pending Exchange Withdrawal"
         elif self._status == 6:
             return "Complete"
-
+        return "Error"
 
     @classmethod
     def create(cls, currency, quantity):
@@ -122,7 +124,9 @@ class Block(base):
         """ Matures the block and debits all users balance objects to add their
         portion of the block. """
         for payout in self.payouts:
-            Balance.add_balance(payout.user, self.currency, payout.amount)
+            # pay it out to them directly if it doesn't need conversion
+            if not payout.needs_convert:
+                Balance.add_balance(payout.user, self.currency, payout.amount)
 
         self.mature = True
         db.session.commit()
@@ -162,28 +166,6 @@ class Block(base):
         return None
 
 
-class Balance(base):
-    user = db.Column(db.String, primary_key=True)
-    currency = db.Column(db.String, primary_key=True)
-    amount = db.Column(db.BigInteger, CheckConstraint('amount > 0', 'min_payout_amount'))
-
-    @classmethod
-    def add_balance(cls, user, currency, amount):
-        """ Utility that adds to a preexisting balance object or increments an
-        already existent one. May fail if used concurrenctly, but will never
-        overlap causing invalid balance increments. """
-        ret = (cls.query.filter_by(user=user, currency=currency).
-               update({cls.amount: cls.amount + amount}))
-        # if the update affected nothing
-        if ret == 0:
-            new = cls(user=user, currency=currency, amount=amount)
-            db.session.add(new)
-
-    @property
-    def amount_float(self):
-        return self.amount / 100000000.0
-
-
 class Transaction(base):
     txid = db.Column(db.String, primary_key=True)
     confirmed = db.Column(db.Boolean, default=False)
@@ -198,16 +180,31 @@ class Transaction(base):
 
 
 class Payout(base):
-    blockhash = db.Column(db.String, db.ForeignKey('block.hash'), primary_key=True)
+    """ A payout for currency directly crediting a users balance. These
+    have no intermediary exchanges. """
+    id = db.Column(db.Integer, primary_key=True)
+    blockhash = db.Column(db.String, db.ForeignKey('block.hash'))
     block = db.relationship('Block', foreign_keys=[blockhash], backref='payouts')
-    user = db.Column(db.String, primary_key=True)
+    user = db.Column(db.String)
+    payout_address = db.Column(db.String)
     amount = db.Column(db.BigInteger, CheckConstraint('amount > 0', 'min_payout_amount'))
-
-    locked = db.Column(db.Boolean, default=False)
     shares = db.Column(db.Float)
     perc = db.Column(db.Float)
-    transaction = db.relationship('Transaction', backref='payouts')
-    transaction_id = db.Column(db.String, db.ForeignKey('transaction.txid'))
+    type = db.Column(db.SmallInteger)
+    payable = db.Column(db.Boolean, default=False)
+
+    aggregate = db.relationship('PayoutAggregate', backref='payouts')
+    aggregate_id = db.Column(db.Integer, db.ForeignKey('payout_aggregates.id'))
+
+    __table_args__ = (
+        db.Index('payable_idx', 'payable'),
+        db.UniqueConstraint("user", "blockhash"),
+    )
+
+    __mapper_args__ = {
+        'polymorphic_identity': 1,
+        'polymorphic_on': type
+    }
 
     standard_join = ['status', 'created_at', 'explorer_link',
                      'text_perc_applied', 'mined', 'amount_float', 'height',
@@ -235,8 +232,9 @@ class Payout(base):
         return (self.amount + self.perc_applied) / 100000000.0
 
     @classmethod
-    def create(cls, user, amount, block, shares, perc):
-        payout = cls(user=user, amount=amount, block=block, shares=shares, perc=perc)
+    def create(cls, user, amount, block, shares, perc, payout_address=None):
+        payout = cls(user=user, amount=amount, block=block, shares=shares,
+                     perc=perc, payout_address=payout_address or user)
         db.session.add(payout)
         return payout
 
@@ -263,23 +261,75 @@ class Payout(base):
         else:
             return "Payout Pending"
 
+    @property
+    def final_amount(self):
+        return self.amount
 
-class TransactionSummary(base):
-    transaction_id = db.Column(db.String, db.ForeignKey('transaction.txid'), primary_key=True)
-    transaction = db.relationship('Transaction', backref='summaries')
-    user = db.Column(db.String, primary_key=True)
+
+class PayoutExchange(Payout):
+    """ A payout that needs a sale and a buy to get to the correct currency
+    """
+    id = db.Column(db.Integer, db.ForeignKey('payout.id'), primary_key=True)
+    sell_req_id = db.Column(db.Integer, db.ForeignKey('trade_request.id'))
+    sell_req = db.relationship('TradeRequest', foreign_keys=[sell_req_id], backref='buy_payouts')
+    sell_amount = db.Column(db.BigInteger)
+    buy_req_id = db.Column(db.Integer, db.ForeignKey('trade_request.id'))
+    buy_req = db.relationship('TradeRequest', foreign_keys=[buy_req_id], backref='sell_payouts')
+    buy_amount = db.Column(db.BigInteger)
+
+    @property
+    def status(self):
+        if self.payable:
+            return "Payout Pending"
+
+        if self.transaction:
+            if self.transaction.confirmed is True:
+                return "Payout Transaction Confirmed"
+            else:
+                return "Payout Transaction Pending"
+
+        # Don't say we're purchasing if we'd be shown as purchasing BTC to
+        # avoid confusion
+        if self.buy_req and currencies.lookup(
+                get_bcaddress_version(self.user)).key != "BTC":
+            return "Purchasing desired currency"
+
+        if self.sell_req:
+            return "Selling on exchange"
+
+        if self.block.orphan:
+            return "Block Orphaned"
+
+        if not self.block.mature:
+            return "Pending Block Confirmation"
+
+    @property
+    def final_amount(self):
+        return self.buy_amount
+
+    __mapper_args__ = {
+        'polymorphic_identity': 1
+    }
+
+
+class PayoutAggregate(base):
+    id = db.Column(db.Integer, primary_key=True)
+    transaction_id = db.Column(db.String, db.ForeignKey('transaction.txid'))
+    transaction = db.relationship('Transaction', backref='aggregates')
+    user = db.Column(db.String)
+    payout_address = db.Column(db.String)
     amount = db.Column(db.BigInteger)
     count = db.Column(db.SmallInteger)
+    locked = db.Column(db.Boolean, default=False)
 
     @classmethod
-    def create(cls, txid, user, amount, count=None):
-        trans = cls(transaction_id=txid, user=user, amount=amount, count=count)
-        db.session.add(trans)
-        return trans
-
-    __table_args__ = (
-        db.Index('summary_user_idx', 'user'),
-    )
+    def create(cls, txid, user, amount, payout_address, count=None):
+        aggr = cls(user=user,
+                   payout_address=payout_address,
+                   amount=amount,
+                   count=count)
+        db.session.add(aggr)
+        return aggr
 
 
 class DonationPercent(base):

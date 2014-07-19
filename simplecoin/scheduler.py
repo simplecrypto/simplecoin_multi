@@ -23,7 +23,7 @@ from simplecoin.models import (Block, OneMinuteShare, Payout, FiveMinuteShare,
                                FiveMinuteReject, OneMinuteHashrate,
                                DonationPercent, FiveMinuteTemperature,
                                FiveMinuteHashrate, FiveMinuteType,
-                               OneMinuteType)
+                               OneMinuteType, TradeRequest, PayoutExchange)
 
 logger = logging.getLogger('apscheduler.scheduler')
 
@@ -96,6 +96,57 @@ def cache_user_donation():
 
 
 @crontab
+def create_trade_req(typ):
+    """
+    Takes all the payouts in need of exchanging (either buying or selling, not
+    both) and attaches them to a new trade request.
+    """
+    reqs = {}
+    adds = {}
+
+    def get_trade_req(currency):
+        """ Create a sell request if we don't have one for this batch,
+        otherwise use the one that was already created """
+        if currency not in reqs:
+            req = TradeRequest(currency=currency, quantity=0, type=typ)
+            db.session.add(req)
+            db.session.flush()
+            reqs[currency] = req
+        return reqs[currency]
+
+    # Attach unattached payouts in need of exchange to a new batch of
+    # sellrequests
+
+    q = PayoutExchange.query.options(db.joinedload('block'))
+    if typ == "sell":
+        q = q.filter_by(sell_req=None)
+    elif typ == "buy":
+        q = (q.filter_by(buy_req=None).
+             join(PayoutExchange.sell_req, aliased=True).
+             filter_by(_status=6))
+    for payout in q:
+        req = get_trade_req(payout.block.currency)
+        req.quantity += payout.amount
+        if typ == "sell":
+            payout.sell_req = req
+        elif typ == "buy":
+            payout.buy_req = req
+
+        adds.setdefault(payout.block.currency, 0)
+        adds[payout.block.currency] += 1
+
+    for curr, req in reqs.iteritems():
+        current_app.logger.info("Created a {} trade request for {} {} containing {:,} PayoutExchanges"
+                                .format(typ, req.quantity / 100000000.0, req.currency, adds[curr]))
+
+    if not reqs:
+        current_app.logger.info("No PayoutExchange's found to create {} "
+                                "requests for".format(typ))
+
+    db.session.commit()
+
+
+@crontab
 def update_block_state():
     """
     Loops through all immature and non-orphaned blocks.
@@ -103,6 +154,7 @@ def update_block_state():
     then it checks to see if they are now matured.
     """
     heights = {}
+
     def get_blockheight(currency):
         if currency.key not in heights:
             try:
@@ -319,11 +371,20 @@ def payout(redis_key, simulate=False):
             if amount == 0.0:
                 logger.info("Skip zero payout for USR: {}".format(user))
                 continue
-            Payout.create(amount=amount,
-                          block=block,
-                          user=user,
-                          shares=user_shares[user],
-                          perc=user_perc[user])
+            if currencies.lookup(
+                    get_bcaddress_version(user)).key == block.currency:
+                p = Payout.create(amount=amount,
+                                  block=block,
+                                  user=user,
+                                  shares=user_shares[user],
+                                  perc=user_perc[user])
+                p.payable = True
+            else:
+                p = PayoutExchange.create(amount=amount,
+                                          block=block,
+                                          user=user,
+                                          shares=user_shares[user],
+                                          perc=user_perc[user])
 
         # update the block status and collected amounts
         block.donated = donation_total

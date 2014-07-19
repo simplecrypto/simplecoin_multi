@@ -54,9 +54,9 @@ def create_app(config='/config.yml', celery=False):
     # inject all the yaml configs
     app.config.update(config_vars)
 
-    app.currencies = AttrDict()
+    app.currencies = CurrencyKeeper()
     for currency, dct in app.config['currencies'].iteritems():
-        app.currencies[currency] = Currency(currency, dct)
+        app.currencies.setcurr(Currency(currency, dct))
 
     # add the debug toolbar if we're in debug mode...
     # ##################
@@ -147,4 +147,4 @@ def create_app(config='/config.yml', celery=False):
 
     return app
 
-from .utils import AttrDict
+from .utils import CurrencyKeeper

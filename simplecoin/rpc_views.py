@@ -1,7 +1,7 @@
 from itsdangerous import TimedSerializer
 from flask import current_app, request, abort
 
-from .models import Transaction, Payout, TransactionSummary, SellRequest
+from .models import Transaction, Payout, TransactionSummary, TradeRequest
 from .utils import Benchmark
 from .views import main
 from . import db
@@ -18,7 +18,7 @@ def get_sell_requests():
     if isinstance(args, dict) and args['lock']:
         lock = True
 
-    sell_requests = SellRequest.query.filter_by(_status=0, locked=False).all()
+    sell_requests = TradeRequest.query.filter_by(_status=0, locked=False).all()
     srs = [(sr.id, sr.currency, sr.quantity) for sr in sell_requests]
 
     if lock:
@@ -49,7 +49,7 @@ def update_sell_requests():
 
     if data['update'] and data['completed_srs']:
         for ts_id, quantity in data['completed_srs'].iteritems():
-            ts = SellRequest.query.filter(SellRequest).filter_by(id=ts_id).first()
+            ts = TradeRequest.query.filter(TradeRequest).filter_by(id=ts_id).first()
             ts.exchanged_quantity = quantity
             ts._status = 4
         db.session.commit()
@@ -78,7 +78,7 @@ def reset_sell_requests():
         abort(400)
 
     if data['reset'] and data['sr_ids']:
-        srs = SellRequest.query.filter(SellRequest.id.in_(data['sr_ids'])).all()
+        srs = TradeRequest.query.filter(TradeRequest.id.in_(data['sr_ids'])).all()
         for sr in srs:
             sr.locked = False
         db.session.commit()
