@@ -16,7 +16,7 @@ from bitcoinrpc.authproxy import AuthServiceProxy
 from simplecoin.scheduler import (cleanup, run_payouts, server_status,
                                   update_online_workers, collect_minutes,
                                   cache_user_donation, update_block_state,
-                                  create_trade_req)
+                                  create_trade_req, create_aggrs)
 from simplecoin.models import Transaction, DonationPercent, Payout
 from simplecoin.utils import setfee_command
 from flask import current_app, _request_ctx_stack
@@ -136,6 +136,11 @@ def reload_cached():
     #    "Refreshing the block stats (luck, effective return, orphan %)")
     #cache.delete_memoized(get_block_stats)
     #get_block_stats()
+
+
+@manager.command
+def create_aggrs_cmd():
+    create_aggrs()
 
 
 @manager.command

@@ -197,7 +197,7 @@ class Payout(base):
     )
 
     __mapper_args__ = {
-        'polymorphic_identity': 1,
+        'polymorphic_identity': 0,
         'polymorphic_on': type
     }
 
@@ -246,9 +246,8 @@ class Payout(base):
                         return "Payout Transaction {} Confirmed".format(self.aggregate.transaction.txid)
                     else:
                         return "Payout Transaction {} Pending".format(self.aggregate.transaction.txid)
-                else:
-                    return "Pending batching for payout"
-            return "Payout Pending"
+                return "Payout Pending"
+            return "Pending batching for payout"
 
         if self.block.orphan:
             return "Block Orphaned"
@@ -327,8 +326,9 @@ class PayoutAggregate(base):
     transaction_id = db.Column(db.String, db.ForeignKey('transaction.txid'))
     transaction = db.relationship('Transaction', backref='aggregates')
     user = db.Column(db.String)
-    payout_address = db.Column(db.String)
-    amount = db.Column(db.BigInteger)
+    payout_address = db.Column(db.String, nullable=False)
+    currency = db.Column(db.String, nullable=False)
+    amount = db.Column(db.BigInteger, CheckConstraint('amount > 0', 'min_payout_amount'))
     count = db.Column(db.SmallInteger)
     locked = db.Column(db.Boolean, default=False)
 

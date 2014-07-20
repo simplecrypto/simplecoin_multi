@@ -23,7 +23,8 @@ from simplecoin.models import (Block, OneMinuteShare, Payout, FiveMinuteShare,
                                FiveMinuteReject, OneMinuteHashrate,
                                DonationPercent, FiveMinuteTemperature,
                                FiveMinuteHashrate, FiveMinuteType,
-                               OneMinuteType, TradeRequest, PayoutExchange)
+                               OneMinuteType, TradeRequest, PayoutExchange,
+                               PayoutAggregate)
 
 logger = logging.getLogger('apscheduler.scheduler')
 
@@ -39,7 +40,7 @@ def crontab(func, *args, **kwargs):
     try:
         res = func(*args, **kwargs)
     except sqlalchemy.exc.SQLAlchemyError as e:
-        logger.error("SQLAlchemyError occurred, rolling back: {}".format(e))
+        logger.error("SQLAlchemyError occurred, rolling back: {}".format(e), exc_info=True)
         db.session.rollback()
     except Exception:
         logger.error("Unhandled exception in {}".format(func.__name__),
@@ -96,6 +97,62 @@ def cache_user_donation():
 
 
 @crontab
+def create_aggrs():
+    """
+    Groups payable payouts at the end of the day by currency for easier paying
+    out and database compaction, allowing deletion of regular payout recoreds.
+    """
+    aggrs = {}
+    adds = {}
+
+    def get_payout_aggr(currency, user, payout_address):
+        """ Create a aggregate if we don't have one for this batch,
+        otherwise use the one that was already created """
+        key = (currency, user, payout_address)
+        if key not in aggrs:
+            aggr = PayoutAggregate(currency=currency, count=0, user=user,
+                                   payout_address=payout_address)
+            db.session.add(aggr)
+            db.session.flush()
+            # silly way to defer the constraint
+            aggr.amount = 0
+            aggrs[key] = aggr
+        return aggrs[key]
+
+    # Attach unattached payouts in need of exchange to a new batch of
+    # sellrequests
+
+    q = Payout.query.filter_by(payable=True, aggregate_id=None).all()
+    for payout in q:
+        curr = currencies.lookup(get_bcaddress_version(payout.payout_address)).key
+        aggr = get_payout_aggr(curr, payout.user, payout.payout_address)
+        payout.aggregate = aggr
+        if payout.type == 1:
+            aggr.amount += payout.buy_amount
+        else:
+            aggr.amount += payout.amount
+
+        aggr.count += 1
+
+    # Generate some simple stats about what we've done
+    for (currency, user, payout_address), aggr in aggrs.iteritems():
+        adds.setdefault(curr, [0, 0, 0])
+        adds[curr][0] += aggr.amount
+        adds[curr][1] += aggr.count
+        adds[curr][2] += 1
+
+    for curr, (tamount, tcount, count) in adds.iteritems():
+        current_app.logger.info(
+            "Created {} aggregates paying {:,} {} for {} payouts"
+            .format(count, tamount / 100000000.0, currency, tcount))
+
+    if not adds:
+        current_app.logger.info("No payable payouts were aggregated")
+
+    db.session.commit()
+
+
+@crontab
 def create_trade_req(typ):
     """
     Takes all the payouts in need of exchanging (either buying or selling, not
@@ -142,14 +199,17 @@ def create_trade_req(typ):
             payout.buy_req = req
             # We're buying using the currency from the sell request
             req.quantity += payout.sell_amount
-            payout.payable = True
 
         adds.setdefault(curr, 0)
         adds[curr] += 1
 
     for curr, req in reqs.iteritems():
-        current_app.logger.info("Created a {} trade request for {} {} containing {:,} PayoutExchanges"
-                                .format(typ, req.quantity / 100000000.0, req.currency, adds[curr]))
+        if typ == "buy":
+            current_app.logger.info("Created a buy trade request for {} with {} BTC containing {:,} PayoutExchanges"
+                                    .format(req.currency, req.quantity / 100000000.0, adds[curr]))
+        else:
+            current_app.logger.info("Created a sell trade request for {} {} containing {:,} PayoutExchanges"
+                                    .format(req.quantity / 100000000.0, req.currency, adds[curr]))
 
     if not reqs:
         current_app.logger.info("No PayoutExchange's found to create {} "
@@ -556,9 +616,9 @@ if __name__ == "__main__":
             # every minute at 55 seconds after the minute
             sched.add_cron_job(run_payouts, second=55)
             # every minute at 55 seconds after the minute
-            sched.add_cron_job(run_payouts, args=("sell",), second=0)
+            sched.add_cron_job(create_trade_req, args=("sell",), second=0)
             # every minute at 55 seconds after the minute
-            sched.add_cron_job(run_payouts, args=("buy",), second=5)
+            sched.add_cron_job(create_trade_req, args=("buy",), second=5)
             # every minute at 55 seconds after the minute
             sched.add_cron_job(collect_minutes, second=35)
             # every five minutes 20 seconds after the minute
@@ -566,7 +626,7 @@ if __name__ == "__main__":
             # every hour 2.5 minutes after the hour
             sched.add_cron_job(compress_five_minute, minute=2, second=30)
             # every 15 minutes 2 seconds after the minute
-            sched.add_cron_job(update_block_state, minute='0,15,30,45', second=2)
+            sched.add_cron_job(update_block_state, second=2)
         else:
             logger.info("Stage mode has been set in the configuration, not "
                         "running scheduled database altering cron tasks")

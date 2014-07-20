@@ -69,8 +69,13 @@ def update_sell_requests():
                 payout.buy_amount = float(
                     payout.sell_amount * ts.exchanged_quantity) // ts.quantity
                 distributed += payout.buy_amount
+                payout.payable = True
             else:
                 raise AttributeError("Invalid tr type")
+
+        current_app.logger.info(
+            "Total accrued after trunated iteration {:,}; {}%"
+            .format(distributed / 100000000.0, (distributed / float(ts.exchanged_quantity)) * 100))
 
         # round robin distribution of the remaining fractional satoshi
         i = 0
@@ -87,14 +92,18 @@ def update_sell_requests():
                 if distributed >= ts.exchanged_quantity:
                     break
 
-        current_app.logger.debug("Ran round robin distro {} times to finish "
-                                 "distrib".format(i))
+        current_app.logger.info("Ran round robin distro {} times to finish "
+                                "distrib".format(i))
 
         # double check complete and exact distribution
         if ts.type == "sell":
             assert sum([p.sell_amount for p in ts.payouts]) == ts.exchanged_quantity
         elif ts.type == "buy":
             assert sum([p.buy_amount for p in ts.payouts]) == ts.exchanged_quantity
+
+        current_app.logger.info(
+            "Successfully pushed trade result for request id {:,} and amount {:,} to {:,} payouts."
+            .format(ts.id, ts.exchanged_quantity / 100000000.0, len(ts.payouts)))
 
     db.session.commit()
     return s.dumps(dict(success=True, result="Trade requests successfully updated."))

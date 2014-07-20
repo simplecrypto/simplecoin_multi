@@ -56,7 +56,7 @@ def account(address, currency=None):
         page = 0
     offset = page * 100
 
-    acct_items = collect_acct_items(address, limit=100, offset=offset, merged_type=currency)
+    acct_items = collect_acct_items(address, limit=100, offset=offset)
     return render_template('account.html', acct_items=acct_items, page=page)
 
 
