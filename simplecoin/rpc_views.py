@@ -1,10 +1,12 @@
 from itsdangerous import TimedSerializer
-from flask import current_app, request, abort
+from flask import current_app, request, abort, Blueprint
 
 from .models import Transaction, Payout, TradeRequest
 from .utils import Benchmark
-from .views import main
 from . import db
+
+
+main = Blueprint('rpc', __name__)
 
 
 @main.route("/get_sell_requests", methods=['POST'])
