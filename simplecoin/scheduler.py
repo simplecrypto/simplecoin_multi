@@ -327,9 +327,12 @@ def payout(redis_key, simulate=False):
         time_started = datetime.datetime.utcfromtimestamp(float(data.get('start_time')))
     else:
         time_started = last_block_time(data['algo'], merged_type=merged_type)
+    total_shares = sum(user_shares.itervalues())
+
     block = Block.create(
         user=data['address'],
         height=data['height'],
+        shares_to_solve=total_shares,
         total_value=int(data['total_subsidy']),
         transaction_fees=int(data['fees']),
         bits=data['hex_bits'],
@@ -340,8 +343,6 @@ def payout(redis_key, simulate=False):
         found_at=datetime.datetime.utcfromtimestamp(float(data['solve_time'])),
         algo=data['algo'],
         merged_type=merged_type)
-
-    total_shares = sum(user_shares.itervalues())
 
     if simulate:
         out = "\n".join(["\t".join((user,

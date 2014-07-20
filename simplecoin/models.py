@@ -78,7 +78,7 @@ class Block(base):
     # Is the block matured?
     mature = db.Column(db.Boolean, default=False)
     # Total shares that were required to solve the block
-    shares_to_solve = db.Column(db.BigInteger)
+    shares_to_solve = db.Column(db.Float)
     # Block value (does not include transaction fees recieved)
     total_value = db.Column(db.BigInteger)
     # Associated transaction fees
@@ -108,11 +108,12 @@ class Block(base):
             return "Pending confirmation"
 
     @classmethod
-    def create(cls, user, height, total_value, transaction_fees, bits, hash,
+    def create(cls, user, height, total_value, shares_to_solve, transaction_fees, bits, hash,
                time_started, currency, worker, found_at, algo, merged_type=None):
         block = cls(user=user,
                     height=height,
                     total_value=total_value,
+                    shares_to_solve=shares_to_solve,
                     transaction_fees=transaction_fees,
                     bits=bits,
                     hash=hash,
@@ -136,7 +137,7 @@ class Block(base):
 
     @property
     def luck(self):
-        return ((self.difficulty * (2 ** 16) / current_app.config.get('share_multiplier', 1)) / self.shares_to_solve) * 100
+        return (self.difficulty * (2 ** 16) / (self.shares_to_solve or 1)) * 100
 
     @property
     def total_value_float(self):

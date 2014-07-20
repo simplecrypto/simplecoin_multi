@@ -5,7 +5,9 @@
 <script>
 $(document).ready(function() {
   {# Initial graph generation #}
-  generate_graph('hour', '%H:%M %p', 'pool');
+  {% for algo, cfg in config['algos'].iteritems() %}
+    generate_graph('pool_{{ algo }}', {{ cfg['hashes_per_share'] }}, $('#chart_{{ algo }}'));
+  {% endfor %}
   var stats;
   $("#toggleHidden").click(function (){
     console.log("clicked");
@@ -31,50 +33,6 @@ $(document).ready(function() {
 });
 </script>
 
-<div class="row page-header">
-  <h2 style="word-wrap:break-word;">Pool Stats</h2>
-  <br>
-  <div class="col-sm-4">
-    <div class="panel panel-default">
-      <div class="panel-body text-center">
-        <small>Active&nbsp;Workers</small>&nbsp;
-        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                     title="Total workers currently mining on this pool. Updated every couple minutes."></i>
-        <br>
-        <h4>
-          <p><span>{{ g.worker_count }}</span></p>
-        </h4>
-      </div>
-    </div>
-  </div>
-  <div class="col-sm-4">
-    <div class="panel panel-default">
-      <div class="panel-body text-center">
-        <small>Average&nbsp;Hashrate</small>&nbsp;
-        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                     title="Megahashes per second completed by the pool. An average of the last 10 minutes."></i>
-        <br>
-        <h4>
-          <p><span class="odometer phashrate">...</span>&nbsp;MHashes/sec</p>
-        </h4>
-      </div>
-    </div>
-  </div>
-  <div class="col-sm-4">
-    <div class="panel panel-default">
-      <div class="panel-body text-center">
-        <small>Pool Efficiency</small>&nbsp;
-        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                     title="Last 30 days efficiency for shares at least 25 hours old. Accepted / Total = {{ accept_total }} / ({{ reject_total }} + {{ accept_total }}). Updated hourly."></i>
-        <br>
-        <h4>
-          <p><span>{{ efficiency | round(2) }}%</span></p>
-        </h4>
-      </div>
-    </div>
-  </div>
-</div>
-
 <div class="row row-header">
   <div class="col-lg-12">
     <h2>Pool Hashrate</h2>
@@ -84,9 +42,19 @@ $(document).ready(function() {
         <li class="tab"><a id="day" data-target="day" data-format="%H:%M %p" data-user="pool">Day</a></li>
         <li class="tab"><a id="month" data-target="month" data-format="%m/%d %H:%M" data-user="pool">Month</a></li>
       </ul>
-    <div id="chart" style="height:400px;">
-      <img src="{{ config['assets_address'] | safe }}/img/712.GIF" style="position:absolute;padding-top:150px;padding-left:400px;"><svg></svg>
+  {% for algo, cfg in config['algos'].iteritems() %}
+    <h2>{{ algo }} Pool Hashrates</h2>
+    <div class="col-lg-12" id="chart_{{ algo }}">
+        <ul class="nav nav-tabs">
+          <li class="tab hour"><a>Hour</a></li>
+          <li class="tab day"><a>Day</a></li>
+          <li class="tab month"><a>Month</a></li>
+        </ul>
+      <div style="height:400px;">
+        <img src="{{ config['assets_address'] | safe }}/img/712.GIF" style="position:absolute;padding-top:150px;padding-left:400px;"><svg></svg>
+      </div>
     </div>
+  {% endfor %}
   </div>
 </div>
 
@@ -120,65 +88,7 @@ $(document).ready(function() {
 {% endif %}
 
 <br />
-<div class="row page-header">
-  <h2>Block Statistics</h2>
-  <br>
-  <div class="col-sm-4">
-    <div class="panel panel-default">
-      <div class="panel-body text-center">
-        <small>Pool&nbsp;Luck</small>&nbsp;
-        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                     title="Last 30 days luck for the pool. Over time this will approach 100%. Lower numbers are worse, higher numbers are better"></i>
-        <br>
-        <h4>
-          <p><span>{{ (pool_luck*100)| round(2) }}%</span></p>
-        </h4>
-      </div>
-    </div>
-  </div>
-  <div class="col-sm-4">
-    <div class="panel panel-default">
-      <div class="panel-body text-center">
-        <small>Current&nbsp;Effective&nbsp;Return</small>
-        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                     title="Expected return per Megahash per day, based on last 30 days pool luck, the average difficulty for the last 500 blocks, and removes the percentage of orphaned blocks."></i>
-        <br>
-        <h4>
-          <p><span>{{ effective_return | round(2) }}&nbsp;{{ config['coin_symbol'] | safe }}/MH/Day</span></p>
-        </h4>
-      </div>
-    </div>
-  </div>
-  <div class="col-sm-4">
-    <div class="panel panel-default">
-      <div class="panel-body text-center">
-        <small>Orphan&nbsp;Percentage</small>
-        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                     title="Last 30 days percentage of blocks that are orphaned"></i>
-        <br>
-        <h4>
-          <p><span>{{ orphan_perc | round(2) }}%</span></p>
-        </h4>
-      </div>
-    </div>
-  </div>
-  <div class="clearfix"></div>
-  <div class="panel panel-default pointer" id="toggleHidden" style="background-color:#243749;">
-    <div class="panel-body" style="padding: 0px;">
-      <div class="btn btn-default pull-right btn-sm" style="font-weight:bold; margin:15px;">[ + ]</div>
-      <h4 style="padding: 10px;">Detailed Stats</h4>
-      <div id="detailedStats"></div>
-    </div>
-  </div>
-</div>
-<h2>Mined {{ config['coin_name'] }} Blocks</h2>
+<h2>Recently Mined Blocks</h2>
 {% include "block_table.html" %}
 <a href="/blocks">View all blocks</a>
-{% for curr, name, block_list in merged_blocks %}
-  {% set current_block = none %}
-  {% set blocks = block_list %}
-  <h2>Merge Mined {{ name }} Blocks</h2>
-  {% include "block_table.html" %}
-  <a, get_pool_eff(timedelta) href="/blocks/{{ curr }}">View all {{ name }} blocks</a>
-{% endfor %}
 {% endblock %}
