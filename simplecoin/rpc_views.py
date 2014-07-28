@@ -49,10 +49,11 @@ def update_trade_requests():
                                 exc_info=True)
         abort(400)
 
-    for tr_id, quantity in data['completed_trs'].iteritems():
+    for tr_id, (quantity, fees) in data['completed_trs'].iteritems():
         tr_id = int(tr_id)
         tr = (TradeRequest.query.filter_by(id=tr_id).with_lockmode('update').one())
         tr.exchanged_quantity = quantity
+        tr.fees = fees
         tr._status = 6
 
         if not tr.payouts:

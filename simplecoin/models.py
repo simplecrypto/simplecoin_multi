@@ -31,6 +31,8 @@ class TradeRequest(base):
 
     # These values should only be updated by sctrader
     exchanged_quantity = db.Column(db.BigInteger, default=None)
+    # Fees from fulfilling this tr
+    fees = db.Column(db.BigInteger, default=None)
     _status = db.Column(db.SmallInteger, default=0)
 
     @property
