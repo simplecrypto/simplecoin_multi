@@ -4,71 +4,41 @@
 monitor_addrs:
     - stratum: tcp+stratum://localhost:3333
       mon_address: http://localhost:3855/
-    - stratum: tcp+stratum://localhost:3334
-      mon_address: http://localhost:3856/
-# how many confirmations do we wait before marking blocks mature
-# and allowing payout over RPC
-block_mature_confirms: 250
-# the version that will trigger an upgrade notification
-latest_ppagent: [0, 3, 4]
 # The postgresql database connection configuration
 SQLALCHEMY_DATABASE_URI: postgresql://simplecoin:testing@localhost:5432/simplecoin
 # the session encryption key
 SECRET_KEY: 'somethting_really_secret'
-# a simple list of users to redact from the stats. Should be built out to a 
-# database table at some point
-redacted_addresses:
-    - dsflkgsdlfkgsld;fkgsl;dfkg
-# the amount of time a action type signed message can be used for before
-# expiring (in seconds)
-#message_expiry: 7200
-
-merge:
-    - enabled: False
-      # A list of valid address versions. used for payout atm
-      address_version: [71]
-      # The letter that a valid merged mining address must start with
-      prefix: M
-      # Full name of what to label the merged coin on the site
-      name: Monocle
-      # BTC, LTC, etc..
-      currency_name: MON
-      # required number of transaction confirmations before marking confirmed
-      trans_confirmations: 6
-      # the expected time for the network to find a block in seconds. used for
-      # computing network hashrate
-      block_time: 60
-      # connection information for the merge coinserver RPC
-      coinserv:
-          port: 6888
-          address: 127.0.0.1
-          username: monoclerp
-          password: ''
-          wallet_pass: ''
-          account: pool
-      donate_address: MSEjpL5Wyam3bxzcLuFPoWdDWTx7SxT19W
-      distribute_unassigned: False
-      # this url will have the transaction id appended to it to provide
-      # information on a specific transaction for a payout to merged mining
-      transaction_link_prefix: http://cryptexplorer.com/tx/
-      # just like above, but with a block to merged mining
-      block_link_prefix: http://cryptexplorer.com/block/
-    
+redacted_addresses: []
 
 # connection information for the coinserver RPC
 coinserv:
-    port: 22555
+    #    port: 19332
+    #    address: 127.0.0.1
+    #    username: litecoin
+    #    password: testing2345098234509823405982340598
+    #    wallet_pass: ''
+    #    account: pool
+    port: 19332
     address: 127.0.0.1
-    username: dogecoin
-    password: ''
-    wallet_pass: ''
-    account: simpledoge_pool_address
+    username: litecoin
+    password: testing2345098234509823405982340598
+    wallet_pass:
+    account: pool
+
+algos:
+    X11:
+        hashes_per_share: 4294967296
+    scryptn:
+        hashes_per_share: 65536
+    scrypt:
+        hashes_per_share: 65536
 
 # email server authentication 
 email:
+    enabled: False
     send_address: 'simpledogepool@gmail.com'
-    username: ''
-    password: ''
+    username:
+    password:
     ehlo: simpledoge.com
     timeout: 10
     server: email-smtp.us-east-1.amazonaws.com
@@ -76,20 +46,54 @@ email:
     debug: True
     tls: True
 
-# Celery configuration
-# =======================================================================
-# Celery configuration options. Since celery is run under a flask context
-# then thses are settings for the celery worker.
-celery:
-    CELERY_ACCEPT_CONTENT: ['pickle', 'json', 'msgpack', 'yaml']
-    # the name of the queue you'll recieve tasks from powerpool on. should
-    # match the default queue setting in powerpool instances that connect with
-    # this task handler
-    #CELERY_QUEUES:
-    #    doge:
-    #        exchange: doge
-    #        binding_key: doge
-    BROKER_URL: 'amqp://guest:guest@localhost:5672/'
+currencies: 
+    DRK:
+        # The algorithm for the currency
+        algo: X11
+        # Full name of what to label the merged coin on the site
+        name: Darkcoin
+        # BTC, LTC, etc..
+        currency_name: DRK
+        # connection information for the merge coinserver RPC
+        coinserv:
+            port: 19001
+            address: localhost
+            username: admin1
+            password: 123
+        # prefix that is checked for to payout the address
+        address_version: [76]
+        # required number of transaction confirmations before marking confirmed
+        trans_confirmations: 6
+        # the expected time for the network to find a block in seconds. used for
+        # computing network hashrate
+        block_time: 120
+        # how many confirmations do we wait before marking blocks mature
+        # and allowing payout over RPC
+        block_mature_confirms: 2
+    URO:
+        # The algorithm for the currency
+        algo: X11
+        # Full name of what to label the merged coin on the site
+        name: Urocoin
+        # BTC, LTC, etc..
+        currency_name: URO
+        # connection information for the merge coinserver RPC
+        coinserv:
+            port: 20001
+            address: localhost
+            username: admin1
+            password: 123
+        # prefix that is checked for to payout the address
+        address_version: [68]
+        # required number of transaction confirmations before marking confirmed
+        trans_confirmations: 6
+        # the expected time for the network to find a block in seconds. used for
+        # computing network hashrate
+        block_time: 120
+        # how many confirmations do we wait before marking blocks mature
+        # and allowing payout over RPC
+        block_mature_confirms: 2
+
 # set this to true and celery will only run scheduled tasks to refresh cache
 # objects. This allows you to run a staging version on the same database,
 # but with separate caches
@@ -98,111 +102,41 @@ celery:
 # Cache configuration
 # ========================================================================
 # The cache database that redis will use
-#main_cache:
-#    CACHE_REDIS_DB: 1
+redis_conn:
+    db: 15
+main_cache:
+    CACHE_REDIS_DB: 15
 
 # Payout configurations
 # ========================================================================
 # Controls how payout database entries are calculated
 #
-# the multiplier used on the last n shares to keep for counting share
-# contributions
-last_n: 2
-# this is the n margin that is left by the cleanup script.
-cleanup_n: 4
 # default donation/bonus percentage applied to payouts if no custom is
 # defined
-default_perc: 1
+default_perc: 2
 # sets to lowest that a user is allowed to set their fee percentage
-minimum_perc: 0
+minimum_perc: 2
 # address where all donated percents (or fees) will go
-donate_address: 
-# address where all mining from invalid addresses goes
-catchall_address: 
+donate_address: DAbhwsnEq5TjtBP5j76TinhUqqLTktDAnD
 # block find reward. set to zero or comment out to not use. in satoshi
 block_bonus: 0
 
-# RPC Payout configs
-# ========================================================================
-# These settings control how the remote rpc payout script functions, as opposed
-# to payout functionalities on the server
-#
-# min payout amount in satoshi
-minimum_payout: 100000000  # 1 doge (or ltc, or whatever)
-# the fee used when sending payouts to the coinserver. IE, to be applied
-# to the payout transaction for transmission to the network
-payout_fee: 1.0
-# key used to sign rpc requests for payout system. Keep this secure
-rpc_signature: ''
-# where are we expecting the rpc server to be?
-rpc_url: http://www.simpledoge.com
-
-# Mimic some MPOS stuff
-# ========================================================================
-# Allowed API keys
-mpos_api_keys:
-    - asdf
-
 # Coin/Branding
 # =======================================================================
-# Website name
-site_name: Simple Doge
-# Website title. Used when describing the website in signed messages
-site_url: simpledoge.com
-# the path that will be postfixed with the current git hash in the footer.
-# comment out to remove the footer mark
-repopath: https://github.com/simplecrypto/simplecoin/commit/
-# the expected time for the network to find a block in seconds. used for
-# computing network hashrate
-block_time: 60
-# the number of blocks to average for difficulty
-difficulty_avg_period: 500
-# required number of transaction confirmations before marking confirmed
-trans_confirmations: 6
 # the colloquial name of the coin
-coin_name: Doge
-site_title: Simple Doge
-# the unicode symbol for the coin
-coin_symbol: "&ETH;"
+site_title: SimpleMulti
+coin_name: Multi
 # host for static assets e.g. {assets_address}/css/main.css
-assets_address: http://simpledoge.com/static
+assets_address: /static
 # logo img
-logo: "/img/dogecoin.png"
+logo: 
 # xs leader img
 leader-xs: "/img/doge-miner-xs.jpg"
 # sm leader img
 leader-sm: "/img/doge-miner-sm.jpg"
 # fullsize leader img
 leader: "/img/doge-miner.jpg"
-# URL for chat, if commented out chat link will not show
-chat_url: https://kiwiirc.com/client/irc.freenode.net/#simplecrypto
-# this url will have the transaction id appended to it to provide
-# information on a specific transaction for a payout
-transaction_link_prefix: http://dogechain.info/tx/
-# just like above, but with a block
-block_link_prefix: http://dogechain.info/block/
-# stratum server address
-stratum_address: stratum.simpledoge.com
-# stratum port
-stratum_port: 3333
-# link to a good beginner guide
-beginner_guide: <a href="http://www.reddit.com/r/dogemining/wiki/index/mining_guide" target="_blank">Reddit</a>
-# how many previously solved blocks to show on the pool stats page. defaults to 25
-#blocks_stats_page: 25
-# The number of hashes required to find an N1 share on average. Will change
-# if you change the share multiplication factor
-hashes_per_share: 65536
-# Share multiplication factor. The database doesn't store fractional difficulty
-# shares (N1 is lowest) so for coins like darkcoin you need to multiply the
-# number recieved from powerpool before storing in the database. This then in
-# turn effects the hashes_per_share above needed to reverse compute proper
-# hashrate
-#share_multiplier: 1
-# Difficulty multiplication factor. Used to determine the network hashrate.
-# 2^32 for most networks
-difficulty_multiplier: 4294967296
-# A list of valid address versions
-address_version: [71]
+rpc_signature: test
 
 # Logging
 # =======================================================================
