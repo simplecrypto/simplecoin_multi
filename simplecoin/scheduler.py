@@ -100,7 +100,7 @@ def cache_user_donation():
 def create_aggrs():
     """
     Groups payable payouts at the end of the day by currency for easier paying
-    out and database compaction, allowing deletion of regular payout recoreds.
+    out and database compaction, allowing deletion of regular payout records.
     """
     aggrs = {}
     adds = {}

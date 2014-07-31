@@ -21,7 +21,7 @@ $(document).ready(function() {
     var feeString = $("#feeAmount").val();
     var fee = parseFloat(feeString);
     if (fee > 100 || fee < {{ config['minimum_perc'] }})
-      alert("Fee must be less than 100 and greater than {{ config['minimum_perc'] }}");
+      alert("Fee must be less than 100 and greater than or equal to {{ config['minimum_perc'] }}");
     else if (isNaN(fee))
       alert("Must enter a valid number!");
     else {

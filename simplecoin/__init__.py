@@ -1,3 +1,4 @@
+from decimal import Decimal
 import subprocess
 import logging
 import os
@@ -87,6 +88,7 @@ def create_app(config='/config.yml', celery=False):
     cache_config.update(app.config.get('main_cache', {}))
     cache.init_app(app, config=cache_config)
     app.redis = Redis(**app.config.get('redis_conn', {}))
+    app.SATOSHI = Decimal('0.00000001')
 
     if not celery:
         hdlr = logging.FileHandler(app.config.get('log_file', 'webserver.log'))
@@ -142,7 +144,9 @@ def create_app(config='/config.yml', celery=False):
 
     @app.template_filter('human_date_utc')
     def pretty_date(*args, **kwargs):
-        return ago.human(datetime.datetime.utcnow() - args[0], *args[1:], **kwargs)
+        delta = (datetime.datetime.utcnow() - args[0])
+        delta = delta - datetime.timedelta(microseconds=delta.microseconds)
+        return ago.human(delta, *args[1:], **kwargs)
 
     # Route registration
     # =========================================================================
