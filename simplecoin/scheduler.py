@@ -494,6 +494,7 @@ def collect_minutes():
             continue
         redis_conn.rename(key, "processing_shares")
         for user, shares in redis_conn.hgetall("processing_shares").iteritems():
+            shares = float(shares)
             # messily parse out the worker/address combo...
             parts = user.split(".")
             if len(parts) > 0:
