@@ -35,9 +35,9 @@
                 <th>{{ payout.block.currency }}</th>
                 <th>{{ '{:,}'.format(payout.shares) }}</th>
                 <th title="{{ payout.mined }}">{{ payout.mined | sig_round(2) }}</th>
-                <th>{{ '{:,}'.format(payout.perc) }}%</th>
+                <th>{{ '{:,}'.format(payout.perc * 100) }}%</th>
                 <th data-sort-value="{{ perc_applied }}">{{ payout.text_perc_applied }}</th>
-                <th title="{{ payout.amount / 100000000.0 }}">{{ (payout.amount / 100000000.0) | sig_round(2) }}</th>
+                <th title="{{ payout.amount }}">{{ payout.amount | sig_round(2) }}</th>
                 <th>{{ '{:,}'.format(payout.block.height) }}</th>
                 <th>{{ payout.status }}</th>
               </tr>

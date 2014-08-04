@@ -1,5 +1,6 @@
 import calendar
 import datetime
+from decimal import Decimal
 import time
 import itertools
 import yaml
@@ -296,14 +297,14 @@ def collect_user_stats(address):
     # show their donation percentage
     perc = DonationPercent.query.filter_by(user=address).first()
     if not perc:
-        perc = current_app.config.get('default_perc', 0)
+        perc = Decimal(current_app.config.get('default_perc', 0)) * 100
     else:
-        perc = perc.perc
+        perc = perc.perc * 100
 
     user_last_10_shares = last_10_shares(address)
     last_10_hashrate = (shares_to_hashes(user_last_10_shares) / 1000000) / 600
     now = datetime.datetime.now()
-    next_exchange = now.replace(minute=0, second=0, microsecond=0, hour=((now.hour // 2) * 2) + 2)
+    next_exchange = now.replace(minute=0, second=0, microsecond=0, hour=((now.hour + 2) % 23))
     next_payout = now.replace(minute=0, second=0, microsecond=0, hour=0)
 
     return dict(workers=new_workers,
@@ -335,7 +336,7 @@ def setfee_command(username, perc):
     perc = round(float(perc), 2)
     if perc > 100.0 or perc < current_app.config['minimum_perc']:
         raise CommandException("Invalid percentage passed!")
-    obj = DonationPercent(user=username, perc=perc)
+    obj = DonationPercent(user=username, perc=(perc / 100))
     db.session.merge(obj)
     db.session.commit()
 

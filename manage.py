@@ -1,3 +1,4 @@
+from decimal import Decimal
 import os
 import logging
 import time
@@ -5,6 +6,8 @@ import time
 from flask.ext.script import Manager, Shell
 from flask.ext.migrate import Migrate, MigrateCommand
 from simplecoin import create_app, db
+from simplecoin.rpc import RPCClient
+from cryptokit.base58 import get_bcaddress_version
 
 app = create_app()
 manager = Manager(app)
@@ -35,6 +38,11 @@ root.addHandler(hdlr)
 root.setLevel(logging.DEBUG)
 
 
+@manager.option('address')
+def get_version(address):
+    print get_bcaddress_version(address)
+
+
 @manager.command
 def init_db():
     """ Resets entire database to empty state """
@@ -48,7 +56,7 @@ def init_db():
 def update_minimum_fee():
     """ Sets all custom fees in the database to be at least the minimum. Should
     be run after changing the minimum. """
-    min_fee = current_app.config['minimum_perc']
+    min_fee = Decimal(current_app.config.get('minimum_perc', 0))
     DonationPercent.query.filter(DonationPercent.perc < min_fee).update(
         {DonationPercent.perc: min_fee}, synchronize_session=False)
     db.session.commit()
@@ -169,6 +177,25 @@ def payout_cmd(simulate):
 def collect_minutes_cmd():
     """ Runs the collect minutes task manually. """
     collect_minutes()
+
+
+@manager.option('fees')
+@manager.option('exchanged_quantity')
+@manager.option('id')
+def update_tr(id, exchanged_quantity, fees):
+    """
+    Updates a TR by posting to the RPC view
+    """
+    sc_rpc = RPCClient()
+    completed_tr = {}
+
+    completed_tr[id] = (exchanged_quantity, fees)
+
+    sc_rpc.post(
+        'update_trade_requests',
+        data={'update': True, 'completed_trs': completed_tr}
+    )
+
 
 
 def make_context():

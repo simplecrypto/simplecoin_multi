@@ -24,15 +24,15 @@ class TradeRequest(base):
     # Currency to be traded
     currency = db.Column(db.String, nullable=False)
     # Quantity of currency to be traded
-    quantity = db.Column(db.BigInteger, nullable=False)
+    quantity = db.Column(db.Numeric, nullable=False)
     locked = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     type = db.Column(db.Enum("sell", "buy", name="req_type"), nullable=False)
 
     # These values should only be updated by sctrader
-    exchanged_quantity = db.Column(db.BigInteger, default=None)
+    exchanged_quantity = db.Column(db.Numeric, default=None)
     # Fees from fulfilling this tr
-    fees = db.Column(db.BigInteger, default=None)
+    fees = db.Column(db.Numeric, default=None)
     _status = db.Column(db.SmallInteger, default=0)
 
     @property
@@ -82,12 +82,12 @@ class Block(base):
     # Total shares that were required to solve the block
     shares_to_solve = db.Column(db.Float)
     # Block value (does not include transaction fees recieved)
-    total_value = db.Column(db.BigInteger)
+    total_value = db.Column(db.Numeric)
     # Associated transaction fees
-    transaction_fees = db.Column(db.BigInteger)
+    transaction_fees = db.Column(db.Numeric)
     # total going to pool from fees
-    donated = db.Column(db.BigInteger)
-    bonus_payed = db.Column(db.BigInteger)
+    donated = db.Column(db.Numeric)
+    bonus_payed = db.Column(db.Numeric)
     # Difficulty of block when solved
     bits = db.Column(db.String(8), nullable=False)
     currency = db.Column(db.String, nullable=False)
@@ -139,11 +139,12 @@ class Block(base):
 
     @property
     def luck(self):
-        return (self.difficulty * (2 ** 16) / (self.shares_to_solve or 1)) * 100
+        hps = current_app.config['algos'][self.algo]['hashes_per_share']
+        return ((self.difficulty * (2 ** 32)) / ((self.shares_to_solve or 1) * hps)) * 100
 
     @property
     def total_value_float(self):
-        return self.total_value / 100000000.0
+        return float(self.total_value)
 
     @property
     def difficulty(self):
@@ -185,9 +186,9 @@ class Payout(base):
     block = db.relationship('Block', foreign_keys=[blockhash], backref='payouts')
     user = db.Column(db.String)
     payout_address = db.Column(db.String)
-    amount = db.Column(db.BigInteger, CheckConstraint('amount > 0', 'min_payout_amount'))
+    amount = db.Column(db.Numeric, CheckConstraint('amount > 0', 'min_payout_amount'))
     shares = db.Column(db.Float)
-    perc = db.Column(db.Float)
+    perc = db.Column(db.Numeric)
     type = db.Column(db.SmallInteger)
     payable = db.Column(db.Boolean, default=False)
 
@@ -210,24 +211,22 @@ class Payout(base):
 
     @property
     def amount_float(self):
-        return self.amount / 100000000.0
+        return float(self.amount)
 
     @property
     def perc_applied(self):
-        if self.perc >= 0:
-            return int(ceil((self.perc / 100.0) * self.amount))
-        return int(floor((self.perc / 100.0) * self.amount))
+        return (self.perc * self.amount).quantize(current_app.SATOSHI)
 
     @property
     def text_perc_applied(self):
         if self.perc < 0:
-            return "bonus of {}".format(sig_round(self.perc_applied * -1 / 100000000.0))
+            return "BONUS {}".format(sig_round(self.perc_applied * -1))
         else:
-            return "donation of {}".format(sig_round(self.perc_applied / 100000000.0))
+            return "Total fee {}".format(sig_round(self.perc_applied))
 
     @property
     def mined(self):
-        return (self.amount + self.perc_applied) / 100000000.0
+        return self.amount + self.perc_applied
 
     @classmethod
     def create(cls, user, amount, block, shares, perc, payout_address=None):
@@ -242,21 +241,24 @@ class Payout(base):
 
     @property
     def status(self):
-        if self.payable:
-            if self.aggregate:
-                if self.aggregate.transaction:
-                    if self.aggregate.transaction.confirmed is True:
-                        return "Payout Transaction {} Confirmed".format(self.aggregate.transaction.txid)
-                    else:
-                        return "Payout Transaction {} Pending".format(self.aggregate.transaction.txid)
-                return "Payout Pending"
-            return "Pending batching for payout"
 
         if self.block.orphan:
             return "Block Orphaned"
 
         if not self.block.mature:
             return "Pending Block Confirmation"
+
+        if self.payable:
+            if self.aggregate:
+                if self.aggregate.transaction:
+                    if self.aggregate.transaction.confirmed is True:
+                        return "Payout Transaction {} Confirmed".\
+                            format(self.aggregate.transaction.txid)
+                    else:
+                        return "Payout Transaction {} Pending".\
+                            format(self.aggregate.transaction.txid)
+                return "Payout Pending"
+            return "Pending batching for payout"
 
     @property
     def final_amount(self):
@@ -268,23 +270,16 @@ class PayoutExchange(Payout):
     """
     id = db.Column(db.Integer, db.ForeignKey('payout.id'), primary_key=True)
     sell_req_id = db.Column(db.Integer, db.ForeignKey('trade_request.id'))
-    sell_req = db.relationship('TradeRequest', foreign_keys=[sell_req_id], backref='sell_payouts')
-    sell_amount = db.Column(db.BigInteger)
+    sell_req = db.relationship('TradeRequest', foreign_keys=[sell_req_id],
+                               backref='sell_payouts')
+    sell_amount = db.Column(db.Numeric)
     buy_req_id = db.Column(db.Integer, db.ForeignKey('trade_request.id'))
-    buy_req = db.relationship('TradeRequest', foreign_keys=[buy_req_id], backref='buy_payouts')
-    buy_amount = db.Column(db.BigInteger)
+    buy_req = db.relationship('TradeRequest', foreign_keys=[buy_req_id],
+                              backref='buy_payouts')
+    buy_amount = db.Column(db.Numeric)
 
     @property
     def status(self):
-        if self.payable:
-            if self.aggregate:
-                if self.aggregate.transaction:
-                    if self.aggregate.transaction.confirmed is True:
-                        return "Payout Transaction {} Confirmed".format(self.aggregate.transaction.txid)
-                    else:
-                        return "Payout Transaction {} Pending".format(self.aggregate.transaction.txid)
-                return "Payout Pending"
-            return "Pending batching for payout"
 
         if self.block.orphan:
             return "Block Orphaned"
@@ -292,18 +287,33 @@ class PayoutExchange(Payout):
         if not self.block.mature:
             return "Pending Block Confirmation"
 
+        if self.payable:
+            if self.aggregate:
+                if self.aggregate.transaction:
+                    if self.aggregate.transaction.confirmed is True:
+                        return "Payout Transaction {} Confirmed".\
+                            format(self.aggregate.transaction.txid)
+                    else:
+                        return "Payout Transaction {} Pending".\
+                            format(self.aggregate.transaction.txid)
+                return "Payout Pending"
+            return "Pending batching for payout"
+
         if self.aggregate:
             if self.aggregate.transaction:
                 if self.aggregate.transaction.confirmed is True:
-                    return "Payout Transaction {} Confirmed".format(self.aggregate.transaction.txid)
+                    return "Payout Transaction {} Confirmed".\
+                        format(self.aggregate.transaction.txid)
                 else:
-                    return "Payout Transaction {} Pending".format(self.aggregate.transaction.txid)
+                    return "Payout Transaction {} Pending".\
+                        format(self.aggregate.transaction.txid)
             else:
                 return "Pending batching for payout"
 
         # Don't say we're purchasing if we'd be shown as purchasing BTC to
         # avoid confusion
-        btc = currencies.lookup(get_bcaddress_version(self.payout_address)).key == "BTC"
+        btc = currencies.lookup(get_bcaddress_version(self.payout_address))\
+                  .key == "BTC"
         if self.buy_req and not btc:
             return "Purchasing desired currency"
 
@@ -331,7 +341,8 @@ class PayoutAggregate(base):
     user = db.Column(db.String)
     payout_address = db.Column(db.String, nullable=False)
     currency = db.Column(db.String, nullable=False)
-    amount = db.Column(db.BigInteger, CheckConstraint('amount > 0', 'min_payout_amount'))
+    amount = db.Column(db.BigInteger, CheckConstraint('amount > 0',
+                                                      'min_payout_amount'))
     count = db.Column(db.SmallInteger)
     locked = db.Column(db.Boolean, default=False)
 
@@ -347,7 +358,7 @@ class PayoutAggregate(base):
 
 class DonationPercent(base):
     user = db.Column(db.String, primary_key=True)
-    perc = db.Column(db.Float)
+    perc = db.Column(db.Numeric)
 
 
 class SliceMixin(object):

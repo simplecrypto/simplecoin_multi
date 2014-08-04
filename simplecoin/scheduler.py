@@ -1,3 +1,4 @@
+from decimal import Decimal, getcontext, ROUND_HALF_DOWN
 import logging
 import datetime
 import time
@@ -90,7 +91,7 @@ def cache_user_donation():
     # Build a dict of donation % to cache
     custom_donations = DonationPercent.query.all()
     for donation in custom_donations:
-        user_donations.setdefault(donation.user, current_app.config['default_perc'])
+        user_donations.setdefault(donation.user, Decimal(current_app.config.get('default_perc', 0)))
         user_donations[donation.user] = donation.perc
 
     cache.set('user_donations', user_donations, timeout=1440 * 60)
@@ -143,8 +144,8 @@ def create_aggrs():
 
     for curr, (tamount, tcount, count) in adds.iteritems():
         current_app.logger.info(
-            "Created {} aggregates paying {:,} {} for {} payouts"
-            .format(count, tamount / 100000000.0, currency, tcount))
+            "Created {} aggregates paying {} {} for {} payouts"
+            .format(count, tamount, currency, tcount))
 
     if not adds:
         current_app.logger.info("No payable payouts were aggregated")
@@ -178,7 +179,7 @@ def create_trade_req(typ):
     # To create a sell request, we find all the payouts with no sell request
     # that are mature
     if typ == "sell":
-        q = q.filter_by(sell_req=None).join(Payout.block, aliased=True).filter_by(mature=True)
+        q = q.filter_by(sell_req=None).join(Payout.block, aliased=True)
     # To create a buy request, we find all the payouts with completed sell
     # requests that are mature
     elif typ == "buy":
@@ -206,10 +207,10 @@ def create_trade_req(typ):
     for curr, req in reqs.iteritems():
         if typ == "buy":
             current_app.logger.info("Created a buy trade request for {} with {} BTC containing {:,} PayoutExchanges"
-                                    .format(req.currency, req.quantity / 100000000.0, adds[curr]))
+                                    .format(req.currency, req.quantity, adds[curr]))
         else:
             current_app.logger.info("Created a sell trade request for {} {} containing {:,} PayoutExchanges"
-                                    .format(req.quantity / 100000000.0, req.currency, adds[curr]))
+                                    .format(req.quantity, req.currency, adds[curr]))
 
     if not reqs:
         current_app.logger.info("No PayoutExchange's found to create {} "
@@ -313,8 +314,8 @@ def payout(redis_key, simulate=False):
     user_shares = {}
     raw = redis_conn.hgetall(redis_key)
     for key, value in raw.iteritems():
-        if get_bcaddress_version(key):
-            user_shares[key] = float(value)
+        if get_bcaddress_version(key) is not None:
+            user_shares[key] = Decimal(value)
         else:
             data[key] = value
 
@@ -333,7 +334,7 @@ def payout(redis_key, simulate=False):
         user=data['address'],
         height=data['height'],
         shares_to_solve=total_shares,
-        total_value=int(data['total_subsidy']),
+        total_value=(Decimal(data['total_subsidy']) / 100000000),
         transaction_fees=int(data['fees']),
         bits=data['hex_bits'],
         hash=data['hash'],
@@ -344,10 +345,12 @@ def payout(redis_key, simulate=False):
         algo=data['algo'],
         merged_type=merged_type)
 
+    getcontext().rounding = ROUND_HALF_DOWN
+
     if simulate:
         out = "\n".join(["\t".join((user,
-                                    str((amount * 100.0) / total_shares),
-                                    str((amount * block.total_value) // total_shares),
+                                    str((amount * 100) / total_shares),
+                                    str(((amount * block.total_value) / total_shares).quantize(current_app.SATOSHI)),
                                     str(amount))) for user, amount in user_shares.iteritems()])
         logger.debug("Share distribution:\nUSR\t%\tBLK_PAY\tSHARE\n{}".format(out))
 
@@ -358,23 +361,28 @@ def payout(redis_key, simulate=False):
     # so we will distribute that round robin the miners in dictionary order
     accrued = 0
     user_payouts = {}
+    user_extra = {}
     for user, share_count in user_shares.iteritems():
-        user_payouts[user] = float(share_count * block.total_value) // total_shares
+        user_earned = (share_count * block.total_value) / total_shares
+        user_payouts[user] = user_earned.quantize(current_app.SATOSHI)
+        user_extra[user] = user_earned - user_payouts[user]
         accrued += user_payouts[user]
 
     logger.debug("Total accrued after trunated iteration {}; {}%"
-                 .format(accrued, (accrued / float(block.total_value)) * 100))
-    # loop over the dictionary indefinitely until we've distributed
-    # all the remaining funds
+                 .format(accrued, (accrued / block.total_value) * 100))
+
+    # loop over the dictionary indefinitely, paying out users with the highest
+    # remainder first until we've distributed all the remaining funds
     i = 0
     while accrued < block.total_value:
-        for key in user_payouts:
-            i += 1
-            user_payouts[key] += 1
-            accrued += 1
-            # exit if we've exhausted
-            if accrued >= block.total_value:
-                break
+        i += 1
+        max_user = max(user_extra, key=user_extra.get)
+        user_payouts[max_user] += current_app.SATOSHI
+        accrued += current_app.SATOSHI
+        user_extra.pop(max_user)
+        # exit if we've exhausted
+        if accrued >= block.total_value:
+            break
 
     logger.debug("Ran round robin distro {} times to finish distrib".format(i))
 
@@ -385,7 +393,7 @@ def payout(redis_key, simulate=False):
     user_perc_applied = {}
     user_perc = {}
 
-    default_perc = current_app.config.get('default_perc', 0)
+    default_perc = Decimal(current_app.config.get('default_perc', 0))
     # convert our custom percentages that apply to these users into an
     # easy to access dictionary
     custom_percs = DonationPercent.query.filter(DonationPercent.user.in_(user_shares.keys()))
@@ -398,9 +406,9 @@ def payout(redis_key, simulate=False):
 
         # if the perc is greater than 0 it's calced as a donation
         if perc > 0:
-            donation = int(ceil((perc / 100.0) * payout))
+            donation = (perc * payout).quantize(current_app.SATOSHI)
             logger.debug("Donation of\t{}\t({}%)\tcollected from\t{}"
-                         .format(donation / 100000000.0, perc, user))
+                         .format(donation, perc * 100, user))
             donation_total += donation
             user_payouts[user] -= donation
             user_perc_applied[user] = donation
@@ -408,9 +416,9 @@ def payout(redis_key, simulate=False):
         # if less than zero it's a bonus payout
         elif perc < 0:
             perc *= -1
-            bonus = int(floor((perc / 100.0) * payout))
+            bonus = (perc * payout).quantize(current_app.SATOSHI)
             logger.debug("Bonus of\t{}\t({}%)\tpaid to\t{}"
-                         .format(bonus / 100000000.0, perc, user))
+                         .format(bonus, perc, user))
             user_payouts[user] += bonus
             bonus_total += bonus
             user_perc_applied[user] = -1 * bonus
@@ -418,11 +426,11 @@ def payout(redis_key, simulate=False):
         # percentages of 0 are no-ops
 
     logger.info("Payed out {} in bonus payment"
-                .format(bonus_total / 100000000.0))
+                .format(bonus_total))
     logger.info("Received {} in donation payment"
-                .format(donation_total / 100000000.0))
+                .format(donation_total))
     logger.info("Net income from block {}"
-                .format((donation_total - bonus_total) / 100000000.0))
+                .format(donation_total - bonus_total))
 
     assert accrued == block.total_value
     logger.info("Successfully distributed all rewards among {} users."
@@ -437,7 +445,7 @@ def payout(redis_key, simulate=False):
 
     if simulate:
         out = "\n".join(["\t".join(
-            (user, str(amount / 100000000.0)))
+            (user, str(amount)))
             for user, amount in user_payouts.iteritems()])
         logger.debug("Final payout distribution:\nUSR\tAMNT\n{}".format(out))
         db.session.rollback()

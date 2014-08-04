@@ -1,3 +1,4 @@
+from decimal import Decimal
 from itsdangerous import TimedSerializer
 from flask import current_app, request, abort, Blueprint
 
@@ -22,7 +23,7 @@ def get_trade_requests():
         lock = True
 
     trade_requests = TradeRequest.query.filter_by(_status=0, locked=False).all()
-    trs = [(tr.id, tr.currency, tr.quantity, tr.type) for tr in trade_requests]
+    trs = [(tr.id, tr.currency, float(tr.quantity), tr.type) for tr in trade_requests]
 
     if lock:
         current_app.logger.info("Locking sell requests at retriever request.")
@@ -51,66 +52,47 @@ def update_trade_requests():
 
     for tr_id, (quantity, fees) in data['completed_trs'].iteritems():
         tr_id = int(tr_id)
-        tr = (TradeRequest.query.filter_by(id=tr_id).with_lockmode('update').one())
-        tr.exchanged_quantity = quantity
-        tr.fees = fees
+        tr = (TradeRequest.query.filter_by(id=tr_id).with_lockmode('update').
+              one())
+        tr.exchanged_quantity = Decimal(quantity)
+        tr.fees = Decimal(fees)
         tr._status = 6
 
         if not tr.payouts:
-            raise Exception("Trade request has no attached payouts")
+            current_app.logger.warn("Trade request has no attached payouts")
         if tr.payouts:
-            # truncated delivery based on the payouts percentage of the total
+            # calculate user payouts based on percentage of the total
             # exchanged value
-            distributed = 0
             for payout in tr.payouts:
                 if tr.type == "sell":
                     assert payout.sell_amount is None
-                    payout.sell_amount = float(
-                        payout.amount * tr.exchanged_quantity) // tr.quantity
-                    distributed += payout.sell_amount
+                    current_app.logger.warn(tr.exchanged_quantity)
+                    payout.sell_amount = (payout.amount * tr.exchanged_quantity) / tr.quantity
                 elif tr.type == "buy":
                     assert payout.buy_amount is None
-                    payout.buy_amount = float(
-                        payout.sell_amount * tr.exchanged_quantity) // tr.quantity
-                    distributed += payout.buy_amount
+                    payout.buy_amount = (payout.sell_amount * tr.exchanged_quantity) / tr.quantity
                     payout.payable = True
                 else:
                     raise AttributeError("Invalid tr type")
 
-            current_app.logger.info(
-                "Total accrued after trunated iteration {:,}; {}%"
-                .format(distributed / 100000000.0, (distributed / float(tr.exchanged_quantity)) * 100))
-
-            # round robin distribution of the remaining fractional satoshi
-            i = 0
-            while distributed < tr.exchanged_quantity:
-                for payout in tr.payouts:
-                    if tr.type == "sell":
-                        payout.sell_amount += 1
-                    elif tr.type == "buy":
-                        payout.buy_amount += 1
-                    distributed += 1
-                    i += 1
-
-                    # exit if we've exhausted
-                    if distributed >= tr.exchanged_quantity:
-                        break
-
-            current_app.logger.info("Ran round robin distro {} times to finish "
-                                    "distrib".format(i))
-
-            # double check complete and exact distribution
+            # double check successful distribution at the satoshi
             if tr.type == "sell":
-                assert sum([p.sell_amount for p in tr.payouts]) == tr.exchanged_quantity
+                payout_amt = sum([p.sell_amount for p in tr.payouts]).\
+                    quantize(current_app.SATOSHI)
+                assert payout_amt == tr.exchanged_quantity.quantize(current_app.SATOSHI)
             elif tr.type == "buy":
-                assert sum([p.buy_amount for p in tr.payouts]) == tr.exchanged_quantity
+                buy_amount = sum([p.buy_amount for p in tr.payouts]).\
+                    quantize(current_app.SATOSHI)
+                assert buy_amount == tr.exchanged_quantity.quantize(current_app.SATOSHI)
 
             current_app.logger.info(
-                "Successfully pushed trade result for request id {:,} and amount {:,} to {:,} payouts."
-                .format(tr.id, tr.exchanged_quantity / 100000000.0, len(tr.payouts)))
+                "Successfully pushed trade result for request id {:,} and "
+                "amount {:,} to {:,} payouts.".
+                format(tr.id, tr.exchanged_quantity, len(tr.payouts)))
 
     db.session.commit()
-    return s.dumps(dict(success=True, result="Trade requests successfully updated."))
+    return s.dumps(dict(success=True, result="Trade requests successfully "
+                                             "updated."))
 
 
 @main.route("/reset_trade_requests", methods=['POST'])

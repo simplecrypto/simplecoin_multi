@@ -107,9 +107,7 @@ $(document).ready(function() {
   </div>
 
   <div class="row row-header">
-    <h2>Account<small class="text-muted">- Currently donating {{ donation_perc }}%
-      <a style="color:gray;" href="/set_donation/{{ username }}"><i class="fa fa-edit" ></i></a>
-    </small></h2>
+    <h2>Account</h2>
     <br>
     {% set coin_symbol = config['coin_symbol'] %}
     {% include "acct_table.html" %}

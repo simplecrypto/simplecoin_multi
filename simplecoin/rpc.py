@@ -13,8 +13,7 @@ from flask import current_app
 from itsdangerous import TimedSerializer, BadData
 
 from bitcoinrpc.authproxy import JSONRPCException, CoinRPCException
-from .coinserv_cmds import payout_many
-from . import create_app, coinserv, merge_coinserv
+from . import create_app
 
 
 logger = logging.getLogger("toroidal")
@@ -55,7 +54,7 @@ class RPCClient(object):
         return self.remote(url, 'get', *args, **kwargs)
 
     def remote(self, url, method, max_age=None, signed=True, **kwargs):
-        url = urljoin(self.config['rpc_url'], url)
+        url = urljoin("http://0.0.0.0:9400/", url)
         logger.debug("Making request to {}".format(url))
         ret = getattr(requests, method)(url, timeout=270, **kwargs)
         if ret.status_code != 200:
@@ -193,8 +192,8 @@ class RPCClient(object):
                         "reset_trans_file {0} to reset these transactions"
                         .format(backup_fname))
 
-        logger.info("Recieved {:,} payouts and {:,} bonus payouts from the server"
-                    .format(len(pids), len(bids)))
+        logger.info("Recieved {:,} payouts and {:,} bonus payouts from the "
+                    "server".format(len(pids), len(bids)))
 
         # builds two dictionaries, one that tracks the total payouts to a user,
         # and another that tracks all the payout ids (pids) giving that amount
@@ -224,7 +223,7 @@ class RPCClient(object):
 
         # identify the users who meet minimum payout and format for sending
         # to rpc
-        users = {user: amount / float(100000000) for user, amount in totals.iteritems()
+        users = {user: float(amount) for user, amount in totals.iteritems()
                  if amount > current_app.config['minimum_payout']}
         logger.info("Trying to payout a total of {}".format(sum(users.values())))
 

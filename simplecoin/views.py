@@ -1,4 +1,5 @@
 import calendar
+from decimal import Decimal
 import time
 import datetime
 import yaml
@@ -247,9 +248,9 @@ def set_donation(address):
 
     perc = DonationPercent.query.filter_by(user=address).first()
     if not perc:
-        perc = current_app.config.get('default_perc', 0)
+        perc = Decimal(current_app.config.get('default_perc', 0)) * 100
     else:
-        perc = perc.perc
+        perc = perc.perc * 100
     return render_template("set_donation.html",
                            username=address,
                            result=result,
