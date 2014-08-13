@@ -156,7 +156,7 @@ def worker_stats(address=None, worker=None, stat_type=None, window="hour"):
 @main.route("/<address>")
 def user_dashboard(address=None):
     # Do some checking to make sure the address is valid + payable
-    curr = check_valid_currency(address)
+    curr = check_valid_currency(address).key
     allowed_currencies = valid_currencies()
     if len(address) != 34 or not curr or curr not in allowed_currencies:
         return render_template('invalid_address.html',

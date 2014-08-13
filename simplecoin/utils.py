@@ -333,7 +333,7 @@ def valid_currencies():
 def check_valid_currency(address):
     """ Check if address matches a currency in our config """
     try:
-        curr = currencies.lookup(get_bcaddress_version(address)).key
+        curr = currencies.lookup(get_bcaddress_version(address))
     except (KeyError, AttributeError):
         return False
     else:
