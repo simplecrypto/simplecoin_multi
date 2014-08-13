@@ -70,6 +70,9 @@ currencies:
         # how many confirmations do we wait before marking blocks mature
         # and allowing payout over RPC
         block_mature_confirms: 2
+        # whether or not we currently can exchange this currency. This is
+        # used to determine valid user addresses
+        exchangeable: True
     URO:
         # The algorithm for the currency
         algo: X11
@@ -93,6 +96,9 @@ currencies:
         # how many confirmations do we wait before marking blocks mature
         # and allowing payout over RPC
         block_mature_confirms: 2
+        # whether or not we currently can exchange this currency.
+        # Used to determine valid user addresses
+        exchangeable: True
 
 # set this to true and celery will only run scheduled tasks to refresh cache
 # objects. This allows you to run a staging version on the same database,

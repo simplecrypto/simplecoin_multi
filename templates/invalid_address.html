@@ -1,0 +1,23 @@
+<html>
+<head>
+  <style>
+    body {
+      background-color:#2B3E50;
+    }
+  </style>
+</head>
+<body>
+<div style="text-align: center; padding-top:200px; color:#ebebeb;">
+  <h1>Invalid or unsupported address!</h1>
+  <p>The address you entered is either not valid or is not a currency type
+    we pay out
+  </p>
+  <br>
+  <h4>Currently supported payout currencies include:</h4>
+  {% for abv in allowed_currencies %}
+  {{ abv }}<br>
+  {% endfor %}
+</div>
+</body>
+</html>
+

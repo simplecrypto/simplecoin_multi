@@ -3,12 +3,13 @@ import datetime
 from decimal import Decimal
 import time
 import itertools
+from cryptokit.base58 import get_bcaddress_version
 import yaml
 
 from flask import current_app, session
 from bitcoinrpc import CoinRPCException
 
-from . import db, cache, root, redis_conn
+from . import db, cache, root, redis_conn, currencies
 from .models import (DonationPercent, OneMinuteReject, OneMinuteShare,
                      FiveMinuteShare, FiveMinuteReject, Payout, Block,
                      OneHourShare, OneHourReject)
@@ -314,6 +315,29 @@ def collect_user_stats(address):
                 last_10_hashrate=last_10_hashrate,
                 next_payout=next_payout,
                 next_exchange=next_exchange)
+
+
+# @cache.memoize(timeout=3600)
+def valid_currencies():
+    """
+    Builds a list of currency names that we currently allow as usernames or
+    payout in
+    """
+    valid_currencies = []
+    for currency in currencies.keys():
+        if currencies[currency].exchangeable:
+            valid_currencies.append(currency)
+    return valid_currencies
+
+
+def check_valid_currency(address):
+    """ Check if address matches a currency in our config """
+    try:
+        curr = currencies.lookup(get_bcaddress_version(address)).key
+    except (KeyError, AttributeError):
+        return False
+    else:
+        return curr
 
 
 def get_pool_eff(timedelta=None):

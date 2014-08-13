@@ -14,13 +14,13 @@ from .models import (OneMinuteShare, Block, OneMinuteType, FiveMinuteType,
                      FiveMinuteHashrate, OneMinuteHashrate, OneHourHashrate,
                      OneMinuteTemperature, FiveMinuteTemperature,
                      OneHourTemperature, OneHourType)
-from . import db, root, cache
 from .utils import (compress_typ, get_typ, verify_message, get_pool_acc_rej,
                     get_pool_eff, last_10_shares, collect_user_stats, get_adj_round_shares,
                     get_pool_hashrate, last_block_time, get_alerts,
                     last_block_found, last_blockheight, resort_recent_visit,
                     collect_acct_items, CommandException,
                     shares_to_hashes)
+from . import db, root, cache, currencies
 
 
 main = Blueprint('main', __name__)
@@ -155,8 +155,12 @@ def worker_stats(address=None, worker=None, stat_type=None, window="hour"):
 
 @main.route("/<address>")
 def user_dashboard(address=None):
-    if len(address) != 34:
-        abort(404)
+    # Do some checking to make sure the address is valid + payable
+    curr = check_valid_currency(address)
+    allowed_currencies = valid_currencies()
+    if len(address) != 34 or not curr or curr not in allowed_currencies:
+        return render_template('invalid_address.html',
+                               allowed_currencies=allowed_currencies)
 
     stats = collect_user_stats(address)
 
@@ -168,7 +172,6 @@ def user_dashboard(address=None):
     resort_recent_visit(recent)
     return render_template('user_stats.html',
                            username=address,
-                           block_reward=cache.get('reward') or 1,
                            **stats)
 
 
@@ -242,20 +245,21 @@ def handle_message(address):
     return result, alert_cls
 
 
-@main.route("/set_donation/<address>", methods=['POST', 'GET'])
-def set_donation(address):
+@main.route("/settings/<address>", methods=['POST', 'GET'])
+def settings(address):
     result, alert_cls = handle_message(address)
 
-    perc = DonationPercent.query.filter_by(user=address).first()
-    if not perc:
-        perc = Decimal(current_app.config.get('default_perc', 0)) * 100
+    d_perc = DonationPercent.query.filter_by(user=address).first()
+    if not d_perc:
+        d_perc = Decimal(current_app.config.get('default_donate_perc', 0)) * 100
     else:
-        perc = perc.perc * 100
-    return render_template("set_donation.html",
+        d_perc = d_perc.hr_perc
+
+    return render_template("user_settings.html",
                            username=address,
                            result=result,
                            alert_cls=alert_cls,
-                           perc=perc)
+                           d_perc=d_perc)
 
 
 @main.route("/crontabs")
