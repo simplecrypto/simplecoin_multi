@@ -35,8 +35,9 @@ $(document).ready(function() {
         <a style="color:gray;" href="/set_merge/{{ username }}/{{ curr }}"><i class="fa fa-edit" ></i></a>
       </span><br>
     {% endfor %}
-    <span style="padding-left:15px;">Currently donating {{ donation_perc }}%
-      <a style="color:gray;" href="/set_donation/{{ username }}"><i class="fa fa-edit" ></i></a>
+    <span style="padding-left:15px;">
+      <a href="/settings/{{ username }}">
+      Edit account settings <i style="color:gray;" class="fa fa-edit" ></i></a>
     </span><br>
     <br>
   </div>

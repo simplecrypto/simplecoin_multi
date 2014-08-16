@@ -7,20 +7,17 @@ import json
 
 from flask import (current_app, request, render_template, Blueprint, abort,
                    jsonify, g, session, Response)
-from lever import get_joined
 
-from .models import (OneMinuteShare, Block, OneMinuteType, FiveMinuteType,
-                     FiveMinuteShare, OneHourShare, DonationPercent,
+from .models import (OneMinuteShare, Block,
+                     FiveMinuteShare, OneHourShare, UserSettings,
                      FiveMinuteHashrate, OneMinuteHashrate, OneHourHashrate,
                      OneMinuteTemperature, FiveMinuteTemperature,
-                     OneHourTemperature, OneHourType)
-from .utils import (compress_typ, get_typ, verify_message, get_pool_acc_rej,
-                    get_pool_eff, last_10_shares, collect_user_stats, get_adj_round_shares,
-                    get_pool_hashrate, last_block_time, get_alerts,
-                    last_block_found, last_blockheight, resort_recent_visit,
-                    collect_acct_items, CommandException,
-                    shares_to_hashes)
+                     OneHourTemperature, PayoutAddress)
 from . import db, root, cache, currencies
+from .utils import (compress_typ, get_typ, verify_message,
+                    collect_user_stats, get_pool_hashrate, get_alerts,
+                    resort_recent_visit, collect_acct_items, CommandException,
+                    check_valid_currency, valid_currencies)
 
 
 main = Blueprint('main', __name__)
@@ -228,13 +225,13 @@ def handle_error(error):
     return render_template("500.html")
 
 
-def handle_message(address):
+def handle_message(address, curr):
     alert_cls = "danger"
     result = None
     vals = request.form
     if request.method == "POST":
         try:
-            verify_message(address, vals['message'], vals['signature'])
+            verify_message(address, curr, vals['message'], vals['signature'])
         except CommandException as e:
             result = "Error: {}".format(e)
         except Exception as e:
@@ -248,21 +245,117 @@ def handle_message(address):
     return result, alert_cls
 
 
+@main.route("/validate_address", methods=['POST', 'GET'])
+def validate_address():
+    if request.method == "POST":
+        addr = request.json
+        curr = check_valid_currency(addr[1])
+        if not curr:
+            return jsonify({addr[0]: False})
+        if not curr.key == addr[0]:
+            return jsonify({addr[0]: False})
+        else:
+            return jsonify({addr[0]: True})
+
+
+@main.route("/generate_message", methods=['POST'])
+def generate_message():
+    if request.method == "POST":
+        vals = request.form
+
+        # build a few dicts for convenience
+        raw_addresses = {}
+        commands = {'delete_addrs': [], 'add_addrs': {}}
+        for k, v in vals.iteritems():
+            if k in current_app.config['currencies']:
+                raw_addresses[k] = v
+            else:
+                if k == 'anonymous':
+                    v = True
+                if k == 'donateAmount':
+                    v = float(v)
+                commands[k] = v
+
+        # validate the addresses + add appropriate commands
+        errors = {}
+        for currency, address in raw_addresses.iteritems():
+            if address:
+                curr = check_valid_currency(address)
+                if not curr:
+                    errors[currency] = address
+                else:
+                    commands['add_addrs'][currency] = address
+            else:
+                commands['delete_addrs'].append(currency)
+
+        if commands['donateAmount'] > 100 or commands['donateAmount'] < 0:
+            errors['donateAmount'] = commands['donateAmount']
+
+        if errors:
+            return jsonify({'errors': errors})
+
+        # build message
+        msg_str = ''
+        for command, v in commands.iteritems():
+            if command == 'delete_addrs':
+                for curr in v:
+                    msg_str += 'DELADDR ' + curr + "\t"
+            if command == 'add_addrs':
+                for curr, addr in v.iteritems():
+                    msg_str += 'SETADDR ' + curr + ' ' + addr + "\t"
+            if command == 'anonymous':
+                    msg_str += 'MAKEANON' + ' TRUE' + "\t"
+            if command == 'donateAmount':
+                    msg_str += "SETDONATE " + str(v) + "\t"
+        msg_str += "Only valid on " + current_app.config['site_title'] + "\t"
+        msg_str += "Generated at " + str(datetime.datetime.utcnow()) + " UTC"
+
+        return jsonify({'msg_str': msg_str})
+
+
 @main.route("/settings/<address>", methods=['POST', 'GET'])
 def settings(address):
-    result, alert_cls = handle_message(address)
+    curr = check_valid_currency(address)
+    if not curr:
+        return render_template('invalid_address.html')
 
-    d_perc = DonationPercent.query.filter_by(user=address).first()
-    if not d_perc:
-        d_perc = Decimal(current_app.config.get('default_donate_perc', 0)) * 100
+    result, alert_cls = handle_message(address, curr)
+
+    user = UserSettings.query.filter_by(user=address).first()
+
+    user_addresses = {}
+    if not user:
+        d_perc = 0
     else:
-        d_perc = d_perc.hr_perc
+        d_perc = user.hr_perc
+        for addr in user.addresses:
+            user_addresses[addr.currency] = (addr)
+
+    exchangeable_currencies = {}
+    unexchangeable_currencies = {}
+    for currency, cfg in currencies.iteritems():
+        if cfg.exchangeable:
+            if currency in user_addresses:
+                exchangeable_currencies[currency] = user_addresses[currency]
+            else:
+                exchangeable_currencies[currency] = ''
+        else:
+            if currency in user_addresses:
+                unexchangeable_currencies[currency] = user_addresses[currency]
+            else:
+                unexchangeable_currencies[currency] = ''
+    exchangeable_currencies.pop(curr.currency_name)
 
     return render_template("user_settings.html",
                            username=address,
                            result=result,
                            alert_cls=alert_cls,
-                           d_perc=d_perc)
+                           d_perc=d_perc,
+                           user_currency=curr.name,
+                           user_currency_name=curr.currency_name,
+                           anon=user.anon,
+                           exchangeable_currencies=exchangeable_currencies,
+                           unexchangeable_currencies=unexchangeable_currencies)
 
 
 @main.route("/crontabs")

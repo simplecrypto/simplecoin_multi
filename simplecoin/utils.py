@@ -4,15 +4,16 @@ from decimal import Decimal
 import time
 import itertools
 from cryptokit.base58 import get_bcaddress_version
+from sqlalchemy.exc import SQLAlchemyError
 import yaml
 
 from flask import current_app, session
 from bitcoinrpc import CoinRPCException
 
 from . import db, cache, root, redis_conn, currencies
-from .models import (DonationPercent, OneMinuteReject, OneMinuteShare,
+from .models import (OneMinuteReject, OneMinuteShare,
                      FiveMinuteShare, FiveMinuteReject, Payout, Block,
-                     OneHourShare, OneHourReject)
+                     OneHourShare, OneHourReject, UserSettings)
 
 
 class CommandException(Exception):
@@ -296,11 +297,11 @@ def collect_user_stats(address):
     new_workers = sorted(new_workers, key=lambda x: x['name'])
 
     # show their donation percentage
-    perc = DonationPercent.query.filter_by(user=address).first()
-    if not perc:
-        perc = Decimal(current_app.config.get('default_perc', 0)) * 100
+    user = UserSettings.query.filter_by(user=address).first()
+    if not user:
+        perc = 0
     else:
-        perc = perc.perc * 100
+        perc = user.hr_perc
 
     user_last_10_shares = last_10_shares(address)
     last_10_hashrate = (shares_to_hashes(user_last_10_shares) / 1000000) / 600
@@ -308,13 +309,16 @@ def collect_user_stats(address):
     next_exchange = now.replace(minute=0, second=0, microsecond=0, hour=((now.hour + 2) % 23))
     next_payout = now.replace(minute=0, second=0, microsecond=0, hour=0)
 
+    f_perc = Decimal(current_app.config.get('fee_perc', Decimal('0.02'))) * 100
+
     return dict(workers=new_workers,
                 acct_items=collect_acct_items(address, 20),
                 donation_perc=perc,
                 last_10_shares=user_last_10_shares,
                 last_10_hashrate=last_10_hashrate,
                 next_payout=next_payout,
-                next_exchange=next_exchange)
+                next_exchange=next_exchange,
+                f_per=f_perc)
 
 
 # @cache.memoize(timeout=3600)
@@ -334,7 +338,7 @@ def check_valid_currency(address):
     """ Check if address matches a currency in our config """
     try:
         curr = currencies.lookup(get_bcaddress_version(address))
-    except (KeyError, AttributeError):
+    except Exception:
         return False
     else:
         return curr
@@ -351,56 +355,6 @@ def get_pool_eff(timedelta=None):
 
 def shares_to_hashes(shares):
     return float(current_app.config.get('hashes_per_share', 65536)) * shares
-
-
-##############################################################################
-# Message validation and verification functions
-##############################################################################
-def setfee_command(username, perc):
-    perc = round(float(perc), 2)
-    if perc > 100.0 or perc < current_app.config['minimum_perc']:
-        raise CommandException("Invalid percentage passed!")
-    obj = DonationPercent(user=username, perc=(perc / 100))
-    db.session.merge(obj)
-    db.session.commit()
-
-
-def verify_message(address, message, signature):
-    commands = {'SETFEE': setfee_command}
-    try:
-        lines = message.split("\t")
-        parts = lines[0].split(" ")
-        command = parts[0]
-        args = parts[1:]
-        stamp = int(lines[1])
-    except (IndexError, ValueError):
-        raise CommandException("Invalid information provided in the message "
-                               "field. This could be the fault of the bug with "
-                               "IE11, or the generated message has an error")
-
-    now = time.time()
-    if abs(now - stamp) > current_app.config.get('message_expiry', 840):
-        raise CommandException("Signature has expired!")
-    if command not in commands:
-        raise CommandException("Invalid command given!")
-
-    current_app.logger.info(u"Attempting to validate message '{}' with sig '{}' for address '{}'"
-                            .format(message, signature, address))
-
-    try:
-        res = coinserv.verifymessage(address, signature, message.encode('utf-8').decode('unicode-escape'))
-    except CoinRPCException as e:
-        raise CommandException("Rejected by RPC server for reason {}!"
-                               .format(e))
-    except Exception:
-        current_app.logger.error("Coinserver verification error!", exc_info=True)
-        raise CommandException("Unable to communicate with coinserver!")
-
-    if res:
-        commands[command](address, *args)
-    else:
-        raise CommandException("Invalid signature! Coinserver returned {}"
-                               .format(res))
 
 
 def resort_recent_visit(recent):
@@ -442,3 +396,98 @@ def time_format(seconds):
     if seconds <= 1.0:
         return "{:,.4f} ms".format(seconds * 1000.0)
     return "{:,.4f} sec".format(seconds)
+
+
+##############################################################################
+# Message validation and verification functions
+##############################################################################
+def validate_message_vals(**kwargs):
+    set_addrs = kwargs['SETADDR']
+    del_addrs = kwargs['DELADDR']
+    donate_perc = kwargs['SETDONATE']
+    anon = kwargs['MAKEANON']
+
+    for curr, addr in set_addrs.iteritems():
+        curr = check_valid_currency(addr)
+        if len(addr) != 34 or curr is False:
+            raise CommandException("Invalid currency address passed!")
+
+    try:
+        donate_perc = Decimal(donate_perc).quantize(Decimal('0.01')) / 100
+    except TypeError:
+        raise CommandException("Donate percentage unable to be converted to python Decimal!")
+    else:
+        if donate_perc > 100.0 or donate_perc < 0:
+            raise CommandException("Donate percentage was out of bounds!")
+
+
+    return set_addrs, del_addrs, donate_perc, anon
+
+
+def verify_message(address, curr, message, signature):
+    update_dict = {'SETADDR': {}, 'DELADDR': [], 'MAKEANON': False,
+                   'SETDONATE': 0}
+    stamp = False
+    site = False
+    try:
+        lines = message.split("\t")
+        for line in lines:
+            parts = line.split(" ")
+            if parts[0] in update_dict:
+                if parts[0] == 'SETADDR':
+                    update_dict.setdefault(parts[0], {})
+                    update_dict[parts[0]][parts[1]] = parts[2]
+                elif parts[0] == 'DELADDR':
+                    update_dict[parts[0]].append(parts[1])
+                else:
+                    update_dict[parts[0]] = parts[1]
+            elif parts[0] == 'Only':
+                site = parts[3]
+            elif parts[0] == 'Generated':
+                time = parts[2] + ' ' + parts[3] + ' ' + parts[4]
+                stamp = datetime.datetime.strptime(time, '%Y-%m-%d %H:%M:%S.%f %Z')
+            else:
+                raise CommandException("Invalid command given! Generate a new "
+                                       "message & try again.")
+    except (IndexError, ValueError):
+        current_app.logger.info("Invalid message provided", exc_info=True)
+        raise CommandException("Invalid information provided in the message "
+                               "field. This could be the fault of the bug with "
+                               "IE11, or the generated message has an error")
+    if not stamp:
+        raise CommandException("Time stamp not found in message! Generate a new"
+                               " message & try again.")
+
+    now = datetime.datetime.utcnow()
+    if abs((now - stamp).seconds) > current_app.config.get('message_expiry', 90660):
+        raise CommandException("Signature/Message is too old to be accepted! "
+                               "Generate a new message & try again.")
+
+    if not site or site != current_app.config['site_title']:
+        raise CommandException("Invalid website! Generate a new message "
+                               "& try again.")
+
+    current_app.logger.info(u"Attempting to validate message '{}' with sig '{}' for address '{}'"
+                            .format(message, signature, address))
+
+    try:
+        res = curr.coinserv.verifymessage(address, signature, message.encode('utf-8').decode('unicode-escape'))
+    except CoinRPCException as e:
+        raise CommandException("Rejected by RPC server for reason {}!"
+                               .format(e))
+    except Exception:
+        current_app.logger.error("Coinserver verification error!", exc_info=True)
+        raise CommandException("Unable to communicate with coinserver!")
+
+    if res:
+        args = validate_message_vals(**update_dict)
+        try:
+            UserSettings.update(address, *args)
+        except SQLAlchemyError:
+            db.session.rollback()
+            raise CommandException("Error saving new settings to the database!")
+        else:
+            db.session.commit()
+    else:
+        raise CommandException("Invalid signature! Coinserver returned {}"
+                               .format(res))

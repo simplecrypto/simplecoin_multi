@@ -1,7 +1,7 @@
 import calendar
+from decimal import Decimal
 import logging
 
-from math import ceil, floor
 from collections import namedtuple
 from datetime import datetime, timedelta
 from flask import current_app
@@ -356,11 +356,6 @@ class PayoutAggregate(base):
         return aggr
 
 
-class DonationPercent(base):
-    user = db.Column(db.String, primary_key=True)
-    perc = db.Column(db.Numeric)
-
-
 class SliceMixin(object):
     @classmethod
     def create(cls, user, value, time, worker):
@@ -651,3 +646,77 @@ class OneMinuteType(TypeTimeSlice, OneMinute):
         'polymorphic_identity': 'one_minute_type',
         'concrete': True
     }
+
+################################################################################
+# User account related objects
+################################################################################
+
+
+class UserSettings(base):
+    user = db.Column(db.String(34), primary_key=True)
+    donation_perc = db.Column(db.Numeric, default=Decimal('0'))
+    anon = db.Column(db.Boolean, default=False)
+    addresses = db.relationship("PayoutAddress")
+
+    @property
+    def hr_perc(self):
+        return (self.donation_perc * 100).quantize(Decimal('0.01'))
+
+    @classmethod
+    def update(cls, address, set_addrs, del_addrs, donate_perc, anon):
+
+        user = cls.query.filter_by(user=address).first()
+        if not user:
+            UserSettings.create(address, donate_perc, anon, set_addrs)
+        else:
+            user.donation_perc = donate_perc
+            user.anon = anon
+
+            # Set addresses
+            for address in user.addresses:
+                # Update existing
+                for currency, addr in set_addrs.items():
+                    if address.currency == currency:
+                        address.currency = currency
+                        address.address = addr
+                        # Pop the currencies we just set
+                        set_addrs.pop(currency)
+                # Add new currencies
+                for currency, addr in set_addrs.iteritems():
+                    address.currency = currency
+                    address.address = addr
+            # Delete addresses
+            for address in user.addresses:
+                for currency in del_addrs:
+                    if address.currency == currency:
+                        db.session.delete(address)
+
+        db.session.commit()
+        return user
+
+    @classmethod
+    def create(cls, user, donation_perc, anon, set_addrs):
+        user = cls(user=user,
+                   donation_perc=donation_perc,
+                   anon=anon)
+        db.session.add(user)
+        payout_addresses = []
+        for currency, addr in set_addrs.iteritems():
+            if addr:
+                payout_addresses.append(PayoutAddress.create(addr, currency))
+        user.addresses = payout_addresses
+        return user
+
+
+class PayoutAddress(base):
+    address = db.Column(db.String(34), primary_key=True)
+    user = db.Column(db.String, db.ForeignKey('user_settings.user'))
+    # Abbreviated currency name. EG 'LTC'
+    currency = db.Column(db.String(4))
+
+    @classmethod
+    def create(cls, address, currency):
+        pa = cls(currency=currency,
+                 address=address)
+        db.session.add(pa)
+        return pa

@@ -14,7 +14,6 @@ from bitcoinrpc import CoinRPCException
 from flask import current_app
 from apscheduler.scheduler import Scheduler
 from apscheduler.threadpool import ThreadPool
-from math import ceil, floor
 from cryptokit.base58 import get_bcaddress_version
 
 from simplecoin import db, cache, redis_conn, create_app, currencies
@@ -22,7 +21,7 @@ from simplecoin.utils import last_block_time
 from simplecoin.models import (Block, OneMinuteShare, Payout, FiveMinuteShare,
                                OneMinuteReject, OneMinuteTemperature,
                                FiveMinuteReject, OneMinuteHashrate,
-                               DonationPercent, FiveMinuteTemperature,
+                               UserSettings, FiveMinuteTemperature,
                                FiveMinuteHashrate, FiveMinuteType,
                                OneMinuteType, TradeRequest, PayoutExchange,
                                PayoutAggregate)
@@ -89,10 +88,10 @@ def cache_user_donation():
     """
     user_donations = {}
     # Build a dict of donation % to cache
-    custom_donations = DonationPercent.query.all()
-    for donation in custom_donations:
-        user_donations.setdefault(donation.user, Decimal(current_app.config.get('default_perc', 0)))
-        user_donations[donation.user] = donation.perc
+    users = UserSettings.query.all()
+    for user in users:
+        user_donations.setdefault(user.user, Decimal(current_app.config.get('default_donate_perc', 0)))
+        user_donations[user.user] = user.perc
 
     cache.set('user_donations', user_donations, timeout=1440 * 60)
 
@@ -393,10 +392,11 @@ def payout(redis_key, simulate=False):
     user_perc_applied = {}
     user_perc = {}
 
-    default_perc = Decimal(current_app.config.get('default_perc', 0))
+    default_perc = Decimal(current_app.config.get('default_donate_perc', 0))
+    fee_perc = Decimal(current_app.config.get('fee_perc', 0.02))
     # convert our custom percentages that apply to these users into an
     # easy to access dictionary
-    custom_percs = DonationPercent.query.filter(DonationPercent.user.in_(user_shares.keys()))
+    custom_percs = UserSettings.query.filter(UserSettings.user.in_(user_shares.keys()))
     custom_percs = {d.user: d.perc for d in custom_percs}
 
     for user, payout in user_payouts.iteritems():

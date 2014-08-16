@@ -13,10 +13,12 @@
     we pay out
   </p>
   <br>
+  {% if allowed_currencies %}
   <h4>Currently supported payout currencies include:</h4>
   {% for abv in allowed_currencies %}
   {{ abv }}<br>
   {% endfor %}
+  {% endif %}
 </div>
 </body>
 </html>

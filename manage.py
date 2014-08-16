@@ -20,8 +20,7 @@ from simplecoin.scheduler import (cleanup, run_payouts, server_status,
                                   update_online_workers, collect_minutes,
                                   cache_user_donation, update_block_state,
                                   create_trade_req, create_aggrs)
-from simplecoin.models import Transaction, DonationPercent, Payout
-from simplecoin.utils import setfee_command
+from simplecoin.models import Transaction, UserSettings, Payout
 from flask import current_app, _request_ctx_stack
 
 root = logging.getLogger()
@@ -53,28 +52,11 @@ def init_db():
 
 
 @manager.command
-def update_minimum_fee():
-    """ Sets all custom fees in the database to be at least the minimum. Should
-    be run after changing the minimum. """
-    min_fee = Decimal(current_app.config.get('minimum_perc', 0))
-    DonationPercent.query.filter(DonationPercent.perc < min_fee).update(
-        {DonationPercent.perc: min_fee}, synchronize_session=False)
-    db.session.commit()
-
-
-@manager.option('fee')
-@manager.option('user')
-def set_fee(user, fee):
-    """ Manually sets a fee percentage. """
-    setfee_command(user, fee)
-
-
-@manager.command
-def list_fee_perc():
+def list_donation_perc():
     """ Gives a summary of number of users at each fee amount """
     summ = {}
     warn = False
-    for entry in DonationPercent.query.all():
+    for entry in UserSettings.query.all():
         summ.setdefault(entry.perc, 0)
         summ[entry.perc] += 1
         if entry.perc < current_app.config['minimum_perc']:
