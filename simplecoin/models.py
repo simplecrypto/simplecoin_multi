@@ -90,12 +90,20 @@ class Block(base):
     bonus_payed = db.Column(db.Numeric)
     # Difficulty of block when solved
     bits = db.Column(db.String(8), nullable=False)
+    # Three letter code for the currency that was mined
     currency = db.Column(db.String, nullable=False)
+    # Will be == currency if currency is was merge mined
     merged_type = db.Column(db.String)
+    # The hashing algorith mused to solve the block
     algo = db.Column(db.String, nullable=False)
 
-    standard_join = ['status', 'explorer_link', 'luck', 'total_value_float',
-                     'difficulty', 'duration', 'found_at', 'time_started']
+    standard_join = ['status', 'merged', 'currency', 'worker', 'explorer_link',
+                     'luck', 'total_value_float', 'difficulty', 'duration',
+                     'found_at', 'time_started']
+
+    @property
+    def merged(self):
+        return self.merged_type is not None
 
     @property
     def status(self):
@@ -312,8 +320,7 @@ class PayoutExchange(Payout):
 
         # Don't say we're purchasing if we'd be shown as purchasing BTC to
         # avoid confusion
-        btc = currencies.lookup(get_bcaddress_version(self.payout_address))\
-                  .key == "BTC"
+        btc = currencies.lookup_address(self.payout_address).key == "BTC"
         if self.buy_req and not btc:
             return "Purchasing desired currency"
 

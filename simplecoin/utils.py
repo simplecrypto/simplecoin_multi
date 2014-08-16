@@ -3,7 +3,7 @@ import datetime
 from decimal import Decimal
 import time
 import itertools
-from cryptokit.base58 import get_bcaddress_version
+from cryptokit.base58 import address_version
 from sqlalchemy.exc import SQLAlchemyError
 import yaml
 
@@ -33,8 +33,25 @@ class CurrencyKeeper(dict):
         for ver in val.address_version:
             self.version_lut[ver] = val
 
-    def lookup(self, version):
-        return self.version_lut[version]
+    def lookup_address(self, address):
+        ver = address_version(address)
+        try:
+            return self.lookup_version(ver)
+        except AttributeError:
+            raise AttributeError("Address '{}' version {} is not a configured currency. Options are {}"
+                                 .format(address, ver, self.available_versions))
+
+    @property
+    def available_versions(self):
+        return {k: v.currency_name for k, v in self.version_lut.iteritems()}
+
+    def lookup_version(self, version):
+        try:
+            return self.version_lut[version]
+        except KeyError:
+            raise AttributeError(
+                "Address version {} doesn't match available versions {}"
+                .format(version, self.available_versions))
 
 
 def timeit(method):
@@ -337,7 +354,7 @@ def valid_currencies():
 def check_valid_currency(address):
     """ Check if address matches a currency in our config """
     try:
-        curr = currencies.lookup(get_bcaddress_version(address))
+        curr = currencies.lookup_address(address)
     except Exception:
         return False
     else:

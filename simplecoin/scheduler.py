@@ -124,7 +124,7 @@ def create_aggrs():
 
     q = Payout.query.filter_by(payable=True, aggregate_id=None).all()
     for payout in q:
-        curr = currencies.lookup(get_bcaddress_version(payout.payout_address)).key
+        curr = currencies.lookup_address(payout.payout_address).key
         aggr = get_payout_aggr(curr, payout.user, payout.payout_address)
         payout.aggregate = aggr
         if payout.type == 1:
@@ -194,7 +194,7 @@ def create_trade_req(typ):
             # We're selling using the mined currency
             req.quantity += payout.amount
         elif typ == "buy":
-            curr = currencies.lookup(get_bcaddress_version(payout.payout_address)).key
+            curr = currencies.lookup_address(payout.payout_address).key
             req = get_trade_req(curr)
             payout.buy_req = req
             # We're buying using the currency from the sell request
@@ -322,7 +322,7 @@ def payout(redis_key, simulate=False):
         user_shares[data['address']] = 1
 
     logger.debug("Processing block with details {}".format(data))
-    merged_type = data.get('merged_type')
+    merged_type = data.get('merged')
     if 'start_time' in data:
         time_started = datetime.datetime.utcfromtimestamp(float(data.get('start_time')))
     else:
@@ -455,8 +455,10 @@ def payout(redis_key, simulate=False):
             if amount == 0.0:
                 logger.info("Skip zero payout for USR: {}".format(user))
                 continue
-            if currencies.lookup(
-                    get_bcaddress_version(user)).key == block.currency:
+
+            # Create a payout record of the correct type. Either one indicating
+            # that the currency will be exchange, or directly distributed
+            if currencies.lookup_address(user).key == block.currency:
                 p = Payout.create(amount=amount,
                                   block=block,
                                   user=user,
