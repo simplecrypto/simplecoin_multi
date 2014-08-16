@@ -51,6 +51,17 @@ def blocks(q, currency=None):
     return render_template('blocks.html', blocks=blocks, page=page)
 
 
+@main.route("/leaderboard")
+def leaderboard():
+    # Holds a dictionary keyed by username
+    users = {}
+    # A dictionary for copying. The default value of each keyed user in the above
+    algos_disp = [(a.display, a.key) for a in algos.active_algos]
+    algos_disp.append(('normalized', 'Normalized'))
+    users = cache.get("leaderboard") or {}
+    return render_template('leaderboard.html', users=users, algos=algos_disp)
+
+
 @main.route("/<user_address>/account", defaults={'type': 'payout'})
 @main.route("/<user_address>/aggr_account", defaults={'type': 'aggr'})
 def account(user_address, type):
