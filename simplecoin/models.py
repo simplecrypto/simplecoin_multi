@@ -101,6 +101,9 @@ class Block(base):
                      'luck', 'total_value_float', 'difficulty', 'duration',
                      'found_at', 'time_started']
 
+    def __str__(self):
+        return "<{} h:{} hsh:{}>".format(self.currency, self.height, self.hash)
+
     @property
     def merged(self):
         return self.merged_type is not None

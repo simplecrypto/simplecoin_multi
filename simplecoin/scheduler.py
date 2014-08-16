@@ -240,16 +240,21 @@ def update_block_state():
     # Select all immature & non-orphaned blocks
     immature = Block.query.filter_by(mature=False, orphan=False)
     for block in immature:
-        logger.info("Checking state of {} block height {}"
-                    .format(block.currency, block.height))
-        currency = currencies[block.currency]
+        try:
+            currency = currencies[block.currency]
+        except KeyError:
+            current_app.logger.error(
+                "Unable to process block {}, no currency configuration."
+                .format(block))
+            continue
         blockheight = get_blockheight(currency)
 
         # Skip checking if height difference isnt' suficcient. Avoids polling
         # the RPC server excessively
         if (blockheight - block.height) < currency.block_mature_confirms:
-            logger.info("Not doing confirm check on block {}:{} since it's not"
-                        "at confirm threshold".format(block.height, block.hash))
+            logger.info("Not doing confirm check on block {} since it's not"
+                        "at check threshold (last height {})"
+                        .format(block, blockheight))
             continue
 
         try:
@@ -263,24 +268,22 @@ def update_block_state():
                          .format(currency.key, e))
             continue
         except CoinRPCException:
-            logger.info("Block {}:{} not in coin database, assume orphan!"
-                        .format(block.height, block.hash))
+            logger.info("Block {} not in coin database, assume orphan!"
+                        .format(block))
             block.orphan = True
         else:
             # if the block has the proper number of confirms
             if output['confirmations'] > currency.block_mature_confirms:
-                logger.info("Block {}:{} meets {} confirms, mark mature"
-                            .format(block.height, block.hash,
-                                    currency.block_mature_confirms))
+                logger.info("Block {} meets {} confirms, mark mature"
+                            .format(block, currency.block_mature_confirms))
                 block.mature = True
                 for payout in block.payouts:
                     if payout.type == 0:
                         payout.payable = True
             # else if the result shows insufficient confirms, mark orphan
             elif output['confirmations'] < currency.block_mature_confirms:
-                logger.info("Block {}:{} {} height ago, but not enough confirms. Marking orphan."
-                            .format(block.height, block.hash,
-                                    currency.block_mature_confirms))
+                logger.info("Block {} occured {} height ago, but not enough confirms. Marking orphan."
+                            .format(block, currency.block_mature_confirms))
                 block.orphan = True
 
         db.session.commit()

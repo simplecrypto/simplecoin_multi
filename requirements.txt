@@ -1,5 +1,5 @@
-git+https://github.com/icook/python-bitcoinrpc.git
-git+https://github.com/icook/cryptokit
+git+https://github.com/icook/python-bitcoinrpc.git@v0.4#egg=python-bitcoinrpc
+git+https://github.com/simplecrypto/cryptokit.git@v0.2.6#egg=cryptokit
 Flask==0.10.1
 Flask-Cache==0.12
 Flask-Migrate==1.2.0

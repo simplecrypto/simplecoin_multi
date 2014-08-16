@@ -34,7 +34,7 @@ class CurrencyKeeper(dict):
             self.version_lut[ver] = val
 
     def payout_currencies(self):
-        return [c for c in self.itervalues() if c.exchangeable]
+        return [c for c in self.itervalues() if getattr(c, 'exchangeable', False)]
 
     def lookup_address(self, address):
         ver = address_version(address)
