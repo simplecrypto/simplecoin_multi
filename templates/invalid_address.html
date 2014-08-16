@@ -1,13 +1,8 @@
-<html>
-<head>
-  <style>
-    body {
-      background-color:#2B3E50;
-    }
-  </style>
-</head>
-<body>
-<div style="text-align: center; padding-top:200px; color:#ebebeb;">
+{% extends "base.html" %}
+{% set active_page = "stats" %}
+{% set page_title = "Stats - Lookup mining stats for an address" %}
+{% block body %}
+<div style="text-align: center; padding-top:100px; color:#ebebeb;">
   <h1>Invalid or unsupported address!</h1>
   <p>The address you entered is either not valid or is not a currency type
     we pay out
@@ -16,10 +11,8 @@
   {% if allowed_currencies %}
   <h4>Currently supported payout currencies include:</h4>
   {% for abv in allowed_currencies %}
-  {{ abv }}<br>
+    {{ abv.name }}<br>
   {% endfor %}
   {% endif %}
 </div>
-</body>
-</html>
-
+{% endblock %}

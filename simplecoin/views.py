@@ -16,8 +16,7 @@ from .models import (OneMinuteShare, Block,
 from . import db, root, cache, currencies
 from .utils import (compress_typ, get_typ, verify_message,
                     collect_user_stats, get_pool_hashrate, get_alerts,
-                    resort_recent_visit, collect_acct_items, CommandException,
-                    check_valid_currency, valid_currencies)
+                    resort_recent_visit, collect_acct_items, CommandException)
 
 
 main = Blueprint('main', __name__)
@@ -151,16 +150,13 @@ def worker_stats(address=None, worker=None, stat_type=None, window="hour"):
 
 
 @main.route("/<address>")
-def user_dashboard(address=None):
+def user_dashboard(address):
     # Do some checking to make sure the address is valid + payable
-    curr = check_valid_currency(address)
-    if curr:
-        curr = curr.key
-
-    allowed_currencies = valid_currencies()
-    if len(address) != 34 or not curr or curr not in allowed_currencies:
+    try:
+        currencies.lookup_address(address)
+    except AttributeError:
         return render_template('invalid_address.html',
-                               allowed_currencies=allowed_currencies)
+                               allowed_currencies=currencies.payout_currencies())
 
     stats = collect_user_stats(address)
 

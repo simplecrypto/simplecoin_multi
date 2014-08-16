@@ -10,7 +10,7 @@ import yaml
 from flask import current_app, session
 from bitcoinrpc import CoinRPCException
 
-from . import db, cache, root, redis_conn, currencies
+from . import db, cache, root, redis_conn
 from .models import (OneMinuteReject, OneMinuteShare,
                      FiveMinuteShare, FiveMinuteReject, Payout, Block,
                      OneHourShare, OneHourReject, UserSettings)
@@ -32,6 +32,9 @@ class CurrencyKeeper(dict):
         self.__setitem__(val.currency_name, val)
         for ver in val.address_version:
             self.version_lut[ver] = val
+
+    def payout_currencies(self):
+        return [c for c in self.itervalues() if c.exchangeable]
 
     def lookup_address(self, address):
         ver = address_version(address)
@@ -336,29 +339,6 @@ def collect_user_stats(address):
                 next_payout=next_payout,
                 next_exchange=next_exchange,
                 f_per=f_perc)
-
-
-# @cache.memoize(timeout=3600)
-def valid_currencies():
-    """
-    Builds a list of currency names that we currently allow as usernames or
-    payout in
-    """
-    valid_currencies = []
-    for currency in currencies.keys():
-        if currencies[currency].exchangeable:
-            valid_currencies.append(currency)
-    return valid_currencies
-
-
-def check_valid_currency(address):
-    """ Check if address matches a currency in our config """
-    try:
-        curr = currencies.lookup_address(address)
-    except Exception:
-        return False
-    else:
-        return curr
 
 
 def get_pool_eff(timedelta=None):
