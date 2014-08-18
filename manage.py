@@ -1,22 +1,16 @@
-import os
-import logging
-
+from flask import current_app, _request_ctx_stack
 from flask.ext.migrate import stamp
 from flask.ext.script import Manager, Shell
-from flask.ext.migrate import Migrate, MigrateCommand
-from simplecoin import create_app, db
-from simplecoin.rpc import RPCClient
-
-app = create_app(standalone=True)
-manager = Manager(create_app)
-migrate = Migrate(app, db)
-
-root = os.path.abspath(os.path.dirname(__file__) + '/../')
-
+from flask.ext.migrate import MigrateCommand
 from bitcoinrpc.authproxy import AuthServiceProxy
+
+from simplecoin import create_manage_app, db
+from simplecoin.rpc import RPCClient
 from simplecoin.scheduler import SchedulerCommand
 from simplecoin.models import Transaction, UserSettings, Payout
-from flask import current_app, _request_ctx_stack
+
+
+manager = Manager(create_manage_app)
 
 
 @manager.command
@@ -116,7 +110,6 @@ manager.add_command("shell", Shell(make_context=make_context))
 manager.add_command('db', MigrateCommand)
 manager.add_command('scheduler', SchedulerCommand)
 manager.add_option('-c', '--config', default='/config.yml')
-manager.add_option('--standalone', default=True, type=bool)
 manager.add_option('-l', '--log-level',
                    choices=['DEBUG', 'INFO', 'WARN', 'ERROR'], default='INFO')
 
@@ -127,12 +120,4 @@ def runserver():
 
 
 if __name__ == "__main__":
-    root = logging.getLogger()
-
-    # Add the management log file handler
-    hdlr = logging.FileHandler(app.config.get('manage_log_file', 'manage.log'))
-    hdlr.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
-    root.addHandler(hdlr)
-    root.setLevel(logging.DEBUG)
-
     manager.run()

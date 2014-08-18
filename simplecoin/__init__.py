@@ -13,6 +13,7 @@ from math import log10, floor
 from flask import Flask, current_app
 from flask.ext.cache import Cache
 from flask.ext.sqlalchemy import SQLAlchemy
+from flask.ext.migrate import Migrate
 from jinja2 import FileSystemLoader
 from werkzeug.local import LocalProxy
 
@@ -34,7 +35,7 @@ def sig_round(x, sig=2):
     return "{:,f}".format(round(x, sig - int(floor(log10(abs(x)))) - 1)).rstrip('0').rstrip('.')
 
 
-def create_app(config='/config.yml', standalone=False, log_level=None):
+def create_app(config='/config.yml', standalone=False, log_level=None, management=False):
     # initialize our flask application
     app = Flask(__name__, static_folder='../static', static_url_path='/static')
 
@@ -48,11 +49,21 @@ def create_app(config='/config.yml', standalone=False, log_level=None):
     app.currencies = CurrencyKeeper(app.config['currencies'])
     app.powerpools = PowerPoolKeeper(app.config['mining_servers'])
 
+    if management:
+        # Add the management log file handler
+        hdlr = logging.FileHandler(app.config.get('manage_log_file', 'manage.log'))
+        hdlr.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
+        app.logger.addHandler(hdlr)
+
     app.logger.handlers[0].stream = sys.stdout
     app.logger.handlers[0].setFormatter(logging.Formatter(
         '%(asctime)s %(levelname)s: %(message)s'))
     if log_level is not None:
-        app.logger.setLevel(getattr(logging, log_level))
+        level = getattr(logging, log_level)
+        app.logger.setLevel(level)
+        for handler in app.logger.handlers:
+            handler.setLevel(level)
+
     # add the debug toolbar if we're in debug mode...
     # ##################
     if app.config['DEBUG'] and not standalone:
@@ -159,5 +170,14 @@ def create_app(config='/config.yml', standalone=False, log_level=None):
     app.register_blueprint(api.api, url_prefix='/api')
 
     return app
+
+
+def create_manage_app(**kwargs):
+    app = create_app(standalone=True, management=True, **kwargs)
+    # Initialize the migration settings
+    Migrate(app, db)
+
+    return app
+
 
 from .utils import CurrencyKeeper, PowerPoolKeeper
