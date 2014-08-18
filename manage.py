@@ -1,46 +1,22 @@
-from decimal import Decimal
 import os
 import logging
-import time
 
 from flask.ext.migrate import stamp
 from flask.ext.script import Manager, Shell
 from flask.ext.migrate import Migrate, MigrateCommand
 from simplecoin import create_app, db
 from simplecoin.rpc import RPCClient
-from cryptokit.base58 import get_bcaddress_version
 
-app = create_app()
-manager = Manager(app)
+app = create_app(standalone=True)
+manager = Manager(create_app)
 migrate = Migrate(app, db)
 
 root = os.path.abspath(os.path.dirname(__file__) + '/../')
 
 from bitcoinrpc.authproxy import AuthServiceProxy
-from simplecoin.scheduler import (cleanup, run_payouts, server_status,
-                                  update_online_workers, collect_minutes,
-                                  cache_user_donation, update_block_state,
-                                  create_trade_req, create_aggrs)
+from simplecoin.scheduler import SchedulerCommand
 from simplecoin.models import Transaction, UserSettings, Payout
 from flask import current_app, _request_ctx_stack
-
-root = logging.getLogger()
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-ch.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
-root.addHandler(ch)
-root.setLevel(logging.DEBUG)
-
-hdlr = logging.FileHandler(app.config.get('manage_log_file', 'manage.log'))
-formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-hdlr.setFormatter(formatter)
-root.addHandler(hdlr)
-root.setLevel(logging.DEBUG)
-
-
-@manager.option('address')
-def get_version(address):
-    print get_bcaddress_version(address)
 
 
 @manager.command
@@ -68,13 +44,6 @@ def list_donation_perc():
               "Run update_minimum_fee command to resolve.")
     print "User fee summary"
     print "\n".join(["{0:+3d}% Fee: {1}".format(k, v) for k, v in sorted(summ.items())])
-
-
-@manager.option('-s', '--simulate', dest='simulate', default=True)
-def cleanup_cmd(simulate):
-    """ Manually runs old share cleanup in simulate mode by default. """
-    simulate = simulate != "0"
-    cleanup(simulate=simulate)
 
 
 @manager.command
@@ -115,53 +84,6 @@ def confirm_trans(transaction_id):
     db.session.commit()
 
 
-@manager.command
-def reload_cached():
-    """ Recomputes all the cached values that normally get refreshed by tasks.
-    Good to run if celery has been down, site just setup, etc. """
-    update_online_workers()
-    cache_user_donation()
-    server_status()
-    #from simplecoin.utils import get_block_stats
-    #current_app.logger.info(
-    #    "Refreshing the block stats (luck, effective return, orphan %)")
-    #cache.delete_memoized(get_block_stats)
-    #get_block_stats()
-
-
-@manager.command
-def create_aggrs_cmd():
-    create_aggrs()
-
-
-@manager.command
-def update_block_state_cmd():
-    update_block_state()
-
-
-@manager.command
-def create_buy_req_cmd():
-    create_trade_req("buy")
-
-
-@manager.command
-def create_sell_req_cmd():
-    create_trade_req("sell")
-
-
-@manager.option('-s', '--simulate', dest='simulate', default=True)
-def payout_cmd(simulate):
-    """ Runs the payout task manually. Simulate mode is default. """
-    simulate = simulate != "0"
-    run_payouts(simulate=simulate)
-
-
-@manager.command
-def collect_minutes_cmd():
-    """ Runs the collect minutes task manually. """
-    collect_minutes()
-
-
 @manager.option('fees')
 @manager.option('exchanged_quantity')
 @manager.option('id')
@@ -180,7 +102,6 @@ def update_tr(id, exchanged_quantity, fees):
     )
 
 
-
 def make_context():
     """ Setup a coinserver connection fot the shell context """
     app = _request_ctx_stack.top.app
@@ -193,6 +114,11 @@ def make_context():
     return dict(app=app, conn=conn)
 manager.add_command("shell", Shell(make_context=make_context))
 manager.add_command('db', MigrateCommand)
+manager.add_command('scheduler', SchedulerCommand)
+manager.add_option('-c', '--config', default='/config.yml')
+manager.add_option('--standalone', default=True, type=bool)
+manager.add_option('-l', '--log-level',
+                   choices=['DEBUG', 'INFO', 'WARN', 'ERROR'], default='INFO')
 
 
 @manager.command
@@ -201,4 +127,12 @@ def runserver():
 
 
 if __name__ == "__main__":
+    root = logging.getLogger()
+
+    # Add the management log file handler
+    hdlr = logging.FileHandler(app.config.get('manage_log_file', 'manage.log'))
+    hdlr.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
+    root.addHandler(hdlr)
+    root.setLevel(logging.DEBUG)
+
     manager.run()

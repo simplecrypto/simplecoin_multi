@@ -1,4 +1,3 @@
-from decimal import Decimal
 import subprocess
 import logging
 import os
@@ -7,6 +6,7 @@ import sys
 import ago
 import datetime
 
+from decimal import Decimal
 from redis import Redis
 from datetime import timedelta
 from math import log10, floor
@@ -46,7 +46,7 @@ def sig_round(x, sig=2):
     return "{:,f}".format(round(x, sig - int(floor(log10(abs(x)))) - 1)).rstrip('0').rstrip('.')
 
 
-def create_app(config='/config.yml', celery=False):
+def create_app(config='/config.yml', standalone=False, log_level=None):
     # initialize our flask application
     app = Flask(__name__, static_folder='../static', static_url_path='/static')
 
@@ -62,7 +62,8 @@ def create_app(config='/config.yml', celery=False):
 
     # add the debug toolbar if we're in debug mode...
     # ##################
-    if app.config['DEBUG']:
+    if app.config['DEBUG'] and not standalone:
+        # Log all stdout and stderr when in debug mode
         class LoggerWriter:
             def __init__(self, logger, level):
                 self.logger = logger
@@ -74,8 +75,6 @@ def create_app(config='/config.yml', celery=False):
 
         sys.stdout = LoggerWriter(app.logger, logging.INFO)
         sys.stderr = LoggerWriter(app.logger, logging.INFO)
-        from flask_debugtoolbar import DebugToolbarExtension
-        DebugToolbarExtension(app)
         app.logger.handlers[0].setFormatter(logging.Formatter(
             '%(asctime)s %(levelname)s: %(message)s '
             '[in %(filename)s:%(lineno)d]'))
@@ -90,12 +89,13 @@ def create_app(config='/config.yml', celery=False):
     app.redis = Redis(**app.config.get('redis_conn', {}))
     app.SATOSHI = Decimal('0.00000001')
 
-    if not celery:
+    if not standalone:
         hdlr = logging.FileHandler(app.config.get('log_file', 'webserver.log'))
         formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
         hdlr.setFormatter(formatter)
         app.logger.addHandler(hdlr)
         app.logger.setLevel(logging.INFO)
+        app.logger.info("Starting up SimpleCoin!\n{}".format("=" * 100))
 
         # try and fetch the git version information
         try:

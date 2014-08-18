@@ -1,4 +1,3 @@
-from decimal import Decimal, getcontext, ROUND_HALF_DOWN
 import logging
 import datetime
 import time
@@ -10,23 +9,29 @@ import decorator
 import argparse
 import json
 
+from decimal import Decimal, getcontext, ROUND_HALF_DOWN
 from bitcoinrpc import CoinRPCException
 from flask import current_app
+from flask.ext.script import Manager
 from apscheduler.scheduler import Scheduler
 from apscheduler.threadpool import ThreadPool
-from cryptokit.base58 import get_bcaddress_version
+from cryptokit.base58 import address_version
 
-from simplecoin import db, cache, redis_conn, create_app, currencies
-from simplecoin.utils import last_block_time
-from simplecoin.models import (Block, OneMinuteShare, Payout, FiveMinuteShare,
-                               OneMinuteReject, OneMinuteTemperature,
-                               FiveMinuteReject, OneMinuteHashrate,
-                               UserSettings, FiveMinuteTemperature,
-                               FiveMinuteHashrate, FiveMinuteType,
-                               OneMinuteType, TradeRequest, PayoutExchange,
-                               PayoutAggregate)
+from simplecoin import db, cache, redis_conn, create_app, currencies, powerpools
+from simplecoin.utils import last_block_time, RemoteException
+from simplecoin.models import (Block, Payout, UserSettings, TradeRequest,
+                               PayoutExchange, PayoutAggregate, ShareSlice)
 
-logger = logging.getLogger('apscheduler.scheduler')
+SchedulerCommand = Manager(usage='Run timed tasks manually')
+
+
+@SchedulerCommand.command
+def reload_cached():
+    """ Recomputes all the cached values that normally get refreshed by tasks.
+    Good to run if celery has been down, site just setup, etc. """
+    update_online_workers()
+    cache_user_donation()
+    server_status()
 
 
 @decorator.decorator
@@ -40,11 +45,11 @@ def crontab(func, *args, **kwargs):
     try:
         res = func(*args, **kwargs)
     except sqlalchemy.exc.SQLAlchemyError as e:
-        logger.error("SQLAlchemyError occurred, rolling back: {}".format(e), exc_info=True)
+        current_app.logger.error("SQLAlchemyError occurred, rolling back: {}".format(e), exc_info=True)
         db.session.rollback()
     except Exception:
-        logger.error("Unhandled exception in {}".format(func.__name__),
-                     exc_info=True)
+        current_app.logger.error("Unhandled exception in {}".format(func.__name__),
+                                exc_info=True)
 
     t = time.time() - t
     cache.cache._client.hmset('cron_last_run_{}'.format(func.__name__),
@@ -53,35 +58,40 @@ def crontab(func, *args, **kwargs):
 
 
 @crontab
+@SchedulerCommand.command
 def cleanup():
     pass
 
 
 @crontab
+@SchedulerCommand.command
 def update_online_workers():
     """
-    Grabs a list of workers from the running powerpool instances and caches
-    them
+    Grabs data on all currently connected clients. Forms a dictionary of this form:
+        dict(address=dict(worker_name=dict(powerpool_id=connection_count)))
+    And caches each addresses connection summary as a single cache key.
     """
     users = {}
-    for i, pp_config in enumerate(current_app.config['monitor_addrs']):
-        mon_addr = pp_config['mon_address'] + '/clients'
+    for ppid, powerpool in powerpools.iteritems():
         try:
-            req = requests.get(mon_addr)
-            data = req.json()
-        except Exception:
-            logger.warn("Unable to connect to {} to gather worker summary."
-                        .format(mon_addr))
-        else:
-            for address, workers in data['clients'].iteritems():
-                users.setdefault('addr_online_' + address, [])
-                for d in workers:
-                    users['addr_online_' + address].append((d['worker'], i))
+            data = powerpool.request('clients')
+        except RemoteException:
+            current_app.logger.warn("Unable to connect to {} to gather worker summary."
+                                    .format(powerpool))
+            continue
+
+        for address, connections in data['clients'].iteritems():
+            user = users.setdefault('addr_online_' + address, {})
+            for connection in connections:
+                worker = user.setdefault(connection['worker'], {})
+                worker.setdefault(ppid, 0)
+                user[ppid] += 1
 
     cache.set_many(users, timeout=480)
 
 
 @crontab
+@SchedulerCommand.command
 def cache_user_donation():
     """
     Grab all user donations and loop through them then cache donation %
@@ -97,6 +107,7 @@ def cache_user_donation():
 
 
 @crontab
+@SchedulerCommand.command
 def create_aggrs():
     """
     Groups payable payouts at the end of the day by currency for easier paying
@@ -153,6 +164,7 @@ def create_aggrs():
 
 
 @crontab
+@SchedulerCommand.command
 def create_trade_req(typ):
     """
     Takes all the payouts in need of exchanging (either buying or selling, not
@@ -206,19 +218,20 @@ def create_trade_req(typ):
     for curr, req in reqs.iteritems():
         if typ == "buy":
             current_app.logger.info("Created a buy trade request for {} with {} BTC containing {:,} PayoutExchanges"
-                                    .format(req.currency, req.quantity, adds[curr]))
+                        .format(req.currency, req.quantity, adds[curr]))
         else:
             current_app.logger.info("Created a sell trade request for {} {} containing {:,} PayoutExchanges"
-                                    .format(req.quantity, req.currency, adds[curr]))
+                        .format(req.quantity, req.currency, adds[curr]))
 
     if not reqs:
         current_app.logger.info("No PayoutExchange's found to create {} "
-                                "requests for".format(typ))
+                    "requests for".format(typ))
 
     db.session.commit()
 
 
 @crontab
+@SchedulerCommand.command
 def update_block_state():
     """
     Loops through all immature and non-orphaned blocks.
@@ -232,7 +245,7 @@ def update_block_state():
             try:
                 heights[currency.key] = currency.coinserv.getblockcount()
             except (urllib3.exceptions.HTTPError, CoinRPCException) as e:
-                logger.error("Unable to communicate with {} RPC server: {}"
+                current_app.logger.error("Unable to communicate with {} RPC server: {}"
                              .format(currency.key, e))
                 return None
         return heights[currency.key]
@@ -252,7 +265,7 @@ def update_block_state():
         # Skip checking if height difference isnt' suficcient. Avoids polling
         # the RPC server excessively
         if (blockheight - block.height) < currency.block_mature_confirms:
-            logger.info("Not doing confirm check on block {} since it's not"
+            current_app.logger.info("Not doing confirm check on block {} since it's not"
                         "at check threshold (last height {})"
                         .format(block, blockheight))
             continue
@@ -260,21 +273,21 @@ def update_block_state():
         try:
             # Check to see if the block hash exists in the block chain
             output = currency.coinserv.getblock(block.hash)
-            logger.debug("Confirms: {}; Height diff: {}"
+            current_app.logger.debug("Confirms: {}; Height diff: {}"
                          .format(output['confirmations'],
                                  blockheight - block.height))
         except urllib3.exceptions.HTTPError as e:
-            logger.error("Unable to communicate with {} RPC server: {}"
+            current_app.logger.error("Unable to communicate with {} RPC server: {}"
                          .format(currency.key, e))
             continue
         except CoinRPCException:
-            logger.info("Block {} not in coin database, assume orphan!"
+            current_app.logger.info("Block {} not in coin database, assume orphan!"
                         .format(block))
             block.orphan = True
         else:
             # if the block has the proper number of confirms
             if output['confirmations'] > currency.block_mature_confirms:
-                logger.info("Block {} meets {} confirms, mark mature"
+                current_app.logger.info("Block {} meets {} confirms, mark mature"
                             .format(block, currency.block_mature_confirms))
                 block.mature = True
                 for payout in block.payouts:
@@ -282,7 +295,7 @@ def update_block_state():
                         payout.payable = True
             # else if the result shows insufficient confirms, mark orphan
             elif output['confirmations'] < currency.block_mature_confirms:
-                logger.info("Block {} occured {} height ago, but not enough confirms. Marking orphan."
+                current_app.logger.info("Block {} occured {} height ago, but not enough confirms. Marking orphan."
                             .format(block, currency.block_mature_confirms))
                 block.orphan = True
 
@@ -290,18 +303,19 @@ def update_block_state():
 
 
 @crontab
+@SchedulerCommand.option('-s', '--simulate', dest='simulate', default=True)
 def run_payouts(simulate=False):
     """ Loops through all the blocks that haven't been paid out and attempts
     to pay them out """
     unproc_blocks = redis_conn.keys("unproc_block*")
     for key in unproc_blocks:
         hash = key[13:]
-        logger.info("Attempting to process block hash {}".format(hash))
+        current_app.logger.info("Attempting to process block hash {}".format(hash))
         try:
             payout(key, simulate=simulate)
         except Exception:
             db.session.rollback()
-            logger.error("Unable to payout block {}".format(hash), exc_info=True)
+            current_app.logger.error("Unable to payout block {}".format(hash), exc_info=True)
 
 
 def payout(redis_key, simulate=False):
@@ -309,14 +323,16 @@ def payout(redis_key, simulate=False):
     Calculates payouts for users from share records for the latest found block.
     """
     if simulate:
-        logger.debug("Running in simulate mode, no commit will be performed")
-        logger.setLevel(logging.DEBUG)
+        current_app.logger.debug("Running in simulate mode, no commit will be performed")
+        current_app.logger.setLevel(logging.DEBUG)
 
     data = {}
     user_shares = {}
     raw = redis_conn.hgetall(redis_key)
     for key, value in raw.iteritems():
-        if get_bcaddress_version(key) is not None:
+        try:
+            address_version(key)
+        except AttributeError:
             user_shares[key] = Decimal(value)
         else:
             data[key] = value
@@ -324,7 +340,7 @@ def payout(redis_key, simulate=False):
     if not user_shares:
         user_shares[data['address']] = 1
 
-    logger.debug("Processing block with details {}".format(data))
+    current_app.logger.debug("Processing block with details {}".format(data))
     merged_type = data.get('merged')
     if 'start_time' in data:
         time_started = datetime.datetime.utcfromtimestamp(float(data.get('start_time')))
@@ -354,9 +370,9 @@ def payout(redis_key, simulate=False):
                                     str((amount * 100) / total_shares),
                                     str(((amount * block.total_value) / total_shares).quantize(current_app.SATOSHI)),
                                     str(amount))) for user, amount in user_shares.iteritems()])
-        logger.debug("Share distribution:\nUSR\t%\tBLK_PAY\tSHARE\n{}".format(out))
+        current_app.logger.debug("Share distribution:\nUSR\t%\tBLK_PAY\tSHARE\n{}".format(out))
 
-    logger.debug("Distribute_amnt: {}".format(block.total_value))
+    current_app.logger.debug("Distribute_amnt: {}".format(block.total_value))
 
     # Below calculates the truncated portion going to each miner. because
     # of fractional pieces the total accrued wont equal the disitrubte_amnt
@@ -370,7 +386,7 @@ def payout(redis_key, simulate=False):
         user_extra[user] = user_earned - user_payouts[user]
         accrued += user_payouts[user]
 
-    logger.debug("Total accrued after trunated iteration {}; {}%"
+    current_app.logger.debug("Total accrued after trunated iteration {}; {}%"
                  .format(accrued, (accrued / block.total_value) * 100))
 
     # loop over the dictionary indefinitely, paying out users with the highest
@@ -386,7 +402,7 @@ def payout(redis_key, simulate=False):
         if accrued >= block.total_value:
             break
 
-    logger.debug("Ran round robin distro {} times to finish distrib".format(i))
+    current_app.logger.debug("Ran round robin distro {} times to finish distrib".format(i))
 
     # now handle donation or bonus distribution for each user
     donation_total = 0
@@ -410,7 +426,7 @@ def payout(redis_key, simulate=False):
         # if the perc is greater than 0 it's calced as a donation
         if perc > 0:
             donation = (perc * payout).quantize(current_app.SATOSHI)
-            logger.debug("Donation of\t{}\t({}%)\tcollected from\t{}"
+            current_app.logger.debug("Donation of\t{}\t({}%)\tcollected from\t{}"
                          .format(donation, perc * 100, user))
             donation_total += donation
             user_payouts[user] -= donation
@@ -420,7 +436,7 @@ def payout(redis_key, simulate=False):
         elif perc < 0:
             perc *= -1
             bonus = (perc * payout).quantize(current_app.SATOSHI)
-            logger.debug("Bonus of\t{}\t({}%)\tpaid to\t{}"
+            current_app.logger.debug("Bonus of\t{}\t({}%)\tpaid to\t{}"
                          .format(bonus, perc, user))
             user_payouts[user] += bonus
             bonus_total += bonus
@@ -428,21 +444,21 @@ def payout(redis_key, simulate=False):
 
         # percentages of 0 are no-ops
 
-    logger.info("Payed out {} in bonus payment"
+    current_app.logger.info("Payed out {} in bonus payment"
                 .format(bonus_total))
-    logger.info("Received {} in donation payment"
+    current_app.logger.info("Received {} in donation payment"
                 .format(donation_total))
-    logger.info("Net income from block {}"
+    current_app.logger.info("Net income from block {}"
                 .format(donation_total - bonus_total))
 
     assert accrued == block.total_value
-    logger.info("Successfully distributed all rewards among {} users."
+    current_app.logger.info("Successfully distributed all rewards among {} users."
                 .format(len(user_payouts)))
 
     # run another safety check
     user_sum = sum(user_payouts.values())
     assert user_sum == (block.total_value + bonus_total - donation_total)
-    logger.info("Double check for payout distribution."
+    current_app.logger.info("Double check for payout distribution."
                 " Total user payouts {}, total block value {}."
                 .format(user_sum, block.total_value))
 
@@ -450,13 +466,13 @@ def payout(redis_key, simulate=False):
         out = "\n".join(["\t".join(
             (user, str(amount)))
             for user, amount in user_payouts.iteritems()])
-        logger.debug("Final payout distribution:\nUSR\tAMNT\n{}".format(out))
+        current_app.logger.debug("Final payout distribution:\nUSR\tAMNT\n{}".format(out))
         db.session.rollback()
     else:
         # record the payout for each user
         for user, amount in user_payouts.iteritems():
             if amount == 0.0:
-                logger.info("Skip zero payout for USR: {}".format(user))
+                current_app.logger.info("Skip zero payout for USR: {}".format(user))
                 continue
 
             # Create a payout record of the correct type. Either one indicating
@@ -483,6 +499,7 @@ def payout(redis_key, simulate=False):
 
 
 @crontab
+@SchedulerCommand.command
 def collect_minutes():
     """ Grabs all the pending minute shares out of redis and puts them in the
     database """
@@ -536,6 +553,7 @@ def collect_minutes():
 
 
 @crontab
+@SchedulerCommand.command
 def compress_minute():
     """ Compresses OneMinute records (for temp, hashrate, shares, rejects) to
     FiveMinute """
@@ -548,6 +566,7 @@ def compress_minute():
 
 
 @crontab
+@SchedulerCommand.command
 def compress_five_minute():
     FiveMinuteShare.compress()
     FiveMinuteReject.compress()
@@ -558,10 +577,11 @@ def compress_five_minute():
 
 
 @crontab
+@SchedulerCommand.command
 def server_status():
     """
-    Periodicly poll the backend to get number of workers and throw it in the
-    cache
+    Periodicly poll the backend to get number of workers and other general
+    status information.
     """
     total_workers = 0
     servers = []
@@ -572,10 +592,11 @@ def server_status():
             req = requests.get(mon_addr)
             data = req.json()
         except Exception:
-            logger.warn("Couldn't connect to internal monitor at {}"
-                        .format(mon_addr))
+            current_app.logger.warn("Couldn't connect to internal monitor at {}"
+                                    .format(powerpool))
             continue
         else:
+            # If the server is version 0.5
             if 'server' in data:
                 workers = data['stratum_manager']['client_count_authed']
                 hashrate = data['stratum_manager']['mhps'] * 1000000
@@ -593,19 +614,18 @@ def server_status():
     cache.set('total_workers', total_workers, timeout=1200)
 
 
-app = create_app(celery=True)
-
-
 # monkey patch the thread pool for flask contexts
 ThreadPool._old_run_jobs = ThreadPool._run_jobs
 def _run_jobs(self, core):
-    logger.debug("Starting patched threadpool worker!")
+    current_app.logger.debug("Starting patched threadpool worker!")
     with app.app_context():
         ThreadPool._old_run_jobs(self, core)
 ThreadPool._run_jobs = _run_jobs
 
 
 if __name__ == "__main__":
+    app = create_app(standalone=True)
+
     parser = argparse.ArgumentParser(prog='simplecoin task scheduler')
     parser.add_argument('-l', '--log-level',
                         choices=['DEBUG', 'INFO', 'WARN', 'ERROR'],
@@ -614,15 +634,12 @@ if __name__ == "__main__":
 
     with app.app_context():
         root = logging.getLogger()
-        hdlr = logging.StreamHandler()
-        formatter = logging.Formatter('%(asctime)s [%(name)s] [%(levelname)s] %(message)s')
-        hdlr.setFormatter(formatter)
-        root.addHandler(hdlr)
         root.setLevel(getattr(logging, args.log_level))
+        app.logger.setLevel(getattr(logging, args.log_level))
 
         sched = Scheduler(standalone=True)
-        logger.info("=" * 80)
-        logger.info("SimpleCoin cron scheduler starting up...")
+        current_app.logger.info("=" * 80)
+        current_app.logger.info("SimpleCoin cron scheduler starting up...")
         setproctitle.setproctitle("simplecoin_scheduler")
 
         # All these tasks actually change the database, and shouldn't
@@ -643,8 +660,8 @@ if __name__ == "__main__":
             # every 15 minutes 2 seconds after the minute
             sched.add_cron_job(update_block_state, second=2)
         else:
-            logger.info("Stage mode has been set in the configuration, not "
-                        "running scheduled database altering cron tasks")
+            current_app.logger.info("Stage mode has been set in the configuration, not "
+                                    "running scheduled database altering cron tasks")
 
         sched.add_cron_job(update_online_workers, minute='0,5,10,15,20,25,30,35,40,45,50,55', second=30)
         sched.add_cron_job(cache_user_donation, minute='0,15,30,45', second=15)
