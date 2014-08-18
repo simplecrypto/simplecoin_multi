@@ -133,8 +133,18 @@ def create_app(config='/config.yml', standalone=False, log_level=None):
     def pretty_date(*args, **kwargs):
         return ago.human(*args, **kwargs)
 
+    @app.template_filter('hashrate')
+    def hashrate(hashrate, num_fmt="{:,.2f}"):
+        if hashrate > 1000000000:
+            return "{} GH/s".format(num_fmt.format(hashrate / 1000000000))
+        if hashrate > 1000000:
+            return "{} MH/s".format(num_fmt.format(hashrate / 1000000))
+        if hashrate > 1000:
+            return "{} KH/s".format(num_fmt.format(hashrate / 1000))
+        return "{} H/s".format(num_fmt.format(hashrate))
+
     @app.template_filter('human_date_utc')
-    def pretty_date(*args, **kwargs):
+    def pretty_date_utc(*args, **kwargs):
         delta = (datetime.datetime.utcnow() - args[0])
         delta = delta - datetime.timedelta(microseconds=delta.microseconds)
         return ago.human(delta, *args[1:], **kwargs)

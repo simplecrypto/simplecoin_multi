@@ -225,9 +225,11 @@ def handle_message(address, curr):
 def validate_address():
     if request.method == "POST":
         addr = request.json
-        curr = check_valid_currency(addr[1])
-        if not curr:
+        try:
+            curr = currencies.lookup_address(addr[1])
+        except AttributeError:
             return jsonify({addr[0]: False})
+
         if not curr.key == addr[0]:
             return jsonify({addr[0]: False})
         else:
@@ -256,8 +258,9 @@ def generate_message():
         errors = {}
         for currency, address in raw_addresses.iteritems():
             if address:
-                curr = check_valid_currency(address)
-                if not curr:
+                try:
+                    currencies.lookup_address(address)
+                except AttributeError:
                     errors[currency] = address
                 else:
                     commands['add_addrs'][currency] = address
@@ -291,9 +294,11 @@ def generate_message():
 
 @main.route("/settings/<address>", methods=['POST', 'GET'])
 def settings(address):
-    curr = check_valid_currency(address)
-    if not curr:
-        return render_template('invalid_address.html')
+    try:
+        curr = currencies.lookup_address(address)
+    except AttributeError:
+        return render_template('invalid_address.html',
+                               allowed_currencies=currencies.payout_currencies())
 
     result, alert_cls = handle_message(address, curr)
 
@@ -320,7 +325,7 @@ def settings(address):
                 unexchangeable_currencies[currency] = user_addresses[currency]
             else:
                 unexchangeable_currencies[currency] = ''
-    exchangeable_currencies.pop(curr.currency_name)
+    exchangeable_currencies.pop(curr.key)
 
     return render_template("user_settings.html",
                            username=address,
@@ -328,7 +333,7 @@ def settings(address):
                            alert_cls=alert_cls,
                            d_perc=d_perc,
                            user_currency=curr.name,
-                           user_currency_name=curr.currency_name,
+                           user_currency_name=curr.key,
                            anon=user.anon,
                            exchangeable_currencies=exchangeable_currencies,
                            unexchangeable_currencies=unexchangeable_currencies)
