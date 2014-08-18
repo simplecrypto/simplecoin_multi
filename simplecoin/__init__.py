@@ -40,7 +40,9 @@ def create_app(config='/config.yml', standalone=False, log_level=None):
 
     # set our template path and configs
     app.jinja_loader = FileSystemLoader(os.path.join(root, 'templates'))
-    config_vars = yaml.load(open(root + config))
+    config_vars = dict(manage_log_file="manage.log",
+                       webserver_log_file="webserver.log")
+    config_vars.update(yaml.load(open(root + config)))
     # inject all the yaml configs
     app.config.update(config_vars)
     app.currencies = CurrencyKeeper(app.config['currencies'])

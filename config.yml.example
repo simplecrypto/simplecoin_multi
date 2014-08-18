@@ -1,29 +1,17 @@
 # General
 # =======================================================================
 # Where's powerpool running?
-monitor_addrs:
-    - stratum: tcp+stratum://localhost:3333
-      mon_address: http://localhost:3855/
+mining_servers:
+    - location: localhost
+      stratum: 3333
+      monitor: 3855
+      algo: scryptn
+      unique_id: 1
 # The postgresql database connection configuration
 SQLALCHEMY_DATABASE_URI: postgresql://simplecoin:testing@localhost:5432/simplecoin
 # the session encryption key
 SECRET_KEY: 'somethting_really_secret'
-redacted_addresses: []
-
-# connection information for the coinserver RPC
-coinserv:
-    #    port: 19332
-    #    address: 127.0.0.1
-    #    username: litecoin
-    #    password: testing2345098234509823405982340598
-    #    wallet_pass: ''
-    #    account: pool
-    port: 19332
-    address: 127.0.0.1
-    username: litecoin
-    password: testing2345098234509823405982340598
-    wallet_pass:
-    account: pool
+DEBUG: False
 
 algos:
     X11:
