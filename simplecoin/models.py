@@ -8,10 +8,38 @@ from flask import current_app
 from sqlalchemy.schema import CheckConstraint
 from sqlalchemy.ext.declarative import AbstractConcreteBase
 from cryptokit import bits_to_difficulty
-from cryptokit.base58 import get_bcaddress_version
 
 from .model_lib import base
 from . import db, sig_round, currencies
+
+
+def make_upper_lower(trim=None, span=None, offset=None, clip=None, fmt="dt"):
+    """ Generates upper and lower bounded datetime objects. """
+    dt = datetime.utcnow()
+
+    if span is None:
+        span = timedelta(minutes=10)
+
+    if trim is not None:
+        trim_seconds = trim.total_seconds()
+        stamp = calendar.timegm(dt.utctimetuple())
+        stamp = (stamp // trim_seconds) * trim_seconds
+        dt = datetime.utcfromtimestamp(stamp)
+
+    if offset is None:
+        offset = timedelta(minutes=0)
+
+    if clip is None:
+        clip = timedelta(minutes=0)
+
+    upper = dt - offset - clip
+    lower = dt - span - offset
+
+    if fmt == "both":
+        return lower, upper, calendar.timegm(lower.utctimetuple()), calendar.timegm(upper.utctimetuple())
+    elif fmt == "stamp":
+        calendar.timegm(lower.utctimetuple()), calendar.timegm(upper.utctimetuple())
+    return lower, upper
 
 
 class TradeRequest(base):
@@ -366,85 +394,6 @@ class PayoutAggregate(base):
         return aggr
 
 
-class SliceMixin(object):
-    @classmethod
-    def create(cls, user, value, time, worker):
-        dt = cls.floor_time(time)
-        slc = cls(user=user, value=value, time=dt, worker=worker)
-        db.session.add(slc)
-        return slc
-
-    @classmethod
-    def add_value(cls, user, value, time, worker):
-        dt = cls.floor_time(time)
-        slc = cls.query.with_lockmode('update').filter_by(
-            user=user, time=dt, worker=worker).one()
-        slc.value += value
-
-    @classmethod
-    def floor_time(cls, time):
-        """ Changes an integer timestamp to the minute for which it falls in.
-        Allows abstraction of create and add share logic for each time slice
-        object. """
-        if isinstance(time, datetime):
-            time = calendar.timegm(time.utctimetuple())
-        return datetime.utcfromtimestamp(
-            (time // cls.slice_seconds) * cls.slice_seconds)
-
-    @classmethod
-    def compress(cls):
-        """ Moves statistics that are past the `window` time into the next
-        time slice size, effectively compressing the data. """
-        # get the minute shares that are old enough to be compressed and
-        # deleted
-        recent = cls.floor_time(datetime.utcnow()) - cls.window
-        # the five minute slice currently being processed
-        current_slice = None
-        # dictionary of lists keyed by user
-        users = {}
-
-        def create_upper():
-            # add a time slice for each user in this pending period
-            for key, slices in users.iteritems():
-                new_val = cls.combine(*[slc.value for slc in slices])
-
-                # put it in the database
-                upper = cls.upper.query.filter_by(time=current_slice, **key._asdict()).with_lockmode('update').first()
-                # wasn't in the db? create it
-                if not upper:
-                    dt = cls.floor_time(current_slice)
-                    upper = cls.upper(time=dt, value=new_val, **key._asdict())
-                    db.session.add(upper)
-                else:
-                    upper.value = cls.combine(upper.value, new_val)
-
-                for slc in slices:
-                    db.session.delete(slc)
-
-        # traverse minute shares that are old enough in time order
-        for slc in (cls.query.filter(cls.time < recent).
-                    order_by(cls.time)):
-            slice_time = cls.upper.floor_time(slc.time)
-
-            if current_slice is None:
-                current_slice = slice_time
-
-            # we've encountered the next time slice, so commit the pending one
-            if slice_time != current_slice:
-                logging.debug("Processing slice " + str(current_slice))
-                create_upper()
-                users.clear()
-                current_slice = slice_time
-
-            # add the one min shares for this user the list of pending shares
-            # to be grouped together
-            key = slc.make_key()
-            users.setdefault(key, [])
-            users[key].append(slc)
-
-        create_upper()
-
-
 @classmethod
 def average_combine(cls, *lst):
     """ Takes an iterable and combines the values. Usually either returns
@@ -459,203 +408,165 @@ def sum_combine(cls, *lst):
     return sum(lst)
 
 
-class WorkerTimeSlice(AbstractConcreteBase, SliceMixin, base):
+class TimeSlice(object):
     """ An time abstracted data sample that pertains to a single worker.
     Currently used to represent accepted and rejected shares. """
-    user = db.Column(db.String, primary_key=True)
+    @property
+    def item_key(self):
+        return self.key(**{k: getattr(self, k) for k in self.keys})
+
+    @classmethod
+    def create(cls, user, worker, algo, value, time):
+        dt = cls.floor_time(time)
+        slc = cls(user=user, value=value, time=dt, worker=worker)
+        db.session.add(slc)
+        return slc
+
+    @classmethod
+    def add_value(cls, user, value, time, worker):
+        dt = cls.floor_time(time)
+        slc = cls.query.with_lockmode('update').filter_by(
+            user=user, time=dt, worker=worker).one()
+        slc.value += value
+
+    @classmethod
+    def floor_time(cls, time, span, stamp=False):
+        seconds = cls.span_config[span]['slice'].total_seconds()
+        if isinstance(time, datetime):
+            time = calendar.timegm(time.utctimetuple())
+        time = (time // seconds) * seconds
+        if stamp:
+            return int(time)
+        return datetime.utcfromtimestamp(time)
+
+    @classmethod
+    def compress(cls, span, delete=True):
+        # If we're trying to compress the largest slice boundary
+        if span == len(cls.span_config) - 1:
+            raise Exception("Can't compress this!")
+        upper_span = span + 1
+
+        # get the minute shares that are old enough to be compressed and
+        # deleted
+        recent = cls.floor_time(datetime.utcnow(), span) - cls.span_config[span]['window']
+        # the timestamp of the slice currently being processed
+        current_slice = None
+        # dictionary of lists keyed by item_hash
+        items = {}
+
+        def create_upper():
+            # add a time slice for each user in this pending period
+            for key, slices in items.iteritems():
+                # Allows us to use different combining methods. Ie averaging or
+                # adding
+                new_val = cls.combine(*[slc.value for slc in slices])
+
+                # put it in the database
+                upper = cls.query.filter_by(time=current_slice, span=upper_span, **key._asdict()).with_lockmode('update').first()
+                # wasn't in the db? create it
+                if not upper:
+                    upper = cls(time=current_slice, value=new_val, span=upper_span, **key._asdict())
+                    db.session.add(upper)
+                else:
+                    upper.value = cls.combine(upper.value, new_val)
+
+                if delete:
+                    for slc in slices:
+                        db.session.delete(slc)
+
+        # traverse minute shares that are old enough in time order
+        for slc in cls.query.filter(cls.time < recent).order_by(cls.time):
+            slice_time = cls.floor_time(slc.time, span + 1)
+
+            if current_slice is None:
+                current_slice = slice_time
+
+            # we've encountered the next time slice, so commit the pending one
+            if slice_time != current_slice:
+                logging.debug("Processing slice " + str(current_slice))
+                create_upper()
+                items.clear()
+                current_slice = slice_time
+
+            # add the one min shares for this user the list of pending shares
+            # to be grouped together
+            key = slc.item_key
+            items.setdefault(key, [])
+            items[key].append(slc)
+
+        create_upper()
+
+    @classmethod
+    def get_span(cls, lower=None, upper=None, stamp=False, ret_query=False, **kwargs):
+        """ A utility to grab a group of slices and automatically compress
+        smaller slices into larger slices
+
+        address, worker, and algo are just filters.
+        They may be a single string or list of strings.
+
+        upper and lower are datetimes.
+        """
+        query = db.session.query(cls)
+
+        # Allow us to filter by any of the keys
+        for key in cls.keys:
+            if key in kwargs:
+                vals = kwargs.pop(key)
+                if vals:
+                    query = query.filter(getattr(cls, key).in_(vals))
+
+        if kwargs:
+            raise ValueError("Extra unused parameters {}".format(kwargs))
+
+        if lower:
+            query = query.filter(cls.time >= lower)
+            # Determine which slice size we will use
+            time_in_past = datetime.utcnow() - lower
+            slice_size = None
+            for i, cfg in enumerate(cls.span_config):
+                if cfg['window'] > time_in_past:
+                    slice_size = i
+                    break
+                slice_size = i
+        else:
+            slice_size = len(cls.span_config) - 1
+        if upper:
+            query = query.filter(cls.time <= upper)
+
+        if ret_query:
+            return query
+
+        buckets = {}
+        for slc in query:
+            time = cls.floor_time(slc.time, slice_size, stamp=stamp)
+            key = slc.item_key
+            buckets.setdefault(key, {'data': slc.item_key._asdict(), 'values': {}})
+            buckets[key]['values'].setdefault(time, 0)
+            buckets[key]['values'][time] += slc.value
+
+        return buckets.values()
+
+
+class ShareSlice(TimeSlice, base):
+    SHARE_TYPES = ["acc", "low", "dup", "stale"]
+
     time = db.Column(db.DateTime, primary_key=True)
+    user = db.Column(db.String, primary_key=True)
     worker = db.Column(db.String, primary_key=True)
+    algo = db.Column(db.String, primary_key=True)
+    share_type = db.Column(db.Enum(*SHARE_TYPES, name="share_type"),
+                           primary_key=True)
+
+    span = db.Column(db.SmallInteger, nullable=False)
     value = db.Column(db.Float)
 
     combine = sum_combine
-    key = namedtuple('Key', ['user', 'worker'])
+    keys = ['user', 'worker', 'algo', 'share_type']
+    key = namedtuple('Key', keys)
+    span_config = [dict(window=timedelta(hours=1), slice=timedelta(minutes=1)),
+                   dict(window=timedelta(days=1), slice=timedelta(minutes=5)),
+                   dict(window=timedelta(days=30), slice=timedelta(hours=1))]
 
-    def make_key(self):
-        return self.key(user=self.user, worker=self.worker)
-
-
-class DeviceTimeSlice(AbstractConcreteBase, SliceMixin, base):
-    """ An time abstracted data sample that pertains to a single workers single
-    device.  Currently used to temperature and hashrate. """
-    user = db.Column(db.String, primary_key=True)
-    device = db.Column(db.Integer, primary_key=True)
-    time = db.Column(db.DateTime, primary_key=True)
-    worker = db.Column(db.String, primary_key=True)
-    value = db.Column(db.Integer)
-
-    combine = average_combine
-    key = namedtuple('Key', ['user', 'worker', 'device'])
-
-    def make_key(self):
-        return self.key(user=self.user, worker=self.worker, device=self.device)
-
-
-class TypeTimeSlice(AbstractConcreteBase, SliceMixin, base):
-    """ An time abstracted data sample that pertains to a single workers single
-    device.  Currently used to temperature and hashrate. """
-    typ = db.Column(db.String, primary_key=True)
-    time = db.Column(db.DateTime, primary_key=True)
-    value = db.Column(db.Integer)
-
-    combine = average_combine
-    key = namedtuple('Key', ['typ'])
-
-    def make_key(self):
-        return self.key(typ=self.typ)
-
-
-# Mixin classes the define time windows of generic timeslices
-class OneMinute(object):
-    window = timedelta(hours=1)
-    slice = timedelta(minutes=1)
-    slice_seconds = slice.total_seconds()
-
-
-class OneHour(object):
-    window = timedelta(days=30)
-    slice = timedelta(hours=1)
-    slice_seconds = slice.total_seconds()
-
-
-class FiveMinute(object):
-    window = timedelta(days=1)
-    slice = timedelta(minutes=5)
-    slice_seconds = slice.total_seconds()
-
-
-# All of our accepted share timeslices
-class OneHourShare(WorkerTimeSlice, OneHour):
-    __tablename__ = 'one_hour_share'
-    __mapper_args__ = {
-        'polymorphic_identity': 'one_hour_share',
-        'concrete': True
-    }
-
-
-class FiveMinuteShare(WorkerTimeSlice, FiveMinute):
-    __tablename__ = 'five_minute_share'
-    upper = OneHourShare
-    __mapper_args__ = {
-        'polymorphic_identity': 'five_minute_share',
-        'concrete': True
-    }
-
-
-class OneMinuteShare(WorkerTimeSlice, OneMinute):
-    __tablename__ = 'one_minute_share'
-    upper = FiveMinuteShare
-    __mapper_args__ = {
-        'polymorphic_identity': 'one_minute_share',
-        'concrete': True
-    }
-
-
-# All of our reject time slices
-class OneHourReject(WorkerTimeSlice, OneHour):
-    __tablename__ = 'one_hour_reject'
-    __mapper_args__ = {
-        'polymorphic_identity': 'one_hour_reject',
-        'concrete': True
-    }
-
-
-class FiveMinuteReject(WorkerTimeSlice, FiveMinute):
-    __tablename__ = 'five_minute_reject'
-    upper = OneHourReject
-    __mapper_args__ = {
-        'polymorphic_identity': 'five_minute_reject',
-        'concrete': True
-    }
-
-
-class OneMinuteReject(WorkerTimeSlice, OneMinute):
-    __tablename__ = 'one_minute_reject'
-    upper = FiveMinuteReject
-    __mapper_args__ = {
-        'polymorphic_identity': 'one_minute_reject',
-        'concrete': True
-    }
-
-
-# Temperature time slices
-class OneHourTemperature(DeviceTimeSlice, OneHour):
-    __tablename__ = 'one_hour_temperature'
-    __mapper_args__ = {
-        'polymorphic_identity': 'one_hour_temperature',
-        'concrete': True
-    }
-
-
-class FiveMinuteTemperature(DeviceTimeSlice, FiveMinute):
-    __tablename__ = 'five_minute_temperature'
-    upper = OneHourTemperature
-    __mapper_args__ = {
-        'polymorphic_identity': 'five_minute_temperature',
-        'concrete': True
-    }
-
-
-class OneMinuteTemperature(DeviceTimeSlice, OneMinute):
-    __tablename__ = 'one_minute_temperature'
-    upper = FiveMinuteTemperature
-    __mapper_args__ = {
-        'polymorphic_identity': 'one_minute_temperature',
-        'concrete': True
-    }
-
-
-# Hashrate timeslices
-class OneHourHashrate(DeviceTimeSlice, OneHour):
-    __tablename__ = 'one_hour_hashrate'
-    __mapper_args__ = {
-        'polymorphic_identity': 'one_hour_hashrate',
-        'concrete': True
-    }
-
-
-class FiveMinuteHashrate(DeviceTimeSlice, FiveMinute):
-    __tablename__ = 'five_minute_hashrate'
-    upper = OneHourHashrate
-    __mapper_args__ = {
-        'polymorphic_identity': 'five_minute_hashrate',
-        'concrete': True
-    }
-
-
-class OneMinuteHashrate(DeviceTimeSlice, OneMinute):
-    __tablename__ = 'one_minute_hashrate'
-    upper = FiveMinuteHashrate
-    __mapper_args__ = {
-        'polymorphic_identity': 'one_minute_hashrate',
-        'concrete': True
-    }
-
-
-# Pool global attributes split up by type, such as worker count
-class OneHourType(TypeTimeSlice, OneHour):
-    __tablename__ = 'one_hour_type'
-    __mapper_args__ = {
-        'polymorphic_identity': 'one_hour_type',
-        'concrete': True
-    }
-
-
-class FiveMinuteType(TypeTimeSlice, FiveMinute):
-    __tablename__ = 'five_minute_type'
-    upper = OneHourType
-    __mapper_args__ = {
-        'polymorphic_identity': 'five_minute_type',
-        'concrete': True
-    }
-
-
-class OneMinuteType(TypeTimeSlice, OneMinute):
-    __tablename__ = 'one_minute_type'
-    upper = FiveMinuteType
-    __mapper_args__ = {
-        'polymorphic_identity': 'one_minute_type',
-        'concrete': True
-    }
 
 ################################################################################
 # User account related objects

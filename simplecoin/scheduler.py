@@ -502,25 +502,17 @@ def payout(redis_key, simulate=False):
 def collect_minutes():
     """ Grabs all the pending minute shares out of redis and puts them in the
     database """
-    def count_share(typ, minute, amount, user, worker=''):
-        logger.debug("Adding {} for {} of amount {}"
-                     .format(typ.__name__, user, amount))
-        try:
-            typ.create(user, amount, minute, worker)
-            db.session.commit()
-        except sqlalchemy.exc.IntegrityError:
-            db.session.rollback()
-            typ.add_value(user, amount, minute, worker)
-            db.session.commit()
-
     unproc_mins = redis_conn.keys("min_*")
     for key in unproc_mins:
         current_app.logger.info("Processing key {}".format(key))
         share_type, algo, stamp = key.split("_")[1:]
         minute = datetime.datetime.utcfromtimestamp(float(stamp))
+        # To ensure invalid stampt don't get committed
+        minute = ShareSlice.floor_time(minute, 0)
         if stamp < (time.time() - 30):
             current_app.logger.info("Skipping timestamp {}, too young".format(minute))
             continue
+
         redis_conn.rename(key, "processing_shares")
         for user, shares in redis_conn.hgetall("processing_shares").iteritems():
             shares = float(shares)
@@ -532,46 +524,32 @@ def collect_minutes():
                 worker = ''
             address = parts[0]
 
-            # we want to log how much of each type of reject for the whole pool
-            if address == "pool":
-                if share_type == "acc":
-                    count_share(OneMinuteShare, minute, shares, "pool_{}".format(algo))
-                if share_type == "low":
-                    count_share(OneMinuteReject, minute, shares, "pool_low_diff_{}".format(algo))
-                if share_type == "dup":
-                    count_share(OneMinuteReject, minute, shares, "pool_dup_{}".format(algo))
-                if share_type == "stale":
-                    count_share(OneMinuteReject, minute, shares, "pool_stale_{}".format(algo))
-            # only log a total reject on a per-user basis
-            else:
-                if share_type == "acc":
-                    count_share(OneMinuteShare, minute, shares, "{}_{}".format(address, algo))
-                if share_type == "stale":
-                    count_share(OneMinuteReject, minute, shares, "{}_{}".format(address, algo))
+            try:
+                slc = ShareSlice(user=address, time=minute, worker=worker, algo=algo,
+                                 share_type=share_type, value=shares, span=0)
+                db.session.add(slc)
+                db.session.commit()
+            except sqlalchemy.exc.IntegrityError:
+                db.session.rollback()
+                slc = ShareSlice.query.with_lockmode('update').filter_by(
+                    user=address, time=minute, worker=worker, algo=algo,
+                    share_type=share_type).one()
+                slc.value += shares
+                db.session.commit()
         redis_conn.delete("processing_shares")
 
 
 @crontab
 @SchedulerCommand.command
 def compress_minute():
-    """ Compresses OneMinute records (for temp, hashrate, shares, rejects) to
-    FiveMinute """
-    OneMinuteShare.compress()
-    OneMinuteReject.compress()
-    OneMinuteTemperature.compress()
-    OneMinuteHashrate.compress()
-    OneMinuteType.compress()
+    ShareSlice.compress(0)
     db.session.commit()
 
 
 @crontab
 @SchedulerCommand.command
 def compress_five_minute():
-    FiveMinuteShare.compress()
-    FiveMinuteReject.compress()
-    FiveMinuteTemperature.compress()
-    FiveMinuteHashrate.compress()
-    FiveMinuteType.compress()
+    ShareSlice.compress(1)
     db.session.commit()
 
 

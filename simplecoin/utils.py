@@ -11,10 +11,8 @@ from bitcoinrpc import AuthServiceProxy
 from bitcoinrpc import CoinRPCException
 from decimal import Decimal
 
-from . import db, cache, root, redis_conn
-from .models import (OneMinuteReject, OneMinuteShare,
-                     FiveMinuteShare, FiveMinuteReject, Payout, Block,
-                     OneHourShare, OneHourReject, UserSettings)
+from . import db, cache, root, redis_conn, currencies, powerpools
+from .models import ShareSlice, Block, Payout, UserSettings, make_upper_lower
 
 
 class CommandException(Exception):
@@ -150,6 +148,46 @@ class PowerPoolKeeper(dict):
             self[serv.unique_id] = serv
 
 
+class ShareTracker(object):
+    def __init__(self, algo):
+        self.types = {typ: ShareTypeTracker(typ) for typ in ShareSlice.SHARE_TYPES}
+        self.algo = current_app.config['algos'][algo]
+
+    def count_slice(self, slc):
+        self.types[slc.share_type].shares += slc.value
+
+    @property
+    def accepted(self):
+        return self.types["acc"].shares
+
+    @property
+    def total(self):
+        return sum([self.types['dup'].shares, self.types['low'].shares, self.types['stale'].shares, self.types['acc'].shares])
+
+    def hashrate(self, typ="acc"):
+        return self.types[typ].shares * self.algo['hashes_per_share']
+
+    @property
+    def rejected(self):
+        return sum([self.types['dup'].shares, self.types['low'].shares, self.types['stale'].shares])
+
+    @property
+    def efficiency(self):
+        rej = self.rejected
+        if rej:
+            return 100.0 * (float(self.types['acc'].shares) / rej)
+        return 100.0
+
+
+class ShareTypeTracker(object):
+    def __init__(self, share_type):
+        self.share_type = share_type
+        self.shares = 0
+
+    def __hash__(self):
+        return self.share_type
+
+
 def timeit(method):
     def timed(*args, **kw):
         ts = time.time()
@@ -200,7 +238,7 @@ def users_blocks(address, algo=None, merged=None):
 
 @cache.memoize(timeout=86400)
 def all_time_shares(address):
-    shares = db.session.query(OneHourShare).filter_by(user=address)
+    shares = db.session.query(ShareSlice).filter_by(user=address)
     return sum([share.value for share in shares])
 
 
@@ -219,17 +257,9 @@ def last_block_time_nocache(algo, merged_type=None):
     if last_block:
         return last_block.found_at
 
-    hour = OneHourShare.query.order_by(OneHourShare.time).first()
-    if hour:
-        return hour.time
-
-    five = FiveMinuteShare.query.order_by(FiveMinuteShare.time).first()
-    if five:
-        return five.time
-
-    minute = OneMinuteShare.query.order_by(OneMinuteShare.time).first()
-    if minute:
-        return minute.time
+    slc = ShareSlice.query.order_by(ShareSlice.time).first()
+    if slc:
+        return slc.time
 
     return datetime.datetime.utcnow()
 
@@ -261,52 +291,12 @@ def last_blockheight(merged_type=None):
     return last.height
 
 
-def get_typ(typ, address=None, window=True, worker=None, q_typ=None):
-    """ Gets the latest slices of a specific size. window open toggles
-    whether we limit the query to the window size or not. We disable the
-    window when compressing smaller time slices because if the crontab
-    doesn't run we don't want a gap in the graph. This is caused by a
-    portion of data that should already be compressed not yet being
-    compressed. """
-    # grab the correctly sized slices
-    base = db.session.query(typ)
-
-    if address is not None:
-        base = base.filter_by(user=address)
-    if worker is not None:
-        base = base.filter_by(worker=worker)
-    if q_typ is not None:
-        base = base.filter_by(typ=q_typ)
-    if window is False:
-        return base
-    grab = typ.floor_time(datetime.datetime.utcnow()) - typ.window
-    return base.filter(typ.time >= grab)
-
-
-def compress_typ(typ, workers, address=None, worker=None):
-    for slc in get_typ(typ, address, window=False, worker=worker):
-        if worker is not None:
-            slice_dt = typ.floor_time(slc.time)
-            stamp = calendar.timegm(slice_dt.utctimetuple())
-            workers.setdefault(slc.device, {})
-            workers[slc.device].setdefault(stamp, 0)
-            workers[slc.device][stamp] += slc.value
-        else:
-            slice_dt = typ.upper.floor_time(slc.time)
-            stamp = calendar.timegm(slice_dt.utctimetuple())
-            workers.setdefault(slc.worker, {})
-            workers[slc.worker].setdefault(stamp, 0)
-            workers[slc.worker][stamp] += slc.value
-
-
-@cache.cached(timeout=60, key_prefix='pool_hashrate')
+@cache.memoize(timeout=60)
 def get_pool_hashrate(algo):
     """ Retrieves the pools hashrate average for the last 10 minutes. """
-    dt = datetime.datetime.utcnow()
-    twelve_ago = dt - datetime.timedelta(minutes=12)
-    two_ago = dt - datetime.timedelta(minutes=2)
-    ten_min = (OneMinuteShare.query.filter_by(user='pool')
-               .filter(OneMinuteShare.time >= twelve_ago, OneMinuteShare.time <= two_ago))
+    lower, upper = make_upper_lower(offset=datetime.timedelta(minutes=1))
+    ten_min = (ShareSlice.query.filter_by(user='pool', algo=algo)
+               .filter(ShareSlice.time >= lower, ShareSlice.time <= upper))
     ten_min = sum([min.value for min in ten_min])
     # shares times hashes per n1 share divided by 600 seconds and 1000 to get
     # khash per second
@@ -340,11 +330,10 @@ def get_alerts():
 
 
 @cache.memoize(timeout=60)
-def last_10_shares(user):
-    twelve_ago = datetime.datetime.utcnow() - datetime.timedelta(minutes=12)
-    two_ago = datetime.datetime.utcnow() - datetime.timedelta(minutes=2)
-    minutes = (OneMinuteShare.query.
-               filter_by(user=user).filter(OneMinuteShare.time > twelve_ago, OneMinuteShare.time < two_ago))
+def last_10_shares(user, algo):
+    lower, upper = make_upper_lower(offset=datetime.timedelta(minutes=1))
+    minutes = (ShareSlice.query.filter_by(user=user).
+               filter(ShareSlice.time > lower, ShareSlice.time < upper))
     if minutes:
         return sum([min.value for min in minutes])
     return 0
@@ -362,71 +351,59 @@ def collect_user_stats(address):
     into main user stats page """
     # store all the raw data of we're gonna grab
     workers = {}
-    # blank worker template
-    def_worker = {'accepted': 0, 'rejected': 0, 'last_10_shares': 0,
-                  'online': False, 'server': {}}
-    # for picking out the last 10 minutes worth shares...
-    now = datetime.datetime.utcnow().replace(second=0, microsecond=0)
-    twelve_ago = now - datetime.timedelta(minutes=12)
-    two_ago = now - datetime.timedelta(minutes=2)
-    for m in itertools.chain(get_typ(FiveMinuteShare, address),
-                             get_typ(OneMinuteShare, address)):
-        workers.setdefault(m.worker, def_worker.copy())
-        workers[m.worker]['accepted'] += m.value
-        # if in the right 10 minute window add to list
-        if m.time >= twelve_ago and m.time < two_ago:
-            workers[m.worker]['last_10_shares'] += m.value
 
-    # accumulate reject amount
-    for m in itertools.chain(get_typ(FiveMinuteReject, address),
-                             get_typ(OneMinuteReject, address)):
-        workers.setdefault(m.worker, def_worker.copy())
-        workers[m.worker]['rejected'] += m.value
+    def check_new(address, worker, algo):
+        """ Setups up an empty worker template. Since anything that has data on
+        a worker can create one then it's useful to abstract. """
+        key = (address, worker, algo)
+        if key not in workers:
+            workers[key] = {'total_shares': ShareTracker(algo),
+                            'last_10_shares': ShareTracker(algo),
+                            'online': False,
+                            'servers': {},
+                            'algo': algo,
+                            'name': worker,
+                            'address': address}
+        return workers[key]
+
+    # Get the lower bound for 10 minutes ago
+    lower_10, upper_10 = make_upper_lower(offset=datetime.timedelta(minutes=1))
+
+    for slc in ShareSlice.get_span(ret_query=True, user=(address, )):
+        worker = check_new(slc.user, slc.worker, slc.algo)
+        worker['total_shares'].count_slice(slc)
+        if slc.time > lower_10:
+            worker['last_10_shares'].count_slice(slc)
 
     # pull online status from cached pull direct from powerpool servers
-    for name, host in cache.get('addr_online_' + address) or []:
-        workers.setdefault(name, def_worker.copy())
-        workers[name]['online'] = True
-        try:
-            workers[name]['server'] = current_app.config['monitor_addrs'][host]['stratum']
-        except KeyError:
-            workers[name]['server'] = ''
+    for worker, connection_summary in (cache.get('addr_online_' + address) or {}).iteritems():
+        for ppid, connections in connection_summary.iteritems():
+            try:
+                powerpool = powerpools[ppid]
+            except KeyError:
+                continue
 
-    # pre-calculate a few of the values here to abstract view logic
-    for name, w in workers.iteritems():
-        workers[name]['last_10_hashrate'] = (shares_to_hashes(w['last_10_shares']) / 1000000) / 600
-        if w['accepted'] or w['rejected']:
-            workers[name]['efficiency'] = 100.0 * (float(w['accepted']) / (w['accepted'] + w['rejected']))
-        else:
-            workers[name]['efficiency'] = None
+            worker = (address, worker, powerpool.algo)
+            worker['online'] = True
+            worker['servers'].setdefault(powerpool, 0)
+            worker['servers'][powerpool] += 1
 
-    # sort the workers by their name
-    new_workers = []
-    for name, data in workers.iteritems():
-        new_workers.append(data)
-        new_workers[-1]['name'] = name
-    new_workers = sorted(new_workers, key=lambda x: x['name'])
+    # Could definitely be better... Makes a list of the dictionary keys sorted
+    # by the worker name, then generates a list of dictionaries using the list
+    # of keys
+    workers = [workers[key] for key in sorted(workers.iterkeys(), key=lambda tpl: tpl[1])]
+    settings = UserSettings.query.filter_by(user=address).first()
 
-    # show their donation percentage
-    user = UserSettings.query.filter_by(user=address).first()
-    if not user:
-        perc = 0
-    else:
-        perc = user.hr_perc
-
-    user_last_10_shares = last_10_shares(address)
-    last_10_hashrate = (shares_to_hashes(user_last_10_shares) / 1000000) / 600
+    # Show the user approximate next payout and exchange times
     now = datetime.datetime.now()
     next_exchange = now.replace(minute=0, second=0, microsecond=0, hour=((now.hour + 2) % 23))
     next_payout = now.replace(minute=0, second=0, microsecond=0, hour=0)
 
     f_perc = Decimal(current_app.config.get('fee_perc', Decimal('0.02'))) * 100
 
-    return dict(workers=new_workers,
+    return dict(workers=workers,
                 acct_items=collect_acct_items(address, 20),
-                donation_perc=perc,
-                last_10_shares=user_last_10_shares,
-                last_10_hashrate=last_10_hashrate,
+                settings=settings,
                 next_payout=next_payout,
                 next_exchange=next_exchange,
                 f_per=f_perc)

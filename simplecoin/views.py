@@ -1,22 +1,17 @@
 import calendar
-from decimal import Decimal
 import time
 import datetime
 import yaml
 import json
 
-from flask import (current_app, request, render_template, Blueprint, abort,
-                   jsonify, g, session, Response)
+from flask import (current_app, request, render_template, Blueprint, jsonify,
+                   g, session, Response)
 
-from .models import (OneMinuteShare, Block,
-                     FiveMinuteShare, OneHourShare, UserSettings,
-                     FiveMinuteHashrate, OneMinuteHashrate, OneHourHashrate,
-                     OneMinuteTemperature, FiveMinuteTemperature,
-                     OneHourTemperature, PayoutAddress)
+from .models import Block, ShareSlice, UserSettings, PayoutAddress, make_upper_lower
 from . import db, root, cache, currencies
-from .utils import (compress_typ, get_typ, verify_message,
-                    collect_user_stats, get_pool_hashrate, get_alerts,
-                    resort_recent_visit, collect_acct_items, CommandException)
+from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
+                    get_alerts, resort_recent_visit, collect_acct_items,
+                    CommandException)
 
 
 main = Blueprint('main', __name__)
@@ -105,50 +100,6 @@ def exception():
     return ""
 
 
-@main.route("/<address>/<worker>/<stat_type>/<window>")
-def worker_stats(address=None, worker=None, stat_type=None, window="hour"):
-
-    if not address or not worker or not stat_type:
-        return None
-
-    type_lut = {'hash': {'hour': OneMinuteHashrate,
-                         'day': FiveMinuteHashrate,
-                         'day_compressed': OneMinuteHashrate,
-                         'month': OneHourHashrate,
-                         'month_compressed': FiveMinuteHashrate},
-                'temp': {'hour': OneMinuteTemperature,
-                         'day': FiveMinuteTemperature,
-                         'day_compressed': OneMinuteTemperature,
-                         'month': OneHourTemperature,
-                         'month_compressed': FiveMinuteTemperature}}
-
-    # store all the raw data of we've grabbed
-    workers = {}
-
-    typ = type_lut[stat_type][window]
-
-    if window == "day":
-        compress_typ(type_lut[stat_type]['day_compressed'], workers, address, worker=worker)
-    elif window == "month":
-        compress_typ(type_lut[stat_type]['month_compressed'], workers, address, worker=worker)
-
-    for m in get_typ(typ, address, worker=worker):
-        stamp = calendar.timegm(m.time.utctimetuple())
-        if worker is not None or 'undefined':
-            workers.setdefault(m.device, {})
-            workers[m.device].setdefault(stamp, 0)
-            workers[m.device][stamp] += m.value
-        else:
-            workers.setdefault(m.worker, {})
-            workers[m.worker].setdefault(stamp, 0)
-            workers[m.worker][stamp] += m.value
-    step = typ.slice_seconds
-    end = ((int(time.time()) // step) * step) - step
-    start = end - typ.window.total_seconds() + step
-
-    return jsonify(start=start, end=end, step=step, workers=workers)
-
-
 @main.route("/<address>")
 def user_dashboard(address):
     # Do some checking to make sure the address is valid + payable
@@ -184,35 +135,64 @@ def address_clear(address=None):
     return jsonify(recent=session['recent_users'])
 
 
-@main.route("/<address>/stats")
-@main.route("/<address>/stats/<window>")
-def address_stats(address=None, window="hour"):
+@main.route("/api/shares")
+def address_stats():
+    window = request.args.get("window", "hour")
+    address = request.args['address'].split(",")
+    algos = request.args.get('algos', tuple())
+    if algos:
+        algos = algos.split(",")
+    share_types = request.args.get("share_types", "acc").split(",")
+
     # store all the raw data of we've grabbed
     workers = {}
 
     if window == "hour":
-        typ = OneMinuteShare
+        span = 0
     elif window == "day":
-        compress_typ(OneMinuteShare, workers, address)
-        typ = FiveMinuteShare
+        span = 1
     elif window == "month":
-        compress_typ(FiveMinuteShare, workers, address)
-        typ = OneHourShare
+        span = 2
+    span_config = ShareSlice.span_config[span]
+    step = span_config['slice']
+    res = make_upper_lower(trim=span_config['slice'],
+                           span=span_config['window'],
+                           clip=span_config['slice'],
+                           fmt="both")
+    lower, upper, lower_stamp, upper_stamp = res
 
-    for m in get_typ(typ, address):
-        stamp = calendar.timegm(m.time.utctimetuple())
-        workers.setdefault(m.worker, {})
-        workers[m.worker].setdefault(stamp, 0)
-        workers[m.worker][stamp] += m.value
-    step = typ.slice_seconds
-    end = ((int(time.time()) // step) * step) - (step * 2)
-    start = end - typ.window.total_seconds() + (step * 2)
+    workers = ShareSlice.get_span(user=address,
+                                  share_type=share_types,
+                                  algo=algos,
+                                  lower=lower,
+                                  upper=upper,
+                                  stamp=True)
 
-    if address == "pool" and '' in workers:
-        workers['Entire Pool'] = workers['']
-        del workers['']
+    highest_hash = 0
+    for worker in workers:
+        d = worker['data']
+        d['label'] = "{} ({})".format(d['worker'] or "[unnamed]", d['algo'])
+        hps = current_app.config['algos'][d['algo']]['hashes_per_share']
+        for idx in worker['values']:
+            worker['values'][idx] *= hps / step.total_seconds()
+            if worker['values'][idx] > highest_hash:
+                highest_hash = worker['values'][idx]
 
-    return jsonify(start=start, end=end, step=step, workers=workers)
+    scales = {1000: "KH/s", 1000000: "MH/s", 1000000000: "GH/s"}
+
+    scale_label = "H/s"
+    scale = 1
+    for amnt, label in scales.iteritems():
+        if amnt > scale and highest_hash > amnt:
+            scale = amnt
+            scale_label = label
+
+    return jsonify(start=lower_stamp,
+                   end=upper_stamp,
+                   step=step.total_seconds(),
+                   scale=scale,
+                   scale_label=scale_label,
+                   workers=workers)
 
 
 @main.errorhandler(Exception)

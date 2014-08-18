@@ -1,4 +1,5 @@
-generate_graph = function(user, hashes_per_share, selector) {
+generate_graph = function(selector, params) {
+    var timespan = "hour";
     // Calculate the hash rate based on the number of diff-1 shares generated
     // in a minute
     var calculate_hash = function(sharesPerMin, seconds) {
@@ -29,31 +30,30 @@ generate_graph = function(user, hashes_per_share, selector) {
                 break;
         }
 
-        d3.json('/' + user + '/stats/' + timespan, function(data) {
+        params.window = timespan;
+        d3.json('/api/shares?' + $.param(params), function(data) {
             start = data.start;
             end = data.end;
             step = data.step;
-            for (var key in data.workers) {
-                var worker = data.workers[key];
-                var values = []
+            for (var idx in data.workers) {
+                var worker = data.workers[idx];
+                var values = [];
                 for (var i = start; i <= end; i += step) {
-                    if (i in worker) {
-                        values.push([i * 1000, worker[i]]);
+                    if (i in worker.values) {
+                        values.push([i * 1000, worker.values[i]]);
                     } else {
                         values.push([i * 1000, 0]);
                     }
                 }
 
-                if (key == "")
-                    key = "[unnamed]";
-                clean_data.push({key: key, seriesIndex: 0, values: values});
+                clean_data.push({key: worker.data.label, seriesIndex: 0, values: values});
             }
 
             //Actually generate/regenerate the graph here
             generate_graph = function() {
                 var chart = nv.models.stackedAreaChart()
                             .x(function(d) { return d[0] })   //We can modify the data accessor functions...
-                            .y(function(d) { return +y_scale(d[1], seconds) })   //...in case your data is formatted differently.
+                            .y(function(d) { return +d[1] / data.scale; })   //...in case your data is formatted differently.
                             .useInteractiveGuideline(true)    //Tooltips which show all data points. Very nice!
                             .transitionDuration(500)
                             .showControls(true)       //Allow user to choose 'Stacked', 'Stream', 'Expanded' mode.
@@ -68,7 +68,7 @@ generate_graph = function(user, hashes_per_share, selector) {
 
                 chart.yAxis
                     .tickFormat(d3.format(',.2f'))
-                    .axisLabel('MHash/sec')
+                    .axisLabel(data.scale_label)
                     .axisLabelDistance(30);
 
                 d3.select(selector.find('svg')[0])
