@@ -1,3 +1,4 @@
+# Top level requirements
 git+https://github.com/icook/python-bitcoinrpc.git@v0.4#egg=python-bitcoinrpc
 git+https://github.com/simplecrypto/cryptokit.git@v0.2.6#egg=cryptokit
 Flask==0.10.1
@@ -5,26 +6,25 @@ Flask-Cache==0.12
 Flask-Migrate==1.2.0
 Flask-SQLAlchemy==1.0
 Flask-Script==0.6.6
-Jinja2==2.7.2
-MarkupSafe==0.19
 PyYAML==3.10
+gunicorn==18.0
+lever==0.2.6
+redis==2.9.1
+six==1.6.1
+requests==2.2.1
+apscheduler==2.1.2
+setproctitle==1.1.8
+decorator==3.4.0
+ago==0.0.6
+
+# Dependencies of top level requirements
 SQLAlchemy==0.9.1
+Jinja2==2.7.2
 Werkzeug==0.9.4
 alembic==0.6.4
 anyjson==0.3.3
 argparse==1.2.1
-future==0.11.2
-gunicorn==18.0
 itsdangerous==0.24
-lever==0.2.6
 psycopg2==2.5.2
-pytz==2014.2
-redis==2.9.1
-requests==2.2.1
-six==1.6.1
 urllib3==1.8
 wsgiref==0.1.2
-apscheduler==2.1.2
-setproctitle
-decorator
-ago
