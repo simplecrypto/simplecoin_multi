@@ -2,7 +2,6 @@ import logging
 import datetime
 import time
 import urllib3
-import requests
 import sqlalchemy
 import setproctitle
 import decorator
@@ -586,11 +585,9 @@ def server_status():
     total_workers = 0
     servers = []
     raw_servers = {}
-    for i, pp_config in enumerate(current_app.config['monitor_addrs']):
-        mon_addr = pp_config['mon_address']
+    for powerpool in powerpools.itervalues():
         try:
-            req = requests.get(mon_addr)
-            data = req.json()
+            data = powerpool.request('')
         except Exception:
             current_app.logger.warn("Couldn't connect to internal monitor at {}"
                                     .format(powerpool))
@@ -600,13 +597,14 @@ def server_status():
             if 'server' in data:
                 workers = data['stratum_manager']['client_count_authed']
                 hashrate = data['stratum_manager']['mhps'] * 1000000
-                raw_servers[pp_config['stratum']] = data
+                raw_servers[powerpool.stratum_address] = data
+            # If the server is version 0.4 or earlier. DEPRECATED
             else:
                 workers = data['stratum_clients']
                 hashrate = data['shares']['hour_total'] / 3600.0 * current_app.config['hashes_per_share']
             servers.append(dict(workers=workers,
                                 hashrate=hashrate,
-                                name=pp_config['stratum']))
+                                name=powerpool.stratum_address))
             total_workers += workers
 
     cache.set('raw_server_status', json.dumps(raw_servers), timeout=1200)

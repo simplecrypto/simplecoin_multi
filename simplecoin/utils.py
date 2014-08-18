@@ -1,14 +1,15 @@
-import calendar
 import datetime
-from decimal import Decimal
 import time
-import itertools
+import yaml
+import requests
+
+from urlparse import urljoin
+from flask import current_app, session
 from cryptokit.base58 import address_version
 from sqlalchemy.exc import SQLAlchemyError
-import yaml
-
-from flask import current_app, session
+from bitcoinrpc import AuthServiceProxy
 from bitcoinrpc import CoinRPCException
+from decimal import Decimal
 
 from . import db, cache, root, redis_conn
 from .models import (OneMinuteReject, OneMinuteShare,
@@ -20,21 +21,50 @@ class CommandException(Exception):
     pass
 
 
+class Currency(object):
+    requires = ['algo', 'name', 'coinserv', 'address_version', 'trans_confirmations',
+                'block_time', 'block_mature_confirms']
+
+    def __init__(self, key, bootstrap):
+        for req in self.requires:
+            if req not in bootstrap:
+                raise ConfigurationException("currency item requires {}"
+                                             .format(req))
+        self.key = key
+        # Default settings
+        self.__dict__.update(dict(exchangeable=False))
+        self.__dict__.update(bootstrap)
+        self.coinserv = AuthServiceProxy(
+            "http://{0}:{1}@{2}:{3}/"
+            .format(bootstrap['coinserv']['username'],
+                    bootstrap['coinserv']['password'],
+                    bootstrap['coinserv']['address'],
+                    bootstrap['coinserv']['port'],
+                    pool_kwargs=dict(maxsize=bootstrap.get('maxsize', 10))))
+
+    def __repr__(self):
+        return self.key
+    __str__ = __repr__
+
+
 class CurrencyKeeper(dict):
     __getattr__ = dict.__getitem__
 
-    def __init__(self, *args, **kwargs):
-        super(CurrencyKeeper, self).__init__(*args, **kwargs)
+    def __init__(self, currency_dictionary):
+        super(CurrencyKeeper, self).__init__()
         self.version_lut = {}
-
-    def setcurr(self, val):
-        setattr(self, val.currency_name, val)
-        self.__setitem__(val.currency_name, val)
-        for ver in val.address_version:
-            self.version_lut[ver] = val
+        for key, config in currency_dictionary.iteritems():
+            val = Currency(key, config)
+            setattr(self, val.key, val)
+            self.__setitem__(val.key, val)
+            for ver in val.address_version:
+                if ver in self.version_lut:
+                    raise AttributeError("Duplicate address versions {}"
+                                         .format(ver))
+                self.version_lut[ver] = val
 
     def payout_currencies(self):
-        return [c for c in self.itervalues() if getattr(c, 'exchangeable', False)]
+        return [c for c in self.itervalues() if c.exchangeable is False]
 
     def lookup_address(self, address):
         ver = address_version(address)
@@ -46,7 +76,7 @@ class CurrencyKeeper(dict):
 
     @property
     def available_versions(self):
-        return {k: v.currency_name for k, v in self.version_lut.iteritems()}
+        return {k: v.key for k, v in self.version_lut.iteritems()}
 
     def lookup_version(self, version):
         try:
@@ -55,6 +85,69 @@ class CurrencyKeeper(dict):
             raise AttributeError(
                 "Address version {} doesn't match available versions {}"
                 .format(version, self.available_versions))
+
+
+class ConfigurationException(Exception):
+    pass
+
+
+class RemoteException(Exception):
+    pass
+
+
+class PowerPool(object):
+    timeout = 10
+    requires = ['algo', 'location', 'monitor', 'stratum', 'unique_id']
+
+    def __init__(self, bootstrap):
+        # Check requirements
+        for req in self.requires:
+            if req not in bootstrap:
+                raise ConfigurationException("mining_servers item requires {}"
+                                             .format(req))
+        # Default settings
+        self.__dict__.update(dict())
+        self.__dict__.update(bootstrap)
+
+    @property
+    def monitor_address(self):
+        return "http://{}:{}".format(self.location, self.monitor)
+
+    @property
+    def display_text(self):
+        return self.stratum_address
+
+    @property
+    def stratum_address(self):
+        return "stratum+tcp://{}:{}".format(self.location, self.monitor)
+    __repr__ = stratum_address  # Allows us to cache calls to this instance
+    __str__ = stratum_address
+
+    def __hash__(self):
+        return self.unique_id
+
+    def request(self, url, method='GET', max_age=None, signed=True, **kwargs):
+        url = urljoin(self.monitor_address, url)
+        ret = requests.request(method, url, timeout=self.timeout, **kwargs)
+        if ret.status_code != 200:
+            raise RemoteException("Non 200 from remote: {}".format(ret.text))
+
+        current_app.logger.debug("Got {} from remote".format(ret.text.encode('utf8')))
+        return ret.json()
+
+
+class PowerPoolKeeper(dict):
+    def __init__(self, mining_servers):
+        super(PowerPoolKeeper, self).__init__()
+        self.by_algo = {}
+        for config in mining_servers:
+            serv = PowerPool(config)
+            self.by_algo.setdefault(serv.algo, [])
+            self.by_algo[serv.algo].append(serv)
+            if serv.unique_id in self:
+                raise ConfigurationException("You cannot specify two servers "
+                                             "with the same unique id")
+            self[serv.unique_id] = serv
 
 
 def timeit(method):
@@ -217,16 +310,14 @@ def get_pool_hashrate(algo):
     ten_min = sum([min.value for min in ten_min])
     # shares times hashes per n1 share divided by 600 seconds and 1000 to get
     # khash per second
-    return float(ten_min) / 600000
+    return float(ten_min) / 600000 * current_app.config['algos'][algo]['hashes_per_share']
 
 
 @cache.memoize(timeout=30)
-def get_round_shares(algo, merged_type=None):
+def get_round_shares(algo=None, merged_type=None):
     """ Retrieves the total shares that have been submitted since the last
     round rollover. """
-    suffix = algo
-    if merged_type:
-        suffix += "_" + merged_type
+    suffix = algo if algo else merged_type
     return sum(redis_conn.hvals('current_block_' + suffix)), datetime.datetime.utcnow()
 
 
@@ -405,8 +496,9 @@ def validate_message_vals(**kwargs):
     anon = kwargs['MAKEANON']
 
     for curr, addr in set_addrs.iteritems():
-        curr = check_valid_currency(addr)
-        if len(addr) != 34 or curr is False:
+        try:
+            currencies.lookup_address(addr)
+        except AttributeError:
             raise CommandException("Invalid currency address passed!")
 
     try:
@@ -416,7 +508,6 @@ def validate_message_vals(**kwargs):
     else:
         if donate_perc > 100.0 or donate_perc < 0:
             raise CommandException("Donate percentage was out of bounds!")
-
 
     return set_addrs, del_addrs, donate_perc, anon
 

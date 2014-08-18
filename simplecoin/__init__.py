@@ -15,7 +15,6 @@ from flask.ext.cache import Cache
 from flask.ext.sqlalchemy import SQLAlchemy
 from jinja2 import FileSystemLoader
 from werkzeug.local import LocalProxy
-from bitcoinrpc import AuthServiceProxy
 
 
 root = os.path.abspath(os.path.dirname(__file__) + '/../')
@@ -23,21 +22,10 @@ db = SQLAlchemy()
 cache = Cache()
 currencies = LocalProxy(
     lambda: getattr(current_app, 'currencies', None))
+powerpools = LocalProxy(
+    lambda: getattr(current_app, 'powerpools', None))
 redis_conn = LocalProxy(
     lambda: getattr(current_app, 'redis', None))
-
-
-class Currency(object):
-    def __init__(self, key, bootstrap):
-        self.key = key
-        self.__dict__.update(bootstrap)
-        self.coinserv = AuthServiceProxy(
-            "http://{0}:{1}@{2}:{3}/"
-            .format(bootstrap['coinserv']['username'],
-                    bootstrap['coinserv']['password'],
-                    bootstrap['coinserv']['address'],
-                    bootstrap['coinserv']['port'],
-                    pool_kwargs=dict(maxsize=bootstrap.get('maxsize', 10))))
 
 
 def sig_round(x, sig=2):
@@ -55,11 +43,14 @@ def create_app(config='/config.yml', standalone=False, log_level=None):
     config_vars = yaml.load(open(root + config))
     # inject all the yaml configs
     app.config.update(config_vars)
+    app.currencies = CurrencyKeeper(app.config['currencies'])
+    app.powerpools = PowerPoolKeeper(app.config['mining_servers'])
 
-    app.currencies = CurrencyKeeper()
-    for currency, dct in app.config['currencies'].iteritems():
-        app.currencies.setcurr(Currency(currency, dct))
-
+    app.logger.handlers[0].stream = sys.stdout
+    app.logger.handlers[0].setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)s: %(message)s'))
+    if log_level is not None:
+        app.logger.setLevel(getattr(logging, log_level))
     # add the debug toolbar if we're in debug mode...
     # ##################
     if app.config['DEBUG'] and not standalone:
@@ -157,4 +148,4 @@ def create_app(config='/config.yml', standalone=False, log_level=None):
 
     return app
 
-from .utils import CurrencyKeeper
+from .utils import CurrencyKeeper, PowerPoolKeeper
