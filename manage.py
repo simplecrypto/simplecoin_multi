@@ -3,6 +3,7 @@ import os
 import logging
 import time
 
+from flask.ext.migrate import stamp
 from flask.ext.script import Manager, Shell
 from flask.ext.migrate import Migrate, MigrateCommand
 from simplecoin import create_app, db
@@ -45,10 +46,10 @@ def get_version(address):
 @manager.command
 def init_db():
     """ Resets entire database to empty state """
-    with app.app_context():
-        db.session.commit()
-        db.drop_all()
-        db.create_all()
+    db.session.commit()
+    db.drop_all()
+    db.create_all()
+    stamp()
 
 
 @manager.command
