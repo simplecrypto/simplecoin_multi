@@ -7,12 +7,12 @@ from urlparse import urljoin
 from flask import current_app, session
 from cryptokit.base58 import address_version
 from sqlalchemy.exc import SQLAlchemyError
-from bitcoinrpc import AuthServiceProxy
-from bitcoinrpc import CoinRPCException
-from decimal import Decimal
+from cryptokit.rpc import CoinserverRPC
+from decimal import Decimal as dec
 
-from . import db, cache, root, redis_conn, currencies, powerpools
-from .models import ShareSlice, Block, Payout, UserSettings, make_upper_lower
+from . import db, cache, root, redis_conn, currencies, powerpools, exchanges
+from .models import (ShareSlice, Block, Payout, UserSettings, make_upper_lower,
+                     PayoutAggregate)
 
 
 class CommandException(Exception):
@@ -32,7 +32,7 @@ class Currency(object):
         # Default settings
         self.__dict__.update(dict(exchangeable=False))
         self.__dict__.update(bootstrap)
-        self.coinserv = AuthServiceProxy(
+        self.coinserv = CoinserverRPC(
             "http://{0}:{1}@{2}:{3}/"
             .format(bootstrap['coinserv']['username'],
                     bootstrap['coinserv']['password'],
@@ -40,9 +40,36 @@ class Currency(object):
                     bootstrap['coinserv']['port'],
                     pool_kwargs=dict(maxsize=bootstrap.get('maxsize', 10))))
 
+    @property
+    @cache.memoize(timeout=600)
+    def btc_value(self):
+        """ Caches and returns estimated currency value in BTC """
+        if self.key == "BTC":
+            return dec('1')
+
+        # XXX: Needs better number here!
+        err, dat, _ = exchanges.optimal_sell(self.key, dec('1000'), exchanges._get_current_object().exchanges)
+        try:
+            current_app.logger.info("Got new average price of {} for {}"
+                                    .format(dat['avg_price'], self))
+            return dat['avg_price']
+        except (KeyError, TypeError):
+            current_app.logger.warning("Unable to grab price for currency {}, got {} from autoex!"
+                                       .format(self.key, dict(err=err, dat=dat)))
+            return dec('0')
+
+    def est_value(self, other_currency, amount):
+        val = self.btc_value
+        if val:
+            return amount * val / other_currency.btc_value
+        return dec('0')
+
     def __repr__(self):
         return self.key
     __str__ = __repr__
+
+    def __hash__(self):
+        return self.key.__hash__()
 
 
 class CurrencyKeeper(dict):
@@ -185,7 +212,7 @@ class ShareTypeTracker(object):
         self.shares = 0
 
     def __hash__(self):
-        return self.share_type
+        return self.share_type.__hash__()
 
 
 def timeit(method):
@@ -369,11 +396,18 @@ def collect_user_stats(address):
     # Get the lower bound for 10 minutes ago
     lower_10, upper_10 = make_upper_lower(offset=datetime.timedelta(minutes=1))
 
+    newest = datetime.datetime.fromtimestamp(0)
+    # XXX: Needs to only sum the last 24 hours
     for slc in ShareSlice.get_span(ret_query=True, user=(address, )):
+        if slc.time > newest:
+            newest = slc.time
+
         worker = check_new(slc.user, slc.worker, slc.algo)
         worker['total_shares'].count_slice(slc)
         if slc.time > lower_10:
             worker['last_10_shares'].count_slice(slc)
+
+    hide_hr = newest < datetime.datetime.utcnow() - datetime.timedelta(seconds=current_app.config['worker_hashrate_fold'])
 
     # pull online status from cached pull direct from powerpool servers
     for worker, connection_summary in (cache.get('addr_online_' + address) or {}).iteritems():
@@ -394,17 +428,56 @@ def collect_user_stats(address):
     workers = [workers[key] for key in sorted(workers.iterkeys(), key=lambda tpl: tpl[1])]
     settings = UserSettings.query.filter_by(user=address).first()
 
+    # Generate payout history and stats for earnings all time
+    earning_summary = {}
+    def_earnings = dict(sent=dec('0'), earned=dec('0'), unconverted=dec('0'), immature=dec('0'))
+    # Go through already grouped aggregates
+    aggregates = PayoutAggregate.query.filter_by(user=address).all()
+    for aggr in aggregates:
+        currency = currencies.lookup_address(aggr.payout_address)
+        summary = earning_summary.setdefault(currency, def_earnings.copy())
+        if aggr.transaction_id:  # Mark sent if there's a txid attached
+            summary['sent'] += aggr.amount
+        else:
+            summary['earned'] += aggr.amount
+
+    # Loop through all unaggregated payouts to find the rest
+    payouts = Payout.query.filter_by(user=address, aggregate_id=None).options(db.joinedload('block')).all()
+    for payout in payouts:
+        # Group by their desired payout currency
+        payout_currency = currencies.lookup_address(payout.payout_address)
+        summary = earning_summary.setdefault(payout_currency, def_earnings.copy())
+
+        # For non-traded values run an estimate calculation
+        if payout.type == 1:  # PayoutExchange
+            if not payout.block.mature:
+                summary['immature'] += payout.payout_currency.est_value(payout_currency, payout.amount)
+            elif payout.block.mature and not payout.payable:
+                summary['unconverted'] += payout.payout_currency.est_value(payout_currency, payout.amount)
+            else:
+                summary['earned'] += aggr.final_amount
+        else:
+            if not payout.block.mature:
+                summary['immature'] += payout.amount
+            else:
+                summary['earned'] += payout.amount
+
+    earning_summary = str(earning_summary)
+
     # Show the user approximate next payout and exchange times
     now = datetime.datetime.now()
     next_exchange = now.replace(minute=0, second=0, microsecond=0, hour=((now.hour + 2) % 23))
     next_payout = now.replace(minute=0, second=0, microsecond=0, hour=0)
 
-    f_perc = Decimal(current_app.config.get('fee_perc', Decimal('0.02'))) * 100
+    f_perc = dec(current_app.config.get('fee_perc', dec('0.02'))) * 100
 
     return dict(workers=workers,
-                acct_items=collect_acct_items(address, 20),
+                payouts=payouts[:20],
+                aggregates=aggregates[:20],
                 settings=settings,
                 next_payout=next_payout,
+                earning_summary=earning_summary,
+                hide_hr=hide_hr,
                 next_exchange=next_exchange,
                 f_per=f_perc)
 
@@ -479,9 +552,9 @@ def validate_message_vals(**kwargs):
             raise CommandException("Invalid currency address passed!")
 
     try:
-        donate_perc = Decimal(donate_perc).quantize(Decimal('0.01')) / 100
+        donate_perc = dec(donate_perc).quantize(dec('0.01')) / 100
     except TypeError:
-        raise CommandException("Donate percentage unable to be converted to python Decimal!")
+        raise CommandException("Donate percentage unable to be converted to python dec!")
     else:
         if donate_perc > 100.0 or donate_perc < 0:
             raise CommandException("Donate percentage was out of bounds!")

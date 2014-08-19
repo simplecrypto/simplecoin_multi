@@ -7,6 +7,12 @@
 $(document).ready(function() {
   {# Initial graph generation #}
   generate_graph($('#chart'), {address: '{{ username }}'});
+
+  $('div.collapse-button').bind( "click", function() {
+      $(this).text(function(i,old){
+          return old=='[ - ]' ?  '[ + ]' : '[ - ]';
+      });
+  });
 });
 </script>
 {% if g.alerts  %}
@@ -39,8 +45,9 @@ $(document).ready(function() {
     <br>
   </div>
   <div class="row row-header">
-  <h2>Worker Hashrates</h2>
-  <div class="col-lg-12" id="chart">
+    <h2>Worker Hashrates
+      <div class="btn btn-default btn-sm collapse-button" data-toggle="collapse" data-target="#chart">{% if hide_hr %}[ + ]{% else %}[ - ]{% endif %}</div></h2>
+    <div class="col-lg-12 collapse {% if not hide_hr %}in{% endif %}" id="chart">
       <ul class="nav nav-tabs">
         <li class="tab hour"><a>Hour</a></li>
         <li class="tab day"><a>Day</a></li>
@@ -52,6 +59,7 @@ $(document).ready(function() {
   </div>
   </div>
 
+  {% if workers %}
   <div class="row page-header">
     <h2>Worker Status</h2>
     <br>
@@ -99,12 +107,27 @@ $(document).ready(function() {
     </div>
     {% endfor %}
   </div>
+  {% endif %}
+
 
   <div class="row row-header">
-    <h2>Account</h2>
+    <h2>Earning Overview</h2>
     <br>
-    {% set coin_symbol = config['coin_symbol'] %}
+    <pre>
+    {{ earning_summary }}
+    </pre>
+
+  <div class="row row-header">
+    <h2>Recent Payouts</h2>
+    <br>
+    {% include "aggregate_table.html" %}
+    <a href="/{{ username }}/aggr_account">View all account transactions</a>
+  </div>
+
+  <div class="row row-header">
+    <h2>Recent Block Credits</h2>
+    <br>
     {% include "acct_table.html" %}
-    <a href="/{{ username }}/account">View all account transactions</a>
+    <a href="/{{ username }}/account">View all recent credits</a>
   </div>
 {% endblock %}

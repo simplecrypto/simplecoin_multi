@@ -6,11 +6,11 @@ from collections import namedtuple
 from datetime import datetime, timedelta
 from flask import current_app
 from sqlalchemy.schema import CheckConstraint
-from sqlalchemy.ext.declarative import AbstractConcreteBase
 from cryptokit import bits_to_difficulty
 
 from .model_lib import base
-from . import db, sig_round, currencies
+from .filters import sig_round
+from . import db, currencies
 
 
 def make_upper_lower(trim=None, span=None, offset=None, clip=None, fmt="dt"):
@@ -279,6 +279,10 @@ class Payout(base):
         return self.block.height
 
     @property
+    def payout_currency(self):
+        return currencies[self.block.currency]
+
+    @property
     def status(self):
 
         if self.block.orphan:
@@ -379,10 +383,24 @@ class PayoutAggregate(base):
     user = db.Column(db.String)
     payout_address = db.Column(db.String, nullable=False)
     currency = db.Column(db.String, nullable=False)
-    amount = db.Column(db.BigInteger, CheckConstraint('amount > 0',
-                                                      'min_payout_amount'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    amount = db.Column(db.Numeric, CheckConstraint('amount > 0',
+                                                   'min_aggregate_amount'))
     count = db.Column(db.SmallInteger)
-    locked = db.Column(db.Boolean, default=False)
+
+    @property
+    def payout_currency(self):
+        return currencies.lookup_address(self.payout_address)
+
+    @property
+    def status(self):
+        if self.transaction_id:
+            return self.transaction_id
+        return "Payout pending"
+
+    @property
+    def timestamp(self):
+        return calendar.timegm(self.found_at.utctimetuple())
 
     @classmethod
     def create(cls, txid, user, amount, payout_address, count=None):

@@ -4,7 +4,7 @@
 {% block body %}
 
 <br />
-{% include "acct_table.html" %}
+{% include table %}
 <ul class="pager">
   <li class="previous {% if not page %}disabled{% endif %}"><a href="?page={{ page - 1 }}">&larr; Newer</a></li>
   <li class="next"><a href="?page={{ page + 1 }}">Older &rarr;</a></li>

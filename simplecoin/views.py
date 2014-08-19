@@ -7,7 +7,7 @@ import json
 from flask import (current_app, request, render_template, Blueprint, jsonify,
                    g, session, Response)
 
-from .models import Block, ShareSlice, UserSettings, PayoutAddress, make_upper_lower
+from .models import Block, ShareSlice, UserSettings, PayoutAddress, make_upper_lower, Payout, PayoutAggregate
 from . import db, root, cache, currencies
 from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
                     get_alerts, resort_recent_visit, collect_acct_items,
@@ -46,15 +46,24 @@ def blocks(currency=None):
     return render_template('blocks.html', blocks=blocks, page=page)
 
 
-@main.route("/<address>/account")
-def account(address, currency=None):
+@main.route("/<address>/account", defaults={'type': 'payout'})
+@main.route("/<address>/aggr_account", defaults={'type': 'aggr'})
+def account(address, type):
     page = int(request.args.get('page', 0))
     if page < 0:
         page = 0
     offset = page * 100
 
-    acct_items = collect_acct_items(address, limit=100, offset=offset)
-    return render_template('account.html', acct_items=acct_items, page=page)
+    if type == "aggr":
+        aggrs = (PayoutAggregate.query.filter_by(user=address).join(Payout.block).
+                 order_by(PayoutAggregate.created_at.desc()).limit(100).offset(offset))
+        return render_template('account.html', aggregates=aggrs, page=page,
+                               table="aggregate_table.html")
+    else:
+        payouts = (Payout.query.filter_by(user=address).join(Payout.block).
+                   order_by(Block.found_at.desc()).limit(100).offset(offset))
+        return render_template('account.html', payouts=payouts, page=page,
+                               table="acct_table.html")
 
 
 @main.route("/pool_stats")
