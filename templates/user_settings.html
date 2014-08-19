@@ -5,107 +5,6 @@
 {% endblock %}
 {% block body %}
 
-<script xmlns="http://www.w3.org/1999/html">
-$(document).ready(function() {
-   var interval = null;
-
-  ZeroClipboard.config( { moviePath: '//cdnjs.cloudflare.com/ajax/libs/zeroclipboard/1.3.5/ZeroClipboard.swf' } );
-
-  var client = new ZeroClipboard($("#copy-button"));
-  client.on("complete", function(client, args) {
-    $("#copied-notif").show();
-    setTimeout(function(){
-      $("#copied-notif").fadeOut();
-    }, 1000);
-  });
-
-  $(".address-field").on("blur", function(event) {
-    var curr = $(this).attr("name");
-    var addr = $(this).val();
-    if (addr == '') {
-      $("input#" + curr).siblings('span').html("Input a valid " + curr + " address");
-      return
-    }
-    $("input#" + curr).siblings('span').html("<i class='fa fa-spinner fa-spin'></i> Checking address validity");
-    var json = [curr, addr];
-    $.ajax({
-      type: "POST",
-      dataType: "json",
-      contentType: "application/json; charset=utf-8",
-      url: "/validate_address",
-      data: JSON.stringify(json)
-    }).done(function(data) {
-      for (var property in data) {
-        if (data.hasOwnProperty(property)) {
-            $("span#" + curr).html("");
-            if (data[property] == true) {
-              $("input#" + curr).siblings('span').html("<span style='color:#5cb85c;'><i class='fa fa-check'></i> Valid " + curr + " address</span>");
-              setTimeout(function(){
-                $("span#" + curr).parents("div.form-group").css("background-color", "transparent");
-              }, 1000);
-            } else {
-              $("input#" + curr).siblings('span').html("<span style='color:#ff8859;'><i class='fa fa-exclamation-triangle'></i> Invalid " + curr + " address</span>");
-            }
-        }
-      }
-    });
-  });
-
-  $("#settings-form").on("submit", function(event) {
-    event.preventDefault();
-
-    var textarea = $("#message-div").html();
-    $("#message-div").html("<img src='{{ config['assets_address'] | safe }}/img/712.GIF' style='margin-left: auto; margin-right:auto; display:block; padding:35px;'>");
-
-    clearInterval(interval);
-    $("#message-notif").css('color', '#58CF58');
-
-    // serialize the data in the form
-    var serializedData = $(this).serialize();
-
-    $.ajax({
-      type: "POST",
-      url: "/generate_message",
-      data: serializedData,
-    }).done(function(data) {
-      $("#message-div").html(textarea);
-      if('errors' in data) {
-        for (var property in data.errors) {
-          if (data.errors.hasOwnProperty(property)) {
-            $("#"+property).siblings("span").addClass("alert alert-danger");
-            var span_text = $("#"+property).siblings("span").text();
-            $("#"+property).siblings("span").text(span_text + " - Invalid value (" + data.errors[property] + ")");
-          }
-        }
-      } else {
-        $("#message").text(data.msg_str);
-        $("#sub-message").val(data.msg_str);
-        $("#message-notif").show();
-        var seconds_left = 15 * 60;
-        interval = setInterval(function () {
-          function n(n){
-              return n > 9 ? "" + n: "0" + n;
-          }
-          seconds_left = seconds_left - 1;
-          var minutes = parseInt(seconds_left / 60);
-          var seconds = n(parseInt(seconds_left % 60));
-
-          // format countdown string + set tag value
-          $("#message-notif").html("Valid for " + minutes + ":" + seconds + " minutes");
-
-          if (seconds_left <= 0) {
-            $("#message-notif").html("No longer valid");
-            $("#message-notif").css('color', 'red');
-            clearInterval(interval);
-          }
-        }, 1000);
-      }
-
-    });
-  });
-});
-</script>
-
 <div class="container">
   <div class="row page-header" style="padding-bottom:10px;">
     <div class="col-sm-12" style="padding:0px;">
@@ -203,7 +102,13 @@ $(document).ready(function() {
             <label for="{{ currency }}" class="col-sm-3 control-label">{{ currency }}:</label>
             <div class="col-sm-7">
               <input type="text" class="form-control address-field" name="{{ currency }}" id="{{ currency }}" value="{{ address_obj.address }}">
-              <span class="help-block" style="margin-bottom:0px;">Input a valid {{ currency }} address</span>
+              <span class="help-block help-text">Input a valid {{ currency }} address</span>
+              <span class="help-block checking-address">
+                <i class='fa fa-spinner fa-spin'></i> Checking address validity</span>
+              <span class="help-block invalid-address">
+                <i class='fa fa-exclamation-triangle'></i> Invalid <span class="address-currency"></span> address</span>
+              <span class="help-block valid-address">
+                <i class='fa fa-check'></i> Valid <span class="address-currency"></span> address</span>
             </div>
             <div class="col-sm-1"><span id="{{ currency }}"></span></div>
           </div>
@@ -215,7 +120,7 @@ $(document).ready(function() {
             <label for="{{ currency }}" class="col-sm-3 control-label">{{ currency }}:</label>
             <div class="col-sm-7">
               <input type="text" class="form-control address-field" name="{{ currency }}" id="{{ currency }}" value="{{ address_obj.address }}">
-              <span class="help-block" style="margin-bottom:0px;">Input a valid {{ currency }} address</span>
+              <span class="help-block">Input a valid {{ currency }} address</span>
             </div>
             <div class="col-sm-1"><span id="{{ currency }}"></span></div>
           </div>

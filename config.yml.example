@@ -7,6 +7,39 @@ mining_servers:
       monitor: 3855
       algo: scryptn
       unique_id: 1
+
+# Default values for new miner config
+default_stratum_url: stratum+tcp://stratum.simplemulti.com
+default_stratum_port: 3363
+
+stratums:
+    - address: stratum+tcp://ca.simplemulti.com
+      location_acronym: CA
+      location: Beauharnois, Canada
+      country_flag: "/img/ca.svg"
+    - address: stratum+tcp://uk.simplemulti.com
+      location_acronym: UK
+      location: London, United Kingdom
+      country_flag: "/img/uk.svg"
+
+ports:
+    # List containing each mining port. Each of these ports should be open on
+    # every server (or it'll be very confusing to users)
+    Scrypt:
+      - port: 3363
+        diff: 64-2048
+        title: LTC/Doge
+        pp_location: http://localhost:3856/
+      - port: 3363
+        diff: 64-2048
+        title: LTC/Doge
+        pp_location: http://localhost:3856/
+    X11:
+      - port: 3363
+        diff: 64-2048
+        title: Hidiff
+        pp_location: http://localhost:3856/
+
 # The postgresql database connection configuration
 SQLALCHEMY_DATABASE_URI: postgresql://simplecoin:testing@localhost:5432/simplecoin
 # the session encryption key
@@ -119,6 +152,8 @@ block_bonus: 0
 # =======================================================================
 # the colloquial name of the coin
 site_title: SimpleMulti
+# the FQDN
+site_url: http://www.simplemulti.com
 coin_name: Multi
 # host for static assets e.g. {assets_address}/css/main.css
 assets_address: /static

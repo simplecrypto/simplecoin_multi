@@ -173,10 +173,34 @@ g.axis {
     float:right;
     z-index: 100;
     font-weight: bold;
-    position:relative;
-    top:-4px;
-    left:2px;
+    /*position:relative;*/
+    /*top:-4px;*/
+    /*left:2px;*/
     min-width:42px;
+    font-family:monospace;
+}
+
+.help-block {
+    margin-bottom:0px;
+}
+.help-block.invalid-address {
+    display:none;
+    color:#ff8859;
+}
+.help-block.valid-address {
+    display:none;
+    color:#5cb85c;;
+}
+.help-block.checking-address {
+    display:none;
+}
+
+div.content-well {
+    min-height:140px;
+    background-color:#212F3D;
+}
+div.well.active {
+    background-color:green;
 }
 
 .pointer {

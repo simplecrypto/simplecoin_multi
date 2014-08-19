@@ -20,7 +20,12 @@ main = Blueprint('main', __name__)
 @main.route("/")
 def home():
     news = yaml.load(open(root + '/static/yaml/news.yaml'))
-    return render_template('home.html', news=news)
+    payout_currencies = currencies.payout_currencies()
+    return render_template('home.html', news=news, payout_currencies=payout_currencies)
+
+@main.route("/configuration_guide")
+def configuration_guide():
+    return render_template('config_guide_wrapper.html')
 
 
 @main.route("/news")
@@ -225,15 +230,21 @@ def handle_message(address, curr):
 def validate_address():
     if request.method == "POST":
         addr = request.json
-        try:
-            curr = currencies.lookup_address(addr[1])
-        except AttributeError:
-            return jsonify({addr[0]: False})
+        currency = addr[0]
+        address = addr[1]
 
-        if not curr.key == addr[0]:
-            return jsonify({addr[0]: False})
+        try:
+            curr = currencies.lookup_address(address)
+        except AttributeError:
+            return jsonify({currency: False})
+
+        if currency == 'Any':
+            return jsonify({curr.key: True})
+
+        if not curr.key == currency:
+            return jsonify({currency: False})
         else:
-            return jsonify({addr[0]: True})
+            return jsonify({currency: True})
 
 
 @main.route("/generate_message", methods=['POST'])
@@ -307,7 +318,9 @@ def settings(address):
     user_addresses = {}
     if not user:
         d_perc = 0
+        anon = None
     else:
+        anon = user.anon
         d_perc = user.hr_perc
         for addr in user.addresses:
             user_addresses[addr.currency] = (addr)
@@ -334,7 +347,7 @@ def settings(address):
                            d_perc=d_perc,
                            user_currency=curr.name,
                            user_currency_name=curr.key,
-                           anon=user.anon,
+                           anon=anon,
                            exchangeable_currencies=exchangeable_currencies,
                            unexchangeable_currencies=unexchangeable_currencies)
 

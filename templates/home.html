@@ -2,102 +2,96 @@
 {% set active_page = "home" %}
 {% set page_title = "Home - A custom " ~ (config['coin_name'] | safe) ~ "coin mining pool with no registration" %}
 {% block body %}
-<script>
-$(document).ready(function() {
-  //  Action stats form based on input val
-    $('#statsform').submit(function(){
-      var address = $('#inputAddress').val();
-      $(this).attr('action', "/" + address);
-    });
-});
-</script>
 
-<!-- Img ================================================== -->
+<!-- How it works ================================================== -->
 
-<div class="row">
-  <div class="col-lg-5">
-    <div class="text-center">
-      <img class=" hidden-xs" src="{{ config['assets_address'] | safe }}{{ config['leader'] | safe }}" width="450">
-      <img class="hidden-sm hidden-md hidden-lg" src="{{ config['assets_address'] | safe }}{{ config['leader-sm'] | safe }}" width="275">
+  <div class="row" style="padding-bottom:10px;">
+    <div class="col-sm-5">
+
+      <div class="panel panel-default" style="min-height: 250px;">
+        <div class="panel-heading">Pool Details
+        </div>
+        <div class="panel-body">
+          <ul>
+            <li>No registration - use your wallet address as a username</li>
+            <li>Autoexchange mining rewards to your desired currency</li>
+            <li>Seamless merge mining</li>
+            <li>{{ config['fee_perc']|float * 100 }}% pool fee</li>
+            <li>No transaction fees</li>
+            <li>No currency conversion fees</li>
+            <li>Vardiff enabled + manual difficulty selection available</li>
+            <li>Daily payouts - No minimum amount</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="panel panel-default" style="min-height: 250px;">
+        <div class="panel-heading">Payouts + currency conversion info
+        </div>
+        <div class="panel-body">
+          <p>You can mine with any valid address for a currency we pay out in. {{ payout_currencies }}</p>
+          <p>Your earnings are (by default) converted to the currency of that address</p>
+          <p>If you want to keep a specific coin, instead of converting
+            it, just add a payout address for it to your account.</p>
+        </div>
+      </div>
+
     </div>
-    <div class="well well-lg well-clear">
-      <h3>New to Cryptocurrency?</h3>
-    Check out a detailed step-by-step guide on {{ config['beginner_guide']|safe }},
-    or look at some of our <a href="/guides/">guides</a>.
-    </div>
-  </div>
-
 <!-- Quick start ================================================== -->
 
-  <div class="col-lg-7">
-    <div class="well well-lg" style="padding-right:30px;">
-      <h3>Quick start for mining:</h3>
-      <h4><b>No registration required, payouts go to the address used as username.</b></h4>
-      <ol>
-          <li>Configure your stratum client with the information below. Worker name can be anything you'd like:
-            <small>
-              <pre><b>URL: </b>stratum+tcp://{{ config['stratum_address'] }}
-<b>Port:</b> {{ config['stratum_port'] }}
-<b>Username: </b>[Your wallet address].[Worker Name]
-<b>Password: </b>anything
-<b>cgminer example:</b> ./cgminer -o stratum+tcp://{{ config['stratum_address'] }}:{{ config['stratum_port'] }} -u {{ config['donate_address'] }}.worker1 -p x -I 13</pre>
-            </small>
-          </li>
-          <li>Check your stats and estimated payout by entering your {{ config['coin_name'] }} address below:</li>
-          <div class="form-group">
-            <form class="bs-example form-horizontal" id="statsform">
-              <fieldset>
-                <div class="form-group">
-                  <div class="col-lg-9">
-                    <input type="text" class="form-control" id="inputAddress" placeholder="{{ config['coin_name'] }} Address">
-                    <span class="help-block">
-                        Paste your {{ config['coin_name'] }} address for quick access to individualized stats.
-                        {% if 'recent_users' in session %}
-                          <h4>Recently Visited Stats:</h4>
-                          {% for address, _ in session['recent_users'][:2] %}
-                          <h5><a href="/{{ address }}">{{ address }}</a></h5>
-                          {% endfor %}
-                        {% endif %}
-                    </span>
+    <div class="col-lg-7">
+      <div class="panel panel-default">
+        <div class="panel-heading">Quick start for mining:
+        </div>
+        <div class="panel-body">
+          <h4><b>No registration required, payouts go to the address used as username.</b></h4>
+          <ol>
+              <li>Configure your stratum client with the information below and start mining:
+                <small>
+                  <div class="well well-lg" style="min-height:130px;background-color:#212F3D;">
+                    <b>URL: </b>{{ config['default_stratum_url'] }}<br>
+                    <b>Port:</b> {{ config['default_stratum_port'] }}<br>
+                    <b>Username: </b>[Your wallet address].[Worker Name]<br>
+                    <b>Password: </b>x<br>
+                    <b>sgminer example:</b> ./sgminer -o {{ config['default_stratum_url'] }}:{{ config['default_stratum_port'] }} -u {{ config['donate_address'] }}.worker1 -p x -I 13
                   </div>
-                  <button type="submit" class="btn btn-default">View Stats</button>
-                </div>
-              </fieldset>
-            </form>
+                </small>
+              </li>
+              <li>Check your stats and estimated payout by entering your Payout address below:</li>
+              <div class="form-group">
+                <form class="bs-example form-horizontal" id="statsform">
+                  <fieldset>
+                    <div class="form-group">
+                      <div class="col-lg-9">
+                        <input type="text" class="form-control" id="inputAddress" placeholder="Payout Address">
+                        <span class="help-block">
+                        If your stats are still blank after a few minutes double check your config
+                        </span>
+                      </div>
+                      <button type="submit" class="btn btn-default">View Stats</button>
+                    </div>
+                  </fieldset>
+                </form>
+              </div>
+              <li>Configure your account on your user stats page. Set addresses for
+                currencies you don't want to be exchanged, add a donation to the
+                pool, etc
+              </li>
+              <li>Setup advanced stats to track GPU temps and actual hashrate with
+                <a href="https://github.com/simplecrypto/ppagent">Powerpool Agent</a>
+              </li>
+            </ol>
           </div>
-          <li>Setup advanced stats to track GPU temps and actual hashrate with
-            <a href="https://github.com/simplecrypto/ppagent">Powerpool Agent</a>
-          </li>
-        </ol>
+          <div class="well well-lg" style="text-align:center;background-color:#212F3D;">
+            <h3 data-toggle="collapse" data-target="#miner-config">View the full configuration guide
+              <div id="config-guide" class="btn btn-default pull-right btn-sm collapse-button">[+]</div></h3>
+          </div>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- Value points ================================================== -->
+{% include "configuration_guide.html" %}
 
-<div class="row">
-  <div class="col-md-4">
-    <div class="well well-lg" style="height: 180px;">
-      <h3><i class="fa fa-times too-damn-bright"></i> &nbsp;No registration</h3>
-      Unlike most pools, we don't require, or even provide, registration. Simply connect to our stratum servers with your wallet address. 
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="well well-lg" style="height: 180px;">
-      <h3><i class="fa fa-lock too-damn-bright"></i> &nbsp;Secure</h3>
-      No registration means your credentials can't become compromised, because
-      you don't have any! All pool funds are kept off server for increased
-      security.
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="well well-lg" style="height: 180px;">
-      <h3><i class="fa fa-clock-o too-damn-bright"></i> &nbsp;No minimum Payout</h3>
-      Payouts are processed every time a block is solved. No minimum balance required. Payouts are computed using PPLNS with a 0% fee.
-      The default donation amount is 1%, lowerable to 0%
-    </div>
-  </div>
-</div>
 
 <!-- Cool Features ================================================== -->
 
@@ -143,24 +137,6 @@ $(document).ready(function() {
         </div>
       </div>
     </div>
-  </div>
-</div>
-
-
-<!-- News/Announcements ================================================== -->
-<h2>News</h2>
-<div class="row row-header">
-  <div class="col-lg-12">
-    {% for new in news[:3] %}
-    <div class="panel panel-default">
-      <div class="panel-heading">{{ new['title']|safe }}
-        <span class="text-muted pull-right">{{ new['date']|safe }}</span>
-      </div>
-      <div class="panel-body">
-        <p>{{ new['body']|safe }}</p>
-      </div>
-    </div>
-    {% endfor %}
   </div>
 </div>
 {% endblock %}

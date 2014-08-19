@@ -1,0 +1,160 @@
+<div id="miner-config" class="panel panel-default{% if active_page != "config" %} collapse{% endif %}">
+  <div class="panel-heading">Step 1. Pick the region nearest to you</div>
+  <div class="panel-body">
+    <div class="row">
+      <div class="col-sm-11 col-sm-offset-1">
+        <form class="form-inline" role="form">
+          {% for stratum in config['stratums'] %}
+          <div class="col-sm-4">
+            <label class="radio-inline" style="width:100%;">
+              <input type="radio" name="region" class="form-control server-region" value="{{ stratum['address'] }}">
+              <h4><img src="{{ config['assets_address'] | safe }}{{ stratum['country_flag'] }}"
+                       style="width:25px;" class="too-damn-bright"> &nbsp;{{ stratum['location'] }}</h4>
+              <b>URL</b>: {{ stratum['address'] }}
+            </label>
+          </div>
+          {% endfor %}
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel-heading">Step 2. Pick a port
+  </div>
+  <div class="panel-body">
+    <div class="row">
+{#            <div class="alert alert-dismissable alert-warning">#}
+{#              <button type="button" class="close" data-dismiss="alert">×</button>#}
+{#              <b>If you have 8MH or more you need to use the high difficulty port -#}
+{#              Our anti-DOS settings may autoban or rate limit you from lower difficulties</b>#}
+{#            </div>#}
+      <div class="col-sm-11 col-sm-offset-1">
+        <form class="form-horizontal" role="form">
+        {% for algo in config['ports'] %}
+        {% set rowloop = loop %}
+          <div class="col-sm-4">
+            <div class="col-sm-12 no-padding">
+              <h4>{{ algo }} Ports:</h4>
+            </div>
+            {% for port in config['ports'][algo] %}
+            <div class="radio">
+              <label>
+                <div class="col-sm-12 no-padding">
+                  <input type="radio" name="port" class="stratum-ports" value="{{ port['port'] }}">
+                  <b>{{ port['title'] }} Port:</b> {{ port['port'] }} (diff {{ port['diff'] }})
+                </div>
+              </label>
+            </div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel-heading">Step 3. Set a username</div>
+  <div class="panel-body">
+    <div class="row">
+      <form class="form-horizontal" role="form">
+          <div class="form-group">
+            <label for="donateAmount" class="col-sm-2 control-label">Payout address:</label>
+            <div class="col-sm-5">
+              <input type="text" class="form-control user-address-field" id="donateAmount" name="Any">
+              <span class="help-block help-text">
+                A valid address for the currency you'd like to be paid out in</span>
+              <span class="help-block checking-address">
+                <i class='fa fa-spinner fa-spin'></i> Checking address validity</span>
+              <span class="help-block invalid-address">
+                <i class='fa fa-exclamation-triangle'></i> Invalid <span class="address-currency"></span> address</span>
+              <span class="help-block valid-address">
+                <i class='fa fa-check'></i> Valid <span class="address-currency"></span> address</span>
+            </div>
+          </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="panel-heading">Step 4. Configure your first worker (optional settings)</div>
+  <div class="panel-body">
+    <form class="form-horizontal" role="form">
+
+      <div class="row">
+        <div class="form-group">
+          <label for="donateAmount" class="col-sm-2 control-label">Workername:</label>
+          <div class="col-sm-5">
+            <input type="text" class="form-control" id="workername" name="workername" value="worker1">
+            <span class="help-block" style="margin-bottom:0px;">Alphanumeric characters only</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label for="donateAmount" class="col-sm-2 control-label">Difficulty:</label>
+          <div class="col-sm-5">
+            <input type="text" class="form-control" id="mining-diff" name="mining-diff">
+            <span class="help-block" style="margin-bottom:0px;">Don't set this unless you know what you're doing. Must be a value in the vardiff range</span>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="panel-heading">Step 5. Configure your miner</div>
+  <div class="panel-body">
+    <div class="row">
+      <div class="col-sm-10 col-sm-offset-1">
+        <div class="well well-lg" style="min-height:130px;background-color:#212F3D;">
+          <b>URL: </b><span class="stratum-url"><span style="color:red">Select region above</span></span><br>
+          <b>Port:</b> <span class="stratum-port"><span style="color:red">Select port above</span></span><br>
+          <b>Username: </b><span class="mining-username"><span style="color:red">Fill in username above</span></span><span class="mining-workername">.worker1</span><br>
+          <b>Password: </b><span class="mining-diff">x</span><br>
+          <b>Commandline example:</b> ./sgminer
+          -o stratum+tcp://<span class="stratum-url"><span style="color:red">Select region above</span></span>:
+          <span class="stratum-port"><span style="color:red">Select port above</span></span>
+          -u <span class="mining-username"><span style="color:red">Fill in username above</span></span>
+          <span class="mining-workername">.worker1</span>
+          -p <span class="mining-diff">x</span> -I 13
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel-heading">Step 6. Make sure your hashrate shows up</div>
+  <div class="panel-body">
+    <div class="row">
+      <div class="col-sm-11 col-sm-offset-1">
+        <p><b>Stats link</b>:
+          <span id="stats-link" data-url="{{ config['site_url'] }}">
+            {{ config['site_url'] }}/<span class="mining-username">[Your Payout Address]</span>
+          </span>
+        </p>
+        <p>After a few minutes of mining your stats page should be showing a
+          graph and hashrate for your miners. If it isn't, double check your
+          configs.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel-heading">Step 7. Edit your account settings</div>
+  <div class="panel-body">
+    <div class="row">
+      <div class="col-sm-11 col-sm-offset-1">
+        <p><b>Settings link</b>:
+          <span id="settings-link" data-url="{{ config['site_url'] }}/user_settings">
+            {{ config['site_url'] }}/user_settings/<span class="mining-username">[Your Payout Address]</span>
+          </span>
+        </p>
+        More configuration of your account is available on your account
+          settings page. Including:
+        <ul>
+          <li>Setting additional payout addresses (this is required in order to collect some merged mining rewards!)</li>
+          <li>Add a donation to the pool</li>
+          <li>Enable privacy (hides your address on the leaderboard)</li>
+        </ul>
+        <span style="display:none;">Visit the <a id="settings-link" href="#">settings page</a> for your account to get started / learn more.</span>
+      </div>
+    </div>
+  </div>
+</div>
