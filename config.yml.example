@@ -167,6 +167,60 @@ leader-sm: "/img/doge-miner-sm.jpg"
 leader: "/img/doge-miner.jpg"
 rpc_signature: test
 
+# Main Nav Links
+# =======================================================================
+navbar:
+    left_nav:
+        - title: Home
+          icon: home
+          link: /
+          active_key: home
+        - title: Getting Started
+          icon: cog
+          link: /configuration_guide
+          active_key: config
+        - title: User Stats
+          icon: user
+          link: /stats
+          active_key: stats
+        - title: Pool Stats
+          icon: life-ring
+          link: /pool_stats
+          active_key: pool_stats
+        - title: Leaderboard
+          icon: bar-chart-o
+          link: /leaderboard
+          active_key: leaderboard
+        - title: Extras
+          icon: star
+          link: \#
+          active_key: ''
+          dropdown:
+            - title: Simple Crypto Website
+              icon: globe
+              link: http://www.simplecryptogroup.com
+            - title: Source Code
+              icon: github
+              link: http://www.github.com/simplecrypto/simplecoin
+    right_nav:
+        - title: Contact Us
+          icon: bullhorn
+          link: \#
+          active_key: ''
+          dropdown:
+            - title: Email
+              icon: envelope
+              link: mailto:simplecryptogroup@gmail.com
+            - title: IRC
+              icon: comments
+              link: https://kiwiirc.com/client/irc.freenode.net/#simplecrypto
+            - title: Reddit
+              icon: reddit
+              link: http://www.reddit.com/r/simplecrypto
+            - title: Github
+              icon: github
+              link: http://www.github.com/simplecrypto/
+
 # Logging
 # =======================================================================
 # where all webserver exceptions and logging messages will get put

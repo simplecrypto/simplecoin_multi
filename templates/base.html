@@ -53,40 +53,39 @@
         </div>
     </div>
     <div class="row">
-      <div class="navbar navbar-default">
-        <div class="navbar-collapse navbar-responsive-collapse">
-          <ul class="nav navbar-nav">
-            <li{% if active_page == "home" %} class="active"{% endif %}><a href="/"><i class="fa fa-home too-damn-bright"></i> &nbsp;Home</a></li>
-            <li{% if active_page == "config" %} class="active"{% endif %}><a href="/configuration_guide"><i class="fa fa-cog too-damn-bright"></i> &nbsp;Getting Started</a></li>
-          </ul>
-          <ul class="nav navbar-nav hidden-xs hidden-sm hidden-md">
-            <li{% if active_page == "news" %} class="active"{% endif %}><a href="/news"><i class="fa fa-microphone too-damn-bright"></i> &nbsp;News</a></li>
-            {% set chat_url = config.get('chat_url', '') %}
-            {% if chat_url != '' %}
-            <li><a href="{{ chat_url | safe }}" target="_blank"><i class="fa fa-comments too-damn-bright"></i> &nbsp;Chat</a></li>
-            {% endif %}
-            <li class="{% if active_page == "pool_stats" %} active{% endif %}"><a href="/pool_stats"><i class="fa fa-bar-chart-o too-damn-bright"></i> &nbsp;Pool Stats</a></li>
-            <li class="{% if active_page == "stats" %} active{% endif %}"><a href="/stats"><i class="fa fa-user too-damn-bright"></i> &nbsp;User Stats</a></li>
-          </ul>
-          <ul class="nav navbar-nav hidden-lg">
-            <li class="dropdown{% if active_page == "stats" or active_page == "pool_stats" or active_page == "round_summary" %} active{% endif %}">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="fa fa-bar-chart-o too-damn-bright"></i> &nbsp;Stats <b class="caret"></b></a>
-              <ul class="dropdown-menu" style="width:100%;">
-                <li><a href="/pool_stats"><i class="fa fa-dashboard too-damn-bright"></i> &nbsp;Pool Stats</a></li>
-                <li><a href="/stats"><i class="fa fa-user too-damn-bright"></i> &nbsp;User Stats</a></li>
-                <li><a href="/network_stats"><i class="fa fa-globe too-damn-bright"></i> &nbsp;Network Stats</a></li>
-                <li><a href="/round_summary"><i class="fa fa-flag too-damn-bright"></i> &nbsp;Round Summary</a></li>
-              </ul>
-            </li>
-            <li class="dropdown">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="fa fa-star too-damn-bright"></i> &nbsp;Extras <b class="caret"></b></a>
-              <ul class="dropdown-menu" style="width:100%;">
-                <li{% if active_page == "news" %} class="active"{% endif %}><a href="/news"><i class="fa fa-microphone too-damn-bright"></i> &nbsp;News</a></li>
-                <li{% if active_page == "guides" %} class="active"{% endif %}><a href="/guides/"><i class="fa fa-book too-damn-bright"></i> &nbsp;Guides</a></li>
-              </ul>
-            </li>
-          </ul>
+      <div class="bs-component">
+        <div class="navbar navbar-default">
+          <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-responsive-collapse">
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+          </div>
+          <div class="navbar-collapse collapse navbar-responsive-collapse">
+          {% for nav in config['navbar'] %}
+            <ul class="nav navbar-nav{% if nav == 'right_nav' %} navbar-right{% endif %}">
+              {% for nl in config['navbar'][nav] %}
+                {% if nl.dropdown %}
+                  <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                      <i class="fa fa-{{ nl.icon }} too-damn-bright"></i> &nbsp;{{ nl.title }} <b class="caret"></b></a>
+                    <ul class="dropdown-menu">
+                      {% for l in nl.dropdown %}
+                      <li><a href="{{ l.link }}"><i class="fa fa-{{ l.icon }} too-damn-bright"></i> &nbsp;{{ l.title }}</a></li>
+                      {% endfor %}
+                    </ul>
+                  </li>
+                {% else %}
+                  <li{% if active_page == nl.active_key %} class="active"{% endif %}>
+                    <a href="{{ nl.link }}"><i class="fa fa-{{ nl.icon }} too-damn-bright"></i> &nbsp;{{ nl.title }}</a></li>
+                {% endif %}
+              {% endfor %}
+            </ul>
+          {% endfor %}
+          </div>
         </div>
+      <div id="source-button" class="btn btn-primary btn-xs" style="display: none;">&lt; &gt;</div>
       </div>
     </div>
 
