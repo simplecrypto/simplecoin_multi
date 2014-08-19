@@ -34,15 +34,18 @@ def news():
     return render_template('news.html', news=news)
 
 
-@main.route("/blocks")
+@main.route("/merge_blocks", defaults={"q": Block.merged_type != None})
+@main.route("/blocks", defaults={"q": Block.merged_type == None})
 @main.route("/blocks/<currency>")
-def blocks(currency=None):
+def blocks(q, currency=None):
     page = int(request.args.get('page', 0))
     if page < 0:
         page = 0
     offset = page * 100
-    blocks = (db.session.query(Block).filter_by(merged_type=currency).
-              order_by(Block.height.desc()).offset(offset).limit(100))
+    blocks = (db.session.query(Block).filter(q).
+              order_by(Block.found_at.desc()).offset(offset).limit(100))
+    if currency:
+        blocks = blocks.filter_by(currency=currency)
     return render_template('blocks.html', blocks=blocks, page=page)
 
 
@@ -79,10 +82,14 @@ def pool_stats():
         server_status = None
 
     blocks = (db.session.query(Block).filter_by(merged_type=None).
-              order_by(Block.height.desc()).limit(blocks_show))
+              order_by(Block.found_at.desc()).limit(blocks_show))
+
+    merge_blocks = (db.session.query(Block).filter(Block.merged_type != None).
+                    order_by(Block.found_at.desc()).limit(blocks_show))
 
     return render_template('pool_stats.html',
                            blocks=blocks,
+                           merge_blocks=merge_blocks,
                            current_block=current_block,
                            server_status=server_status)
 

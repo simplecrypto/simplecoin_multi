@@ -80,4 +80,10 @@ $(document).ready(function() {
 <h2>Recently Mined Blocks</h2>
 {% include "block_table.html" %}
 <a href="/blocks">View all blocks</a>
+
+<br />
+<h2>Recently Merge Mined Blocks</h2>
+{% set blocks = merge_blocks %}
+{% include "block_table.html" %}
+<a href="/merge_blocks">View all merge blocks</a>
 {% endblock %}
