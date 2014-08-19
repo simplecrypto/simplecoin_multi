@@ -20,6 +20,7 @@
               <th>ID</th>
               <th>Time</th>
               <th>Currency</th>
+              <th>Payout Currency</th>
               <th>Shares Contributed</th>
               <th>Mined</th>
               <th>Donation %</th>
@@ -32,16 +33,17 @@
           <tbody>
             {% for payout in payouts %}
               <tr>
-                <th>{{ "{:,}".format(payout.id) }}</th>
-                <th data-sort-value="{{ payout.timestamp }}">{{ payout.block.found_at | human_date_utc }}</th>
-                <th>{{ payout.block.currency }}</th>
-                <th>{{ '{:,}'.format(payout.shares) }}</th>
-                <th title="{{ payout.mined }}">{{ payout.mined | sig_round(2) }}</th>
-                <th>{{ '{:,}'.format(payout.perc * 100) }}%</th>
-                <th data-sort-value="{{ perc_applied }}">{{ payout.text_perc_applied }}</th>
-                <th title="{{ payout.amount }}">{{ payout.amount | sig_round(2) }}</th>
-                <th>{{ '{:,}'.format(payout.block.height) }}</th>
-                <th>{{ payout.status }}</th>
+                <td>{{ "{:,}".format(payout.id) }}</td>
+                <td data-sort-value="{{ payout.timestamp }}">{{ payout.block.found_at | human_date_utc }}</td>
+                <td>{{ payout.block.currency }}</td>
+                <td>{{ payout.payout_currency }}</td>
+                <td>{{ '{:,}'.format(payout.shares) }}</td>
+                <td title="{{ payout.mined }}">{{ payout.mined | sig_round(2) }}</td>
+                <td>{{ '{:,}'.format(payout.perc * 100) }}%</td>
+                <td data-sort-value="{{ perc_applied }}">{{ payout.text_perc_applied }}</td>
+                <td title="{{ payout.amount }}">{{ payout.amount | sig_round(2) }}</td>
+                <td>{{ '{:,}'.format(payout.block.height) }}</td>
+                <td>{{ payout.status }}</td>
               </tr>
             {% endfor %}
 

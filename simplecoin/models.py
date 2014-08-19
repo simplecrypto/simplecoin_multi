@@ -249,6 +249,10 @@ class Payout(base):
                      'transaction_id']
 
     @property
+    def payout_currency(self):
+        return currencies.lookup_address(self.payout_address)
+
+    @property
     def amount_float(self):
         return float(self.amount)
 
@@ -279,7 +283,7 @@ class Payout(base):
         return self.block.height
 
     @property
-    def payout_currency(self):
+    def currency(self):
         return currencies[self.block.currency]
 
     @property
@@ -366,6 +370,10 @@ class PayoutExchange(Payout):
                 return "Sold on exchange, pending purchase"
 
         return "Pending sale on exchange"
+
+    @property
+    def est_value(self):
+        return self.currency.est_value(self.payout_currency, self.amount)
 
     @property
     def final_amount(self):

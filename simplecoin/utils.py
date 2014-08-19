@@ -430,12 +430,11 @@ def collect_user_stats(address):
 
     # Generate payout history and stats for earnings all time
     earning_summary = {}
-    def_earnings = dict(sent=dec('0'), earned=dec('0'), unconverted=dec('0'), immature=dec('0'))
+    def_earnings = dict(sent=dec('0'), earned=dec('0'), unconverted=dec('0'), immature=dec('0'), currency=None)
     # Go through already grouped aggregates
     aggregates = PayoutAggregate.query.filter_by(user=address).all()
     for aggr in aggregates:
-        currency = currencies.lookup_address(aggr.payout_address)
-        summary = earning_summary.setdefault(currency, def_earnings.copy())
+        summary = earning_summary.setdefault(aggr.payout_currency, def_earnings.copy())
         if aggr.transaction_id:  # Mark sent if there's a txid attached
             summary['sent'] += aggr.amount
         else:
@@ -445,15 +444,14 @@ def collect_user_stats(address):
     payouts = Payout.query.filter_by(user=address, aggregate_id=None).options(db.joinedload('block')).all()
     for payout in payouts:
         # Group by their desired payout currency
-        payout_currency = currencies.lookup_address(payout.payout_address)
-        summary = earning_summary.setdefault(payout_currency, def_earnings.copy())
+        summary = earning_summary.setdefault(payout.payout_currency, def_earnings.copy())
 
         # For non-traded values run an estimate calculation
         if payout.type == 1:  # PayoutExchange
             if not payout.block.mature:
-                summary['immature'] += payout.payout_currency.est_value(payout_currency, payout.amount)
+                summary['immature'] += payout.est_value
             elif payout.block.mature and not payout.payable:
-                summary['unconverted'] += payout.payout_currency.est_value(payout_currency, payout.amount)
+                summary['unconverted'] += payout.est_value
             else:
                 summary['earned'] += aggr.final_amount
         else:
@@ -462,7 +460,10 @@ def collect_user_stats(address):
             else:
                 summary['earned'] += payout.amount
 
-    earning_summary = str(earning_summary)
+    # Set the currency as a value of the summary dictionary so we can convert
+    # the dictionary of dictionaries into a list of dictionaries for rendering
+    for currency in earning_summary:
+        earning_summary[currency]['currency'] = currency
 
     # Show the user approximate next payout and exchange times
     now = datetime.datetime.now()
@@ -476,7 +477,8 @@ def collect_user_stats(address):
                 aggregates=aggregates[:20],
                 settings=settings,
                 next_payout=next_payout,
-                earning_summary=earning_summary,
+                earning_summary=earning_summary.values(),
+                earning_summary_keys=def_earnings.keys(),
                 hide_hr=hide_hr,
                 next_exchange=next_exchange,
                 f_per=f_perc)

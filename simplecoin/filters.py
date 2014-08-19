@@ -53,3 +53,7 @@ def human_date_utc(*args, **kwargs):
     delta = (datetime.datetime.utcnow() - args[0])
     delta = delta - datetime.timedelta(microseconds=delta.microseconds)
     return ago.human(delta, *args[1:], **kwargs)
+
+
+def currency(value):
+    return "{:,.7f}".format(float(value))
