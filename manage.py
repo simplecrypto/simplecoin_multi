@@ -4,7 +4,7 @@ from flask.ext.script import Manager, Shell
 from flask.ext.migrate import MigrateCommand
 from bitcoinrpc.authproxy import AuthServiceProxy
 
-from simplecoin import create_manage_app, db
+from simplecoin import create_manage_app, db, currencies, powerpools
 from simplecoin.rpc import RPCClient
 from simplecoin.scheduler import SchedulerCommand
 from simplecoin.models import Transaction, UserSettings, Payout
@@ -99,13 +99,8 @@ def update_tr(id, exchanged_quantity, fees):
 def make_context():
     """ Setup a coinserver connection fot the shell context """
     app = _request_ctx_stack.top.app
-    conn = AuthServiceProxy(
-        "http://{0}:{1}@{2}:{3}/"
-        .format(app.config['coinserv']['username'],
-                app.config['coinserv']['password'],
-                app.config['coinserv']['address'],
-                app.config['coinserv']['port']))
-    return dict(app=app, conn=conn)
+    import simplecoin.models as m
+    return dict(app=app, currencies=currencies, powerpools=powerpools, m=m)
 manager.add_command("shell", Shell(make_context=make_context))
 manager.add_command('db', MigrateCommand)
 manager.add_command('scheduler', SchedulerCommand)

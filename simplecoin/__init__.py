@@ -3,19 +3,22 @@ import logging
 import os
 import yaml
 import sys
-import ago
-import datetime
+import setproctitle
+import inspect
 
+from apscheduler.threadpool import ThreadPool
+from apscheduler.scheduler import Scheduler
 from decimal import Decimal
 from redis import Redis
-from datetime import timedelta
-from math import log10, floor
 from flask import Flask, current_app
 from flask.ext.cache import Cache
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.migrate import Migrate
 from jinja2 import FileSystemLoader
 from werkzeug.local import LocalProxy
+from autoex.exchange import ExchangeManager
+
+import simplecoin.filters as filters
 
 
 root = os.path.abspath(os.path.dirname(__file__) + '/../')
@@ -27,47 +30,60 @@ powerpools = LocalProxy(
     lambda: getattr(current_app, 'powerpools', None))
 redis_conn = LocalProxy(
     lambda: getattr(current_app, 'redis', None))
+exchanges = LocalProxy(
+    lambda: getattr(current_app, 'exchanges', None))
 
 
-def sig_round(x, sig=2):
-    if x == 0:
-        return "0"
-    return "{:,f}".format(round(x, sig - int(floor(log10(abs(x)))) - 1)).rstrip('0').rstrip('.')
-
-
-def create_app(config='/config.yml', standalone=False, log_level=None, management=False):
+def create_app(mode, config='/config.yml', log_level=None):
     # initialize our flask application
     app = Flask(__name__, static_folder='../static', static_url_path='/static')
 
     # set our template path and configs
     app.jinja_loader = FileSystemLoader(os.path.join(root, 'templates'))
     config_vars = dict(manage_log_file="manage.log",
-                       webserver_log_file="webserver.log")
+                       webserver_log_file="webserver.log",
+                       scheduler_log_file=None,
+                       log_level='INFO',
+                       worker_hashrate_fold=86400)
     config_vars.update(yaml.load(open(root + config)))
     # inject all the yaml configs
     app.config.update(config_vars)
     app.currencies = CurrencyKeeper(app.config['currencies'])
     app.powerpools = PowerPoolKeeper(app.config['mining_servers'])
+    app.exchanges = ExchangeManager(app.config['exchange_manager'])
 
-    if management:
-        # Add the management log file handler
-        hdlr = logging.FileHandler(app.config.get('manage_log_file', 'manage.log'))
-        hdlr.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
-        app.logger.addHandler(hdlr)
+    del app.logger.handlers[0]
+    app.logger.setLevel(logging.NOTSET)
+    log_format = logging.Formatter('%(asctime)s [%(name)s] [%(levelname)s]: %(message)s')
+    log_level = getattr(logging, str(log_level), app.config['log_level'])
 
-    app.logger.handlers[0].stream = sys.stdout
-    app.logger.handlers[0].setFormatter(logging.Formatter(
-        '%(asctime)s %(levelname)s: %(message)s'))
-    if log_level is not None:
-        level = getattr(logging, log_level)
-        app.logger.setLevel(level)
-        for handler in app.logger.handlers:
-            handler.setLevel(level)
+    logger = logging.getLogger()
+    logger.setLevel(log_level)
+    handler = logging.StreamHandler(stream=sys.stdout)
+    handler.setFormatter(log_format)
+    logger.addHandler(handler)
+
+    # Handle optionally adding log file writers for each different run mode
+    if mode == "manage" and app.config['manage_log_file']:
+        hdlr = logging.FileHandler(app.config['manage_log_file'])
+        hdlr.setFormatter(log_format)
+        logger.addHandler(hdlr)
+    if mode == "scheduler" and app.config['scheduler_log_file']:
+        hdlr = logging.FileHandler(app.config['scheduler_log_file'])
+        hdlr.setFormatter(log_format)
+        logger.addHandler(hdlr)
+    if mode == "webserver" and app.config['webserver_log_file']:
+        hdlr = logging.FileHandler(app.config['webserver_log_file'])
+        hdlr.setFormatter(log_format)
+        logger.addHandler(hdlr)
+
+    logging.getLogger("gunicorn.access").setLevel(logging.WARN)
+    logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(logging.INFO)
 
     # add the debug toolbar if we're in debug mode...
     # ##################
-    if app.config['DEBUG'] and not standalone:
-        # Log all stdout and stderr when in debug mode
+    if app.config['DEBUG'] and mode == "webserver":
+        # Log all stdout and stderr when in debug mode for convenience
         class LoggerWriter:
             def __init__(self, logger, level):
                 self.logger = logger
@@ -77,11 +93,8 @@ def create_app(config='/config.yml', standalone=False, log_level=None, managemen
                 if message != '\n':
                     self.logger.log(self.level, message)
 
-        sys.stdout = LoggerWriter(app.logger, logging.INFO)
-        sys.stderr = LoggerWriter(app.logger, logging.INFO)
-        app.logger.handlers[0].setFormatter(logging.Formatter(
-            '%(asctime)s %(levelname)s: %(message)s '
-            '[in %(filename)s:%(lineno)d]'))
+        sys.stdout = LoggerWriter(app.logger, logging.DEBUG)
+        sys.stderr = LoggerWriter(app.logger, logging.DEBUG)
 
     # register all our plugins
     # ##################
@@ -93,14 +106,10 @@ def create_app(config='/config.yml', standalone=False, log_level=None, managemen
     app.redis = Redis(**app.config.get('redis_conn', {}))
     app.SATOSHI = Decimal('0.00000001')
 
-    if not standalone:
-        hdlr = logging.FileHandler(app.config.get('log_file', 'webserver.log'))
-        formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-        hdlr.setFormatter(formatter)
-        app.logger.addHandler(hdlr)
-        app.logger.setLevel(logging.INFO)
-        app.logger.info("Starting up SimpleCoin!\n{}".format("=" * 100))
-
+    if mode == "manage":
+        # Initialize the migration settings
+        Migrate(app, db)
+    elif mode == "webserver":
         # try and fetch the git version information
         try:
             output = subprocess.check_output("git show -s --format='%ci %h'",
@@ -112,55 +121,43 @@ def create_app(config='/config.yml', standalone=False, log_level=None, managemen
             app.config['hash'] = ''
             app.config['revdate'] = ''
 
-    # filters for jinja
-    @app.template_filter('fader')
-    def fader(val, perc1, perc2, perc3, color1, color2, color3):
-        """
-        Accepts a decimal (0.1, 0.5, etc) and slots it into one of three categories based
-        on the percentage.
-        """
-        if val > perc3:
-            return color3
-        if val > perc2:
-            return color2
-        return color1
+        # Dynamically add all the filters in the filters.py file
+        for name, func in inspect.getmembers(filters, inspect.isfunction):
+            app.jinja_env.filters[name] = func
 
-    @app.template_filter('sig_round')
-    def sig_round_call(*args, **kwargs):
-        return sig_round(*args, **kwargs)
+        app.logger.info("Starting up SimpleCoin!\n{}".format("=" * 100))
+    elif mode == "scheduler":
+        current_app.logger.info("=" * 80)
+        current_app.logger.info("SimpleCoin cron scheduler starting up...")
+        setproctitle.setproctitle("simplecoin_scheduler")
 
-    @app.template_filter('duration')
-    def time_format(seconds):
-        # microseconds
-        if seconds > 3600:
-            return "{}".format(timedelta(seconds=seconds))
-        if seconds > 60:
-            return "{:,.2f} mins".format(seconds / 60.0)
-        if seconds <= 1.0e-3:
-            return "{:,.4f} us".format(seconds * 1000000.0)
-        if seconds <= 1.0:
-            return "{:,.4f} ms".format(seconds * 1000.0)
-        return "{:,.4f} sec".format(seconds)
+        ThreadPool.app = app
+        sched = Scheduler(standalone=True)
+        # All these tasks actually change the database, and shouldn't
+        # be run by the staging server
+        if not app.config.get('stage', False):
+            # every minute at 55 seconds after the minute
+            sched.add_cron_job(sch.run_payouts, second=55)
+            # every minute at 55 seconds after the minute
+            sched.add_cron_job(sch.create_trade_req, args=("sell",), second=0)
+            # every minute at 55 seconds after the minute
+            sched.add_cron_job(sch.create_trade_req, args=("buy",), second=5)
+            # every minute at 55 seconds after the minute
+            sched.add_cron_job(sch.collect_minutes, second=35)
+            # every five minutes 20 seconds after the minute
+            sched.add_cron_job(sch.compress_minute, minute='0,5,10,15,20,25,30,35,40,45,50,55', second=20)
+            # every hour 2.5 minutes after the hour
+            sched.add_cron_job(sch.compress_five_minute, minute=2, second=30)
+            # every 15 minutes 2 seconds after the minute
+            sched.add_cron_job(sch.update_block_state, second=2)
+        else:
+            current_app.logger.info("Stage mode has been set in the configuration, not "
+                                    "running scheduled database altering cron tasks")
 
-    @app.template_filter('human_date')
-    def pretty_date(*args, **kwargs):
-        return ago.human(*args, **kwargs)
-
-    @app.template_filter('hashrate')
-    def hashrate(hashrate, num_fmt="{:,.2f}"):
-        if hashrate > 1000000000:
-            return "{} GH/s".format(num_fmt.format(hashrate / 1000000000))
-        if hashrate > 1000000:
-            return "{} MH/s".format(num_fmt.format(hashrate / 1000000))
-        if hashrate > 1000:
-            return "{} KH/s".format(num_fmt.format(hashrate / 1000))
-        return "{} H/s".format(num_fmt.format(hashrate))
-
-    @app.template_filter('human_date_utc')
-    def pretty_date_utc(*args, **kwargs):
-        delta = (datetime.datetime.utcnow() - args[0])
-        delta = delta - datetime.timedelta(microseconds=delta.microseconds)
-        return ago.human(delta, *args[1:], **kwargs)
+        sched.add_cron_job(sch.update_online_workers, minute='0,5,10,15,20,25,30,35,40,45,50,55', second=30)
+        sched.add_cron_job(sch.cache_user_donation, minute='0,15,30,45', second=15)
+        sched.add_cron_job(sch.server_status, second=15)
+        sched.start()
 
     # Route registration
     # =========================================================================
@@ -173,11 +170,10 @@ def create_app(config='/config.yml', standalone=False, log_level=None, managemen
 
 
 def create_manage_app(**kwargs):
-    app = create_app(standalone=True, management=True, **kwargs)
-    # Initialize the migration settings
-    Migrate(app, db)
+    app = create_app("manage", **kwargs)
 
     return app
 
 
 from .utils import CurrencyKeeper, PowerPoolKeeper
+import simplecoin.scheduler as sch

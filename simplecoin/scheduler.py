@@ -3,7 +3,6 @@ import datetime
 import time
 import urllib3
 import sqlalchemy
-import setproctitle
 import decorator
 import argparse
 import json
@@ -12,7 +11,6 @@ from decimal import Decimal, getcontext, ROUND_HALF_DOWN
 from bitcoinrpc import CoinRPCException
 from flask import current_app
 from flask.ext.script import Manager
-from apscheduler.scheduler import Scheduler
 from apscheduler.threadpool import ThreadPool
 from cryptokit.base58 import address_version
 
@@ -302,10 +300,11 @@ def update_block_state():
 
 
 @crontab
-@SchedulerCommand.option('-s', '--simulate', dest='simulate', default=True)
-def run_payouts(simulate=False):
+@SchedulerCommand.option('-ds', '--dont-simulate', default=False, action="store_true")
+def run_payouts(dont_simulate=False):
     """ Loops through all the blocks that haven't been paid out and attempts
     to pay them out """
+    simulate = not dont_simulate
     unproc_blocks = redis_conn.keys("unproc_block*")
     for key in unproc_blocks:
         hash = key[13:]
@@ -332,9 +331,9 @@ def payout(redis_key, simulate=False):
         try:
             address_version(key)
         except AttributeError:
-            user_shares[key] = Decimal(value)
-        else:
             data[key] = value
+        else:
+            user_shares[key] = Decimal(value)
 
     if not user_shares:
         user_shares[data['address']] = 1
@@ -386,7 +385,7 @@ def payout(redis_key, simulate=False):
         accrued += user_payouts[user]
 
     current_app.logger.debug("Total accrued after trunated iteration {}; {}%"
-                 .format(accrued, (accrued / block.total_value) * 100))
+                             .format(accrued, (accrued / block.total_value) * 100))
 
     # loop over the dictionary indefinitely, paying out users with the highest
     # remainder first until we've distributed all the remaining funds
@@ -426,7 +425,7 @@ def payout(redis_key, simulate=False):
         if perc > 0:
             donation = (perc * payout).quantize(current_app.SATOSHI)
             current_app.logger.debug("Donation of\t{}\t({}%)\tcollected from\t{}"
-                         .format(donation, perc * 100, user))
+                                     .format(donation, perc * 100, user))
             donation_total += donation
             user_payouts[user] -= donation
             user_perc_applied[user] = donation
@@ -436,7 +435,7 @@ def payout(redis_key, simulate=False):
             perc *= -1
             bonus = (perc * payout).quantize(current_app.SATOSHI)
             current_app.logger.debug("Bonus of\t{}\t({}%)\tpaid to\t{}"
-                         .format(bonus, perc, user))
+                                     .format(bonus, perc, user))
             user_payouts[user] += bonus
             bonus_total += bonus
             user_perc_applied[user] = -1 * bonus
@@ -444,27 +443,26 @@ def payout(redis_key, simulate=False):
         # percentages of 0 are no-ops
 
     current_app.logger.info("Payed out {} in bonus payment"
-                .format(bonus_total))
+                            .format(bonus_total))
     current_app.logger.info("Received {} in donation payment"
-                .format(donation_total))
+                            .format(donation_total))
     current_app.logger.info("Net income from block {}"
-                .format(donation_total - bonus_total))
+                            .format(donation_total - bonus_total))
 
     assert accrued == block.total_value
     current_app.logger.info("Successfully distributed all rewards among {} users."
-                .format(len(user_payouts)))
+                            .format(len(user_payouts)))
 
     # run another safety check
     user_sum = sum(user_payouts.values())
     assert user_sum == (block.total_value + bonus_total - donation_total)
     current_app.logger.info("Double check for payout distribution."
-                " Total user payouts {}, total block value {}."
-                .format(user_sum, block.total_value))
+                            " Total user payouts {}, total block value {}."
+                            .format(user_sum, block.total_value))
 
     if simulate:
         out = "\n".join(["\t".join(
-            (user, str(amount)))
-            for user, amount in user_payouts.iteritems()])
+            (user, str(amount))) for user, amount in user_payouts.iteritems()])
         current_app.logger.debug("Final payout distribution:\nUSR\tAMNT\n{}".format(out))
         db.session.rollback()
     else:
@@ -591,55 +589,18 @@ def server_status():
 
 
 # monkey patch the thread pool for flask contexts
-ThreadPool._old_run_jobs = ThreadPool._run_jobs
 def _run_jobs(self, core):
     current_app.logger.debug("Starting patched threadpool worker!")
-    with app.app_context():
+    with self.app.app_context():
         ThreadPool._old_run_jobs(self, core)
 ThreadPool._run_jobs = _run_jobs
 
 
 if __name__ == "__main__":
-    app = create_app(standalone=True)
-
     parser = argparse.ArgumentParser(prog='simplecoin task scheduler')
     parser.add_argument('-l', '--log-level',
                         choices=['DEBUG', 'INFO', 'WARN', 'ERROR'],
                         default='INFO')
     args = parser.parse_args()
 
-    with app.app_context():
-        root = logging.getLogger()
-        root.setLevel(getattr(logging, args.log_level))
-        app.logger.setLevel(getattr(logging, args.log_level))
-
-        sched = Scheduler(standalone=True)
-        current_app.logger.info("=" * 80)
-        current_app.logger.info("SimpleCoin cron scheduler starting up...")
-        setproctitle.setproctitle("simplecoin_scheduler")
-
-        # All these tasks actually change the database, and shouldn't
-        # be run by the staging server
-        if not current_app.config.get('stage', False):
-            # every minute at 55 seconds after the minute
-            sched.add_cron_job(run_payouts, second=55)
-            # every minute at 55 seconds after the minute
-            sched.add_cron_job(create_trade_req, args=("sell",), second=0)
-            # every minute at 55 seconds after the minute
-            sched.add_cron_job(create_trade_req, args=("buy",), second=5)
-            # every minute at 55 seconds after the minute
-            sched.add_cron_job(collect_minutes, second=35)
-            # every five minutes 20 seconds after the minute
-            sched.add_cron_job(compress_minute, minute='0,5,10,15,20,25,30,35,40,45,50,55', second=20)
-            # every hour 2.5 minutes after the hour
-            sched.add_cron_job(compress_five_minute, minute=2, second=30)
-            # every 15 minutes 2 seconds after the minute
-            sched.add_cron_job(update_block_state, second=2)
-        else:
-            current_app.logger.info("Stage mode has been set in the configuration, not "
-                                    "running scheduled database altering cron tasks")
-
-        sched.add_cron_job(update_online_workers, minute='0,5,10,15,20,25,30,35,40,45,50,55', second=30)
-        sched.add_cron_job(cache_user_donation, minute='0,15,30,45', second=15)
-        sched.add_cron_job(server_status, second=15)
-        sched.start()
+    app = create_app("scheduler", log_level=args.log_level)
