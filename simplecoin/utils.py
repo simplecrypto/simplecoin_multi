@@ -7,7 +7,7 @@ from urlparse import urljoin
 from flask import current_app, session
 from cryptokit.base58 import address_version
 from sqlalchemy.exc import SQLAlchemyError
-from cryptokit.rpc import CoinserverRPC
+from cryptokit.rpc import CoinserverRPC, CoinRPCException
 from decimal import Decimal as dec
 
 from . import db, cache, root, redis_conn, currencies, powerpools, exchanges
