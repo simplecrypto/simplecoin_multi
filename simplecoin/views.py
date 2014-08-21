@@ -270,14 +270,18 @@ def generate_message():
 
         # build a few dicts for convenience
         raw_addresses = {}
-        commands = {'delete_addrs': [], 'add_addrs': {}}
+        commands = {'delete_addrs': [], 'add_addrs': {}, 'set_adonate_addr': None}
         for k, v in vals.iteritems():
             if k in current_app.config['currencies']:
+                raw_addresses[k] = v
+            elif k == 'Any':
                 raw_addresses[k] = v
             else:
                 if k == 'anonymous':
                     v = True
-                if k == 'donateAmount':
+                if k == 'poolDonate':
+                    v = float(v)
+                if k == 'arbitraryDonate':
                     v = float(v)
                 commands[k] = v
 
@@ -288,21 +292,43 @@ def generate_message():
                 try:
                     currencies.lookup_address(address)
                 except AttributeError:
-                    errors[currency] = address
+                    errors[currency] = 'invalid-address'
                 else:
+                    if currency == 'Any':
+                        commands['set_adonate_addr'] = address
                     commands['add_addrs'][currency] = address
             else:
                 commands['delete_addrs'].append(currency)
 
-        if commands['donateAmount'] > 100 or commands['donateAmount'] < 0:
-            errors['donateAmount'] = commands['donateAmount']
+        if commands['poolDonate'] > 100 or commands['poolDonate'] < 0:
+            errors['poolDonate'] = 'invalid-range'
 
+        if commands['arbitraryDonate'] > 100 or commands['arbitraryDonate'] < 0:
+            errors['arbitraryDonate'] = 'invalid-range'
+
+        if not 'arbitraryDonate' in errors and not 'poolDonate' in errors:
+            if (commands['arbitraryDonate'] + commands['poolDonate']) > 100:
+                errors['arbitraryDonate'] = 'total-too-high'
+
+        if commands['arbitraryDonate'] > 0 and not commands['set_adonate_addr']:
+            current_app.logger.info(commands['arbitraryDonate'])
+            current_app.logger.info(commands['set_adonate_addr'])
+            errors['arbitraryDonate'] = 'fields-required'
+
+        if commands['set_adonate_addr'] and not commands['arbitraryDonate']:
+            errors['arbitraryDonate'] = 'fields-required'
+
+        current_app.logger.warn(errors)
         if errors:
             return jsonify({'errors': errors})
 
         # build message
         msg_str = ''
         for command, v in commands.iteritems():
+            if command == 'set_adonate_addr' and v:
+                msg_str += 'SETADONATE ' + str(v) + "\t"
+            if command == 'set_adonate_addr' and v:
+                msg_str += 'SETADONATEPERC ' + str(v) + "\t"
             if command == 'delete_addrs':
                 for curr in v:
                     msg_str += 'DELADDR ' + curr + "\t"
@@ -311,7 +337,7 @@ def generate_message():
                     msg_str += 'SETADDR ' + curr + ' ' + addr + "\t"
             if command == 'anonymous':
                     msg_str += 'MAKEANON' + ' TRUE' + "\t"
-            if command == 'donateAmount':
+            if command == 'poolDonate':
                     msg_str += "SETDONATE " + str(v) + "\t"
         msg_str += "Only valid on " + current_app.config['site_title'] + "\t"
         msg_str += "Generated at " + str(datetime.datetime.utcnow()) + " UTC"
@@ -333,11 +359,11 @@ def settings(address):
 
     user_addresses = {}
     if not user:
-        d_perc = 0
+        pd_perc = 0
         anon = None
     else:
         anon = user.anon
-        d_perc = user.hr_perc
+        pd_perc = user.hr_perc
         for addr in user.addresses:
             user_addresses[addr.currency] = (addr)
 
@@ -360,7 +386,7 @@ def settings(address):
                            username=address,
                            result=result,
                            alert_cls=alert_cls,
-                           d_perc=d_perc,
+                           pd_perc=pd_perc,
                            user_currency=curr.name,
                            user_currency_name=curr.key,
                            anon=anon,

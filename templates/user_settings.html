@@ -10,12 +10,6 @@
     <div class="col-sm-12" style="padding:0px;">
       <h2>Edit Settings for account {{ username }}</h2>
     </div>
-    {% if result %}
-      <div class="clearfix"></div>
-      <div class="alert alert-{{ alert_cls }}">
-        <h4 style="margin-bottom: 0px;">{{ result | safe }}</h4>
-      </div>
-    {% endif %}
   </div>
   <div class="row" style="padding-bottom:10px;">
     <div class="col-sm-6">
@@ -27,10 +21,13 @@
           built into the QT wallet to prove you control the address. The basic
           process is:</p>
           <ol>
-            <li>Fill out form with desired settings + generate a message w/ those settings</li>
+            <li>Fill out form with desired settings + generate a message w/
+              those settings</li>
             <li>Copy the generated message</li>
-            <li>Sign the message with your wallet, using your account address ({{ username }})</li>
-            <li>Paste the signature in the signature field below + submit the form</li>
+            <li>Sign the message with your wallet, using your account address
+              ({{ username }})</li>
+            <li>Paste the signature in the signature field below + submit the
+              form</li>
           </ol>
         </div>
       </div>
@@ -42,10 +39,12 @@
         </div>
         <div class="panel-body">
           <p>By default if you do not have an address set for a merge mined
-          coin it will automatically be converted to your account currency ({{ user_currency }}).</p>
+          coin it will automatically be converted to your account currency
+            ({{ user_currency }}).</p>
 
-          <p>You may (optionally) set an address for any coin we mine and you'll be paid out
-          your portion of that rather than exchanging it</p>
+          <p>You may (optionally) set an address for any coin we mine and
+            you'll be paid out your portion of that rather than exchanging
+            it</p>
 
           <p>Some merge mined coins can't be exchanged so you'll need to set
           an address for them or they'll be donated to the pool.</p>
@@ -62,74 +61,164 @@
       </div>
     </div>
   </div>
-
   <div class="row" style="margin-bottom:25px;">
     <div class="col-sm-8 col-sm-offset-2" style="padding:0px;max-width: 800px;">
       <div class="panel panel-default">
-        <div class="panel-heading">Step 1. Pick new settings + generate the message
-        </div>
+        <div class="panel-heading">Step 1. Pick new settings + generate the
+          message</div>
         <div class="panel-body">
-      <form role="form" class="form-horizontal" id="settings-form">
-        <fieldset>
-          <div class="form-group">
-            <label for="donateAmount" class="col-sm-3 control-label">Donation Amount</label>
-            <div class="col-sm-7">
-              <input type="text" class="form-control" id="donateAmount" name="donateAmount" value="{{ d_perc }}" style="max-width:100px;">
-              <span class="help-block" style="margin-bottom:0px;">A percentage value 0-100. Decimal places are rounded to 2</span>
+          {% if result %}
+            <div class="clearfix"></div>
+            <div class="alert alert-{{ alert_cls }}">
+              <h4 style="margin-bottom: 0px;">{{ result | safe }}</h4>
             </div>
-          </div>
-          <div class="form-group">
-            <label for="anonymous" class="col-sm-3 control-label">Make anonymous</label>
-            <div class="col-sm-7">
-              <div class="checkbox">
-                <label>
-                  <input type="checkbox" id="anonymous" name="anonymous"{% if anon %} checked{% endif %}>
-                  This hides your address on the top miners list
-                </label>
+          {% endif %}
+          <form role="form" class="form-horizontal" id="settings-form">
+            <fieldset>
+              <p class="col-sm-10 col-sm-offset-1 horz-form-heading">
+                <b>General Settings</b>
+              <div class="form-group">
+                <label for="anonymous" class="col-sm-3 control-label">
+                  Make anonymous</label>
+                <div class="col-sm-7">
+                  <div class="checkbox">
+                    <label>
+                      <input type="checkbox" id="anonymous"
+                             name="anonymous"{% if anon %} checked{% endif %}>
+                      This hides your address on the top miners list
+                    </label>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="{{ user_currency_name }}" class="col-sm-3 control-label">{{ user_currency_name }}:</label>
-            <div class="col-sm-7">
-              <div id="{{ user_currency_name }}" style="padding-top:7px;">{{ username }}</div>
-            </div>
-          </div>
+              <div class="form-group">
+                <label for="{{ user_currency_name }}" class="col-sm-3 control-label">
+                  {{ user_currency_name }}:</label>
+                <div class="col-sm-7">
+                  <div id="{{ user_currency_name }}" style="padding-top:7px;">
+                    {{ username }}</div>
+                </div>
+              </div>
+              <p class="col-sm-10 col-sm-offset-1 horz-form-heading">
+                <b>Earnings Distribution</b></p>
+              <div class="col-sm-10 col-sm-offset-1 default-hide" id="earn-error">
+                <div class="alert alert-{{ alert_cls }} default-hide"
+                     id="global-perc">
+                  <h4 style="margin-bottom: 0px;">
+                    <i class='fa fa-exclamation-triangle'></i> Total donations
+                    cannot exceed 100%
+                  </h4>
+                </div>
+                <div class="alert alert-{{ alert_cls }} default-hide"
+                     id="arb-multipart">
+                  <h4 style="margin-bottom: 0px;">
+                    <i class='fa fa-exclamation-triangle'></i> Arbitrary
+                    donation must have both an address and a percentage
+                  </h4>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="poolDonate" class="col-sm-3 control-label">Pool
+                  Donation</label>
+                <div class="col-sm-8">
+                  <div class="row no-margin">
+                    <div class="col-sm-3 no-padding">
+                      <input type="text" class="form-control" id="poolDonate"
+                             name="poolDonate"
+                             value="{{ pd_perc or config['default_donate_perc'] }}">
+                      <span class="form-control-feedback">%</span>
+                      <div class="help-block invalid-range default-hide">
+                        <i class='fa fa-exclamation-triangle'></i> 0-100%</div>
+                    </div>
+                   </div>
+                  <span class="help-block">A percentage to donate directly to
+                    the pool (0-100%)</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="arbitraryDonate" class="col-sm-3 control-label">
+                  Arbitrary donation</label>
+                <div class="col-sm-8">
+                  <div class="row no-margin">
+                    <div class="col-sm-3 no-padding">
+                      <input type="text" class="form-control" id="arbitraryDonate"
+                             name="arbitraryDonate" value="{{ ad_perc }}">
+                      <span class="form-control-feedback">%</span>
+                      <span class="help-block help-text">0-100%</span>
+                      <div class="help-block invalid-range default-hide">
+                        <i class='fa fa-exclamation-triangle'></i> 0-100%</div>
+                    </div>
+                    <div class="col-sm-1" style="padding-top:9px;"> to </div>
+                    <div class="col-sm-8 no-padding">
+                      <input type="text" class="form-control address-field"
+                             id="arbitraryDonateAddr"
+                             name="Any" value="{{ ad_address }}">
+                      <span class="help-block help-text">Input a valid
+                        {{ currency }} address</span>
+                      <span class="help-block checking-address default-hide">
+                        <i class='fa fa-spinner fa-spin'></i> Checking address
+                        validity</span>
+                      <span class="help-block invalid-address default-hide">
+                        <i class='fa fa-exclamation-triangle'></i> Invalid
+                        address</span>
+                      <span class="help-block valid-address default-hide">
+                        <i class='fa fa-check'></i> Valid
+                        <span class="address-currency"></span> address</span>
+                    </div>
+                   </div>
+                  <span class="help-block">Payout a percentage of your earnings
+                    to a specific address</span>
+                  <div class="help-block fields-required default-hide">
+                    <i class='fa fa-exclamation-triangle'></i> Both fields are
+                    required to make a change</div>
+                </div>
+              </div>
 
-          <p class="col-sm-10 col-sm-offset-1" style="padding-top:15px;padding-bottom:4px;margin-bottom:15px;text-align:left;"><b>Exchangeable Currencies</b>
-          {% for currency, address_obj in exchangeable_currencies.iteritems() %}
-          <div class="form-group" style="padding-top:15px;padding-bottom:4px;margin-bottom:0px;">
-            <label for="{{ currency }}" class="col-sm-3 control-label">{{ currency }}:</label>
-            <div class="col-sm-7">
-              <input type="text" class="form-control address-field" name="{{ currency }}" id="{{ currency }}" value="{{ address_obj.address }}">
-              <span class="help-block help-text">Input a valid {{ currency }} address</span>
-              <span class="help-block checking-address">
-                <i class='fa fa-spinner fa-spin'></i> Checking address validity</span>
-              <span class="help-block invalid-address">
-                <i class='fa fa-exclamation-triangle'></i> Invalid <span class="address-currency"></span> address</span>
-              <span class="help-block valid-address">
-                <i class='fa fa-check'></i> Valid <span class="address-currency"></span> address</span>
-            </div>
-            <div class="col-sm-1"><span id="{{ currency }}"></span></div>
-          </div>
-          {% endfor %}
+              <p class="col-sm-10 col-sm-offset-1 horz-form-heading">
+                <b>Exchangeable Currencies</b></p>
+              {% for currency, address_obj in exchangeable_currencies.iteritems() %}
+              <div class="form-group">
+                <label for="{{ currency }}" class="col-sm-3 control-label">
+                  {{ currency }}:</label>
+                <div class="col-sm-6">
+                  <input type="text" class="form-control address-field"
+                         name="{{ currency }}" id="{{ currency }}"
+                         value="{{ address_obj.address }}">
+                  <span class="help-block help-text">Input a valid {{ currency }}
+                    address</span>
+                  <span class="help-block checking-address default-hide">
+                    <i class='fa fa-spinner fa-spin'></i> Checking address
+                    validity</span>
+                  <span class="help-block invalid-address default-hide">
+                    <i class='fa fa-exclamation-triangle'></i> Invalid
+                    <span class="address-currency"></span> address</span>
+                  <span class="help-block valid-address default-hide">
+                    <i class='fa fa-check'></i> Valid
+                    <span class="address-currency"></span> address</span>
+                </div>
+              </div>
+              {% endfor %}
 
-          <p class="col-sm-10 col-sm-offset-1" style="padding-top:15px;padding-bottom:4px;margin-bottom:15px;text-align:left;"><b>Unexchangeable Currencies</b>
-          {% for currency, address_obj in unexchangeable_currencies.iteritems() %}
-          <div class="form-group" style="padding-top:15px;padding-bottom:4px;margin-bottom:0px;">
-            <label for="{{ currency }}" class="col-sm-3 control-label">{{ currency }}:</label>
-            <div class="col-sm-7">
-              <input type="text" class="form-control address-field" name="{{ currency }}" id="{{ currency }}" value="{{ address_obj.address }}">
-              <span class="help-block">Input a valid {{ currency }} address</span>
-            </div>
-            <div class="col-sm-1"><span id="{{ currency }}"></span></div>
-          </div>
-          {% endfor %}
-          <div class="col-sm-9 col-sm-offset-3" style="padding-left:8px;padding-top:15px;">
-            <button type="submit" class="btn btn-success" id="generate">Generate message</button>
-          </div>
-        </fieldset>
-      </form>
+              <p class="col-sm-10 col-sm-offset-1 horz-form-heading">
+                <b>Unexchangeable Currencies</b></p>
+              {% for currency, address_obj in unexchangeable_currencies.iteritems() %}
+              <div class="form-group">
+                <label for="{{ currency }}" class="col-sm-3 control-label">
+                  {{ currency }}:</label>
+                <div class="col-sm-7">
+                  <input type="text" class="form-control address-field"
+                         name="{{ currency }}" id="{{ currency }}"
+                         value="{{ address_obj.address }}">
+                  <span class="help-block">Input a valid {{ currency }} address</span>
+                </div>
+                <div class="col-sm-1"><span id="{{ currency }}"></span></div>
+              </div>
+              {% endfor %}
+              <div class="col-sm-9 col-sm-offset-3" style="padding-left:8px;padding-top:15px;">
+                <button type="submit" class="btn btn-success" id="generate">
+                  Generate message</button>
+              </div>
+            </fieldset>
+          </form>
         </div>
       </div>
     </div>
@@ -144,15 +233,20 @@
           <form role="form" class="form-horizontal" style="margin-bottom:15px;padding-top:10px;">
             <fieldset>
               <div class="form-group">
-                <label for="message" class="col-lg-3 control-label">Message to be signed</label>
+                <label for="message" class="col-lg-3 control-label">Message to
+                  be signed</label>
                 <div class="col-lg-7" id="message-div">
-                  <textarea class="form-control" name="message" id="message" rows="3"></textarea>
-                  <span class="help-block" style="color:#58CF58;font-weight:500;margin-bottom:0px;" id="message-notif">&nbsp;</span>
+                  <textarea class="form-control" name="message" id="message"
+                            rows="3"></textarea>
+                  <span class="help-block" id="message-notif">&nbsp;</span>
                 </div>
               </div>
-              <div class="col-sm-9 col-sm-offset-3" style="padding-left:8px;">
-                <button type="button" class="btn btn-success" id="copy-button" data-clipboard-target="message" title="Click to copy me.">Copy to Clipboard</button>
-                <span style="display: none; color:#58CF58; font-weight:500;" id="copied-notif">Copied!&nbsp;</span>
+              <div class="col-sm-9 col-sm-offset-3" style="padding-left:8px;padding-top:5px;">
+                <button type="button" class="btn btn-success" id="copy-button"
+                        data-clipboard-target="message"
+                        title="Click to copy me.">Copy to Clipboard</button>
+                <span style="display: none; color:#58CF58; font-weight:500;"
+                      id="copied-notif">Copied!&nbsp;</span>
               </div>
             </fieldset>
           </form>
@@ -174,9 +268,11 @@
                 <li>Open <b>file</b> menu, click <b>sign message</b></li>
                 <li>It'll prompt you for an address and a message to sign. It will
                   look something like <a target="_blank" href="http://imgur.com/a/nUmZ0">this</a></li>
-                <li>Put in your user address ({{ username }}) for the address, and paste the message you just copied.</li>
+                <li>Put in your user address ({{ username }}) for the address,
+                  and paste the message you just copied.</li>
                 <li>Click 'Sign Message'</li>
-                <li>Copy the signature, and paste it on our site in the signature field below</li>
+                <li>Copy the signature, and paste it on our site in the
+                  signature field below</li>
               </ol>
             </div>
           </div>
@@ -191,17 +287,22 @@
         <div class="panel-heading">Step 4. Paste signature + update settings
         </div>
         <div class="panel-body">
-          <form role="form" class="form-horizontal" method="POST" action="" style="padding-top:10px;">
+          <form role="form" class="form-horizontal" method="POST" action=""
+                style="padding-top:10px;">
             <input type="hidden" name="message" id="sub-message">
             <fieldset>
               <div class="form-group">
-                <label for="addressSignature" class="col-sm-3 control-label">Signature</label>
+                <label for="addressSignature" class="col-sm-3 control-label">
+                  Signature</label>
                 <div class="col-sm-7">
-                  <input type="text" name="signature" class="form-control" id="addressSignature" placeholder="Paste signature from your wallet">
+                  <input type="text" name="signature" class="form-control"
+                         id="addressSignature" placeholder="Paste signature
+                         from your wallet">
                 </div>
               </div>
               <div class="col-sm-9 col-sm-offset-3" style="padding-left:8px;padding-top:10px;">
-                <button type="submit" class="btn btn-primary">Update Settings!</button>
+                <button type="submit" class="btn btn-primary">Update Settings!
+                </button>
               </div>
             </fieldset>
           </form>

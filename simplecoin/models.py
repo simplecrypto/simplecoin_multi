@@ -228,6 +228,7 @@ class Payout(base):
     amount = db.Column(db.Numeric, CheckConstraint('amount > 0', 'min_payout_amount'))
     shares = db.Column(db.Float)
     perc = db.Column(db.Numeric)
+    # ad_perc = db.Column(db.Numeric)
     type = db.Column(db.SmallInteger)
     payable = db.Column(db.Boolean, default=False)
 
@@ -602,6 +603,9 @@ class ShareSlice(TimeSlice, base):
 class UserSettings(base):
     user = db.Column(db.String(34), primary_key=True)
     donation_perc = db.Column(db.Numeric, default=Decimal('0'))
+    # pool_donation_perc = db.Column(db.Numeric, default=Decimal('0'))
+    # arbitrary_donation_perc = db.Column(db.Numeric)
+    # arbitrary_donation_address = db.Column(db.String(34))
     anon = db.Column(db.Boolean, default=False)
     addresses = db.relationship("PayoutAddress")
 

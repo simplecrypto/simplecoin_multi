@@ -1,15 +1,6 @@
-body {
-  font-size:15px;
-  color: #FAFAFA;
-}
-
-body a {
-    font-weight:400;
-}
-
-.no-padding {
-    padding:0px;
-}
+/*************
+Bootstrap/Bootswatch overrides / additions
+*************/
 
 .btn-default {
   background-color: #3E4853;
@@ -33,29 +24,7 @@ h3 {
   font-weight:400;
 }
 
-.page-header {
-  padding-bottom:50px;
-  margin-top:10px;
-}
 
-.row-header {
-  border-bottom:1px solid #424E5A;
-  padding-bottom:40px;
-}
-
-.stats {
-  padding: 30px 0px 20px 0px;
-}
-
-.padding-top {
-  padding-top: 20px;
-}
-.no-padding {
-  padding:0;
-}
-.no-margin-top {
-  margin-top:0;
-}
 .nav-justified > li:first-child > a {
   border-left: 0;
   border-radius: 5px 0 0 5px;
@@ -67,13 +36,79 @@ h3 {
   font-size:18px;
 }
 
-p.guide {
-  padding:10px 0px 10px 0px;
+
+/*************
+Helpers CSS
+*************/
+
+.no-padding {
+    padding:0px;
 }
 
-.well-clear {
-  background:none;
-  margin-bottom:0px;
+.no-margin {
+    margin:0px;
+}
+
+.padding-top {
+  padding-top: 20px;
+}
+
+.no-margin-top {
+  margin-top:0;
+}
+
+.page-header {
+  padding-bottom:50px;
+  margin-top:10px;
+}
+
+.row-header {
+  border-bottom:1px solid #424E5A;
+  padding-bottom:40px;
+}
+
+.too-damn-bright {
+    opacity: .80;
+}
+
+.collapse-button {
+    float:right;
+    z-index: 100;
+    font-weight: bold;
+    /*position:relative;*/
+    /*top:-4px;*/
+    /*left:2px;*/
+    min-width:42px;
+    font-family:monospace;
+}
+
+.pointer {
+    cursor: pointer;
+}
+
+.default-hide {
+    display:none;
+}
+
+/*************
+General CSS
+*************/
+
+body {
+  font-size:15px;
+  color: #FAFAFA;
+}
+
+body a {
+    font-weight:400;
+}
+
+.stats {
+  padding: 30px 0px 20px 0px;
+}
+
+p.guide {
+  padding:10px 0px 10px 0px;
 }
 
 a.contact {
@@ -85,24 +120,18 @@ a.contact:hover div {
   background-color:#4e5d6c;
 }
 
-/* Stats styling */
+/* User stats styling */
 
 #statsform .close {
   float: left;
   padding-right: 10px;
 }
 
-/* User stats styling */
-
 .axis path,
 .axis line {
   fill: none;
   stroke: #fff;
   shape-rendering: crispEdges;
-}
-
-.x.axis path {
-{#  display: none;#}
 }
 
 .line {
@@ -135,15 +164,6 @@ g.axis {
   box-shadow: 2px 2px 1px #888;
 }
 
-.odometer {
-    line-height: 18px !important;
-    vertical-align: top !important;
-}
-
-.too-damn-bright {
-    opacity: .80;
-}
-
 .worker-table th {
     text-align: center;
 }
@@ -169,42 +189,50 @@ g.axis {
     width:100%;
 }
 
-.collapse-button {
-    float:right;
-    z-index: 100;
-    font-weight: bold;
-    /*position:relative;*/
-    /*top:-4px;*/
-    /*left:2px;*/
-    min-width:42px;
-    font-family:monospace;
+/*************
+Form CSS
+*************/
+
+.form-control-feedback {
+    position: absolute;
+    top: 5px; /*Height of the `label` and its margin*/
+    right: 0px;
+    display: block;
+    width: 30px; /*Height of the 'input' */
+    height: 30px; /*Height of the 'input' */
+    line-height: 30px; /*Height of the 'input' */
+    text-align: center;
+    color: black;
+    font-weight: 300;
+}
+
+.form-horizontal .form-group{
+    padding-top: 19px;
+    padding-bottom: 0px;
+    margin-bottom: 0px;
+}
+
+.horz-form-heading {
+    padding-top: 15px;
+    padding-bottom: 4px;
+    margin-bottom: 15px;
+    text-align: left;
 }
 
 .help-block {
     margin-bottom:0px;
 }
 .help-block.invalid-address {
-    display:none;
     color:#ff8859;
 }
 .help-block.valid-address {
-    display:none;
-    color:#5cb85c;;
-}
-.help-block.checking-address {
-    display:none;
+    color:#5cb85c;
 }
 
-div.content-well {
-    min-height:140px;
-    background-color:#212F3D;
-}
-div.well.active {
-    background-color:green;
-}
-
-.pointer {
-    cursor: pointer;
+#message-notify {
+    color: #58CF58;
+    font-weight: 500;
+    margin-bottom: 0px;
 }
 
 /*************

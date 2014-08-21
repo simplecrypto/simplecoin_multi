@@ -109,7 +109,9 @@ $(document).ready(function() {
       }).done(function(data) {
         for (var property in data) {
           if (data.hasOwnProperty(property)) {
-              if (property != 'Any') { $('.address-currency').html(property); }
+              if (property != 'Any') {
+                _that.closest(".form-group").find('.address-currency').html(property);
+              }
               if (data[property] == true) { success(); } else { fail(); }
           }
         }
@@ -172,34 +174,117 @@ $(document).ready(function() {
     }, 1000);
   });
 
-  $("#settings-form").on("submit", function(event) {
+    var validate_address = function (_that, fail_callback, success_callback) {
+
+      var AddrString = _that.val()
+
+      // check if alpha numeric
+      var alphanum = new RegExp(/^[a-z0-9]+$/i);
+      if (!alphanum.test(AddrString)) {
+        fail_callback(_that, 'invalid-address');
+      }
+
+      // check if proper length
+      if (_that.val().length != 34) {
+        fail_callback(_that, 'invalid-address');
+      }
+
+      success_callback()
+  };
+
+  var interval = null;
+
+  $("#generate").click(function() {
     event.preventDefault();
-
-    var textarea = $("#message-div").html();
-    $("#message-div").html("<img src='{{ config['assets_address'] | safe }}/img/712.GIF' " +
-      "style='margin-left: auto; margin-right:auto; display:block; padding:35px;'>");
-
     clearInterval(interval);
     $("#message-notif").css('color', '#58CF58');
 
-    // serialize the data in the form
-    var serializedData = $(this).serialize();
+    var earnErr = $('#earn-error');
+    earnErr.children("div").hide();
+    earnErr.hide();
+    $(".alert-danger").hide();
+    $(".alert-danger").siblings(".help-text").show();
 
-    $.ajax({
-      type: "POST",
-      url: "/generate_message",
-      data: serializedData,
-    }).done(function(data) {
-      $("#message-div").html(textarea);
-      if('errors' in data) {
-        for (var property in data.errors) {
-          if (data.errors.hasOwnProperty(property)) {
-            $("#"+property).siblings("span.invalid-address").addClass("alert alert-danger").css('color', 'white').show();
-          }
+    var msg_str = '';
+    var has_failed = false;
+
+    var invalid_address = function (_that, error_class) {
+      has_failed = true;
+      var obj = $("input#" + _that.attr("id")).closest("div.form-group").find("." + error_class);
+      obj.siblings(".help-block").hide();
+      obj.addClass("alert alert-danger").css('color', 'white').show();
+    };
+
+    var validation_address = function () {
+      msg_str += 'ADD_ADDR ' + $( this ).attr("name") + "\t";
+    };
+
+    // Loop through the currency inputs on the page
+    $('input.address-field').each(function(index) {
+      // Mark blank values for deletion - otherwise attempt to validate
+      if ($( this ).val() == '') {
+        if ($(this).attr("name") == 'Any') {
+          msg_str += 'DEL_ADONATE_ADDR \t';
+        } else {
+          msg_str += 'DEL_ADDR ' + $( this ).attr("name") + '\t';
         }
+        return true
       } else {
-        $("#message").text(data.msg_str);
-        $("#sub-message").val(data.msg_str);
+        validate_address($(this), invalid_address, validation_address);
+      }
+    });
+
+    // Check for Anon checked
+    if ($("#anonymous").is(':checked') == true ){
+      msg_str += 'MAKE_ANON' + ' TRUE' + "\t";
+    }
+
+    // Validate the Pool donate %
+    var pdObj = $("#poolDonate")
+    var pdPerc = parseFloat(pdObj.val());
+    if (pdPerc > 100 || pdPerc < 0) {
+      has_failed = true;
+      var obj = $("input#" + pdObj.attr("id")).closest("div.form-group").find(".invalid-range");
+      obj.siblings(".help-block").hide();
+      obj.addClass("alert alert-danger").css('color', 'white').show();
+    } else {
+      msg_str += "SET_PDONATE_PERC " + pdPerc + "\t"
+    }
+
+    // Validate the Arbitrary donate %
+    var adObj = $("#arbitraryDonate")
+    var adPerc = parseFloat(adObj.val());
+    if (adObj.val() != '') {
+      if (adPerc > 100 || adPerc < 0) {
+        has_failed = true;
+        var obj = $("input#" + adObj.attr("id")).closest("div.form-group").find(".invalid-range");
+        obj.siblings(".help-block").hide();
+        obj.addClass("alert alert-danger").css('color', 'white').show();
+      } else {
+        msg_str += "SET_ADONATE_PERC " + adPerc + "\t"
+      }
+    }
+
+    // Make sure total percentage isn't over 100
+    if (adPerc + pdPerc > 100) {
+      has_failed = true;
+      earnErr.show();
+      earnErr.children("#global-perc").show();
+    }
+
+    // Make sure if Arbitrary donate % is supplied so is an address
+    if ( (adObj.val() != '' && $("arbitraryDonateAddr").val() == undefined) || ($("arbitraryDonate").val() == '' && $("arbitraryDonateAddr").val() != undefined) ) {
+      has_failed = true;
+      earnErr.show();
+      earnErr.children("#arb-multipart").show();
+    }
+
+    // If there are no validation errors, go ahead and generate the message
+    if (!has_failed) {
+        msg_str += "Only valid on {{ config['site_title'] }} \t";
+        msg_str += "Generated at " + Math.round(new Date().getTime() / 1000) + " UTC"
+        $("#message").text(msg_str);
+        $("#sub-message").val(msg_str);
         $("#message-notif").show();
         var seconds_left = 15 * 60;
         interval = setInterval(function () {
@@ -219,9 +304,10 @@ $(document).ready(function() {
             clearInterval(interval);
           }
         }, 1000);
-      }
-
-    });
+    } else {
+        $("#message").text('');
+        $("#sub-message").val('');
+    }
   });
 
 });

@@ -542,10 +542,13 @@ def time_format(seconds):
 # Message validation and verification functions
 ##############################################################################
 def validate_message_vals(**kwargs):
-    set_addrs = kwargs['SETADDR']
-    del_addrs = kwargs['DELADDR']
-    donate_perc = kwargs['SETDONATE']
-    anon = kwargs['MAKEANON']
+    set_addrs = kwargs['SET_ADDR']
+    del_addrs = kwargs['DEL_ADDR']
+    pdonate_perc = kwargs['SET_PDONATE_PERC']
+    adonate_perc = kwargs['SET_ADONATE_PERC']
+    adonate_addr = kwargs['SET_ADONATE_ADDR']
+    del_adonate_addr = kwargs['DEL_ADONATE_ADDR']
+    anon = kwargs['MAKE_ANON']
 
     for curr, addr in set_addrs.iteritems():
         try:
@@ -553,20 +556,41 @@ def validate_message_vals(**kwargs):
         except AttributeError:
             raise CommandException("Invalid currency address passed!")
 
-    try:
-        donate_perc = dec(donate_perc).quantize(dec('0.01')) / 100
-    except TypeError:
-        raise CommandException("Donate percentage unable to be converted to python dec!")
-    else:
-        if donate_perc > 100.0 or donate_perc < 0:
-            raise CommandException("Donate percentage was out of bounds!")
+    if adonate_addr:
+        try:
+            currencies.lookup_address(adonate_addr)
+        except AttributeError:
+            raise CommandException("Invalid currency address passed for "
+                                   "arbitrary donation!")
 
-    return set_addrs, del_addrs, donate_perc, anon
+    try:
+        adonate_perc = dec(adonate_perc).quantize(dec('0.01')) / 100
+    except TypeError:
+        raise CommandException("Arbitrary donate percentage unable to be "
+                               "converted to python Decimal!")
+    else:
+        if adonate_perc > 100.0 or adonate_perc < 0:
+            raise CommandException("Arbitrary donate percentage was out of "
+                                   "bounds!")
+
+    try:
+        pdonate_perc = dec(pdonate_perc).quantize(dec('0.01')) / 100
+    except TypeError:
+        raise CommandException("Pool donate percentage unable to be converted "
+                               "to python Decimal!")
+
+    else:
+        if pdonate_perc > 100.0 or pdonate_perc < 0:
+            raise CommandException("Pool donate percentage was out of bounds!")
+
+    return set_addrs, del_addrs, pdonate_perc, adonate_perc, adonate_addr, \
+           del_adonate_addr, anon
 
 
 def verify_message(address, curr, message, signature):
-    update_dict = {'SETADDR': {}, 'DELADDR': [], 'MAKEANON': False,
-                   'SETDONATE': 0}
+    update_dict = {'SET_ADDR': {}, 'DEL_ADDR': [], 'MAKE_ANON': False,
+                   'SET_PDONATE_PERC': 0, 'SET_ADONATE_ADDR': False,
+                   'SET_ADONATE_PERC': 0, 'DEL_ADONATE_ADDR': False}
     stamp = False
     site = False
     try:
@@ -574,18 +598,18 @@ def verify_message(address, curr, message, signature):
         for line in lines:
             parts = line.split(" ")
             if parts[0] in update_dict:
-                if parts[0] == 'SETADDR':
+                if parts[0] == 'SET_ADDR':
                     update_dict.setdefault(parts[0], {})
                     update_dict[parts[0]][parts[1]] = parts[2]
-                elif parts[0] == 'DELADDR':
+                elif parts[0] == 'DEL_ADDR':
                     update_dict[parts[0]].append(parts[1])
                 else:
                     update_dict[parts[0]] = parts[1]
             elif parts[0] == 'Only':
                 site = parts[3]
             elif parts[0] == 'Generated':
-                time = parts[2] + ' ' + parts[3] + ' ' + parts[4]
-                stamp = datetime.datetime.strptime(time, '%Y-%m-%d %H:%M:%S.%f %Z')
+                time = parts[2] + ' ' + parts[3]
+                stamp = datetime.datetime.utcfromtimestamp(time)
             else:
                 raise CommandException("Invalid command given! Generate a new "
                                        "message & try again.")
