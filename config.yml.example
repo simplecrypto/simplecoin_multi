@@ -19,13 +19,23 @@ email:
     debug: True
     tls: True
 
-# Stratum + Powerpool Config
-# =======================================================================
+exchange_manager:
+    cryptsy:
+        public_key: 
+        private_key: 
+    bittrex:
+        public_key: 
+        private_key: 
+    poloniex:
+        public_key: 
+        private_key: 
+
 # Default values for new miner config
 default_stratum_url: stratum+tcp://stratum.simplemulti.com
 default_stratum_port: 3363
 
-# Where's powerpool running?
+# Stratum + Powerpool Config
+# =======================================================================
 mining_servers:
     # Dict keyed by algo, contains a list item for each mining port. Each of
     # these ports should be open on every server (or it'll be very confusing
