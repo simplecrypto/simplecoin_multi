@@ -49,8 +49,8 @@ class TradeRequest(base):
     Created rows will be checked + updated externally
     """
     id = db.Column(db.Integer, primary_key=True)
-    # Currency to be traded
-    currency = db.Column(db.String, nullable=False)
+    # 3-8 letter code for the currency to be traded
+    currency = db.Column(db.String(8), nullable=False)
     # Quantity of currency to be traded
     quantity = db.Column(db.Numeric, nullable=False)
     locked = db.Column(db.Boolean, default=False)
@@ -94,10 +94,10 @@ class TradeRequest(base):
 class Block(base):
     """ This class stores metadata on all blocks found by the pool """
     # the hash of the block for orphan checking
-    hash = db.Column(db.String, primary_key=True)
+    hash = db.Column(db.String(64), primary_key=True)
     height = db.Column(db.Integer, nullable=False)
     # User who discovered block
-    user = db.Column(db.String)
+    user = db.Column(db.String(34))
     worker = db.Column(db.String)
     # When block was found
     found_at = db.Column(db.DateTime, nullable=False)
@@ -118,8 +118,8 @@ class Block(base):
     bonus_payed = db.Column(db.Numeric)
     # Difficulty of block when solved
     bits = db.Column(db.String(8), nullable=False)
-    # Three letter code for the currency that was mined
-    currency = db.Column(db.String, nullable=False)
+    # 3-8 letter code for the currency that was mined
+    currency = db.Column(db.String(8), nullable=False)
     # Will be == currency if currency is was merge mined
     merged_type = db.Column(db.String)
     # The hashing algorith mused to solve the block
@@ -205,7 +205,7 @@ class Block(base):
 
 
 class Transaction(base):
-    txid = db.Column(db.String, primary_key=True)
+    txid = db.Column(db.String(64), primary_key=True)
     confirmed = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     merged_type = db.Column(db.String)
@@ -221,14 +221,15 @@ class Payout(base):
     """ A payout for currency directly crediting a users balance. These
     have no intermediary exchanges. """
     id = db.Column(db.Integer, primary_key=True)
-    blockhash = db.Column(db.String, db.ForeignKey('block.hash'))
+    blockhash = db.Column(db.String(64), db.ForeignKey('block.hash'))
     block = db.relationship('Block', foreign_keys=[blockhash], backref='payouts')
-    user = db.Column(db.String)
-    payout_address = db.Column(db.String)
+    user = db.Column(db.String(34))
+    pp_sharechain_id = db.Column(db.SmallInteger)
+    payout_address = db.Column(db.String(34))
     amount = db.Column(db.Numeric, CheckConstraint('amount > 0', 'min_payout_amount'))
     shares = db.Column(db.Float)
-    perc = db.Column(db.Numeric)
-    # ad_perc = db.Column(db.Numeric)
+    fee_perc = db.Column(db.Numeric)
+    pd_perc = db.Column(db.Numeric)
     type = db.Column(db.SmallInteger)
     payable = db.Column(db.Boolean, default=False)
 
@@ -258,15 +259,31 @@ class Payout(base):
         return float(self.amount)
 
     @property
+    def sharechain_title(self):
+        return current_app.powerpools[self.pp_sharechain_id].title
+
+    @property
+    def cut_perc(self):
+        return self.pd_perc + self.fee_perc
+
+    @property
+    def hr_fee_perc(self):
+        return round((float(self.fee_perc) * 100), 2)
+
+    @property
+    def hr_pd_perc(self):
+        return round((float(self.pd_perc) * 100), 2)
+
+    @property
     def perc_applied(self):
         return (self.perc * self.amount).quantize(current_app.SATOSHI)
 
     @property
     def text_perc_applied(self):
-        if self.perc < 0:
+        if self.cut_perc < 0:
             return "BONUS {}".format(sig_round(self.perc_applied * -1))
         else:
-            return "Total fee {}".format(sig_round(self.perc_applied))
+            return "Fee + donation: {}".format(sig_round(self.perc_applied))
 
     @property
     def mined(self):
@@ -387,10 +404,10 @@ class PayoutExchange(Payout):
 
 class PayoutAggregate(base):
     id = db.Column(db.Integer, primary_key=True)
-    transaction_id = db.Column(db.String, db.ForeignKey('transaction.txid'))
+    transaction_id = db.Column(db.String(64), db.ForeignKey('transaction.txid'))
     transaction = db.relationship('Transaction', backref='aggregates')
-    user = db.Column(db.String)
-    payout_address = db.Column(db.String, nullable=False)
+    user = db.Column(db.String(34))
+    payout_address = db.Column(db.String(34), nullable=False)
     currency = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     amount = db.Column(db.Numeric, CheckConstraint('amount > 0',
@@ -578,7 +595,7 @@ class ShareSlice(TimeSlice, base):
     SHARE_TYPES = ["acc", "low", "dup", "stale"]
 
     time = db.Column(db.DateTime, primary_key=True)
-    user = db.Column(db.String, primary_key=True)
+    user = db.Column(db.String(34), primary_key=True)
     worker = db.Column(db.String, primary_key=True)
     algo = db.Column(db.String, primary_key=True)
     share_type = db.Column(db.Enum(*SHARE_TYPES, name="share_type"),
@@ -671,7 +688,7 @@ class UserSettings(base):
 
 class PayoutAddress(base):
     address = db.Column(db.String(34), primary_key=True)
-    user = db.Column(db.String, db.ForeignKey('user_settings.user'))
+    user = db.Column(db.String(34), db.ForeignKey('user_settings.user'))
     # Abbreviated currency name. EG 'LTC'
     currency = db.Column(db.String(4))
 
