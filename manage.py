@@ -24,18 +24,17 @@ def init_db():
 
 @manager.command
 def list_donation_perc():
-    """ Gives a summary of number of users at each fee amount """
+    """ Gives a summary of number of users at each donation amount """
     summ = {}
     warn = False
     for entry in UserSettings.query.all():
-        summ.setdefault(entry.perc, 0)
-        summ[entry.perc] += 1
-        if entry.perc < current_app.config['minimum_perc']:
+        summ.setdefault(entry.pdonation_perc, 0)
+        summ[entry.pdonation_perc] += 1
+        if entry.pdonation_perc < 0:
             warn = True
 
     if warn:
-        print("WARNING: A user is below the minimum configured value! "
-              "Run update_minimum_fee command to resolve.")
+        print("WARNING: A user has set a donation percentage below 0!")
     print "User fee summary"
     print "\n".join(["{0:+3d}% Fee: {1}".format(k, v) for k, v in sorted(summ.items())])
 
