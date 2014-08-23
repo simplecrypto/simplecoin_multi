@@ -50,7 +50,6 @@ def create_app(mode, config='/config.yml', log_level=None):
     app.config.update(config_vars)
     app.currencies = CurrencyKeeper(app.config['currencies'])
     app.powerpools = PowerPoolKeeper(app.config['mining_servers'])
-    app.ports = PortKeeper(app.config['mining_servers'])
     app.exchanges = ExchangeManager(app.config['exchange_manager'])
 
     del app.logger.handlers[0]
@@ -176,5 +175,5 @@ def create_manage_app(**kwargs):
     return app
 
 
-from .utils import CurrencyKeeper, PowerPoolKeeper, PortKeeper
+from .utils import CurrencyKeeper, PowerPoolKeeper
 import simplecoin.scheduler as sch
