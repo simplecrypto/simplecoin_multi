@@ -35,10 +35,13 @@ exchanges = LocalProxy(
 
 
 def create_app(mode, config='/config.yml', log_level=None):
-    # initialize our flask application
+    
+    # Initialize our flask application
+    # =======================================================================
     app = Flask(__name__, static_folder='../static', static_url_path='/static')
 
-    # set our template path and configs
+    # Set our template path and configs
+    # =======================================================================
     app.jinja_loader = FileSystemLoader(os.path.join(root, 'templates'))
     config_vars = dict(manage_log_file="manage.log",
                        webserver_log_file="webserver.log",
@@ -46,12 +49,16 @@ def create_app(mode, config='/config.yml', log_level=None):
                        log_level='INFO',
                        worker_hashrate_fold=86400)
     config_vars.update(yaml.load(open(root + config)))
-    # inject all the yaml configs
+
+    # Inject all the yaml configs
+    # =======================================================================
     app.config.update(config_vars)
     app.currencies = CurrencyKeeper(app.config['currencies'])
     app.powerpools = PowerPoolKeeper(app.config['mining_servers'])
     app.exchanges = ExchangeManager(app.config['exchange_manager'])
 
+    # Setup logging
+    # =======================================================================
     del app.logger.handlers[0]
     app.logger.setLevel(logging.NOTSET)
     log_format = logging.Formatter('%(asctime)s [%(name)s] [%(levelname)s]: %(message)s')
@@ -64,6 +71,7 @@ def create_app(mode, config='/config.yml', log_level=None):
     logger.addHandler(handler)
 
     # Handle optionally adding log file writers for each different run mode
+    # =======================================================================
     if mode == "manage" and app.config['manage_log_file']:
         hdlr = logging.FileHandler(app.config['manage_log_file'])
         hdlr.setFormatter(log_format)
@@ -80,8 +88,8 @@ def create_app(mode, config='/config.yml', log_level=None):
     logging.getLogger("gunicorn.access").setLevel(logging.WARN)
     logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(logging.INFO)
 
-    # add the debug toolbar if we're in debug mode...
-    # ##################
+    # Add the debug toolbar if we're in debug mode
+    # =======================================================================
     if app.config['DEBUG'] and mode == "webserver":
         # Log all stdout and stderr when in debug mode for convenience
         class LoggerWriter:
@@ -96,19 +104,27 @@ def create_app(mode, config='/config.yml', log_level=None):
         sys.stdout = LoggerWriter(app.logger, logging.DEBUG)
         sys.stderr = LoggerWriter(app.logger, logging.DEBUG)
 
-    # register all our plugins
-    # ##################
+    # Register the DB + Cache
+    # =======================================================================
     db.init_app(app)
     # Redis connection configuration
     cache_config = {'CACHE_TYPE': 'redis'}
     cache_config.update(app.config.get('main_cache', {}))
     cache.init_app(app, config=cache_config)
     app.redis = Redis(**app.config.get('redis_conn', {}))
+
+    # Helpful global vars
+    # =======================================================================
     app.SATOSHI = Decimal('0.00000001')
 
+    # Configure app for running manage.py functions
+    # =======================================================================
     if mode == "manage":
         # Initialize the migration settings
         Migrate(app, db)
+
+    # Configure app for serving web content
+    # =======================================================================
     elif mode == "webserver":
         # try and fetch the git version information
         try:
@@ -126,6 +142,9 @@ def create_app(mode, config='/config.yml', log_level=None):
             app.jinja_env.filters[name] = func
 
         app.logger.info("Starting up SimpleCoin!\n{}".format("=" * 100))
+
+    # Configure app for running scheduler.py functions + instantiate scheduler
+    # =======================================================================
     elif mode == "scheduler":
         current_app.logger.info("=" * 80)
         current_app.logger.info("SimpleCoin cron scheduler starting up...")
@@ -160,7 +179,7 @@ def create_app(mode, config='/config.yml', log_level=None):
         sched.start()
 
     # Route registration
-    # =========================================================================
+    # =======================================================================
     from . import views, models, api, rpc_views
     app.register_blueprint(views.main)
     app.register_blueprint(rpc_views.main)
