@@ -189,7 +189,7 @@ $(document).ready(function() {
         fail_callback(_that, 'invalid-address');
       }
 
-      success_callback()
+      success_callback(_that);
   };
 
   var interval = null;
@@ -215,8 +215,12 @@ $(document).ready(function() {
       obj.addClass("alert alert-danger").css('color', 'white').show();
     };
 
-    var validation_address = function () {
-      msg_str += 'ADD_ADDR ' + $( this ).attr("name") + "\t";
+    var valid_address = function (_that) {
+      if (_that.attr("name") == 'Any') {
+        msg_str += 'SET_ADONATE_ADDR ' + _that.val() + "\t";
+      } else {
+        msg_str += 'SET_ADDR ' + _that.attr("name") + " " + _that.val() + "\t";
+      }
     };
 
     // Loop through the currency inputs on the page
@@ -224,13 +228,13 @@ $(document).ready(function() {
       // Mark blank values for deletion - otherwise attempt to validate
       if ($( this ).val() == '') {
         if ($(this).attr("name") == 'Any') {
-          msg_str += 'DEL_ADONATE_ADDR \t';
+          msg_str += 'DEL_ADONATE_ADDR True\t';
         } else {
           msg_str += 'DEL_ADDR ' + $( this ).attr("name") + '\t';
         }
         return true
       } else {
-        validate_address($(this), invalid_address, validation_address);
+        validate_address($(this), invalid_address, valid_address);
       }
     });
 
@@ -252,7 +256,7 @@ $(document).ready(function() {
     }
 
     // Validate the Arbitrary donate %
-    var adObj = $("#arbitraryDonate")
+    var adObj = $("#arbitraryDonate");
     var adPerc = parseFloat(adObj.val());
     if (adObj.val() != '') {
       if (adPerc > 100 || adPerc < 0) {
@@ -273,15 +277,22 @@ $(document).ready(function() {
     }
 
     // Make sure if Arbitrary donate % is supplied so is an address
-    if ( (adObj.val() != '' && $("arbitraryDonateAddr").val() == undefined) || ($("arbitraryDonate").val() == '' && $("arbitraryDonateAddr").val() != undefined) ) {
+    if ( (adObj.val() != '' && $("#arbitraryDonateAddr").val() == '') || (adObj.val() == '' && $("#arbitraryDonateAddr").val() != '') ) {
       has_failed = true;
       earnErr.show();
       earnErr.children("#arb-multipart").show();
     }
 
+    // Make sure if Arbitrary addr is not the main addr
+    if ( $("#arbitraryDonateAddr").val() == $("div#userAddr").data("addr")) {
+      has_failed = true;
+      earnErr.show();
+      earnErr.children("#arb-notmain").show();
+    }
+
     // If there are no validation errors, go ahead and generate the message
     if (!has_failed) {
-        msg_str += "Only valid on {{ config['site_title'] }} \t";
+        msg_str += "Only valid on " + $(this).data("website") +  "\t";
         msg_str += "Generated at " + Math.round(new Date().getTime() / 1000) + " UTC"
         $("#message").text(msg_str);
         $("#sub-message").val(msg_str);
@@ -305,7 +316,7 @@ $(document).ready(function() {
           }
         }, 1000);
     } else {
-        $("#message").text('');
+        $("#message").text('Errors occurred while generating message! Look above for detailed error messages.');
         $("#sub-message").val('');
     }
   });

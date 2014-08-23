@@ -538,10 +538,56 @@ def time_format(seconds):
     return "{:,.4f} sec".format(seconds)
 
 
+def validate_bc_address(bc_address_str):
+    """
+    The go-to function for all your bitcoin style address validation needs.
+
+    Expects to receive a string
+    Returns False if any checks are failed, otherwise returns currency obj
+    """
+    # First check to make sure the address contains only alphanumeric chars
+    if not bc_address_str.isalnum():
+        return False
+
+    # Check to make sure str is the proper length
+    if not len(bc_address_str) == 34:
+        return False
+
+    # Check to see if the address can be looked up/has an attached RPC server
+    try:
+        curr = currencies.lookup_address(bc_address_str)
+    except AttributeError:
+        return False
+    else:
+        # If we've arrived here we'll consider it valid
+        return curr
+
+
+def validate_str_perc(perc, round=dec('0.01')):
+    """
+    The go-to function for all your percentage validation needs.
+
+    Tries to convert a var representing an 0-100 scale percentage into a
+    mathematically useful Python Decimal. Default is rounding to 0.01%
+
+    Then checks to ensure decimal is within valid bounds
+    """
+    # Try to convert to decimal
+    try:
+        dec_perc = dec(perc).quantize(round) / 100
+    except TypeError:
+        return False
+    else:
+        # Check bounds
+        if dec_perc > dec('1') or dec_perc < dec('0'):
+            return False
+        else:
+            return dec_perc
+
 ##############################################################################
 # Message validation and verification functions
 ##############################################################################
-def validate_message_vals(**kwargs):
+def validate_message_vals(address, **kwargs):
     set_addrs = kwargs['SET_ADDR']
     del_addrs = kwargs['DEL_ADDR']
     pdonate_perc = kwargs['SET_PDONATE_PERC']
@@ -550,38 +596,47 @@ def validate_message_vals(**kwargs):
     del_adonate_addr = kwargs['DEL_ADONATE_ADDR']
     anon = kwargs['MAKE_ANON']
 
+    # Make sure all addresses are valid
     for curr, addr in set_addrs.iteritems():
-        try:
-            currencies.lookup_address(addr)
-        except AttributeError:
-            raise CommandException("Invalid currency address passed!")
+        if not validate_bc_address(addr):
+            raise CommandException("Invalid {} address passed!".format(curr))
 
-    if adonate_addr:
-        try:
-            currencies.lookup_address(adonate_addr)
-        except AttributeError:
-            raise CommandException("Invalid currency address passed for "
-                                   "arbitrary donation!")
+    if adonate_addr and not validate_bc_address(adonate_addr):
+        raise CommandException("Invalid currency address passed for arbitrary "
+                               "donation!")
 
-    try:
-        adonate_perc = dec(adonate_perc).quantize(dec('0.01')) / 100
-    except TypeError:
-        raise CommandException("Arbitrary donate percentage unable to be "
-                               "converted to python Decimal!")
-    else:
-        if adonate_perc > 100.0 or adonate_perc < 0:
-            raise CommandException("Arbitrary donate percentage was out of "
-                                   "bounds!")
+    # Make sure all percentages are valid
+    adonate_perc = validate_str_perc(adonate_perc)
+    if adonate_perc is False:
+        raise CommandException("Arbitrary donate percentage invalid! Check to "
+                               "make sure its a value 0-100.")
 
-    try:
-        pdonate_perc = dec(pdonate_perc).quantize(dec('0.01')) / 100
-    except TypeError:
-        raise CommandException("Pool donate percentage unable to be converted "
-                               "to python Decimal!")
+    pdonate_perc = validate_str_perc(pdonate_perc)
+    if pdonate_perc is False:
+        raise CommandException("Pool donate percentage invalid! Check to "
+                               "make sure its a value 0-100.")
 
-    else:
-        if pdonate_perc > 100.0 or pdonate_perc < 0:
-            raise CommandException("Pool donate percentage was out of bounds!")
+    # Make sure percentages are <= 100
+    if pdonate_perc + adonate_perc > 100:
+        raise CommandException("Donation percentages cannot total to more than "
+                               "100%!")
+
+    # Make sure we have both an arb donate addr + an arb donate % or neither
+    if not del_adonate_addr:
+        if not adonate_perc >= 0 or adonate_addr is False:
+            raise CommandException("Arbitrary donate requires both an address"
+                                   "and a percentage, or to remove it both "
+                                   "must be removed.")
+    elif del_adonate_addr:
+        if adonate_perc > 0 or adonate_addr:
+            raise CommandException("Attempted to perform two conflicting "
+                                   "actions with arbitrary donate! This is "
+                                   "probably our fault - please contact us!")
+
+    # Make sure arb donate addr isn't also the main addr
+    if adonate_addr == address:
+        raise CommandException("Arbitrary donate address must not be the "
+                               "main address")
 
     return set_addrs, del_addrs, pdonate_perc, adonate_perc, adonate_addr, \
            del_adonate_addr, anon
@@ -608,7 +663,7 @@ def verify_message(address, curr, message, signature):
             elif parts[0] == 'Only':
                 site = parts[3]
             elif parts[0] == 'Generated':
-                time = parts[2] + ' ' + parts[3]
+                time = float(parts[2])
                 stamp = datetime.datetime.utcfromtimestamp(time)
             else:
                 raise CommandException("Invalid command given! Generate a new "
@@ -623,9 +678,10 @@ def verify_message(address, curr, message, signature):
                                " message & try again.")
 
     now = datetime.datetime.utcnow()
-    if abs((now - stamp).seconds) > current_app.config.get('message_expiry', 90660):
+    if abs((now - stamp).seconds) > current_app.config.get('message_expiry', 900):
         raise CommandException("Signature/Message is too old to be accepted! "
-                               "Generate a new message & try again.")
+                               "Make sure your system clock is set correctly, "
+                               "then generate a new message & try again.")
 
     if not site or site != current_app.config['site_title']:
         raise CommandException("Invalid website! Generate a new message "
@@ -633,6 +689,8 @@ def verify_message(address, curr, message, signature):
 
     current_app.logger.info(u"Attempting to validate message '{}' with sig '{}' for address '{}'"
                             .format(message, signature, address))
+
+    args = validate_message_vals(address, **update_dict)
 
     try:
         res = curr.coinserv.verifymessage(address, signature, message.encode('utf-8').decode('unicode-escape'))
@@ -644,14 +702,18 @@ def verify_message(address, curr, message, signature):
         raise CommandException("Unable to communicate with coinserver!")
 
     if res:
-        args = validate_message_vals(**update_dict)
         try:
             UserSettings.update(address, *args)
         except SQLAlchemyError:
             db.session.rollback()
+            current_app.logger.error("Failed updating database with new user "
+                                     "settings! Message: {}".format(message),
+                                     exc_info=True)
             raise CommandException("Error saving new settings to the database!")
         else:
             db.session.commit()
     else:
-        raise CommandException("Invalid signature! Coinserver returned {}"
+        raise CommandException("Invalid signature! This is usually caused by"
+                               "using the wrong address to sign the message or "
+                               "not using the QT wallet. Coinserver returned {}"
                                .format(res))

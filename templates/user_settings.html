@@ -85,21 +85,24 @@
                     <label>
                       <input type="checkbox" id="anonymous"
                              name="anonymous"{% if anon %} checked{% endif %}>
-                      This hides your address on the top miners list
+                      This hides your address on the miner leaderboard
                     </label>
                   </div>
                 </div>
               </div>
               <div class="form-group">
-                <label for="{{ user_currency_name }}" class="col-sm-3 control-label">
-                  {{ user_currency_name }}:</label>
+                <label for="userAddr" class="col-sm-3 control-label">
+                  Payout Address:</label>
                 <div class="col-sm-7">
-                  <div id="{{ user_currency_name }}" style="padding-top:7px;">
-                    {{ username }}</div>
+                  <div id="userAddr" data-addr="{{ username }}" style="padding-top:7px;">
+                    {{ username }} (<b>{{ user_currency }}</b>)</div>
                 </div>
               </div>
               <p class="col-sm-10 col-sm-offset-1 horz-form-heading">
-                <b>Earnings Distribution</b></p>
+                <b>Earnings Distribution</b>
+                  <span class="help-block">Optionally donate some of your earnings
+                  to the pool, or to any address that we payout in</span>
+              </p>
               <div class="col-sm-10 col-sm-offset-1 default-hide" id="earn-error">
                 <div class="alert alert-{{ alert_cls }} default-hide"
                      id="global-perc">
@@ -111,8 +114,16 @@
                 <div class="alert alert-{{ alert_cls }} default-hide"
                      id="arb-multipart">
                   <h4 style="margin-bottom: 0px;">
-                    <i class='fa fa-exclamation-triangle'></i> Arbitrary
-                    donation must have both an address and a percentage
+                    <i class='fa fa-exclamation-triangle'></i> Arbitrary donate
+                    requires both an address and a percentage, or to remove it
+                    both must be removed.
+                  </h4>
+                </div>
+                <div class="alert alert-{{ alert_cls }} default-hide"
+                     id="arb-notmain">
+                  <h4 style="margin-bottom: 0px;">
+                    <i class='fa fa-exclamation-triangle'></i> Arbitrary donate
+                    address cannot be the same as your main user address.
                   </h4>
                 </div>
               </div>
@@ -173,8 +184,12 @@
                 </div>
               </div>
 
+              {% if exchangeable_currencies %}
               <p class="col-sm-10 col-sm-offset-1 horz-form-heading">
-                <b>Exchangeable Currencies</b></p>
+                <b>Exchangeable Currencies</b>
+                  <span class="help-block">Set an address to disable
+                    {{ user_currency }} conversion for that currency</span>
+              </p>
               {% for currency, address_obj in exchangeable_currencies.iteritems() %}
               <div class="form-group">
                 <label for="{{ currency }}" class="col-sm-3 control-label">
@@ -197,14 +212,19 @@
                 </div>
               </div>
               {% endfor %}
+              {% endif %}
 
+              {% if unexchangeable_currencies %}
               <p class="col-sm-10 col-sm-offset-1 horz-form-heading">
-                <b>Unexchangeable Currencies</b></p>
+                <b>Unexchangeable Currencies</b>
+                  <span class="help-block">To receive any these currencies it
+                    is required that you set an address</span>
+              </p>
               {% for currency, address_obj in unexchangeable_currencies.iteritems() %}
               <div class="form-group">
                 <label for="{{ currency }}" class="col-sm-3 control-label">
                   {{ currency }}:</label>
-                <div class="col-sm-7">
+                <div class="col-sm-6">
                   <input type="text" class="form-control address-field"
                          name="{{ currency }}" id="{{ currency }}"
                          value="{{ address_obj.address }}">
@@ -213,8 +233,10 @@
                 <div class="col-sm-1"><span id="{{ currency }}"></span></div>
               </div>
               {% endfor %}
+              {% endif %}
+
               <div class="col-sm-9 col-sm-offset-3" style="padding-left:8px;padding-top:15px;">
-                <button type="submit" class="btn btn-success" id="generate">
+                <button type="submit" class="btn btn-success" id="generate" data-website="{{ config['site_title'] }}">
                   Generate message</button>
               </div>
             </fieldset>

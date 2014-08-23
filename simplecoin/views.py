@@ -11,7 +11,7 @@ from .models import Block, ShareSlice, UserSettings, PayoutAddress, make_upper_l
 from . import db, root, cache, currencies
 from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
                     get_alerts, resort_recent_visit, collect_acct_items,
-                    CommandException)
+                    CommandException, validate_bc_address)
 
 
 main = Blueprint('main', __name__)
@@ -124,9 +124,8 @@ def exception():
 @main.route("/<address>")
 def user_dashboard(address):
     # Do some checking to make sure the address is valid + payable
-    try:
-        currencies.lookup_address(address)
-    except AttributeError:
+    curr = validate_bc_address(address)
+    if not curr:
         return render_template('invalid_address.html',
                                allowed_currencies=currencies.payout_currencies())
 
@@ -249,9 +248,9 @@ def validate_address():
         currency = addr[0]
         address = addr[1]
 
-        try:
-            curr = currencies.lookup_address(address)
-        except AttributeError:
+        curr = validate_bc_address(address)
+
+        if not curr:
             return jsonify({currency: False})
 
         if currency == 'Any':
@@ -263,93 +262,10 @@ def validate_address():
             return jsonify({currency: True})
 
 
-@main.route("/generate_message", methods=['POST'])
-def generate_message():
-    if request.method == "POST":
-        vals = request.form
-
-        # build a few dicts for convenience
-        raw_addresses = {}
-        commands = {'delete_addrs': [], 'add_addrs': {}, 'set_adonate_addr': None}
-        for k, v in vals.iteritems():
-            if k in current_app.config['currencies']:
-                raw_addresses[k] = v
-            elif k == 'Any':
-                raw_addresses[k] = v
-            else:
-                if k == 'anonymous':
-                    v = True
-                if k == 'poolDonate':
-                    v = float(v)
-                if k == 'arbitraryDonate':
-                    v = float(v)
-                commands[k] = v
-
-        # validate the addresses + add appropriate commands
-        errors = {}
-        for currency, address in raw_addresses.iteritems():
-            if address:
-                try:
-                    currencies.lookup_address(address)
-                except AttributeError:
-                    errors[currency] = 'invalid-address'
-                else:
-                    if currency == 'Any':
-                        commands['set_adonate_addr'] = address
-                    commands['add_addrs'][currency] = address
-            else:
-                commands['delete_addrs'].append(currency)
-
-        if commands['poolDonate'] > 100 or commands['poolDonate'] < 0:
-            errors['poolDonate'] = 'invalid-range'
-
-        if commands['arbitraryDonate'] > 100 or commands['arbitraryDonate'] < 0:
-            errors['arbitraryDonate'] = 'invalid-range'
-
-        if not 'arbitraryDonate' in errors and not 'poolDonate' in errors:
-            if (commands['arbitraryDonate'] + commands['poolDonate']) > 100:
-                errors['arbitraryDonate'] = 'total-too-high'
-
-        if commands['arbitraryDonate'] > 0 and not commands['set_adonate_addr']:
-            current_app.logger.info(commands['arbitraryDonate'])
-            current_app.logger.info(commands['set_adonate_addr'])
-            errors['arbitraryDonate'] = 'fields-required'
-
-        if commands['set_adonate_addr'] and not commands['arbitraryDonate']:
-            errors['arbitraryDonate'] = 'fields-required'
-
-        current_app.logger.warn(errors)
-        if errors:
-            return jsonify({'errors': errors})
-
-        # build message
-        msg_str = ''
-        for command, v in commands.iteritems():
-            if command == 'set_adonate_addr' and v:
-                msg_str += 'SETADONATE ' + str(v) + "\t"
-            if command == 'set_adonate_addr' and v:
-                msg_str += 'SETADONATEPERC ' + str(v) + "\t"
-            if command == 'delete_addrs':
-                for curr in v:
-                    msg_str += 'DELADDR ' + curr + "\t"
-            if command == 'add_addrs':
-                for curr, addr in v.iteritems():
-                    msg_str += 'SETADDR ' + curr + ' ' + addr + "\t"
-            if command == 'anonymous':
-                    msg_str += 'MAKEANON' + ' TRUE' + "\t"
-            if command == 'poolDonate':
-                    msg_str += "SETDONATE " + str(v) + "\t"
-        msg_str += "Only valid on " + current_app.config['site_title'] + "\t"
-        msg_str += "Generated at " + str(datetime.datetime.utcnow()) + " UTC"
-
-        return jsonify({'msg_str': msg_str})
-
-
 @main.route("/settings/<address>", methods=['POST', 'GET'])
 def settings(address):
-    try:
-        curr = currencies.lookup_address(address)
-    except AttributeError:
+    curr = validate_bc_address(address)
+    if not curr:
         return render_template('invalid_address.html',
                                allowed_currencies=currencies.payout_currencies())
 
@@ -358,12 +274,17 @@ def settings(address):
     user = UserSettings.query.filter_by(user=address).first()
 
     user_addresses = {}
-    if not user:
-        pd_perc = 0
-        anon = None
-    else:
+    pd_perc = 0
+    ad_perc = ''
+    ad_addr = ''
+    anon = None
+    if user:
         anon = user.anon
         pd_perc = user.hr_perc
+        if user.adonation_perc:
+            ad_perc = user.adonation_perc * 100
+        if user.adonation_addr:
+            ad_addr = user.adonation_addr
         for addr in user.addresses:
             user_addresses[addr.currency] = (addr)
 
@@ -387,6 +308,8 @@ def settings(address):
                            result=result,
                            alert_cls=alert_cls,
                            pd_perc=pd_perc,
+                           ad_perc=ad_perc,
+                           ad_address=ad_addr,
                            user_currency=curr.name,
                            user_currency_name=curr.key,
                            anon=anon,

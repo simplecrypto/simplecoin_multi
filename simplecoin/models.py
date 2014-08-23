@@ -602,26 +602,33 @@ class ShareSlice(TimeSlice, base):
 
 class UserSettings(base):
     user = db.Column(db.String(34), primary_key=True)
-    donation_perc = db.Column(db.Numeric, default=Decimal('0'))
-    # pool_donation_perc = db.Column(db.Numeric, default=Decimal('0'))
-    # arbitrary_donation_perc = db.Column(db.Numeric)
-    # arbitrary_donation_address = db.Column(db.String(34))
+    pdonation_perc = db.Column(db.Numeric, default=Decimal('0'))
+    adonation_perc = db.Column(db.Numeric)
+    adonation_addr = db.Column(db.String(34))
     anon = db.Column(db.Boolean, default=False)
     addresses = db.relationship("PayoutAddress")
 
     @property
     def hr_perc(self):
-        return (self.donation_perc * 100).quantize(Decimal('0.01'))
+        return (self.pdonation_perc * 100).quantize(Decimal('0.01'))
 
     @classmethod
-    def update(cls, address, set_addrs, del_addrs, donate_perc, anon):
+    def update(cls, address, set_addrs, del_addrs, pdonate_perc, adonate_perc,
+               adonate_addr, del_adonate_addr, anon):
 
         user = cls.query.filter_by(user=address).first()
         if not user:
-            UserSettings.create(address, donate_perc, anon, set_addrs)
+            UserSettings.create(address, pdonate_perc, adonate_perc,
+                                adonate_addr, del_adonate_addr, anon, set_addrs)
         else:
-            user.donation_perc = donate_perc
+            user.pdonation_perc = pdonate_perc
             user.anon = anon
+            if del_adonate_addr:
+                user.adonation_perc = None
+                user.adonation_addr = None
+            else:
+                user.adonation_perc = adonate_perc
+                user.adonation_addr = adonate_addr
 
             # Set addresses
             for address in user.addresses:
@@ -630,12 +637,11 @@ class UserSettings(base):
                     if address.currency == currency:
                         address.currency = currency
                         address.address = addr
-                        # Pop the currencies we just set
+                        # Pop the currencies we just updated
                         set_addrs.pop(currency)
-                # Add new currencies
-                for currency, addr in set_addrs.iteritems():
-                    address.currency = currency
-                    address.address = addr
+            # Add new currencies
+            for currency, addr in set_addrs.iteritems():
+                user.addresses.append(PayoutAddress.create(addr, currency))
             # Delete addresses
             for address in user.addresses:
                 for currency in del_addrs:
@@ -646,16 +652,20 @@ class UserSettings(base):
         return user
 
     @classmethod
-    def create(cls, user, donation_perc, anon, set_addrs):
+    def create(cls, user, pdonate_perc, adonate_perc,  adonate_addr,
+               del_adonate_addr, anon, set_addrs):
+
         user = cls(user=user,
-                   donation_perc=donation_perc,
+                   pdonation_perc=pdonate_perc,
                    anon=anon)
+        if not del_adonate_addr:
+            user.adonation_perc = adonate_perc
+            user.adonation_addr = adonate_addr
         db.session.add(user)
-        payout_addresses = []
+
         for currency, addr in set_addrs.iteritems():
-            if addr:
-                payout_addresses.append(PayoutAddress.create(addr, currency))
-        user.addresses = payout_addresses
+            user.addresses.append(PayoutAddress.create(addr, currency))
+
         return user
 
 
