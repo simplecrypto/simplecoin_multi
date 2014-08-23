@@ -16,11 +16,12 @@
             <li>No registration - use your wallet address as a username</li>
             <li>Autoexchange mining rewards to your desired currency</li>
             <li>Seamless merge mining</li>
-            <li>{{ config['fee_perc']|float * 100 }}% pool fee</li>
+            <li>1% single currency fee, 2% multi fee</li>
             <li>No transaction fees</li>
             <li>No currency conversion fees</li>
             <li>Vardiff enabled + manual difficulty selection available</li>
             <li>Daily payouts - No minimum amount</li>
+            <li>PPLNS payout</li>
           </ul>
         </div>
       </div>
@@ -47,15 +48,15 @@
           <h4><b>No registration required, payouts go to the address used as username.</b></h4>
           <ol>
               <li>Configure your stratum client with the information below and start mining:
-                <small>
-                  <div class="well well-sm" style="min-height:130px;background-color:#212F3D;">
+                <p><small>
+                  <div class="well" style="min-height:130px;background-color:#212F3D;">
                     <b>URL: </b>{{ config['default_stratum_url'] }}<br>
                     <b>Port:</b> {{ config['default_stratum_port'] }}<br>
                     <b>Username: </b>[Your wallet address].[Worker Name]<br>
                     <b>Password: </b>x<br>
                     <b>sgminer example:</b> ./sgminer -o {{ config['default_stratum_url'] }}:{{ config['default_stratum_port'] }} -u {{ config['donate_address'] }}.worker1 -p x -I 13
                   </div>
-                </small>
+                </small></p>
               </li>
               <li>Check your stats and estimated payout by entering your Payout address below:</li>
               <div class="form-group">

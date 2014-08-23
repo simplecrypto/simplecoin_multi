@@ -21,11 +21,17 @@ main = Blueprint('main', __name__)
 def home():
     news = yaml.load(open(root + '/static/yaml/news.yaml'))
     payout_currencies = currencies.payout_currencies()
-    return render_template('home.html', news=news, payout_currencies=payout_currencies)
+    ports = current_app.ports
+    return render_template('home.html',
+                           news=news,
+                           payout_currencies=payout_currencies,
+                           ports=ports)
 
 @main.route("/configuration_guide")
 def configuration_guide():
-    return render_template('config_guide_wrapper.html')
+    ports = current_app.ports
+    return render_template('config_guide_wrapper.html',
+                           ports=ports)
 
 
 @main.route("/news")

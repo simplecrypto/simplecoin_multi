@@ -30,18 +30,22 @@
 {#            </div>#}
       <div class="col-sm-11 col-sm-offset-1">
         <form class="form-horizontal" role="form">
-        {% for algo in config['ports'] %}
-        {% set rowloop = loop %}
+        {% for algo in ports %}
           <div class="col-sm-4">
             <div class="col-sm-12 no-padding">
               <h4>{{ algo }} Ports:</h4>
             </div>
-            {% for port in config['ports'][algo] %}
+            {% for port in ports[algo] %}
             <div class="radio">
               <label>
                 <div class="col-sm-12 no-padding">
                   <input type="radio" name="port" class="stratum-ports" value="{{ port['port'] }}">
-                  <b>{{ port['title'] }} Port:</b> {{ port['port'] }} (diff {{ port['diff'] }})
+                  <b>{{ port['title'] }}:</b>
+                  <ul>
+                    <li>Port: {{ port['port'] }}</li>
+                    <li>Diff: {{ port['diff'] }}</li>
+                    <li>{{ port.hr_fee_perc }}% fee</li>
+                  </ul>
                 </div>
               </label>
             </div>
@@ -94,7 +98,7 @@
           <label for="donateAmount" class="col-sm-2 control-label">Difficulty:</label>
           <div class="col-sm-5">
             <input type="text" class="form-control" id="mining-diff" name="mining-diff">
-            <span class="help-block" style="margin-bottom:0px;">Don't set this unless you know what you're doing. Must be a value in the vardiff range</span>
+            <span class="help-block" style="margin-bottom:0px;">Don't set this unless you know what you're doing. Must be 2^x and in the vardiff range</span>
           </div>
         </div>
       </div>

@@ -16,7 +16,7 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.migrate import Migrate
 from jinja2 import FileSystemLoader
 from werkzeug.local import LocalProxy
-from autoex.exchange import ExchangeManager
+from autoex.ex_manager import ExchangeManager
 
 import simplecoin.filters as filters
 
@@ -50,6 +50,7 @@ def create_app(mode, config='/config.yml', log_level=None):
     app.config.update(config_vars)
     app.currencies = CurrencyKeeper(app.config['currencies'])
     app.powerpools = PowerPoolKeeper(app.config['mining_servers'])
+    app.ports = PortKeeper(app.config['mining_servers'])
     app.exchanges = ExchangeManager(app.config['exchange_manager'])
 
     del app.logger.handlers[0]
@@ -175,5 +176,5 @@ def create_manage_app(**kwargs):
     return app
 
 
-from .utils import CurrencyKeeper, PowerPoolKeeper
+from .utils import CurrencyKeeper, PowerPoolKeeper, PortKeeper
 import simplecoin.scheduler as sch

@@ -122,7 +122,7 @@ class RemoteException(Exception):
 
 class PowerPool(object):
     timeout = 10
-    requires = ['algo', 'location', 'monitor', 'stratum', 'unique_id']
+    requires = ['pp_location', 'monitor_port', 'stratum_port', 'sharechain_id']
 
     def __init__(self, bootstrap):
         # Check requirements
@@ -136,7 +136,7 @@ class PowerPool(object):
 
     @property
     def monitor_address(self):
-        return "http://{}:{}".format(self.location, self.monitor)
+        return "http://{}:{}".format(self.pp_location, self.monitor_port)
 
     @property
     def display_text(self):
@@ -144,12 +144,12 @@ class PowerPool(object):
 
     @property
     def stratum_address(self):
-        return "stratum+tcp://{}:{}".format(self.location, self.monitor)
+        return "stratum+tcp://{}:{}".format(self.pp_location, self.monitor_port)
     __repr__ = stratum_address  # Allows us to cache calls to this instance
     __str__ = stratum_address
 
     def __hash__(self):
-        return self.unique_id
+        return self.sharechain_id
 
     def request(self, url, method='GET', max_age=None, signed=True, **kwargs):
         url = urljoin(self.monitor_address, url)
@@ -164,15 +164,48 @@ class PowerPool(object):
 class PowerPoolKeeper(dict):
     def __init__(self, mining_servers):
         super(PowerPoolKeeper, self).__init__()
-        self.by_algo = {}
-        for config in mining_servers:
-            serv = PowerPool(config)
-            self.by_algo.setdefault(serv.algo, [])
-            self.by_algo[serv.algo].append(serv)
-            if serv.unique_id in self:
-                raise ConfigurationException("You cannot specify two servers "
-                                             "with the same unique id")
-            self[serv.unique_id] = serv
+        self.by_algo = mining_servers
+        for algo, servers in mining_servers.iteritems():
+            for serv_cfg in servers:
+                serv = PowerPool(serv_cfg)
+                if serv.sharechain_id in self:
+                    raise ConfigurationException("You cannot specify two servers "
+                                                 "with the same sharechain_id")
+                self[serv.sharechain_id] = serv
+
+
+class Port(object):
+    timeout = 10
+    requires = ['stratum_port', 'diff', 'title', 'pp_location', 'sharechain_id', 'fee_perc']
+
+    def __init__(self, ports_cfg):
+        # Check requirements
+        for req in self.requires:
+            if req not in ports_cfg:
+                raise ConfigurationException("ports item requires {}"
+                                             .format(req))
+        # Default settings
+        self.__dict__.update(dict())
+        self.__dict__.update(ports_cfg)
+
+    @property
+    def hr_fee_perc(self):
+        return float(self.fee_perc) * 100
+
+    @property
+    def dec_fee_perc(self):
+        return dec(self.fee_perc)
+
+
+class PortKeeper(dict):
+    def __init__(self, ports):
+        super(PortKeeper, self).__init__()
+
+        for algo, servers in ports.iteritems():
+            for port_cfg in servers:
+                port = Port(port_cfg)
+                self.setdefault(algo, [])
+                self[algo].append(port)
 
 
 class ShareTracker(object):

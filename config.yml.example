@@ -1,60 +1,12 @@
 # General
 # =======================================================================
-# Where's powerpool running?
-mining_servers:
-    - location: localhost
-      stratum: 3333
-      monitor: 3855
-      algo: scryptn
-      unique_id: 1
-
-# Default values for new miner config
-default_stratum_url: stratum+tcp://stratum.simplemulti.com
-default_stratum_port: 3363
-
-stratums:
-    - address: stratum+tcp://ca.simplemulti.com
-      location_acronym: CA
-      location: Beauharnois, Canada
-      country_flag: "/img/ca.svg"
-    - address: stratum+tcp://uk.simplemulti.com
-      location_acronym: UK
-      location: London, United Kingdom
-      country_flag: "/img/uk.svg"
-
-ports:
-    # List containing each mining port. Each of these ports should be open on
-    # every server (or it'll be very confusing to users)
-    Scrypt:
-      - port: 3363
-        diff: 64-2048
-        title: LTC/Doge
-        pp_location: http://localhost:3856/
-      - port: 3363
-        diff: 64-2048
-        title: LTC/Doge
-        pp_location: http://localhost:3856/
-    X11:
-      - port: 3363
-        diff: 64-2048
-        title: Hidiff
-        pp_location: http://localhost:3856/
-
 # The postgresql database connection configuration
 SQLALCHEMY_DATABASE_URI: postgresql://simplecoin:testing@localhost:5432/simplecoin
 # the session encryption key
 SECRET_KEY: 'somethting_really_secret'
-DEBUG: False
-
-algos:
-    X11:
-        hashes_per_share: 4294967296
-    scryptn:
-        hashes_per_share: 65536
-    scrypt:
-        hashes_per_share: 65536
-
-# email server authentication 
+# Use debug settings
+#DEBUG: False
+# email server authentication
 email:
     enabled: False
     send_address: 'simpledogepool@gmail.com'
@@ -66,6 +18,71 @@ email:
     port: 587
     debug: True
     tls: True
+
+# Stratum + Powerpool Config
+# =======================================================================
+# Default values for new miner config
+default_stratum_url: stratum+tcp://stratum.simplemulti.com
+default_stratum_port: 3363
+
+# Where's powerpool running?
+mining_servers:
+    # Dict keyed by algo, contains a list item for each mining port. Each of
+    # these ports should be open on every server (or it'll be very confusing
+    # to users)
+    Scrypt:
+      - pp_location: localhost
+        stratum_port: 3363
+        monitor_port: 3856
+        diff: 64-2048
+        title: Scrypt Multi PPLNS
+        sharechain_id: 1
+        fee_perc: 0.02
+        monitor: 3855
+      - pp_location: localhost
+        stratum_port: 3364
+        monitor_port: 3856
+        diff: 64-2048
+        title: LTC/Doge PPLNS
+        sharechain_id: 2
+        fee_perc: 0.01
+    X11:
+      - pp_location: localhost
+        stratum_port: 3373
+        monitor_port: 3856
+        diff: 64-2048
+        title: X11 Multi PPLNS
+        sharechain_id: 3
+        fee_perc: 0.02
+      - pp_location: localhost
+        stratum_port: 3374
+        monitor_port: 3856
+        diff: 64-2048
+        title: DRK PPLNS
+        sharechain_id: 4
+        fee_perc: 0.01
+
+# Represents an server location
+stratums:
+    - address: stratum+tcp://ca.simplemulti.com
+      location_acronym: CA
+      location: Beauharnois, Canada
+      country_flag: "/img/ca.svg"
+    - address: stratum+tcp://uk.simplemulti.com
+      location_acronym: UK
+      location: London, United Kingdom
+      country_flag: "/img/uk.svg"
+
+# Currency configs
+# =======================================================================
+# Average hashes for each algo - used for stats + graphs calculations
+algos:
+    X11:
+        hashes_per_share: 4294967296
+    scryptn:
+        hashes_per_share: 65536
+    scrypt:
+        hashes_per_share: 65536
 
 currencies: 
     DRK:
@@ -141,8 +158,6 @@ main_cache:
 # default donation percentage applied to payouts if no custom is
 # defined
 default_donate_perc: '0'
-# the fee percentage charged to miners
-fee_perc: '0.01'
 # address where all donated percents (or fees) will go
 donate_address: DAbhwsnEq5TjtBP5j76TinhUqqLTktDAnD
 # block find reward. set to zero or comment out to not use. in satoshi
