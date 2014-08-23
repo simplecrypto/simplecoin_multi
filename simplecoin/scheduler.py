@@ -324,19 +324,7 @@ def payout(redis_key, simulate=False):
         current_app.logger.debug("Running in simulate mode, no commit will be performed")
         current_app.logger.setLevel(logging.DEBUG)
 
-    data = {}
-    user_shares = {}
-    raw = redis_conn.hgetall(redis_key)
-    for key, value in raw.iteritems():
-        try:
-            address_version(key)
-        except AttributeError:
-            data[key] = value
-        else:
-            user_shares[key] = Decimal(value)
-
-    if not user_shares:
-        user_shares[data['address']] = 1
+    data = redis_conn.hgetall(redis_key)
 
     current_app.logger.debug("Processing block with details {}".format(data))
     merged_type = data.get('merged')
@@ -344,12 +332,11 @@ def payout(redis_key, simulate=False):
         time_started = datetime.datetime.utcfromtimestamp(float(data.get('start_time')))
     else:
         time_started = last_block_time(data['algo'], merged_type=merged_type)
-    total_shares = sum(user_shares.itervalues())
 
     block = Block.create(
         user=data['address'],
         height=data['height'],
-        shares_to_solve=total_shares,
+        shares_to_solve=0,
         total_value=(Decimal(data['total_subsidy']) / 100000000),
         transaction_fees=int(data['fees']),
         bits=data['hex_bits'],
@@ -361,8 +348,23 @@ def payout(redis_key, simulate=False):
         algo=data['algo'],
         merged_type=merged_type)
 
-    getcontext().rounding = ROUND_HALF_DOWN
+    for chain_id in data['chains']:
+        chain_config = current_app.config['chains']['chain']
+        share_compute_functions = {'pplns': pplns_share_calc,
+                                   'prop': prop_share_calc}
 
+        user_shares = share_compute_functions[chain_config['type']]
+        if not user_shares:
+            user_shares[block.address] = 1
+        payout_chain(user_shares, simulate=simulate)
+
+    db.session.commit()
+    redis_conn.delete(redis_key)
+
+
+def payout_chain(block, user_shares, simulate=False):
+    total_shares = sum(user_shares.itervalues())
+    getcontext().rounding = ROUND_HALF_DOWN
     if simulate:
         out = "\n".join(["\t".join((user,
                                     str((amount * 100) / total_shares),
@@ -491,8 +493,6 @@ def payout(redis_key, simulate=False):
         # update the block status and collected amounts
         block.donated = donation_total
         block.bonus_payed = bonus_total
-        db.session.commit()
-        redis_conn.delete(redis_key)
 
 
 @crontab
