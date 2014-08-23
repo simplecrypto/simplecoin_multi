@@ -123,7 +123,7 @@ class RemoteException(Exception):
 class PowerPool(object):
     timeout = 10
     requires = ['pp_location', 'monitor_port', 'stratum_port', 'sharechain_id',
-                'title', 'diff', 'fee_perc']
+                'title', 'diff', 'payout_type', 'fee_perc']
 
     def __init__(self, bootstrap, algo):
         # Check requirements
@@ -161,7 +161,8 @@ class PowerPool(object):
     @property
     def port(self):
         return {'port': self.stratum_port, 'diff': self.diff,
-                'title': self.title, 'fee': self.hr_fee_perc}
+                'title': self.title, 'fee': self.hr_fee_perc,
+                'payout_type': self.payout_type}
 
     def __hash__(self):
         return self.sharechain_id

@@ -45,31 +45,34 @@ mining_servers:
         stratum_port: 3363
         monitor_port: 3856
         diff: 64-2048
-        title: Scrypt Multi PPLNS
+        title: Scrypt Multi
         sharechain_id: 1
+        payout_type: PPLNS
         fee_perc: 0.02
-        monitor: 3855
       - pp_location: localhost
         stratum_port: 3364
-        monitor_port: 3856
+        monitor_port: 3857
         diff: 64-2048
-        title: LTC/Doge PPLNS
+        title: LTC/Doge
         sharechain_id: 2
+        payout_type: PPLNS
         fee_perc: 0.01
     X11:
       - pp_location: localhost
         stratum_port: 3373
-        monitor_port: 3856
+        monitor_port: 3858
         diff: 64-2048
-        title: X11 Multi PPLNS
+        title: X11 Multi
         sharechain_id: 3
+        payout_type: PPLNS
         fee_perc: 0.02
       - pp_location: localhost
         stratum_port: 3374
-        monitor_port: 3856
+        monitor_port: 3859
         diff: 64-2048
-        title: DRK PPLNS
+        title: DRK
         sharechain_id: 4
+        payout_type: PPLNS
         fee_perc: 0.01
 
 # Represents an server location

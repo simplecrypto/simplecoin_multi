@@ -338,7 +338,7 @@ def payout(redis_key, simulate=False):
         height=data['height'],
         shares_to_solve=0,
         total_value=(Decimal(data['total_subsidy']) / 100000000),
-        transaction_fees=int(data['fees']),
+        transaction_fees=(Decimal(data['fees']) / 100000000),
         bits=data['hex_bits'],
         hash=data['hash'],
         time_started=time_started,
@@ -349,13 +349,13 @@ def payout(redis_key, simulate=False):
         merged_type=merged_type)
 
     for chain_id in data['chains']:
-        chain_config = current_app.config['chains']['chain']
-        share_compute_functions = {'pplns': pplns_share_calc,
-                                   'prop': prop_share_calc}
+        chain_config = current_app.powerpools[chain_id]
+        share_compute_functions = {'PPLNS': pplns_share_calc,
+                                   'PROP': prop_share_calc}
 
-        user_shares = share_compute_functions[chain_config['type']]
+        user_shares = share_compute_functions[chain_config['payout_type']]
         if not user_shares:
-            user_shares[block.address] = 1
+            user_shares[block.user] = 1
         payout_chain(user_shares, simulate=simulate)
 
     db.session.commit()
