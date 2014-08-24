@@ -114,8 +114,8 @@ class Block(base):
     # Associated transaction fees
     transaction_fees = db.Column(db.Numeric)
     # total going to pool from fees
-    donated = db.Column(db.Numeric)
-    bonus_payed = db.Column(db.Numeric)
+    contributed = db.Column(db.Numeric)
+    bonus_paid = db.Column(db.Numeric)
     # Difficulty of block when solved
     bits = db.Column(db.String(8), nullable=False)
     # 3-8 letter code for the currency that was mined
@@ -224,7 +224,7 @@ class Payout(base):
     blockhash = db.Column(db.String(64), db.ForeignKey('block.hash'))
     block = db.relationship('Block', foreign_keys=[blockhash], backref='payouts')
     user = db.Column(db.String(34))
-    pp_sharechain_id = db.Column(db.SmallInteger)
+    sharechain_id = db.Column(db.SmallInteger)
     payout_address = db.Column(db.String(34))
     amount = db.Column(db.Numeric, CheckConstraint('amount > 0', 'min_payout_amount'))
     shares = db.Column(db.Float)
@@ -290,9 +290,11 @@ class Payout(base):
         return self.amount + self.perc_applied
 
     @classmethod
-    def create(cls, user, amount, block, shares, perc, payout_address=None):
+    def create(cls, user, amount, block, shares, perc, sharechain_id,
+               payout_address=None):
         payout = cls(user=user, amount=amount, block=block, shares=shares,
-                     perc=perc, payout_address=payout_address or user)
+                     perc=perc, sharechain_id=sharechain_id,
+                     payout_address=payout_address or user)
         db.session.add(payout)
         return payout
 
@@ -408,7 +410,7 @@ class PayoutAggregate(base):
     transaction = db.relationship('Transaction', backref='aggregates')
     user = db.Column(db.String(34))
     payout_address = db.Column(db.String(34), nullable=False)
-    currency = db.Column(db.String, nullable=False)
+    currency = db.Column(db.String(8), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     amount = db.Column(db.Numeric, CheckConstraint('amount > 0',
                                                    'min_aggregate_amount'))
@@ -690,7 +692,7 @@ class PayoutAddress(base):
     address = db.Column(db.String(34), primary_key=True)
     user = db.Column(db.String(34), db.ForeignKey('user_settings.user'))
     # Abbreviated currency name. EG 'LTC'
-    currency = db.Column(db.String(4))
+    currency = db.Column(db.String(8))
 
     @classmethod
     def create(cls, address, currency):

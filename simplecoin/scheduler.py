@@ -348,6 +348,9 @@ def payout(redis_key, simulate=False):
         algo=data['algo'],
         merged_type=merged_type)
 
+    # We want to determine each user's shares based on the payout method
+    # of that share chain. Those shares will then be paid out proportionally
+    # with payout_chain()
     for chain_id in data['chains']:
         chain_config = current_app.powerpools[chain_id]
         share_compute_functions = {'PPLNS': pplns_share_calc,
@@ -356,143 +359,178 @@ def payout(redis_key, simulate=False):
         user_shares = share_compute_functions[chain_config['payout_type']]
         if not user_shares:
             user_shares[block.user] = 1
-        payout_chain(user_shares, simulate=simulate)
+        payout_chain(block, user_shares, chain_id, simulate=simulate)
 
     db.session.commit()
     redis_conn.delete(redis_key)
 
 
-def payout_chain(block, user_shares, simulate=False):
+def payout_chain(block, user_shares, sharechain_id, simulate=False):
+
+    # Calculate each user's share
+    # =======================================================================
+    # Grab total shares to pay out
     total_shares = sum(user_shares.itervalues())
+    # Set python Decimal rounding semantic
     getcontext().rounding = ROUND_HALF_DOWN
+
     if simulate:
-        out = "\n".join(["\t".join((user,
-                                    str((amount * 100) / total_shares),
-                                    str(((amount * block.total_value) / total_shares).quantize(current_app.SATOSHI)),
-                                    str(amount))) for user, amount in user_shares.iteritems()])
+        out = "\n".join(
+            ["\t".join((user, str((amount * 100) / total_shares),
+                        str(((amount * block.total_value) / total_shares).quantize(current_app.SATOSHI)),
+                        str(amount))) for user, amount in user_shares.iteritems()])
         current_app.logger.debug("Share distribution:\nUSR\t%\tBLK_PAY\tSHARE\n{}".format(out))
 
     current_app.logger.debug("Distribute_amnt: {}".format(block.total_value))
+    current_app.logger.debug("Share Value: {}".format(block.total_value/total_shares))
 
-    # Below calculates the truncated portion going to each miner. because
-    # of fractional pieces the total accrued wont equal the disitrubte_amnt
-    # so we will distribute that round robin the miners in dictionary order
-    accrued = 0
+    # Below calculates the portion going to each miner. Note that the amount
+    # is not rounded or truncated - this amount is actually not payable as-is
     user_payouts = {}
-    user_extra = {}
     for user, share_count in user_shares.iteritems():
-        user_earned = (share_count * block.total_value) / total_shares
-        user_payouts[user] = user_earned.quantize(current_app.SATOSHI)
-        user_extra[user] = user_earned - user_payouts[user]
-        accrued += user_payouts[user]
+        user_payouts[user] = (share_count * block.total_value) / total_shares
 
-    current_app.logger.debug("Total accrued after trunated iteration {}; {}%"
-                             .format(accrued, (accrued / block.total_value) * 100))
+    # Check this section
+    assert sum(user_payouts.itervalues()) == block.total_value
+    current_app.logger.info("Successfully allocated all rewards among {} "
+                            "users.".format(len(user_payouts)))
 
-    # loop over the dictionary indefinitely, paying out users with the highest
-    # remainder first until we've distributed all the remaining funds
-    i = 0
-    while accrued < block.total_value:
-        i += 1
-        max_user = max(user_extra, key=user_extra.get)
-        user_payouts[max_user] += current_app.SATOSHI
-        accrued += current_app.SATOSHI
-        user_extra.pop(max_user)
-        # exit if we've exhausted
-        if accrued >= block.total_value:
-            break
+    # Adjust each user's payout to include donations, fees, and bonuses
+    # =======================================================================
+    # Grab all customized user settings out of the DB
+    custom_settings = UserSettings.query.\
+        filter(UserSettings.user.in_(user_shares.keys())).all()
+    # Grab defaults percs from config
+    default_donate_perc = Decimal(current_app.config.get('default_donate_perc', 0))
+    fee_perc = Decimal(current_app.config.get('fee_perc', 0.02))
+    # Add custom user percentages that apply into an easy to access dictionary
+    custom_percs = {d.user: d.pdonation_perc for d in custom_settings}
 
-    current_app.logger.debug("Ran round robin distro {} times to finish distrib".format(i))
-
-    # now handle donation or bonus distribution for each user
-    donation_total = 0
-    bonus_total = 0
-    # dictionary keyed by address to hold donate/bonus percs and amnts
+    # Track total collections/payments
+    collection_total = 0  # Comprised of fees + donations
+    payment_total = 0  # Tracks bonuses paid out (from running negative fees)
+    # dictionary keyed by user to hold combined percs and amnts
     user_perc_applied = {}
     user_perc = {}
-
-    default_perc = Decimal(current_app.config.get('default_donate_perc', 0))
-    fee_perc = Decimal(current_app.config.get('fee_perc', 0.02))
-    # convert our custom percentages that apply to these users into an
-    # easy to access dictionary
-    custom_percs = UserSettings.query.filter(UserSettings.user.in_(user_shares.keys()))
-    custom_percs = {d.user: d.perc for d in custom_percs}
-
     for user, payout in user_payouts.iteritems():
         # use the custom perc, or fallback to the default
-        perc = custom_percs.get(user, default_perc)
+        perc = custom_percs.get(user, default_donate_perc) + fee_perc
         user_perc[user] = perc
 
-        # if the perc is greater than 0 it's calced as a donation
+        # if the perc is greater than 0 it's considered a collection
         if perc > 0:
-            donation = (perc * payout).quantize(current_app.SATOSHI)
-            current_app.logger.debug("Donation of\t{}\t({}%)\tcollected from\t{}"
-                                     .format(donation, perc * 100, user))
-            donation_total += donation
-            user_payouts[user] -= donation
-            user_perc_applied[user] = donation
+            collection = (perc * payout).quantize(current_app.SATOSHI)
+            current_app.logger.debug("Collected \t{}\t({}%)\t from\t{}"
+                                     .format(collection, perc * 100, user))
+            collection_total += collection
+            user_payouts[user] -= collection
+            user_perc_applied[user] = collection
 
-        # if less than zero it's a bonus payout
+        # if less than zero it's a payment
         elif perc < 0:
             perc *= -1
-            bonus = (perc * payout).quantize(current_app.SATOSHI)
-            current_app.logger.debug("Bonus of\t{}\t({}%)\tpaid to\t{}"
-                                     .format(bonus, perc, user))
-            user_payouts[user] += bonus
-            bonus_total += bonus
-            user_perc_applied[user] = -1 * bonus
+            payment = (perc * payout).quantize(current_app.SATOSHI)
+            current_app.logger.debug("Paid \t{}\t({}%)\t to\t{}"
+                                     .format(payment, perc, user))
+            user_payouts[user] += payment
+            payment_total += payment
+            user_perc_applied[user] = -1 * payment
 
         # percentages of 0 are no-ops
 
-    current_app.logger.info("Payed out {} in bonus payment"
-                            .format(bonus_total))
-    current_app.logger.info("Received {} in donation payment"
-                            .format(donation_total))
+    swing = collection_total - payment_total
+    current_app.logger.info("Paid out {} in bonus payment"
+                            .format(payment_total))
+    current_app.logger.info("Collected {} in donation + fee payment"
+                            .format(collection_total))
     current_app.logger.info("Net income from block {}"
-                            .format(donation_total - bonus_total))
+                            .format(swing))
 
-    assert accrued == block.total_value
-    current_app.logger.info("Successfully distributed all rewards among {} users."
-                            .format(len(user_payouts)))
+    # Check this section
+    total_payouts = sum(user_payouts.itervalues())
+    assert total_payouts == (block.total_value + swing)
+    current_app.logger.info("Double check for payout distribution after adding "
+                            "fees + donations. Total user payouts {}, total "
+                            "block value {}.".format(total_payouts,
+                                                     block.total_value))
 
-    # run another safety check
-    user_sum = sum(user_payouts.values())
-    assert user_sum == (block.total_value + bonus_total - donation_total)
-    current_app.logger.info("Double check for payout distribution."
-                            " Total user payouts {}, total block value {}."
-                            .format(user_sum, block.total_value))
+    # Handle multiple currency payouts
+    # =======================================================================
+    # Build a dict to hold all currencies a user would like to be paid directly
+    user_payable_currencies = {}
+    for user in custom_settings:
+        # Determine currency abbrev of payout address
+        usr_currency = currencies.lookup_address(user).key
+        user_payable_currencies[user] = {usr_currency: user}
+        # Add any addresses they've configured
+        for addr_obj in user.addresses:
+            user_payable_currencies[user][addr_obj.currency] = addr_obj.address
+        # Add arbitrary payout address if configured
+        if user.adonate_addr and user.adonate_perc:
+            arb_currency = currencies.lookup_address(user.adonate_addr).key
+            user_payable_currencies[user][arb_currency] = user.adonate_addr
+
+    # Convert user_payouts to a dict tracking multiple payouts for a single user
+    split_user_payouts = {}
+    for user, payout in user_payouts.iteritems():
+        split_user_payouts[user] = {user: payout}
+
+    total_splits = 0
+    # if they have an arb payout address set up, split their payout
+    for p in custom_settings:
+        if p.adonate_addr and p.adonate_perc:
+            split_amt = split_user_payouts[p.user] * p.adonation_perc
+            split_user_payouts[p.user][p.user] -= split_amt
+            user_payouts[p.user][p.adonation_addr] = split_amt
+            total_splits += 1
+
+    # check to make sure user_payouts total equals split_user_payouts
+    new_total_payouts = 0
+    for user in split_user_payouts.keys():
+        new_total_payouts += sum(split_user_payouts[user].itervalues())
+    assert sum(user_payouts.itervalues()) == new_total_payouts
+    current_app.logger.info("Successfully split user payouts to include {} "
+                            "arbitrary payouts".format(total_splits))
 
     if simulate:
         out = "\n".join(["\t".join(
-            (user, str(amount))) for user, amount in user_payouts.iteritems()])
+            (user, str(sum([amount for amount in payouts.iteritems()]))))
+                         for user, payouts in split_user_payouts.iteritems()])
         current_app.logger.debug("Final payout distribution:\nUSR\tAMNT\n{}".format(out))
         db.session.rollback()
     else:
         # record the payout for each user
-        for user, amount in user_payouts.iteritems():
-            if amount == 0.0:
-                current_app.logger.info("Skip zero payout for USR: {}".format(user))
-                continue
+        for user, payouts in split_user_payouts.iteritems():
+            for addr, amount in payouts.iteritems():
+                if amount == 0:
+                    current_app.logger.info("Skiping zero payout for USR: {} "
+                                            "to ADDR: {}".format(user, addr))
+                    continue
 
-            # Create a payout record of the correct type. Either one indicating
-            # that the currency will be exchange, or directly distributed
-            if currencies.lookup_address(user).key == block.currency:
-                p = Payout.create(amount=amount,
-                                  block=block,
-                                  user=user,
-                                  shares=user_shares[user],
-                                  perc=user_perc[user])
-                p.payable = True
-            else:
-                p = PayoutExchange.create(amount=amount,
-                                          block=block,
-                                          user=user,
-                                          shares=user_shares[user],
-                                          perc=user_perc[user])
+                # Create a payout record indicating this can be distributed
+                if block.currency in user_payable_currencies[user]:
+                    p = Payout.create(amount=amount,
+                                      block=block,
+                                      user=user,
+                                      shares=user_shares[user],
+                                      perc=user_perc[user],
+                                      sharechain_id=sharechain_id,
+                                      payout_address=addr)
+                    p.payable = True
+
+                # Create a payout entry indicating this needs to be exchanged
+                else:
+                    p = PayoutExchange.create(amount=amount,
+                                              block=block,
+                                              user=user,
+                                              shares=user_shares[user],
+                                              perc=user_perc[user],
+                                              sharechain_id=sharechain_id,
+                                              payout_address=addr)
 
         # update the block status and collected amounts
-        block.donated = donation_total
-        block.bonus_payed = bonus_total
+        block.contributed = collection_total
+        block.bonus_paid = payment_total
 
 
 @crontab
