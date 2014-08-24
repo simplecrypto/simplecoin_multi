@@ -377,9 +377,11 @@ def payout_chain(block, user_shares, sharechain_id, simulate=False):
     if simulate:
         out = "\n".join(
             ["\t".join((user, str((amount * 100) / total_shares),
-                        str(((amount * block.total_value) / total_shares).quantize(current_app.SATOSHI)),
+                        str(((amount * block.total_value) / total_shares).
+                            quantize(current_app.SATOSHI)),
                         str(amount))) for user, amount in user_shares.iteritems()])
-        current_app.logger.debug("Share distribution:\nUSR\t%\tBLK_PAY\tSHARE\n{}".format(out))
+        current_app.logger.debug("Share distribution:\nUSR\t%\tBLK_PAY\tSHARE"
+                                 "\n{}".format(out))
 
     current_app.logger.debug("Distribute_amnt: {}".format(block.total_value))
     current_app.logger.debug("Share Value: {}".format(block.total_value/total_shares))
@@ -438,13 +440,19 @@ def payout_chain(block, user_shares, sharechain_id, simulate=False):
 
         # percentages of 0 are no-ops
 
-    swing = collection_total - payment_total
+    swing = payment_total - collection_total
     current_app.logger.info("Paid out {} in bonus payment"
                             .format(payment_total))
     current_app.logger.info("Collected {} in donation + fee payment"
                             .format(collection_total))
     current_app.logger.info("Net income from block {}"
                             .format(swing))
+
+    # Payout the collected amount to the pool
+    if swing < 0:
+        pool_addr = current_app.config['donate_address']
+        user_payouts[pool_addr] = swing * -1
+        swing = 0
 
     # Check this section
     total_payouts = sum(user_payouts.itervalues())
