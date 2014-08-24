@@ -146,12 +146,20 @@ def create_app(mode, config='/config.yml', log_level=None):
     # Configure app for running scheduler.py functions + instantiate scheduler
     # =======================================================================
     elif mode == "scheduler":
-        current_app.logger.info("=" * 80)
-        current_app.logger.info("SimpleCoin cron scheduler starting up...")
+        app.logger.info("=" * 80)
+        app.logger.info("SimpleCoin cron scheduler starting up...")
         setproctitle.setproctitle("simplecoin_scheduler")
 
+        # Make app accessible from out monkey patched code. Messy....
         ThreadPool.app = app
         sched = Scheduler(standalone=True)
+        # monkey patch the thread pool for flask contexts
+        ThreadPool._old_run_jobs = ThreadPool._run_jobs
+        def _run_jobs(self, core):
+            self.app.logger.debug("Starting patched threadpool worker!")
+            with self.app.app_context():
+                ThreadPool._old_run_jobs(self, core)
+        ThreadPool._run_jobs = _run_jobs
         # All these tasks actually change the database, and shouldn't
         # be run by the staging server
         if not app.config.get('stage', False):
@@ -170,7 +178,7 @@ def create_app(mode, config='/config.yml', log_level=None):
             # every 15 minutes 2 seconds after the minute
             sched.add_cron_job(sch.update_block_state, second=2)
         else:
-            current_app.logger.info("Stage mode has been set in the configuration, not "
+            app.logger.info("Stage mode has been set in the configuration, not "
                                     "running scheduled database altering cron tasks")
 
         sched.add_cron_job(sch.update_online_workers, minute='0,5,10,15,20,25,30,35,40,45,50,55', second=30)

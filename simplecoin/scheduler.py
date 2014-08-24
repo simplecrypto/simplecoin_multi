@@ -634,14 +634,6 @@ def server_status():
     cache.set('total_workers', total_workers, timeout=1200)
 
 
-# monkey patch the thread pool for flask contexts
-def _run_jobs(self, core):
-    current_app.logger.debug("Starting patched threadpool worker!")
-    with self.app.app_context():
-        ThreadPool._old_run_jobs(self, core)
-ThreadPool._run_jobs = _run_jobs
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog='simplecoin task scheduler')
     parser.add_argument('-l', '--log-level',

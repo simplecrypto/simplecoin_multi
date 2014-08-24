@@ -154,9 +154,15 @@ class PowerPool(object):
 
     @property
     def stratum_address(self):
-        return "stratum+tcp://{}:{}".format(self.pp_location, self.monitor_port)
-    __repr__ = stratum_address  # Allows us to cache calls to this instance
-    __str__ = stratum_address
+        return self._stratum_address()
+
+    def _stratum_address(self):
+        try:
+            return "stratum+tcp://{}:{}".format(self.pp_location, self.monitor_port)
+        except Exception:
+            current_app.logger.info("", exc_info=True)
+    __repr__ = _stratum_address  # Allows us to cache calls to this instance
+    __str__ = _stratum_address
 
     @property
     def port(self):
