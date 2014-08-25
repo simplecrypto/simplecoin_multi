@@ -8,7 +8,7 @@ from flask import (current_app, request, render_template, Blueprint, jsonify,
                    g, session, Response)
 
 from .models import Block, ShareSlice, UserSettings, PayoutAddress, make_upper_lower, Payout, PayoutAggregate
-from . import db, root, cache, currencies
+from . import db, root, cache, currencies, algos
 from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
                     get_alerts, resort_recent_visit, collect_acct_items,
                     CommandException, validate_bc_address)
@@ -40,8 +40,8 @@ def news():
     return render_template('news.html', news=news)
 
 
-@main.route("/merge_blocks", defaults={"q": Block.merged_type != None})
-@main.route("/blocks", defaults={"q": Block.merged_type == None})
+@main.route("/merge_blocks", defaults={"q": Block.merged == True})
+@main.route("/blocks", defaults={"q": Block.merged == False})
 @main.route("/blocks/<currency>")
 def blocks(q, currency=None):
     page = int(request.args.get('page', 0))
@@ -87,10 +87,10 @@ def pool_stats():
     except ValueError:
         server_status = None
 
-    blocks = (db.session.query(Block).filter_by(merged_type=None).
+    blocks = (db.session.query(Block).filter_by(merged=True).
               order_by(Block.found_at.desc()).limit(blocks_show))
 
-    merge_blocks = (db.session.query(Block).filter(Block.merged_type != None).
+    merge_blocks = (db.session.query(Block).filter_by(merged=False).
                     order_by(Block.found_at.desc()).limit(blocks_show))
 
     return render_template('pool_stats.html',
@@ -102,8 +102,8 @@ def pool_stats():
 
 @main.before_request
 def add_pool_stats():
-    g.hashrates = {a: get_pool_hashrate(a) for a in current_app.config['algos']}
-    g.worker_count = {a: cache.get('total_workers_{}'.format(a)) or 0 for a in current_app.config['algos']}
+    g.hashrates = {a: get_pool_hashrate(a) for a in algos}
+    g.worker_count = {a: cache.get('total_workers_{}'.format(a)) or 0 for a in algos}
     g.alerts = get_alerts()
 
 
@@ -165,9 +165,9 @@ def address_clear(address=None):
 def address_stats():
     window = request.args.get("window", "hour")
     address = request.args['address'].split(",")
-    algos = request.args.get('algos', tuple())
-    if algos:
-        algos = algos.split(",")
+    algo_arg = request.args.get('algos', tuple())
+    if algo_arg:
+        algo_arg = algo_arg.split(",")
     share_types = request.args.get("share_types", "acc").split(",")
 
     # store all the raw data of we've grabbed
@@ -189,7 +189,7 @@ def address_stats():
 
     workers = ShareSlice.get_span(user=address,
                                   share_type=share_types,
-                                  algo=algos,
+                                  algo=algo_arg,
                                   lower=lower,
                                   upper=upper,
                                   stamp=True)
@@ -198,7 +198,7 @@ def address_stats():
     for worker in workers:
         d = worker['data']
         d['label'] = "{} ({})".format(d['worker'] or "[unnamed]", d['algo'])
-        hps = current_app.config['algos'][d['algo']]['hashes_per_share']
+        hps = algos[d['algo']].hashes_per_share
         for idx in worker['values']:
             worker['values'][idx] *= hps / step.total_seconds()
             if worker['values'][idx] > highest_hash:

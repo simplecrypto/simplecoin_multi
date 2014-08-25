@@ -2,7 +2,6 @@ from flask import current_app, _request_ctx_stack
 from flask.ext.migrate import stamp
 from flask.ext.script import Manager, Shell
 from flask.ext.migrate import MigrateCommand
-from bitcoinrpc.authproxy import AuthServiceProxy
 
 from simplecoin import create_manage_app, db, currencies, powerpools
 from simplecoin.rpc import RPCClient
@@ -37,23 +36,6 @@ def list_donation_perc():
         print("WARNING: A user has set a donation percentage below 0!")
     print "User fee summary"
     print "\n".join(["{0:+3d}% Fee: {1}".format(k, v) for k, v in sorted(summ.items())])
-
-
-@manager.command
-def correlate_transactions():
-    """ Derives transaction merged_type from attached payout's merged type.
-    Intended as a migration assistant, not to be run for regular use. """
-    for trans in Transaction.query:
-        if trans.merged_type is None:
-            payout = Payout.query.filter_by(transaction_id=trans.txid).first()
-            if payout is not None:
-                trans.merged_type = payout.merged_type
-                current_app.logger.info("Updated txid {} to merged_type {}"
-                                        .format(trans.txid, payout.merged_type))
-            else:
-                current_app.logger.info("Unable to get merged_type for txid "
-                                        "{}, no payouts!".format(trans.txid))
-    db.session.commit()
 
 
 @manager.option('-m', '--merged-type')

@@ -24,10 +24,16 @@ import simplecoin.filters as filters
 root = os.path.abspath(os.path.dirname(__file__) + '/../')
 db = SQLAlchemy()
 cache = Cache()
+# ConfigKeeper proxies
 currencies = LocalProxy(
     lambda: getattr(current_app, 'currencies', None))
 powerpools = LocalProxy(
     lambda: getattr(current_app, 'powerpools', None))
+algos = LocalProxy(
+    lambda: getattr(current_app, 'algos', None))
+chains = LocalProxy(
+    lambda: getattr(current_app, 'chains', None))
+
 redis_conn = LocalProxy(
     lambda: getattr(current_app, 'redis', None))
 exchanges = LocalProxy(
@@ -35,7 +41,7 @@ exchanges = LocalProxy(
 
 
 def create_app(mode, config='/config.yml', log_level=None):
-    
+
     # Initialize our flask application
     # =======================================================================
     app = Flask(__name__, static_folder='../static', static_url_path='/static')
@@ -56,6 +62,13 @@ def create_app(mode, config='/config.yml', log_level=None):
     app.currencies = CurrencyKeeper(app.config['currencies'])
     app.powerpools = PowerPoolKeeper(app.config['mining_servers'])
     app.exchanges = ExchangeManager(app.config['exchange_manager'])
+    app.algos = AlgoKeeper(app.config['algos'])
+    app.chains = ChainKeeper(app.config['chains'])
+    # Keep us from using raw config values, bad pattern
+    app.config.update(dict(mining_servers=app.powerpools,
+                           currencies=app.currencies,
+                           algos=app.algos,
+                           chains=app.chains))
 
     # Setup logging
     # =======================================================================
@@ -202,5 +215,5 @@ def create_manage_app(**kwargs):
     return app
 
 
-from .utils import CurrencyKeeper, PowerPoolKeeper
+from .config import CurrencyKeeper, PowerPoolKeeper, AlgoKeeper, ChainKeeper
 import simplecoin.scheduler as sch

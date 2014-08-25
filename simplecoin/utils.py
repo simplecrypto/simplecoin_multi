@@ -1,216 +1,22 @@
 import datetime
 import time
 import yaml
-import requests
 
-from urlparse import urljoin
 from flask import current_app, session
-from cryptokit.base58 import address_version
 from sqlalchemy.exc import SQLAlchemyError
 from cryptokit.rpc import CoinserverRPC, CoinRPCException
 from decimal import Decimal as dec
 
-from . import db, cache, root, redis_conn, currencies, powerpools, exchanges
+from .exceptions import CommandException
+from . import db, cache, root, redis_conn, currencies, powerpools, algos
 from .models import (ShareSlice, Block, Payout, UserSettings, make_upper_lower,
                      PayoutAggregate)
-
-
-class CommandException(Exception):
-    pass
-
-
-class Currency(object):
-    requires = ['algo', 'name', 'coinserv', 'address_version', 'trans_confirmations',
-                'block_time', 'block_mature_confirms']
-
-    def __init__(self, key, bootstrap):
-        for req in self.requires:
-            if req not in bootstrap:
-                raise ConfigurationException("currency item requires {}"
-                                             .format(req))
-        self.key = key
-        # Default settings
-        self.__dict__.update(dict(exchangeable=False))
-        self.__dict__.update(bootstrap)
-        self.coinserv = CoinserverRPC(
-            "http://{0}:{1}@{2}:{3}/"
-            .format(bootstrap['coinserv']['username'],
-                    bootstrap['coinserv']['password'],
-                    bootstrap['coinserv']['address'],
-                    bootstrap['coinserv']['port'],
-                    pool_kwargs=dict(maxsize=bootstrap.get('maxsize', 10))))
-
-    @property
-    @cache.memoize(timeout=600)
-    def btc_value(self):
-        """ Caches and returns estimated currency value in BTC """
-        if self.key == "BTC":
-            return dec('1')
-
-        # XXX: Needs better number here!
-        err, dat, _ = exchanges.optimal_sell(self.key, dec('1000'), exchanges._get_current_object().exchanges)
-        try:
-            current_app.logger.info("Got new average price of {} for {}"
-                                    .format(dat['avg_price'], self))
-            return dat['avg_price']
-        except (KeyError, TypeError):
-            current_app.logger.warning("Unable to grab price for currency {}, got {} from autoex!"
-                                       .format(self.key, dict(err=err, dat=dat)))
-            return dec('0')
-
-    def est_value(self, other_currency, amount):
-        val = self.btc_value
-        if val:
-            return amount * val / other_currency.btc_value
-        return dec('0')
-
-    def __repr__(self):
-        return self.key
-    __str__ = __repr__
-
-    def __hash__(self):
-        return self.key.__hash__()
-
-
-class CurrencyKeeper(dict):
-    __getattr__ = dict.__getitem__
-
-    def __init__(self, currency_dictionary):
-        super(CurrencyKeeper, self).__init__()
-        self.version_lut = {}
-        for key, config in currency_dictionary.iteritems():
-            val = Currency(key, config)
-            setattr(self, val.key, val)
-            self.__setitem__(val.key, val)
-            for ver in val.address_version:
-                if ver in self.version_lut:
-                    raise AttributeError("Duplicate address versions {}"
-                                         .format(ver))
-                self.version_lut[ver] = val
-
-    def payout_currencies(self):
-        return [c for c in self.itervalues() if c.exchangeable is True]
-
-    def lookup_address(self, address):
-        ver = address_version(address)
-        try:
-            return self.lookup_version(ver)
-        except AttributeError:
-            raise AttributeError("Address '{}' version {} is not a configured currency. Options are {}"
-                                 .format(address, ver, self.available_versions))
-
-    @property
-    def available_versions(self):
-        return {k: v.key for k, v in self.version_lut.iteritems()}
-
-    def lookup_version(self, version):
-        try:
-            return self.version_lut[version]
-        except KeyError:
-            raise AttributeError(
-                "Address version {} doesn't match available versions {}"
-                .format(version, self.available_versions))
-
-
-class ConfigurationException(Exception):
-    pass
-
-
-class RemoteException(Exception):
-    pass
-
-
-class PowerPool(object):
-    timeout = 10
-    requires = ['pp_location', 'monitor_port', 'stratum_port', 'sharechain_id',
-                'title', 'diff', 'payout_type', 'fee_perc']
-
-    def __init__(self, bootstrap, algo):
-        # Check requirements
-        for req in self.requires:
-            if req not in bootstrap:
-                raise ConfigurationException("mining_servers item requires {}"
-                                             .format(req))
-        self.algo = algo
-        # Default settings
-        self.__dict__.update(dict())
-        self.__dict__.update(bootstrap)
-
-    @property
-    def monitor_address(self):
-        return "http://{}:{}".format(self.pp_location, self.monitor_port)
-
-    @property
-    def display_text(self):
-        return self.stratum_address
-
-    @property
-    def hr_fee_perc(self):
-        return float(self.fee_perc) * 100
-
-    @property
-    def dec_fee_perc(self):
-        return dec(self.fee_perc)
-
-    @property
-    def stratum_address(self):
-        return self._stratum_address()
-
-    def _stratum_address(self):
-        try:
-            return "stratum+tcp://{}:{}".format(self.pp_location, self.monitor_port)
-        except Exception:
-            current_app.logger.info("", exc_info=True)
-    __repr__ = _stratum_address  # Allows us to cache calls to this instance
-    __str__ = _stratum_address
-
-    @property
-    def port(self):
-        return {'port': self.stratum_port, 'diff': self.diff,
-                'title': self.title, 'fee': self.hr_fee_perc,
-                'payout_type': self.payout_type}
-
-    def __hash__(self):
-        return self.sharechain_id
-
-    def request(self, url, method='GET', max_age=None, signed=True, **kwargs):
-        url = urljoin(self.monitor_address, url)
-        ret = requests.request(method, url, timeout=self.timeout, **kwargs)
-        if ret.status_code != 200:
-            raise RemoteException("Non 200 from remote: {}".format(ret.text))
-
-        current_app.logger.debug("Got {} from remote".format(ret.text.encode('utf8')))
-        return ret.json()
-
-
-class PowerPoolKeeper(dict):
-    def __init__(self, mining_servers):
-        super(PowerPoolKeeper, self).__init__()
-        self.by_algo = {}
-        for algo, servers in mining_servers.iteritems():
-            for serv_cfg in servers:
-                serv = PowerPool(serv_cfg, algo)
-                self.by_algo.setdefault(algo, [])
-                self.by_algo[algo].append(serv)
-                if serv.sharechain_id in self:
-                    raise ConfigurationException("You cannot specify two servers "
-                                                 "with the same sharechain_id")
-                self[serv.sharechain_id] = serv
-
-    @property
-    def open_ports(self):
-        open_ports = {}
-        for algo, servers in self.by_algo.iteritems():
-            for serv in servers:
-                open_ports.setdefault(algo, [])
-                open_ports[algo].append(serv.port)
-        return open_ports
 
 
 class ShareTracker(object):
     def __init__(self, algo):
         self.types = {typ: ShareTypeTracker(typ) for typ in ShareSlice.SHARE_TYPES}
-        self.algo = current_app.config['algos'][algo]
+        self.algo = algos[algo]
 
     def count_slice(self, slc):
         self.types[slc.share_type].shares += slc.value
@@ -224,7 +30,7 @@ class ShareTracker(object):
         return sum([self.types['dup'].shares, self.types['low'].shares, self.types['stale'].shares, self.types['acc'].shares])
 
     def hashrate(self, typ="acc"):
-        return self.types[typ].shares * self.algo['hashes_per_share']
+        return self.types[typ].shares * self.algo.hashes_per_share
 
     @property
     def rejected(self):
@@ -245,20 +51,6 @@ class ShareTypeTracker(object):
 
     def __hash__(self):
         return self.share_type.__hash__()
-
-
-def timeit(method):
-    def timed(*args, **kw):
-        ts = time.time()
-        result = method(*args, **kw)
-        te = time.time()
-
-        current_app.logger.info('{} (args {}, kwargs {}) in {}'
-                                .format(method.__name__,
-                                        args, kw, time_format(te - ts)))
-        return result
-
-    return timed
 
 
 @cache.memoize(timeout=3600)
@@ -289,7 +81,7 @@ def get_pool_acc_rej(timedelta=None):
 
 @cache.memoize(timeout=3600)
 def users_blocks(address, algo=None, merged=None):
-    q = db.session.query(Block).filter_by(user=address, merged_type=None)
+    q = db.session.query(Block).filter_by(user=address, merged=False)
     if algo:
         q.filter_by(algo=algo)
     return algo.count()
@@ -302,17 +94,17 @@ def all_time_shares(address):
 
 
 @cache.memoize(timeout=60)
-def last_block_time(algo, merged_type=None):
-    return last_block_time_nocache(algo, merged_type=merged_type)
+def last_block_time(algo, merged=False):
+    return last_block_time_nocache(algo, merged=merged)
 
 
-def last_block_time_nocache(algo, merged_type=None):
+def last_block_time_nocache(algo, merged=False):
     """ Retrieves the last time a block was solved using progressively less
     accurate methods. Essentially used to calculate round time.
     TODO XXX: Add pool selector to each of the share queries to grab only x11,
     etc
     """
-    last_block = Block.query.filter_by(merged_type=merged_type, algo=algo).order_by(Block.height.desc()).first()
+    last_block = Block.query.filter_by(merged=merged, algo=algo).order_by(Block.height.desc()).first()
     if last_block:
         return last_block.found_at
 
@@ -324,27 +116,27 @@ def last_block_time_nocache(algo, merged_type=None):
 
 
 @cache.memoize(timeout=60)
-def last_block_share_id(currency, merged_type=None):
-    return last_block_share_id_nocache(currency, merged_type=merged_type)
+def last_block_share_id(currency, merged=False):
+    return last_block_share_id_nocache(currency, merged=merged)
 
 
-def last_block_share_id_nocache(algorithm=None, merged_type=None):
-    last_block = Block.query.filter_by(merged_type=merged_type).order_by(Block.height.desc()).first()
+def last_block_share_id_nocache(algorithm=None, merged=False):
+    last_block = Block.query.filter_by(merged=merged).order_by(Block.height.desc()).first()
     if not last_block or not last_block.last_share_id:
         return 0
     return last_block.last_share_id
 
 
 @cache.memoize(timeout=60)
-def last_block_found(algorithm=None, merged_type=None):
-    last_block = Block.query.filter_by(merged_type=merged_type).order_by(Block.height.desc()).first()
+def last_block_found(algorithm=None, merged=False):
+    last_block = Block.query.filter_by(merged=merged).order_by(Block.height.desc()).first()
     if not last_block:
         return None
     return last_block
 
 
-def last_blockheight(merged_type=None):
-    last = last_block_found(merged_type=merged_type)
+def last_blockheight(merged=False):
+    last = last_block_found(merged=merged)
     if not last:
         return 0
     return last.height
@@ -359,14 +151,14 @@ def get_pool_hashrate(algo):
     ten_min = sum([min.value for min in ten_min])
     # shares times hashes per n1 share divided by 600 seconds and 1000 to get
     # khash per second
-    return float(ten_min) / 600000 * current_app.config['algos'][algo]['hashes_per_share']
+    return float(ten_min) / 600000 * algos[algo].hashes_per_share
 
 
 @cache.memoize(timeout=30)
-def get_round_shares(algo=None, merged_type=None):
+def get_round_shares(algo=None, merged=False):
     """ Retrieves the total shares that have been submitted since the last
     round rollover. """
-    suffix = algo if algo else merged_type
+    suffix = algo if algo else merged
     return sum(redis_conn.hvals('current_block_' + suffix)), datetime.datetime.utcnow()
 
 
@@ -670,8 +462,8 @@ def validate_message_vals(address, **kwargs):
         raise CommandException("Arbitrary donate address must not be the "
                                "main address")
 
-    return set_addrs, del_addrs, pdonate_perc, adonate_perc, adonate_addr, \
-           del_adonate_addr, anon
+    return (set_addrs, del_addrs, pdonate_perc, adonate_perc, adonate_addr,
+            del_adonate_addr, anon)
 
 
 def verify_message(address, curr, message, signature):

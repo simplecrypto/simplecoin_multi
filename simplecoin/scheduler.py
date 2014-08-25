@@ -12,12 +12,15 @@ from bitcoinrpc import CoinRPCException
 from flask import current_app
 from flask.ext.script import Manager
 from apscheduler.threadpool import ThreadPool
-from cryptokit.base58 import address_version
+from cryptokit import bits_to_difficulty
 
-from simplecoin import db, cache, redis_conn, create_app, currencies, powerpools
-from simplecoin.utils import last_block_time, RemoteException
+from simplecoin import (db, cache, redis_conn, create_app, currencies,
+                        powerpools, chains)
+from simplecoin.utils import last_block_time
+from simplecoin.exceptions import RemoteException
 from simplecoin.models import (Block, Payout, UserSettings, TradeRequest,
-                               PayoutExchange, PayoutAggregate, ShareSlice)
+                               PayoutExchange, PayoutAggregate, ShareSlice,
+                               BlockPayout)
 
 SchedulerCommand = Manager(usage='Run timed tasks manually')
 
@@ -325,38 +328,55 @@ def payout(redis_key, simulate=False):
         current_app.logger.setLevel(logging.DEBUG)
 
     data = redis_conn.hgetall(redis_key)
-
     current_app.logger.debug("Processing block with details {}".format(data))
-    merged_type = data.get('merged')
+    merged = data.get('merged', False)
+    # If start_time isn't listed explicitly do our best to derive from
+    # statistical share records
     if 'start_time' in data:
         time_started = datetime.datetime.utcfromtimestamp(float(data.get('start_time')))
     else:
-        time_started = last_block_time(data['algo'], merged_type=merged_type)
+        time_started = last_block_time(data['algo'], merged=merged)
 
-    block = Block.create(
-        user=data['address'],
+    block = Block(
+        user=data.get('address'),
         height=data['height'],
         shares_to_solve=0,
         total_value=(Decimal(data['total_subsidy']) / 100000000),
         transaction_fees=(Decimal(data['fees']) / 100000000),
-        bits=data['hex_bits'],
+        difficulty=bits_to_difficulty(data['hex_bits']),
         hash=data['hash'],
         time_started=time_started,
-        currency=data.get('currency', merged_type),
+        currency=data['currency'],
         worker=data.get('worker'),
         found_at=datetime.datetime.utcfromtimestamp(float(data['solve_time'])),
         algo=data['algo'],
-        merged_type=merged_type)
+        merged=merged)
+
+    db.session.add(block)
+    db.session.flush()
+
+    # Parse out chain results from the block key
+    chain_data = {}
+    for key, value in data.iteritems():
+        if key.startswith("chain_"):
+            _, chain_id, key = key.split("_", 2)
+            chain_id = int(chain_id)
+            chain = chain_data.setdefault(chain_id, {})
+            chain[key] = value
+
+    current_app.logger.info("Parsed out chain data of {}".format(chain_data))
+    block_payouts = []
 
     # We want to determine each user's shares based on the payout method
     # of that share chain. Those shares will then be paid out proportionally
     # with payout_chain()
-    for chain_id in data['chains']:
-        chain_config = current_app.powerpools[chain_id]
-        share_compute_functions = {'PPLNS': pplns_share_calc,
-                                   'PROP': prop_share_calc}
-
-        user_shares = share_compute_functions[chain_config['payout_type']]
+    for id, data in chain_data.iteritems():
+        bp = BlockPayout(chainid=id,
+                         block=block,
+                         solve_slice=int(data['solve_index']))
+        db.session.add(bp)
+        block_payouts.append(bp)
+        user_shares = chains[id].calc_shares(bp)
         if not user_shares:
             user_shares[block.user] = 1
         payout_chain(block, user_shares, chain_id, simulate=simulate)

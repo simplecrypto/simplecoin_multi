@@ -91,6 +91,28 @@ class TradeRequest(base):
         return tr
 
 
+class BlockPayout(base):
+    # The share chain that contributed this portion of shares to the block
+    chainid = db.Column(db.Integer, primary_key=True)
+    blockhash = db.Column(db.String, db.ForeignKey('block.hash'), primary_key=True)
+    block = db.relationship('Block', foreign_keys=[blockhash], backref='block_payouts')
+    # Placeholder for the point at which the block was solved in this share chain.
+    solve_slice = db.Column(db.Integer)
+    # Placeholder for the point at which the block was solved in this share chain.
+    shares = db.Column(db.Integer, nullable=False)
+    # total going to pool from donations
+    donated = db.Column(db.Numeric)
+    # total going to pool from donations
+    donated = db.Column(db.Numeric)
+    # Total paid out in bonuses
+    bonus_payed = db.Column(db.Numeric)
+    # Total paid out in fees
+    bonus_payed = db.Column(db.Numeric)
+    # Has this payout information been paid? Used to determine how many share
+    # slices to keep
+    paid = db.Column(db.Boolean, default=False)
+
+
 class Block(base):
     """ This class stores metadata on all blocks found by the pool """
     # the hash of the block for orphan checking
@@ -117,11 +139,11 @@ class Block(base):
     contributed = db.Column(db.Numeric)
     bonus_paid = db.Column(db.Numeric)
     # Difficulty of block when solved
-    bits = db.Column(db.String(8), nullable=False)
+    difficulty = db.Column(db.Float, nullable=False)
     # 3-8 letter code for the currency that was mined
-    currency = db.Column(db.String(8), nullable=False)
+    currency = db.Column(db.String, nullable=False)
     # Will be == currency if currency is was merge mined
-    merged_type = db.Column(db.String)
+    merged = db.Column(db.Boolean, nullable=False)
     # The hashing algorith mused to solve the block
     algo = db.Column(db.String, nullable=False)
 
@@ -131,10 +153,6 @@ class Block(base):
 
     def __str__(self):
         return "<{} h:{} hsh:{}>".format(self.currency, self.height, self.hash)
-
-    @property
-    def merged(self):
-        return self.merged_type is not None
 
     @property
     def status(self):
@@ -148,33 +166,10 @@ class Block(base):
         else:
             return "Pending confirmation"
 
-    @classmethod
-    def create(cls, user, height, total_value, shares_to_solve, transaction_fees, bits, hash,
-               time_started, currency, worker, found_at, algo, merged_type=None):
-        block = cls(user=user,
-                    height=height,
-                    total_value=total_value,
-                    shares_to_solve=shares_to_solve,
-                    transaction_fees=transaction_fees,
-                    bits=bits,
-                    hash=hash,
-                    time_started=time_started,
-                    algo=algo,
-                    merged_type=merged_type,
-                    currency=currency,
-                    found_at=found_at,
-                    worker=worker)
-        # add and flush
-        db.session.add(block)
-        return block
-
     @property
     def explorer_link(self):
-        if not self.merged_type:
-            return current_app.config['block_link_prefix'] + self.hash
-        else:
-            cfg = current_app.config['merged_cfg'][self.merged_type]
-            return cfg['block_link_prefix'] + self.hash
+        # XXX: Currently not supported
+        return False
 
     @property
     def luck(self):
@@ -184,10 +179,6 @@ class Block(base):
     @property
     def total_value_float(self):
         return float(self.total_value)
-
-    @property
-    def difficulty(self):
-        return bits_to_difficulty(self.bits)
 
     @property
     def timestamp(self):
@@ -208,13 +199,7 @@ class Transaction(base):
     txid = db.Column(db.String(64), primary_key=True)
     confirmed = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    merged_type = db.Column(db.String)
-
-    @classmethod
-    def create(cls, txid, merged_type=None):
-        trans = cls(txid=txid, merged_type=merged_type)
-        db.session.add(trans)
-        return trans
+    currency = db.Column(db.String)
 
 
 class Payout(base):

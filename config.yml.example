@@ -36,66 +36,56 @@ default_stratum_port: 3363
 
 # Stratum + Powerpool Config
 # =======================================================================
-mining_servers:
-    # Dict keyed by algo, contains a list item for each mining port. Each of
-    # these ports should be open on every server (or it'll be very confusing
-    # to users)
-    Scrypt:
-      - pp_location: localhost
-        stratum_port: 3363
-        monitor_port: 3856
-        diff: 64-2048
+
+chains:
+    defaults:
+        valid_address_versions: [111]
+    1:
         title: Scrypt Multi
-        sharechain_id: 1
-        payout_type: PPLNS
-        fee_perc: 0.02
-      - pp_location: localhost
-        stratum_port: 3364
-        monitor_port: 3857
-        diff: 64-2048
+        type: pplns
+        last_n: 2
+        fee_perc: "0.02"
+        donate_address:
+        algo: scrypt
+    2:
+        fee_perc: "0.02"
+        donate_address:
         title: LTC/Doge
-        sharechain_id: 2
-        payout_type: PPLNS
-        fee_perc: 0.01
-    X11:
-      - pp_location: localhost
-        stratum_port: 3373
-        monitor_port: 3858
-        diff: 64-2048
-        title: X11 Multi
-        sharechain_id: 3
-        payout_type: PPLNS
-        fee_perc: 0.02
-      - pp_location: localhost
-        stratum_port: 3374
-        monitor_port: 3859
-        diff: 64-2048
-        title: DRK
-        sharechain_id: 4
-        payout_type: PPLNS
-        fee_perc: 0.01
+        algo: scrypt
+        type: prop
 
-# Represents an server location
-stratums:
-    - address: stratum+tcp://ca.simplemulti.com
-      location_acronym: CA
-      location: Beauharnois, Canada
-      country_flag: "/img/ca.svg"
-    - address: stratum+tcp://uk.simplemulti.com
-      location_acronym: UK
-      location: London, United Kingdom
-      country_flag: "/img/uk.svg"
 
-# Currency configs
+# Stratum + Powerpool Config
 # =======================================================================
-# Average hashes for each algo - used for stats + graphs calculations
+mining_servers:
+    1:
+        address: localhost
+        monitor_port: 3856
+        stratums:
+            3363:
+                diff: 64-2048
+                chain: 1
+    2:
+        address: localhost
+        monitor_port: 3857
+        stratums:
+            3364:
+                diff: 64-2048
+                chain: 2
+
 algos:
     X11:
         hashes_per_share: 4294967296
+        normalize_mult: 0.181818182
+        display: X11
     scryptn:
         hashes_per_share: 65536
+        normalize_mult: 2.127659574
+        display: Scrypt-N
     scrypt:
         hashes_per_share: 65536
+        normalize_mult: 1
+        display: Scrypt
 
 currencies: 
     DRK:
