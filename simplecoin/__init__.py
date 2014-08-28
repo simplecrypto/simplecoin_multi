@@ -177,7 +177,7 @@ def create_app(mode, config='/config.yml', log_level=None):
         # be run by the staging server
         if not app.config.get('stage', False):
             # every minute at 55 seconds after the minute
-            sched.add_cron_job(sch.run_payouts, second=55)
+            sched.add_cron_job(sch.run_payouts, second=55, args=[True])
             # every minute at 55 seconds after the minute
             sched.add_cron_job(sch.create_trade_req, args=("sell",), second=0)
             # every minute at 55 seconds after the minute

@@ -1,6 +1,6 @@
     <script>
     $(document).ready(function() {
-      $("#blockTable").tablesorter({
+      $("#blockCreditTable").tablesorter({
         textExtraction: function(node) {
           var attr = $(node).attr('data-sort-value');
           if (typeof attr !== 'undefined' && attr !== false) {
@@ -14,36 +14,30 @@
     {% if payouts %}
     <div class="col-lg-12">
       <div class="bs-example table-responsive">
-        <table class="table table-striped table-hover tablesorter" id="blockTable">
+        <table class="table table-striped table-hover tablesorter" id="blockCreditTable">
           <thead>
             <tr>
               <th>ID</th>
               <th>Time</th>
-              <th>Currency</th>
               <th>Payout Currency</th>
-              <th>Shares Contributed</th>
               <th>Mined</th>
-              <th>Donation %</th>
-              <th>Donation/Bonus</th>
-              <th>Total paid</th>
-              <th>Blockheight</th>
-              <th>Status</th>
+              <th>Donation + Fee Amt (d%/f%)</th>
+              <th>Total credited</th>
+              <th>Payout Status</th>
+              <th>Block details</th>
             </tr>
           </thead>
           <tbody>
             {% for payout in payouts %}
               <tr>
                 <td>{{ "{:,}".format(payout.id) }}</td>
-                <td data-sort-value="{{ payout.timestamp }}">{{ payout.block.found_at | human_date_utc }}</td>
-                <td>{{ payout.block.currency }}</td>
+                <td>{{ payout.block.found_at | human_date_utc }}</td>
                 <td>{{ payout.payout_currency }}</td>
-                <td>{{ '{:,}'.format(payout.shares) }}</td>
-                <td title="{{ payout.mined }}">{{ payout.mined | sig_round(2) }}</td>
-                <td>{{ '{:,}'.format(payout.perc * 100) }}%</td>
-                <td data-sort-value="{{ perc_applied }}">{{ payout.text_perc_applied }}</td>
-                <td title="{{ payout.amount }}">{{ payout.amount | sig_round(2) }}</td>
-                <td>{{ '{:,}'.format(payout.block.height) }}</td>
+                <td title="{{ payout.mined }}">{{ payout.mined | sig_round(2) }} {{ payout.currency }}</td>
+                <td data-sort-value="{{ payout.cut_perc }}">{{ payout.text_perc_applied }} {{ payout.currency }} ({{ '{:,}'.format(payout.hr_pd_perc) }}%/{{ '{:,}'.format(payout.hr_fee_perc) }}%)</td>
+                <td title="{{ payout.amount }}">{{ payout.amount | sig_round(2) }} {{ payout.currency }}</td>
                 <td>{{ payout.status }}</td>
+                <td><a href="/block/{{ payout.block.hash }}"># {{ '{:,}'.format(payout.block.height) }}</a></td>
               </tr>
             {% endfor %}
 

@@ -261,6 +261,9 @@ Default Theme
   cursor: default;
 }
 
+.tablesorter-default thead th, .tablesorter-default tbody tr td {
+    text-align:center;
+}
 /* table processing indicator */
 .tablesorter-default .tablesorter-processing {
   background-position: center center !important;

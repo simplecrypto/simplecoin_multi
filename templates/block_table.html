@@ -33,18 +33,18 @@ $(document).ready(function() {
       <tbody>
       {% for block in blocks %}
       <tr>
-        <th data-sort-value="{{ block.timestamp }}">{{ block.found_at | human_date_utc }}</th>
-        <th>{{ block.currency }}</th>
-        <th>{{ block.algo }}</th>
-        <th>{{ '{:,}'.format(block.shares_to_solve or 1) }}</th>
-        <th>{{ '{:,}'.format(block.luck | round(2)) }} %</th>
-        <th data-sort-value="{{ block.duration.total_seconds() }}">{{ block.duration }}</th>
-        <th>{{ '{:,}'.format(block.total_value_float | round(2)) }}</th>
-        <th>{{ '{:,}'.format(block.difficulty | round(4)) }}</th>
-        <th><a href="/{{ block.user }}">{{ block.user | truncate(9, True) }}</a></th>
-        <th>{{ block.hash | truncate(9, True) }}</th>
-        <th>{{ '{:,}'.format(block.height) }}</th>
-        <th>{{ block.status }}</th>
+        <td data-sort-value="{{ block.timestamp }}">{{ block.found_at | human_date_utc }}</td>
+        <td>{{ block.currency }}</td>
+        <td>{{ block.algo }}</td>
+        <td>{{ '{:,}'.format(block.shares_to_solve or 1) }}</td>
+        <td>{{ '{:,}'.format(block.luck | round(2)) }} %</td>
+        <td data-sort-value="{{ block.duration.total_seconds() }}">{{ block.duration }}</td>
+        <td>{{ '{:,}'.format(block.total_value_float | round(2)) }}</td>
+        <td>{{ '{:,}'.format(block.difficulty | round(4)) }}</td>
+        <td><a href="/{{ block.user }}">{{ block.user | truncate(9, True) }}</a></td>
+        <td>{{ block.hash | truncate(9, True) }}</td>
+        <td>{{ '{:,}'.format(block.height) }}</td>
+        <td>{{ block.status }}</td>
       </tr>
       {% endfor %}
       </tbody>

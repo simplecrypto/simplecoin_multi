@@ -101,7 +101,7 @@ def cache_user_donation():
     users = UserSettings.query.all()
     for user in users:
         user_donations.setdefault(user.user, Decimal(current_app.config.get('default_donate_perc', 0)))
-        user_donations[user.user] = user.perc
+        user_donations[user.user] = user.pdonation_perc
 
     cache.set('user_donations', user_donations, timeout=1440 * 60)
 
@@ -142,34 +142,37 @@ def create_aggrs():
 
         aggr.count += 1
 
-    # Round down to nearest satoshi and create a new payout for tracking
-    # the remaining fractional amount
+    # Round down to a payable amount (1 satoshi) + record remainder
     for (currency, user, payout_address), aggr in aggrs.iteritems():
         getcontext().rounding = ROUND_DOWN
         amt_payable = aggr.amount.quantize(current_app.SATOSHI)
         user_extra = aggr.amount - amt_payable
         aggr.amount = amt_payable
 
-        # Generate a new payout to catch fractional amounts in the next payout
-        p = Payout.create(amount=user_extra,
-                          user=user,
-                          shares=user_shares[user],
-                          perc=user_perc[user],
-                          sharechain_id=sharechain_id,
-                          payout_address=addr)
-        p.payable = True
+        if user_extra > 0:
+            # Generate a new payout to catch fractional amounts in the next payout
+            p = Payout(user=user,
+                       amount=user_extra,
+                       fee_perc=0,
+                       pd_perc=0,
+                       currency=currency,
+                       payout_address=payout_address,
+                       payable=True)
+            db.session.add(p)
+            current_app.logger.info("Created {} payout for remainder of {} "
+                                    "for {}".format(currency, user_extra, user))
 
     # Generate some simple stats about what we've done
     for (currency, user, payout_address), aggr in aggrs.iteritems():
-        adds.setdefault(curr, [0, 0, 0])
-        adds[curr][0] += aggr.amount
-        adds[curr][1] += aggr.count
-        adds[curr][2] += 1
+        adds.setdefault(currency, [0, 0, 0])
+        adds[currency][0] += aggr.amount
+        adds[currency][1] += aggr.count
+        adds[currency][2] += 1
 
     for curr, (tamount, tcount, count) in adds.iteritems():
         current_app.logger.info(
             "Created {} aggregates paying {} {} for {} payouts"
-            .format(count, tamount, currency, tcount))
+            .format(count, tamount, curr, tcount))
 
     if not adds:
         current_app.logger.info("No payable payouts were aggregated")
@@ -354,7 +357,6 @@ def payout(redis_key, simulate=False):
     block = Block(
         user=data.get('address'),
         height=data['height'],
-        shares_to_solve=0,
         total_value=(Decimal(data['total_subsidy']) / 100000000),
         transaction_fees=(Decimal(data['fees']) / 100000000),
         difficulty=bits_to_difficulty(data['hex_bits']),
@@ -387,7 +389,8 @@ def payout(redis_key, simulate=False):
     for id, data in chain_data.iteritems():
         bp = BlockPayout(chainid=id,
                          block=block,
-                         solve_slice=int(data['solve_index']))
+                         solve_slice=int(data['solve_index']),
+                         shares=data['shares'])
         db.session.add(bp)
         block_payouts.append(bp)
         user_shares = chains[id].calc_shares(bp)
@@ -395,8 +398,9 @@ def payout(redis_key, simulate=False):
             user_shares[block.user] = 1
         payout_chain(block, user_shares, chain_id, simulate=simulate)
 
-    db.session.commit()
-    redis_conn.delete(redis_key)
+    if not simulate:
+        db.session.commit()
+        redis_conn.delete(redis_key)
 
 
 def payout_chain(block, user_shares, sharechain_id, simulate=False):
@@ -417,8 +421,9 @@ def payout_chain(block, user_shares, sharechain_id, simulate=False):
         current_app.logger.debug("Share distribution:\nUSR\t%\tBLK_PAY\tSHARE"
                                  "\n{}".format(out))
 
-    current_app.logger.debug("Distribute_amnt: {}".format(block.total_value))
-    current_app.logger.debug("Share Value: {}".format(block.total_value/total_shares))
+    current_app.logger.debug("Distribute_amnt: {} {}".format(block.total_value, block.currency))
+    current_app.logger.debug("Total Shares: {}".format(total_shares))
+    current_app.logger.debug("Share Value: {} {}/share".format(block.total_value/total_shares, block.currency))
 
     # Below calculates the portion going to each miner. Note that the amount
     # is not rounded or truncated - this amount is actually not payable as-is
@@ -437,8 +442,8 @@ def payout_chain(block, user_shares, sharechain_id, simulate=False):
     custom_settings = UserSettings.query.\
         filter(UserSettings.user.in_(user_shares.keys())).all()
     # Grab defaults percs from config
-    default_donate_perc = Decimal(current_app.config.get('default_donate_perc', 0))
-    fee_perc = Decimal(current_app.config.get('fee_perc', 0.02))
+    default_donate_perc = Decimal(current_app.config.get('default_donate_perc', '0'))
+    f_perc = Decimal(current_app.config.get('fee_perc', '0.02'))
     # Add custom user percentages that apply into an easy to access dictionary
     custom_percs = {d.user: d.pdonation_perc for d in custom_settings}
 
@@ -450,24 +455,25 @@ def payout_chain(block, user_shares, sharechain_id, simulate=False):
     user_perc = {}
     for user, payout in user_payouts.iteritems():
         # use the custom perc, or fallback to the default
-        perc = custom_percs.get(user, default_donate_perc) + fee_perc
-        user_perc[user] = perc
+        d_perc = custom_percs.get(user, default_donate_perc)
+        t_perc = d_perc + f_perc
+        user_perc[user] = {'d_perc': d_perc, 'f_perc': f_perc}
 
         # if the perc is greater than 0 it's considered a collection
-        if perc > 0:
-            collection = (perc * payout).quantize(current_app.SATOSHI)
+        if t_perc > 0:
+            collection = (t_perc * payout)
             current_app.logger.debug("Collected \t{}\t({}%)\t from\t{}"
-                                     .format(collection, perc * 100, user))
+                                     .format(collection, t_perc * 100, user))
             collection_total += collection
             user_payouts[user] -= collection
             user_perc_applied[user] = collection
 
         # if less than zero it's a payment
-        elif perc < 0:
-            perc *= -1
-            payment = (perc * payout).quantize(current_app.SATOSHI)
+        elif t_perc < 0:
+            t_perc *= -1
+            payment = (t_perc * payout)
             current_app.logger.debug("Paid \t{}\t({}%)\t to\t{}"
-                                     .format(payment, perc, user))
+                                     .format(payment, t_perc, user))
             user_payouts[user] += payment
             payment_total += payment
             user_perc_applied[user] = -1 * payment
@@ -480,19 +486,20 @@ def payout_chain(block, user_shares, sharechain_id, simulate=False):
     current_app.logger.info("Collected {} in donation + fee payment"
                             .format(collection_total))
     current_app.logger.info("Net income from block {}"
-                            .format(swing))
+                            .format(swing * -1))
 
     # Payout the collected amount to the pool
     if swing < 0:
         pool_addr = current_app.config['donate_address']
         user_payouts[pool_addr] = swing * -1
+        user_perc[pool_addr] = {'d_perc': 0, 'f_perc': 0}
         swing = 0
 
     # Check this section
     total_payouts = sum(user_payouts.itervalues())
     assert total_payouts == (block.total_value + swing)
     current_app.logger.info("Double check for payout distribution after adding "
-                            "fees + donations. Total user payouts {}, total "
+                            "fees + donations completed. Total user payouts {}, total "
                             "block value {}.".format(total_payouts,
                                                      block.total_value))
 
@@ -500,17 +507,18 @@ def payout_chain(block, user_shares, sharechain_id, simulate=False):
     # =======================================================================
     # Build a dict to hold all currencies a user would like to be paid directly
     user_payable_currencies = {}
-    for user in custom_settings:
-        # Determine currency abbrev of payout address
+    for user in user_payouts.keys():
+        # Determine currency abbrev of payout address + add user addr to dict
         usr_currency = currencies.lookup_address(user).key
         user_payable_currencies[user] = {usr_currency: user}
+    for user in custom_settings:
         # Add any addresses they've configured
         for addr_obj in user.addresses:
-            user_payable_currencies[user][addr_obj.currency] = addr_obj.address
+            user_payable_currencies[user.user][addr_obj.currency] = addr_obj.address
         # Add arbitrary payout address if configured
-        if user.adonate_addr and user.adonate_perc:
-            arb_currency = currencies.lookup_address(user.adonate_addr).key
-            user_payable_currencies[user][arb_currency] = user.adonate_addr
+        if user.adonation_addr and user.adonation_perc:
+            arb_currency = currencies.lookup_address(user.adonation_addr).key
+            user_payable_currencies[user.user][arb_currency] = user.adonation_addr
 
     # Convert user_payouts to a dict tracking multiple payouts for a single user
     split_user_payouts = {}
@@ -520,10 +528,10 @@ def payout_chain(block, user_shares, sharechain_id, simulate=False):
     total_splits = 0
     # if they have an arb payout address set up, split their payout
     for p in custom_settings:
-        if p.adonate_addr and p.adonate_perc:
-            split_amt = split_user_payouts[p.user] * p.adonation_perc
+        if p.adonation_addr and p.adonation_perc:
+            split_amt = split_user_payouts[p.user][p.user] * p.adonation_perc
             split_user_payouts[p.user][p.user] -= split_amt
-            user_payouts[p.user][p.adonation_addr] = split_amt
+            split_user_payouts[p.user][p.adonation_addr] = split_amt
             total_splits += 1
 
     # check to make sure user_payouts total equals split_user_payouts
@@ -535,10 +543,12 @@ def payout_chain(block, user_shares, sharechain_id, simulate=False):
                             "arbitrary payouts".format(total_splits))
 
     if simulate:
-        out = "\n".join(["\t".join(
-            (user, str(sum([amount for amount in payouts.iteritems()]))))
-                         for user, payouts in split_user_payouts.iteritems()])
-        current_app.logger.debug("Final payout distribution:\nUSR\tAMNT\n{}".format(out))
+        out = "Final payout distribution:\nUSR\tAMNT\tADDR"
+        for user, payouts in split_user_payouts.iteritems():
+            for (addr, amount) in payouts.iteritems():
+                out += "\n{}\t{}\t{}".format(user, amount, addr)
+        current_app.logger.debug(out)
+
         db.session.rollback()
     else:
         # record the payout for each user
@@ -551,24 +561,27 @@ def payout_chain(block, user_shares, sharechain_id, simulate=False):
 
                 # Create a payout record indicating this can be distributed
                 if block.currency in user_payable_currencies[user]:
-                    p = Payout.create(amount=amount,
+                    p = Payout.create(user=user,
+                                      amount=amount,
                                       block=block,
-                                      user=user,
-                                      shares=user_shares[user],
-                                      perc=user_perc[user],
+                                      fee_perc=user_perc[user]['f_perc'],
+                                      pd_perc=user_perc[user]['d_perc'],
                                       sharechain_id=sharechain_id,
-                                      payout_address=addr)
+                                      currency=block.currency,
+                                      payout_address=user_payable_currencies[user][block.currency])
                     p.payable = True
 
                 # Create a payout entry indicating this needs to be exchanged
                 else:
-                    p = PayoutExchange.create(amount=amount,
+                    p = PayoutExchange.create(user=user,
+                                              amount=amount,
                                               block=block,
-                                              user=user,
-                                              shares=user_shares[user],
-                                              perc=user_perc[user],
+                                              fee_perc=user_perc[user]['f_perc'],
+                                              pd_perc=user_perc[user]['d_perc'],
                                               sharechain_id=sharechain_id,
+                                              currency=block.currency,
                                               payout_address=addr)
+                db.session.add(p)
 
         # update the block status and collected amounts
         block.contributed = collection_total

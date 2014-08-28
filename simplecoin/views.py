@@ -87,10 +87,10 @@ def pool_stats():
     except ValueError:
         server_status = None
 
-    blocks = (db.session.query(Block).filter_by(merged=True).
+    blocks = (db.session.query(Block).filter_by(merged=False).
               order_by(Block.found_at.desc()).limit(blocks_show))
 
-    merge_blocks = (db.session.query(Block).filter_by(merged=False).
+    merge_blocks = (db.session.query(Block).filter_by(merged=True).
                     order_by(Block.found_at.desc()).limit(blocks_show))
 
     return render_template('pool_stats.html',

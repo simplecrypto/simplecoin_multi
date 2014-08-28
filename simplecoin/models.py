@@ -98,15 +98,11 @@ class BlockPayout(base):
     block = db.relationship('Block', foreign_keys=[blockhash], backref='block_payouts')
     # Placeholder for the point at which the block was solved in this share chain.
     solve_slice = db.Column(db.Integer)
-    # Placeholder for the point at which the block was solved in this share chain.
+    # Shares on this chain
     shares = db.Column(db.Integer, nullable=False)
     # total going to pool from donations
     donated = db.Column(db.Numeric)
-    # total going to pool from donations
-    donated = db.Column(db.Numeric)
     # Total paid out in bonuses
-    bonus_payed = db.Column(db.Numeric)
-    # Total paid out in fees
     bonus_payed = db.Column(db.Numeric)
     # Has this payout information been paid? Used to determine how many share
     # slices to keep
@@ -129,9 +125,7 @@ class Block(base):
     orphan = db.Column(db.Boolean, default=False)
     # Is the block matured?
     mature = db.Column(db.Boolean, default=False)
-    # Total shares that were required to solve the block
-    shares_to_solve = db.Column(db.Float)
-    # Block value (does not include transaction fees recieved)
+    # Block value
     total_value = db.Column(db.Numeric)
     # Associated transaction fees
     transaction_fees = db.Column(db.Numeric)
@@ -155,6 +149,11 @@ class Block(base):
         return "<{} h:{} hsh:{}>".format(self.currency, self.height, self.hash)
 
     @property
+    def shares_to_solve(self):
+        # Total shares that were required to solve the block
+        return sum([bp.shares for bp in self.block_payouts])
+
+    @property
     def status(self):
         if self.mature:
             return "Mature"
@@ -173,7 +172,7 @@ class Block(base):
 
     @property
     def luck(self):
-        hps = current_app.config['algos'][self.algo]['hashes_per_share']
+        hps = current_app.algos[self.algo].hashes_per_share
         return ((self.difficulty * (2 ** 32)) / ((self.shares_to_solve or 1) * hps)) * 100
 
     @property
@@ -211,8 +210,8 @@ class Payout(base):
     user = db.Column(db.String(34))
     sharechain_id = db.Column(db.SmallInteger)
     payout_address = db.Column(db.String(34))
+    currency = db.Column(db.String)
     amount = db.Column(db.Numeric, CheckConstraint('amount > 0', 'min_payout_amount'))
-    shares = db.Column(db.Float)
     fee_perc = db.Column(db.Numeric)
     pd_perc = db.Column(db.Numeric)
     type = db.Column(db.SmallInteger)
@@ -223,7 +222,6 @@ class Payout(base):
 
     __table_args__ = (
         db.Index('payable_idx', 'payable'),
-        db.UniqueConstraint("user", "blockhash"),
     )
 
     __mapper_args__ = {
@@ -261,35 +259,33 @@ class Payout(base):
 
     @property
     def perc_applied(self):
-        return (self.perc * self.amount).quantize(current_app.SATOSHI)
+        return (self.cut_perc * self.mined).quantize(current_app.SATOSHI)
 
     @property
     def text_perc_applied(self):
         if self.cut_perc < 0:
-            return "BONUS {}".format(sig_round(self.perc_applied * -1))
+            return "BONUS {}".format(sig_round(self.perc_applied))
         else:
-            return "Fee + donation: {}".format(sig_round(self.perc_applied))
+            return "{}".format(sig_round(self.perc_applied * -1))
 
     @property
     def mined(self):
-        return self.amount + self.perc_applied
+        return self.amount / (1 - self.cut_perc)
 
     @classmethod
-    def create(cls, user, amount, block, shares, perc, sharechain_id,
-               payout_address=None):
-        payout = cls(user=user, amount=amount, block=block, shares=shares,
-                     perc=perc, sharechain_id=sharechain_id,
-                     payout_address=payout_address or user)
+    def create(cls, user, amount, block, fee_perc, pd_perc, sharechain_id,
+               currency, payout_address=None):
+        payout = cls(user=user, amount=amount, block=block,
+                     fee_perc=fee_perc, pd_perc=pd_perc,
+                     sharechain_id=sharechain_id,
+                     payout_address=payout_address or user,
+                     currency=currency)
         db.session.add(payout)
         return payout
 
     @property
     def height(self):
         return self.block.height
-
-    @property
-    def currency(self):
-        return currencies[self.block.currency]
 
     @property
     def status(self):
@@ -378,7 +374,10 @@ class PayoutExchange(Payout):
 
     @property
     def est_value(self):
-        return self.currency.est_value(self.payout_currency, self.amount)
+        for version, currency_obj in current_app.currencies.iteritems():
+            if self.currency == currency_obj.key:
+                currency_ver = version
+        return current_app.currencies[currency_ver].est_value(self.payout_currency, self.amount)
 
     @property
     def final_amount(self):
@@ -408,7 +407,7 @@ class PayoutAggregate(base):
     @property
     def status(self):
         if self.transaction_id:
-            return self.transaction_id
+            return "Complete"
         return "Payout pending"
 
     @property
