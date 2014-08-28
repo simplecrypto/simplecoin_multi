@@ -60,9 +60,9 @@ chains:
 mining_servers:
     1:
         address: localhost
-        monitor_port: 3856
+        monitor_port: 3855
         stratums:
-            3363:
+            3333:
                 diff: 64-2048
                 chain: 1
     2:

@@ -50,7 +50,7 @@ class Currency(ConfigObject):
                     pool_kwargs=dict(maxsize=bootstrap.get('maxsize', 10))))
 
     @property
-    @cache.memoize(timeout=600)
+    @cache.memoize(timeout=3600)
     def btc_value(self):
         """ Caches and returns estimated currency value in BTC """
         if self.key == "BTC":
@@ -186,8 +186,8 @@ class Chain(ConfigObject):
             slc = "chain_{}_slice_{}".format(self.id, index)
             for entry in redis_conn.lrange(slc, 0, -1):
                 user, shares = entry.split(":")
-                shares = float(shares)
-                users.setdefault(user, 0.0)
+                shares = dec(shares)
+                users.setdefault(user, dec('0'))
                 users[user] += shares
                 found_shares += shares
                 if target_shares and found_shares >= target_shares:

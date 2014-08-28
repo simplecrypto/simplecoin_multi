@@ -7,7 +7,7 @@ import decorator
 import argparse
 import json
 
-from decimal import Decimal, getcontext, ROUND_HALF_DOWN
+from decimal import Decimal, getcontext, ROUND_HALF_DOWN, ROUND_DOWN
 from bitcoinrpc import CoinRPCException
 from flask import current_app
 from flask.ext.script import Manager
@@ -130,9 +130,6 @@ def create_aggrs():
             aggrs[key] = aggr
         return aggrs[key]
 
-    # Attach unattached payouts in need of exchange to a new batch of
-    # sellrequests
-
     q = Payout.query.filter_by(payable=True, aggregate_id=None).all()
     for payout in q:
         curr = currencies.lookup_address(payout.payout_address).key
@@ -144,6 +141,23 @@ def create_aggrs():
             aggr.amount += payout.amount
 
         aggr.count += 1
+
+    # Round down to nearest satoshi and create a new payout for tracking
+    # the remaining fractional amount
+    for (currency, user, payout_address), aggr in aggrs.iteritems():
+        getcontext().rounding = ROUND_DOWN
+        amt_payable = aggr.amount.quantize(current_app.SATOSHI)
+        user_extra = aggr.amount - amt_payable
+        aggr.amount = amt_payable
+
+        # Generate a new payout to catch fractional amounts in the next payout
+        p = Payout.create(amount=user_extra,
+                          user=user,
+                          shares=user_shares[user],
+                          perc=user_perc[user],
+                          sharechain_id=sharechain_id,
+                          payout_address=addr)
+        p.payable = True
 
     # Generate some simple stats about what we've done
     for (currency, user, payout_address), aggr in aggrs.iteritems():
