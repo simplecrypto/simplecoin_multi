@@ -1,16 +1,27 @@
+<script>
+  $(document).ready(function() {
+      $('input[type=radio][name=region]').change(function() {
+          var server_id = $(this).data("server-id");
+          $("#server-" + server_id).siblings("div").fadeOut("fast").promise().done(function() {
+            $("#server-" + server_id).fadeIn();
+          });
+      });
+  });
+</script>
+
 <div id="miner-config" class="panel panel-default{% if active_page != "config" %} collapse{% endif %}">
   <div class="panel-heading">Step 1. Pick the region nearest to you</div>
   <div class="panel-body">
     <div class="row">
       <div class="col-sm-11 col-sm-offset-1">
         <form class="form-inline" role="form">
-          {% for stratum in config['stratums'] %}
+          {% for server in servers %}
           <div class="col-sm-4">
             <label class="radio-inline" style="width:100%;">
-              <input type="radio" name="region" class="form-control server-region" value="{{ stratum['address'] }}">
-              <h4><img src="{{ config['assets_address'] | safe }}{{ stratum['country_flag'] }}"
-                       style="width:25px;" class="too-damn-bright"> &nbsp;{{ stratum['location'] }}</h4>
-              <b>URL</b>: {{ stratum['address'] }}
+              <input type="radio" name="region" class="form-control server-region" data-server-id="{{ server }}" value="{{ servers[server].address }}">
+              <h4><img src="{{ config['assets_address'] | safe }}{{ servers[server].country_flag }}"
+                       style="width:25px;" class="too-damn-bright"> &nbsp;{{ servers[server].location }}</h4>
+              <b>URL</b>: {{ servers[server].stratum_address }}
             </label>
           </div>
           {% endfor %}
@@ -30,27 +41,37 @@
 {#            </div>#}
       <div class="col-sm-11 col-sm-offset-1">
         <form class="form-horizontal" role="form">
-        {% for algo in ports %}
-          <div class="col-sm-4">
-            <div class="col-sm-12 no-padding">
-              <h4>{{ algo }} Ports:</h4>
-            </div>
-            {% for port in ports[algo] %}
-            <div class="radio">
-              <label>
-                <div class="col-sm-12 no-padding">
-                  <input type="radio" name="port" class="stratum-ports" value="{{ port['port'] }}">
-                  <b>{{ port['title'] }} {{ port['payout_type'] }}:</b>
-                  <ul>
-                    <li>Port: {{ port['port'] }}</li>
-                    <li>Diff: {{ port['diff'] }}</li>
-                    <li>{{ port['fee'] }}% fee</li>
-                  </ul>
-                </div>
-              </label>
-            </div>
-            {% endfor %}
+          <div class="col-sm-5 col-sm-offset-2 no-padding" id="server-0">
+            Pick a server to view available ports
           </div>
+        {% for server in servers %}
+          <div class="col-sm-12 no-padding default-hide" id="server-{{ server }}">
+          <h3><img src="{{ config['assets_address'] | safe }}{{ servers[server].country_flag }}"
+                   style="width:25px;" class="too-damn-bright"> &nbsp;{{ servers[server].location_acronym }} Ports</h3>
+          {% for algo in servers[server].stratums_by_algo %}
+            <div class="col-sm-4">
+              <div class="col-sm-12 no-padding">
+                <h4>{{ algo }} ports:</h4>
+              </div>
+              {% for port in servers[server].stratums_by_algo[algo] %}
+              <div class="radio">
+                <label>
+                  <div class="col-sm-12 no-padding">
+                    <input type="radio" name="port" class="stratum-ports" value="{{ port.port }}">
+                    <b>{{ port.chain.title }}:</b>
+                    <ul>
+                      <li>Port: {{ port.port }}</li>
+                      <li>Payout Method: {{ port.chain.type }}</li>
+                      <li>Diff: {{ port.diff }}</li>
+                      <li>{{ port.chain.hr_fee_perc }}% fee</li>
+                    </ul>
+                  </div>
+                </label>
+              </div>
+              {% endfor %}
+            </div>
+          {% endfor %}
+        </div>
         {% endfor %}
         </form>
       </div>
@@ -62,7 +83,7 @@
     <div class="row">
       <form class="form-horizontal" role="form">
           <div class="form-group">
-            <label for="donateAmount" class="col-sm-2 control-label">Payout address:</label>
+            <label for="donateAmount" class="col-sm-2 col-sm-offset-2 control-label">Payout address:</label>
             <div class="col-sm-5">
               <input type="text" class="form-control user-address-field" id="donateAmount" name="Any">
               <span class="help-block help-text">
@@ -85,7 +106,7 @@
 
       <div class="row">
         <div class="form-group">
-          <label for="donateAmount" class="col-sm-2 control-label">Workername:</label>
+          <label for="donateAmount" class="col-sm-2 col-sm-offset-2 control-label">Workername:</label>
           <div class="col-sm-5">
             <input type="text" class="form-control" id="workername" name="workername" value="worker1">
             <span class="help-block" style="margin-bottom:0px;">Alphanumeric characters only</span>
@@ -95,7 +116,7 @@
 
       <div class="row">
         <div class="form-group">
-          <label for="donateAmount" class="col-sm-2 control-label">Difficulty:</label>
+          <label for="donateAmount" class="col-sm-2 col-sm-offset-2 control-label">Difficulty:</label>
           <div class="col-sm-5">
             <input type="text" class="form-control" id="mining-diff" name="mining-diff">
             <span class="help-block" style="margin-bottom:0px;">Don't set this unless you know what you're doing. Must be 2^x and in the vardiff range</span>

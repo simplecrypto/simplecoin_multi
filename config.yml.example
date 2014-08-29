@@ -34,44 +34,73 @@ exchange_manager:
 default_stratum_url: stratum+tcp://stratum.simplemulti.com
 default_stratum_port: 3363
 
-# Stratum + Powerpool Config
+# Sharechain Configuration
 # =======================================================================
-
 chains:
     defaults:
         valid_address_versions: [111]
     1:
-        title: Scrypt Multi
+        title: Multi
+        donate_address:
+        algo: scrypt
         type: pplns
         last_n: 2
         fee_perc: "0.02"
-        donate_address:
-        algo: scrypt
     2:
-        fee_perc: "0.02"
-        donate_address:
         title: LTC/Doge
+        donate_address:
         algo: scrypt
         type: prop
-
+        fee_perc: "0.02"
+    3:
+        title: Vert
+        donate_address:
+        algo: nscrypt
+        type: pplns
+        last_n: 2
+        fee_perc: "0.02"
 
 # Stratum + Powerpool Config
 # =======================================================================
 mining_servers:
     1:
-        address: localhost
+        address: ca.simplemulti.com
         monitor_port: 3855
+        location_acronym: CA
+        location: Beauharnois, Canada
+        country_flag: "/img/ca.svg"
         stratums:
             3333:
                 diff: 64-2048
                 chain: 1
-    2:
-        address: localhost
-        monitor_port: 3857
-        stratums:
-            3364:
+            3333:
+                diff: 2048
+                chain: 1
+            3343:
                 diff: 64-2048
                 chain: 2
+            4444:
+                diff: 64-2048
+                chain: 3
+    2:
+        address: uk.simplemulti.com
+        monitor_port: 3855
+        location_acronym: UK
+        location: London, United Kingdom
+        country_flag: "/img/uk.svg"
+        stratums:
+            3333:
+                diff: 64-2048
+                chain: 1
+            3333:
+                diff: 2048
+                chain: 1
+            3343:
+                diff: 64-2048
+                chain: 2
+            4444:
+                diff: 64-2048
+                chain: 3
 
 algos:
     X11:

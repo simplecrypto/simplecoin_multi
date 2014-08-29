@@ -136,6 +136,7 @@ class Chain(ConfigObject):
         assert isinstance(self.fee_perc, basestring)
         assert isinstance(self.block_bonus, basestring)
         self.fee_perc = dec(self.fee_perc)
+        self.hr_fee_perc = round(self.fee_perc * 100, 2)
 
     def validate(self):
         """ NOT USED. Ideally will be run once all config objects are created.
@@ -255,6 +256,13 @@ class PowerPool(ConfigObject):
     requires = ['address', 'monitor_port', 'unique_id']
 
     @property
+    def stratum_address(self):
+        return self._stratum_address()
+
+    def _stratum_address(self):
+        return "stratum+tcp://{}".format(self.address)
+
+    @property
     def monitor_address(self):
         return self._monitor_address()
 
@@ -277,10 +285,13 @@ class PowerPool(ConfigObject):
         return dec(self.fee_perc)
 
     @property
-    def port(self):
-        return {'port': self.stratum_port, 'diff': self.diff,
-                'title': self.title, 'fee': self.hr_fee_perc,
-                'payout_type': self.payout_type}
+    def stratums_by_algo(self):
+        algo_ports = {}
+        for stratum in self.stratums:
+            algo = stratum.chain.algo
+            lst = algo_ports.setdefault(algo, [])
+            lst.append(stratum)
+        return algo_ports
 
     def __hash__(self):
         return self.unique_id
@@ -313,15 +324,6 @@ class PowerPoolKeeper(dict):
                 raise ConfigurationException("You cannot specify two servers "
                                              "with the same unique_id")
             self[serv.unique_id] = serv
-
-    @property
-    def open_ports(self):
-        open_ports = {}
-        for pp in self.itervalues():
-            for stratum in pp.stratums:
-                lst = open_ports.setdefault(stratum.chain.algo, [])
-                lst.append(stratum)
-        return open_ports
 
 
 class Stratum(ConfigObject):
