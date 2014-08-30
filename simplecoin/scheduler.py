@@ -681,11 +681,15 @@ def server_status():
     cache.set('total_workers', total_workers, timeout=1200)
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(prog='simplecoin task scheduler')
     parser.add_argument('-l', '--log-level',
                         choices=['DEBUG', 'INFO', 'WARN', 'ERROR'],
                         default='INFO')
     args = parser.parse_args()
 
-    app = create_app("scheduler", log_level=args.log_level)
+    create_app("scheduler", log_level=args.log_level)
+
+
+if __name__ == "__main__":
+    main()
