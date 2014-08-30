@@ -2,6 +2,7 @@ import subprocess
 import logging
 import os
 import yaml
+import socket
 import sys
 import setproctitle
 import inspect
@@ -19,6 +20,9 @@ from werkzeug.local import LocalProxy
 from autoex.ex_manager import ExchangeManager
 
 import simplecoin.filters as filters
+
+
+socket.setdefaulttimeout(10)
 
 
 root = os.path.abspath(os.path.dirname(__file__) + '/../')
