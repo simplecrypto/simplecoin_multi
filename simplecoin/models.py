@@ -441,6 +441,12 @@ def sum_combine(cls, *lst):
 class TimeSlice(object):
     """ An time abstracted data sample that pertains to a single worker.
     Currently used to represent accepted and rejected shares. """
+
+    @property
+    def end_time(self):
+        return self.time + timedelta(
+            seconds=self.span_config[self.span]['slice'].total_seconds())
+
     @property
     def item_key(self):
         return self.key(**{k: getattr(self, k) for k in self.keys})

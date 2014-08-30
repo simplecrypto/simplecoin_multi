@@ -4,7 +4,7 @@ import yaml
 
 from flask import current_app, session
 from sqlalchemy.exc import SQLAlchemyError
-from cryptokit.rpc import CoinserverRPC, CoinRPCException
+from cryptokit.rpc import CoinRPCException
 from decimal import Decimal as dec
 
 from .exceptions import CommandException
@@ -17,9 +17,15 @@ class ShareTracker(object):
     def __init__(self, algo):
         self.types = {typ: ShareTypeTracker(typ) for typ in ShareSlice.SHARE_TYPES}
         self.algo = algos[algo]
+        self.lowest = None
+        self.highest = None
 
     def count_slice(self, slc):
         self.types[slc.share_type].shares += slc.value
+        if not self.lowest or slc.time < self.lowest:
+            self.lowest = slc.time
+        if not self.highest or slc.end_time > self.highest:
+            self.highest = slc.end_time
 
     @property
     def accepted(self):
@@ -30,7 +36,7 @@ class ShareTracker(object):
         return sum([self.types['dup'].shares, self.types['low'].shares, self.types['stale'].shares, self.types['acc'].shares])
 
     def hashrate(self, typ="acc"):
-        return self.types[typ].shares * self.algo.hashes_per_share
+        return self.types[typ].shares * self.algo.hashes_per_share / (self.highest - self.lowest).total_seconds()
 
     @property
     def rejected(self):
@@ -39,8 +45,9 @@ class ShareTracker(object):
     @property
     def efficiency(self):
         rej = self.rejected
+        acc = float(self.types['acc'].shares)
         if rej:
-            return 100.0 * (float(self.types['acc'].shares) / rej)
+            return 100.0 * (acc / (rej + acc))
         return 100.0
 
 
@@ -48,6 +55,10 @@ class ShareTypeTracker(object):
     def __init__(self, share_type):
         self.share_type = share_type
         self.shares = 0
+
+    def __repr__(self):
+        return "<ShareTypeTracker 0x{} {} {}>".format(id(self), self.share_type,
+                                                      self.shares)
 
     def __hash__(self):
         return self.share_type.__hash__()
@@ -250,6 +261,7 @@ def collect_user_stats(address):
     # by the worker name, then generates a list of dictionaries using the list
     # of keys
     workers = [workers[key] for key in sorted(workers.iterkeys(), key=lambda tpl: tpl[1])]
+
     settings = UserSettings.query.filter_by(user=address).first()
 
     # Generate payout history and stats for earnings all time
