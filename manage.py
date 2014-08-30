@@ -4,7 +4,6 @@ from flask.ext.script import Manager, Shell
 from flask.ext.migrate import MigrateCommand
 
 from simplecoin import create_manage_app, db, currencies, powerpools
-from simplecoin.rpc import RPCClient
 from simplecoin.scheduler import SchedulerCommand
 from simplecoin.models import Transaction, UserSettings, Payout
 
