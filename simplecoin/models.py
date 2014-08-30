@@ -527,7 +527,8 @@ class TimeSlice(object):
         create_upper()
 
     @classmethod
-    def get_span(cls, lower=None, upper=None, stamp=False, ret_query=False, **kwargs):
+    def get_span(cls, lower=None, upper=None, stamp=False, ret_query=False,
+                 slice_size=None, **kwargs):
         """ A utility to grab a group of slices and automatically compress
         smaller slices into larger slices
 
@@ -550,16 +551,22 @@ class TimeSlice(object):
 
         if lower:
             query = query.filter(cls.time >= lower)
-            # Determine which slice size we will use
-            time_in_past = datetime.utcnow() - lower
-            slice_size = None
-            for i, cfg in enumerate(cls.span_config):
-                if cfg['window'] > time_in_past:
+
+        # Attempt automatic slice size detection... Doesn't work too well
+        if slice_size is None:
+            if lower:
+                query = query.filter(cls.time >= lower)
+                # Determine which slice size we will use
+                time_in_past = datetime.utcnow() - lower
+                slice_size = None
+                for i, cfg in enumerate(cls.span_config):
+                    if cfg['window'] > time_in_past:
+                        slice_size = i
+                        break
                     slice_size = i
-                    break
-                slice_size = i
-        else:
-            slice_size = len(cls.span_config) - 1
+            else:
+                slice_size = len(cls.span_config) - 1
+
         if upper:
             query = query.filter(cls.time <= upper)
 

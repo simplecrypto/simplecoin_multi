@@ -191,6 +191,7 @@ def address_stats():
                                   share_type=share_types,
                                   algo=algo_arg,
                                   lower=lower,
+                                  slice_size=span,
                                   upper=upper,
                                   stamp=True)
 
