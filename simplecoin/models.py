@@ -235,7 +235,7 @@ class Payout(base):
 
     @property
     def payout_currency(self):
-        return currencies.lookup_address(self.payout_address)
+        return currencies[self.currency]
 
     @property
     def amount_float(self):
@@ -625,8 +625,20 @@ class UserSettings(base):
     addresses = db.relationship("PayoutAddress")
 
     @property
+    def exchangeable_addresses(self):
+        return {pa_obj.currency: pa_obj.address for pa_obj in self.addresses if pa_obj.exchangeable}
+
+    @property
+    def unexchangeable_addresses(self):
+        return {pa_obj.currency: pa_obj.address for pa_obj in self.addresses if not pa_obj.exchangeable}
+
+    @property
     def hr_perc(self):
         return (self.pdonation_perc * 100).quantize(Decimal('0.01'))
+
+    @property
+    def hr_adonate_perc(self):
+        return (self.adonation_perc * 100).quantize(Decimal('0.01'))
 
     @classmethod
     def update(cls, address, set_addrs, del_addrs, pdonate_perc, adonate_perc,
@@ -697,3 +709,7 @@ class PayoutAddress(base):
                  address=address)
         db.session.add(pa)
         return pa
+
+    @property
+    def exchangeable(self):
+        return currencies[self.currency].exchangeable

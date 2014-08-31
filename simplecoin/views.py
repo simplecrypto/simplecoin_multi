@@ -1,4 +1,5 @@
 import calendar
+from decimal import Decimal
 import time
 import datetime
 import yaml
@@ -11,7 +12,7 @@ from .models import Block, ShareSlice, UserSettings, PayoutAddress, make_upper_l
 from . import db, root, cache, currencies, algos
 from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
                     get_alerts, resort_recent_visit, collect_acct_items,
-                    CommandException, validate_bc_address)
+                    CommandException, validate_bc_address, payable_addr)
 
 
 main = Blueprint('main', __name__)
@@ -20,7 +21,7 @@ main = Blueprint('main', __name__)
 @main.route("/")
 def home():
     news = yaml.load(open(root + '/static/yaml/news.yaml'))
-    payout_currencies = currencies.payout_currencies()
+    payout_currencies = currencies.exchangeable_currencies
     servers = current_app.powerpools
     return render_template('home.html',
                            news=news,
@@ -130,10 +131,9 @@ def exception():
 @main.route("/<address>")
 def user_dashboard(address):
     # Do some checking to make sure the address is valid + payable
-    curr = validate_bc_address(address)
-    if not curr:
-        return render_template('invalid_address.html',
-                               allowed_currencies=currencies.payout_currencies())
+    if not payable_addr(address):
+            return render_template('invalid_address.html',
+                                   allowed_currencies=currencies.exchangeable_currencies)
 
     stats = collect_user_stats(address)
 
@@ -261,9 +261,9 @@ def validate_address():
             return jsonify({currency: False})
 
         if currency == 'Any':
-            return jsonify({curr.key: True})
+            return jsonify({'': True})
 
-        if not curr.key == currency:
+        if not currencies[currency] in curr:
             return jsonify({currency: False})
         else:
             return jsonify({currency: True})
@@ -271,57 +271,23 @@ def validate_address():
 
 @main.route("/settings/<address>", methods=['POST', 'GET'])
 def settings(address):
-    curr = validate_bc_address(address)
+    # Do some checking to make sure the address is valid + payable
+    curr = payable_addr(address)
     if not curr:
         return render_template('invalid_address.html',
-                               allowed_currencies=currencies.payout_currencies())
+                                allowed_currencies=currencies.exchangeable_currencies())
 
     result, alert_cls = handle_message(address, curr)
-
     user = UserSettings.query.filter_by(user=address).first()
-
-    user_addresses = {}
-    pd_perc = 0
-    ad_perc = ''
-    ad_addr = ''
-    anon = None
-    if user:
-        anon = user.anon
-        pd_perc = user.hr_perc
-        if user.adonation_perc:
-            ad_perc = user.adonation_perc * 100
-        if user.adonation_addr:
-            ad_addr = user.adonation_addr
-        for addr in user.addresses:
-            user_addresses[addr.currency] = (addr)
-
-    exchangeable_currencies = {}
-    unexchangeable_currencies = {}
-    for currency, cfg in currencies.iteritems():
-        if cfg.exchangeable:
-            if currency in user_addresses:
-                exchangeable_currencies[currency] = user_addresses[currency]
-            else:
-                exchangeable_currencies[currency] = ''
-        else:
-            if currency in user_addresses:
-                unexchangeable_currencies[currency] = user_addresses[currency]
-            else:
-                unexchangeable_currencies[currency] = ''
-    exchangeable_currencies.pop(curr.key)
-
     return render_template("user_settings.html",
                            username=address,
                            result=result,
                            alert_cls=alert_cls,
-                           pd_perc=pd_perc,
-                           ad_perc=ad_perc,
-                           ad_address=ad_addr,
                            user_currency=curr.name,
                            user_currency_name=curr.key,
-                           anon=anon,
-                           exchangeable_currencies=exchangeable_currencies,
-                           unexchangeable_currencies=unexchangeable_currencies)
+                           user=user,
+                           ex_currencies=currencies.exchangeable_currencies,
+                           unex_currencies=currencies.unexchangeable_currencies)
 
 
 @main.route("/crontabs")

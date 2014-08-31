@@ -86,20 +86,24 @@ class CurrencyKeeper(dict):
 
     def __init__(self, currency_dictionary):
         super(CurrencyKeeper, self).__init__()
-        self.version_lut = {}
+        self.currency_lut = {}
         for key, config in currency_dictionary.iteritems():
             config['key'] = key
             val = Currency(config)
             setattr(self, val.key, val)
             self.__setitem__(val.key, val)
-            for ver in val.address_version:
-                if ver in self.version_lut:
-                    raise AttributeError("Duplicate address versions {}"
-                                         .format(ver))
-                self.version_lut[ver] = val
+            if key in self.currency_lut:
+                raise AttributeError("Duplicate currency keys {}"
+                                     .format(key))
+            self.currency_lut[key] = val
 
-    def payout_currencies(self):
+    @property
+    def exchangeable_currencies(self):
         return [c for c in self.itervalues() if c.exchangeable is True]
+
+    @property
+    def unexchangeable_currencies(self):
+        return [c for c in self.itervalues() if c.exchangeable is False]
 
     def lookup_address(self, address):
         ver = address_version(address)
@@ -110,12 +114,21 @@ class CurrencyKeeper(dict):
                                  .format(address, ver, self.available_versions))
 
     @property
+    def available_currencies(self):
+        return [k for k in self.currency_lut.iterkeys()]
+
+    @property
     def available_versions(self):
-        return {k: v.key for k, v in self.version_lut.iteritems()}
+        versions = {}
+        for v in self.currency_lut.itervalues():
+            for version in v.address_version:
+                versions.setdefault(version, [])
+                versions[version].append(v)
+        return versions
 
     def lookup_version(self, version):
         try:
-            return self.version_lut[version]
+            return self.available_versions[version]
         except KeyError:
             raise AttributeError(
                 "Address version {} doesn't match available versions {}"

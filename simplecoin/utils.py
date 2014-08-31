@@ -280,7 +280,7 @@ def collect_user_stats(address):
     payouts = Payout.query.filter_by(user=address, aggregate_id=None).options(db.joinedload('block')).all()
     for payout in payouts:
         # Group by their desired payout currency
-        summary = earning_summary.setdefault(payout.payout_currency, def_earnings.copy())
+        summary = earning_summary.setdefault(payout.currency, def_earnings.copy())
 
         # For non-traded values run an estimate calculation
         if payout.type == 1:  # PayoutExchange
@@ -374,12 +374,30 @@ def time_format(seconds):
     return "{:,.4f} sec".format(seconds)
 
 
+def payable_addr(address):
+    """
+    Checks an address to determine if its a valid and payable(+ convertable to)
+    address. Typically used to validate a username address.
+    Returns the payable currency object for that version.
+    """
+    curr = validate_bc_address(address)
+    if not curr:
+        return False
+
+    for currency in curr:
+        if not currency in currencies.exchangeable_currencies:
+            return False
+        else:
+            return currency
+
+
 def validate_bc_address(bc_address_str):
     """
     The go-to function for all your bitcoin style address validation needs.
 
     Expects to receive a string
-    Returns False if any checks are failed, otherwise returns currency obj
+    Returns False if any checks are failed, otherwise returns a list of
+    Currency objects that have the same addr version.
     """
     # First check to make sure the address contains only alphanumeric chars
     if not bc_address_str.isalnum():

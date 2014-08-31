@@ -135,7 +135,7 @@
                     <div class="col-sm-3 no-padding">
                       <input type="text" class="form-control" id="poolDonate"
                              name="poolDonate"
-                             value="{{ pd_perc or config['default_donate_perc'] }}">
+                             value="{{ user.hr_perc or (config['default_donate_perc']|float * 100) }}">
                       <span class="form-control-feedback">%</span>
                       <div class="help-block invalid-range default-hide">
                         <i class='fa fa-exclamation-triangle'></i> 0-100%</div>
@@ -152,7 +152,7 @@
                   <div class="row no-margin">
                     <div class="col-sm-3 no-padding">
                       <input type="text" class="form-control" id="arbitraryDonate"
-                             name="arbitraryDonate" value="{{ ad_perc }}">
+                             name="arbitraryDonate" value="{{ user.hr_adonation_perc or '' }}">
                       <span class="form-control-feedback">%</span>
                       <span class="help-block help-text">0-100%</span>
                       <div class="help-block invalid-range default-hide">
@@ -162,7 +162,7 @@
                     <div class="col-sm-8 no-padding">
                       <input type="text" class="form-control address-field"
                              id="arbitraryDonateAddr"
-                             name="Any" value="{{ ad_address }}">
+                             name="Any" value="{{ user.adonation_addr or '' }}">
                       <span class="help-block help-text">Input a valid
                         {{ currency }} address</span>
                       <span class="help-block checking-address default-hide">
@@ -184,21 +184,23 @@
                 </div>
               </div>
 
-              {% if exchangeable_currencies %}
+              {% if ex_currencies %}
               <p class="col-sm-10 col-sm-offset-1 horz-form-heading">
                 <b>Exchangeable Currencies</b>
                   <span class="help-block">Set an address to disable
                     {{ user_currency }} conversion for that currency</span>
               </p>
-              {% for currency, address_obj in exchangeable_currencies.iteritems() %}
+              {% for curr_obj in ex_currencies %}
               <div class="form-group">
-                <label for="{{ currency }}" class="col-sm-3 control-label">
-                  {{ currency }}:</label>
+                <label for="{{ curr_obj.key }}" class="col-sm-3 control-label">
+                  {{ curr_obj.key }}:</label>
                 <div class="col-sm-6">
                   <input type="text" class="form-control address-field"
-                         name="{{ currency }}" id="{{ currency }}"
-                         value="{{ address_obj.address }}">
-                  <span class="help-block help-text">Input a valid {{ currency }}
+                         name="{{ curr_obj.key }}" id="{{ curr_obj.key }}"
+                         {% if curr_obj.key in user.exchangeable_addresses %}
+                         value="{{ user.exchangeable_addresses[curr_obj.key] }}"
+                        {% endif %}>
+                  <span class="help-block help-text">Input a valid {{ curr_obj.key }}
                     address</span>
                   <span class="help-block checking-address default-hide">
                     <i class='fa fa-spinner fa-spin'></i> Checking address
@@ -214,23 +216,34 @@
               {% endfor %}
               {% endif %}
 
-              {% if unexchangeable_currencies %}
+              {% if unex_currencies %}
               <p class="col-sm-10 col-sm-offset-1 horz-form-heading">
                 <b>Unexchangeable Currencies</b>
                   <span class="help-block">To receive any these currencies it
                     is required that you set an address</span>
               </p>
-              {% for currency, address_obj in unexchangeable_currencies.iteritems() %}
+              {% for curr_obj in unex_currencies %}
               <div class="form-group">
-                <label for="{{ currency }}" class="col-sm-3 control-label">
-                  {{ currency }}:</label>
+                <label for="{{ curr_obj.key }}" class="col-sm-3 control-label">
+                  {{ curr_obj.key }}:</label>
                 <div class="col-sm-6">
                   <input type="text" class="form-control address-field"
-                         name="{{ currency }}" id="{{ currency }}"
-                         value="{{ address_obj.address }}">
-                  <span class="help-block">Input a valid {{ currency }} address</span>
+                         name="{{ curr_obj.key }}" id="{{ curr_obj.key }}"
+                         {% if curr_obj.key in user.unexchangeable_addresses %}
+                         value="{{ user.unexchangeable_addresses[curr_obj.key] }}"
+                        {% endif %}>
+                  <span class="help-block">Input a valid {{ curr_obj.key }} address</span>
+                  <span class="help-block checking-address default-hide">
+                    <i class='fa fa-spinner fa-spin'></i> Checking address
+                    validity</span>
+                  <span class="help-block invalid-address default-hide">
+                    <i class='fa fa-exclamation-triangle'></i> Invalid
+                    <span class="address-currency"></span> address</span>
+                  <span class="help-block valid-address default-hide">
+                    <i class='fa fa-check'></i> Valid
+                    <span class="address-currency"></span> address</span>
                 </div>
-                <div class="col-sm-1"><span id="{{ currency }}"></span></div>
+                <div class="col-sm-1"><span id="{{ curr_obj.key }}"></span></div>
               </div>
               {% endfor %}
               {% endif %}
