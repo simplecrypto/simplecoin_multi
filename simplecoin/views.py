@@ -12,7 +12,7 @@ from .models import Block, ShareSlice, UserSettings, PayoutAddress, make_upper_l
 from . import db, root, cache, currencies, algos
 from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
                     get_alerts, resort_recent_visit, collect_acct_items,
-                    CommandException, validate_bc_address, payable_addr)
+                    CommandException)
 
 
 main = Blueprint('main', __name__)
@@ -56,21 +56,21 @@ def blocks(q, currency=None):
     return render_template('blocks.html', blocks=blocks, page=page)
 
 
-@main.route("/<address>/account", defaults={'type': 'payout'})
-@main.route("/<address>/aggr_account", defaults={'type': 'aggr'})
-def account(address, type):
+@main.route("/<user_address>/account", defaults={'type': 'payout'})
+@main.route("/<user_address>/aggr_account", defaults={'type': 'aggr'})
+def account(user_address, type):
     page = int(request.args.get('page', 0))
     if page < 0:
         page = 0
     offset = page * 100
 
     if type == "aggr":
-        aggrs = (PayoutAggregate.query.filter_by(user=address).join(Payout.block).
+        aggrs = (PayoutAggregate.query.filter_by(user=user_address).join(Payout.block).
                  order_by(PayoutAggregate.created_at.desc()).limit(100).offset(offset))
         return render_template('account.html', aggregates=aggrs, page=page,
                                table="aggregate_table.html")
     else:
-        payouts = (Payout.query.filter_by(user=address).join(Payout.block).
+        payouts = (Payout.query.filter_by(user=user_address).join(Payout.block).
                    order_by(Block.found_at.desc()).limit(100).offset(offset))
         return render_template('account.html', payouts=payouts, page=page,
                                table="acct_table.html")
@@ -128,32 +128,34 @@ def exception():
     return ""
 
 
-@main.route("/<address>")
-def user_dashboard(address):
+@main.route("/<user_address>")
+def user_dashboard(user_address):
     # Do some checking to make sure the address is valid + payable
-    if not payable_addr(address):
-            return render_template('invalid_address.html',
-                                   allowed_currencies=currencies.exchangeable_currencies)
+    try:
+        currencies.lookup_payable_addr(user_address)
+    except Exception:
+        return render_template('invalid_address.html',
+                                allowed_currencies=currencies.exchangeable_currencies)
 
-    stats = collect_user_stats(address)
+    stats = collect_user_stats(user_address)
 
     # reorganize/create the recently viewed
     recent = session.get('recent_user_counts', {})
-    recent.setdefault(address, 0)
-    recent[address] += 1
+    recent.setdefault(user_address, 0)
+    recent[user_address] += 1
     session['recent_user_counts'] = recent
     resort_recent_visit(recent)
     return render_template('user_stats.html',
-                           username=address,
+                           username=user_address,
                            **stats)
 
 
-@main.route("/<address>/clear")
-def address_clear(address=None):
+@main.route("/<user_address>/clear")
+def address_clear(user_address=None):
     # remove address from the recently viewed
     recent = session.get('recent_users_counts', {})
     try:
-        del recent[address]
+        del recent[user_address]
     except KeyError:
         pass
     resort_recent_visit(recent)
@@ -255,7 +257,7 @@ def validate_address():
         currency = addr[0]
         address = addr[1]
 
-        curr = validate_bc_address(address)
+        curr = currencies.validate_bc_address(address)
 
         if not curr:
             return jsonify({currency: False})
@@ -269,18 +271,19 @@ def validate_address():
             return jsonify({currency: True})
 
 
-@main.route("/settings/<address>", methods=['POST', 'GET'])
-def settings(address):
+@main.route("/settings/<user_address>", methods=['POST', 'GET'])
+def settings(user_address):
     # Do some checking to make sure the address is valid + payable
-    curr = payable_addr(address)
-    if not curr:
+    try:
+        curr = currencies.lookup_payable_addr(user_address)
+    except Exception:
         return render_template('invalid_address.html',
-                                allowed_currencies=currencies.exchangeable_currencies())
+                                allowed_currencies=currencies.exchangeable_currencies)
 
-    result, alert_cls = handle_message(address, curr)
-    user = UserSettings.query.filter_by(user=address).first()
+    result, alert_cls = handle_message(user_address, curr)
+    user = UserSettings.query.filter_by(user=user_address).first()
     return render_template("user_settings.html",
-                           username=address,
+                           username=user_address,
                            result=result,
                            alert_cls=alert_cls,
                            user_currency=curr.name,

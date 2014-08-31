@@ -105,14 +105,6 @@ class CurrencyKeeper(dict):
     def unexchangeable_currencies(self):
         return [c for c in self.itervalues() if c.exchangeable is False]
 
-    def lookup_address(self, address):
-        ver = address_version(address)
-        try:
-            return self.lookup_version(ver)
-        except AttributeError:
-            raise AttributeError("Address '{}' version {} is not a configured currency. Options are {}"
-                                 .format(address, ver, self.available_versions))
-
     @property
     def available_currencies(self):
         return [k for k in self.currency_lut.iterkeys()]
@@ -126,6 +118,15 @@ class CurrencyKeeper(dict):
                 versions[version].append(v)
         return versions
 
+    def lookup_address(self, address):
+        ver = address_version(address)
+        try:
+            return self.lookup_version(ver)
+        except AttributeError:
+            raise AttributeError("Address '{}' version {} is not a configured "
+                                 "currency. Options are {}"
+                                 .format(address, ver, self.available_versions))
+
     def lookup_version(self, version):
         try:
             return self.available_versions[version]
@@ -133,6 +134,53 @@ class CurrencyKeeper(dict):
             raise AttributeError(
                 "Address version {} doesn't match available versions {}"
                 .format(version, self.available_versions))
+
+    def lookup_payable_addr(self, address):
+        """
+        Checks an address to determine if its a valid and payable(exchangeable)
+        address. Typically used to validate a username address.
+        Returns the payable currency object for that version.
+
+        When calling this function you should always expect exceptions to be
+        raised.
+
+        !!! This function assumes that a currency will not be configured as
+        exchangeable if there is a version conflict with another currency.
+
+        Although it makes this assumption - it should return a consistent
+        Currency obj even if configuration is incorrect
+        """
+        curr = self.validate_bc_address(address)
+
+        for currency in curr:
+            if currency in currencies.exchangeable_currencies:
+                return currency
+            else:
+                raise AttributeError("Address '{}' version {} is not an "
+                                     "exchangeable currency. Options are {}"
+                                     .format(address, curr.address_version,
+                                             self.exchangeable_currencies))
+
+    def validate_bc_address(self, bc_address_str):
+        """
+        The go-to function for all your bitcoin style address validation needs.
+
+        Expects to receive a string believed to represent a bitcoin address
+        Raises appropriate errors if any checks are failed, otherwise returns a
+        list of Currency objects that have the same addr version.
+        """
+        # First check to make sure the address contains only alphanumeric chars
+        if not bc_address_str.isalnum():
+            raise TypeError('Address should be alphanumeric')
+
+        # Check to make sure str is the proper length
+        if not len(bc_address_str) >= 33 or not len(bc_address_str) <= 35:
+            raise ValueError('Address should be 33-35 characters long')
+
+        # Check to see if the address can be looked up from the config
+        curr = currencies.lookup_address(bc_address_str)
+        # If we've arrived here we'll consider it valid
+        return curr
 
 
 class Chain(ConfigObject):

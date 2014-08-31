@@ -208,16 +208,16 @@ def collect_acct_items(address, limit=None, offset=0):
     return payouts
 
 
-def collect_user_stats(address):
+def collect_user_stats(user_address):
     """ Accumulates all aggregate user data for serving via API or rendering
     into main user stats page """
     # store all the raw data of we're gonna grab
     workers = {}
 
-    def check_new(address, worker, algo):
+    def check_new(user_address, worker, algo):
         """ Setups up an empty worker template. Since anything that has data on
         a worker can create one then it's useful to abstract. """
-        key = (address, worker, algo)
+        key = (user_address, worker, algo)
         if key not in workers:
             workers[key] = {'total_shares': ShareTracker(algo),
                             'last_10_shares': ShareTracker(algo),
@@ -225,7 +225,7 @@ def collect_user_stats(address):
                             'servers': {},
                             'algo': algo,
                             'name': worker,
-                            'address': address}
+                            'address': user_address}
         return workers[key]
 
     # Get the lower bound for 10 minutes ago
@@ -233,7 +233,7 @@ def collect_user_stats(address):
 
     newest = datetime.datetime.fromtimestamp(0)
     # XXX: Needs to only sum the last 24 hours
-    for slc in ShareSlice.get_span(ret_query=True, user=(address, )):
+    for slc in ShareSlice.get_span(ret_query=True, user=(user_address, )):
         if slc.time > newest:
             newest = slc.time
 
@@ -245,14 +245,14 @@ def collect_user_stats(address):
     hide_hr = newest < datetime.datetime.utcnow() - datetime.timedelta(seconds=current_app.config['worker_hashrate_fold'])
 
     # pull online status from cached pull direct from powerpool servers
-    for worker, connection_summary in (cache.get('addr_online_' + address) or {}).iteritems():
+    for worker, connection_summary in (cache.get('addr_online_' + user_address) or {}).iteritems():
         for ppid, connections in connection_summary.iteritems():
             try:
                 powerpool = powerpools[ppid]
             except KeyError:
                 continue
 
-            worker = (address, worker, powerpool.algo)
+            worker = (user_address, worker, powerpool.algo)
             worker['online'] = True
             worker['servers'].setdefault(powerpool, 0)
             worker['servers'][powerpool] += 1
@@ -262,13 +262,13 @@ def collect_user_stats(address):
     # of keys
     workers = [workers[key] for key in sorted(workers.iterkeys(), key=lambda tpl: tpl[1])]
 
-    settings = UserSettings.query.filter_by(user=address).first()
+    settings = UserSettings.query.filter_by(user=user_address).first()
 
     # Generate payout history and stats for earnings all time
     earning_summary = {}
     def_earnings = dict(sent=dec('0'), earned=dec('0'), unconverted=dec('0'), immature=dec('0'), currency=None)
     # Go through already grouped aggregates
-    aggregates = PayoutAggregate.query.filter_by(user=address).all()
+    aggregates = PayoutAggregate.query.filter_by(user=user_address).all()
     for aggr in aggregates:
         summary = earning_summary.setdefault(aggr.payout_currency, def_earnings.copy())
         if aggr.transaction_id:  # Mark sent if there's a txid attached
@@ -277,7 +277,7 @@ def collect_user_stats(address):
             summary['earned'] += aggr.amount
 
     # Loop through all unaggregated payouts to find the rest
-    payouts = Payout.query.filter_by(user=address, aggregate_id=None).options(db.joinedload('block')).all()
+    payouts = Payout.query.filter_by(user=user_address, aggregate_id=None).options(db.joinedload('block')).all()
     for payout in payouts:
         # Group by their desired payout currency
         summary = earning_summary.setdefault(payout.currency, def_earnings.copy())
@@ -374,49 +374,6 @@ def time_format(seconds):
     return "{:,.4f} sec".format(seconds)
 
 
-def payable_addr(address):
-    """
-    Checks an address to determine if its a valid and payable(+ convertable to)
-    address. Typically used to validate a username address.
-    Returns the payable currency object for that version.
-    """
-    curr = validate_bc_address(address)
-    if not curr:
-        return False
-
-    for currency in curr:
-        if not currency in currencies.exchangeable_currencies:
-            return False
-        else:
-            return currency
-
-
-def validate_bc_address(bc_address_str):
-    """
-    The go-to function for all your bitcoin style address validation needs.
-
-    Expects to receive a string
-    Returns False if any checks are failed, otherwise returns a list of
-    Currency objects that have the same addr version.
-    """
-    # First check to make sure the address contains only alphanumeric chars
-    if not bc_address_str.isalnum():
-        return False
-
-    # Check to make sure str is the proper length
-    if not len(bc_address_str) == 34:
-        return False
-
-    # Check to see if the address can be looked up/has an attached RPC server
-    try:
-        curr = currencies.lookup_address(bc_address_str)
-    except AttributeError:
-        return False
-    else:
-        # If we've arrived here we'll consider it valid
-        return curr
-
-
 def validate_str_perc(perc, round=dec('0.01')):
     """
     The go-to function for all your percentage validation needs.
@@ -452,12 +409,17 @@ def validate_message_vals(address, **kwargs):
 
     # Make sure all addresses are valid
     for curr, addr in set_addrs.iteritems():
-        if not validate_bc_address(addr):
+        try:
+            currencies.validate_bc_address(addr)
+        except Exception:
             raise CommandException("Invalid {} address passed!".format(curr))
 
-    if adonate_addr and not validate_bc_address(adonate_addr):
-        raise CommandException("Invalid currency address passed for arbitrary "
-                               "donation!")
+    if adonate_addr:
+        try:
+            currencies.validate_bc_address(adonate_addr)
+        except Exception:
+            raise CommandException("Invalid currency address passed for arbitrary "
+                                   "donation!")
 
     # Make sure all percentages are valid
     adonate_perc = validate_str_perc(adonate_perc)
@@ -489,8 +451,8 @@ def validate_message_vals(address, **kwargs):
 
     # Make sure arb donate addr isn't also the main addr
     if adonate_addr == address:
-        raise CommandException("Arbitrary donate address must not be the "
-                               "main address")
+        raise CommandException("Arbitrary donate address must not be the same "
+                               "as the main user address")
 
     return (set_addrs, del_addrs, pdonate_perc, adonate_perc, adonate_addr,
             del_adonate_addr, anon)

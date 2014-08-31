@@ -423,7 +423,7 @@ def payout_chain(block, user_shares, sharechain_id, simulate=False):
 
     current_app.logger.debug("Distribute_amnt: {} {}".format(block.total_value, block.currency))
     current_app.logger.debug("Total Shares: {}".format(total_shares))
-    current_app.logger.debug("Share Value: {} {}/share".format(block.total_value/total_shares, block.currency))
+    current_app.logger.debug("Share Value: {} {}/share".format(block.total_value / total_shares, block.currency))
 
     # Below calculates the portion going to each miner. Note that the amount
     # is not rounded or truncated - this amount is actually not payable as-is
@@ -507,18 +507,37 @@ def payout_chain(block, user_shares, sharechain_id, simulate=False):
     # =======================================================================
     # Build a dict to hold all currencies a user would like to be paid directly
     user_payable_currencies = {}
+
+    # For these next few code blocks we're going to build a dictionary to keep
+    # track of which currencies can be paid out directly to a user.
     for user in user_payouts.keys():
-        # Determine currency abbrev of payout address + add user addr to dict
-        usr_currency = currencies.lookup_address(user).key
-        user_payable_currencies[user] = {usr_currency: user}
+        # Determine currency key of user's payout address & add their addr
+        try:
+            usr_currency = currencies.lookup_payable_addr(user).key
+        except Exception as e:
+            current_app.logger.warn('Unable to lookup user address {}! Got '
+                                    'exception: {}'.format(user, e))
+            # This is an error we cannot handle gracefully, so abort the payout
+            return
+        else:
+            user_payable_currencies[user] = {usr_currency: user}
+
     for user in custom_settings:
         # Add any addresses they've configured
         for addr_obj in user.addresses:
             user_payable_currencies[user.user][addr_obj.currency] = addr_obj.address
         # Add arbitrary payout address if configured
         if user.adonation_addr and user.adonation_perc:
-            arb_currency = currencies.lookup_address(user.adonation_addr).key
-            user_payable_currencies[user.user][arb_currency] = user.adonation_addr
+            try:
+                arb_currency = currencies.lookup_payable_addr(user.adonation_addr).key
+            except Exception as e:
+                current_app.logger.warn('Unable to lookup arbitrary payout '
+                                        'address {} for user {}! Got exception: {}'
+                                        .format(user.user, user.adonation_addr, e))
+                # We can log + ignore this problem. Instead of potentially
+                # paying out the user directly we'll convert the currency
+            else:
+                user_payable_currencies[user.user][arb_currency] = user.adonation_addr
 
     # Convert user_payouts to a dict tracking multiple payouts for a single user
     split_user_payouts = {}
@@ -526,7 +545,7 @@ def payout_chain(block, user_shares, sharechain_id, simulate=False):
         split_user_payouts[user] = {user: payout}
 
     total_splits = 0
-    # if they have an arb payout address set up, split their payout
+    # if they have an arb payout address set up, go ahead and split their payout
     for p in custom_settings:
         if p.adonation_addr and p.adonation_perc:
             split_amt = split_user_payouts[p.user][p.user] * p.adonation_perc
@@ -550,38 +569,39 @@ def payout_chain(block, user_shares, sharechain_id, simulate=False):
         current_app.logger.debug(out)
 
         db.session.rollback()
-    else:
-        # record the payout for each user
-        for user, payouts in split_user_payouts.iteritems():
-            for addr, amount in payouts.iteritems():
-                if amount == 0:
-                    current_app.logger.info("Skiping zero payout for USR: {} "
-                                            "to ADDR: {}".format(user, addr))
-                    continue
+        return
 
-                # Create a payout record indicating this can be distributed
-                if block.currency in user_payable_currencies[user]:
-                    p = Payout.create(user=user,
-                                      amount=amount,
-                                      block=block,
-                                      fee_perc=user_perc[user]['f_perc'],
-                                      pd_perc=user_perc[user]['d_perc'],
-                                      sharechain_id=sharechain_id,
-                                      currency=block.currency,
-                                      payout_address=user_payable_currencies[user][block.currency])
-                    p.payable = True
+    # record the payout for each user
+    for user, payouts in split_user_payouts.iteritems():
+        for addr, amount in payouts.iteritems():
+            if amount == 0:
+                current_app.logger.info("Skiping zero payout for USR: {} "
+                                        "to ADDR: {}".format(user, addr))
+                continue
 
-                # Create a payout entry indicating this needs to be exchanged
-                else:
-                    p = PayoutExchange.create(user=user,
-                                              amount=amount,
-                                              block=block,
-                                              fee_perc=user_perc[user]['f_perc'],
-                                              pd_perc=user_perc[user]['d_perc'],
-                                              sharechain_id=sharechain_id,
-                                              currency=block.currency,
-                                              payout_address=addr)
-                db.session.add(p)
+            # Create a payout record indicating this can be distributed
+            if block.currency in user_payable_currencies[user]:
+                p = Payout.create(user=user,
+                                  amount=amount,
+                                  block=block,
+                                  fee_perc=user_perc[user]['f_perc'],
+                                  pd_perc=user_perc[user]['d_perc'],
+                                  sharechain_id=sharechain_id,
+                                  currency=block.currency,
+                                  payout_address=user_payable_currencies[user][block.currency])
+                p.payable = True
+
+            # Create a payout entry indicating this needs to be exchanged
+            else:
+                p = PayoutExchange.create(user=user,
+                                          amount=amount,
+                                          block=block,
+                                          fee_perc=user_perc[user]['f_perc'],
+                                          pd_perc=user_perc[user]['d_perc'],
+                                          sharechain_id=sharechain_id,
+                                          currency=block.currency,
+                                          payout_address=addr)
+            db.session.add(p)
 
         # update the block status and collected amounts
         block.contributed = collection_total
