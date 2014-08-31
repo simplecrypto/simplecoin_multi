@@ -103,7 +103,7 @@ class BlockPayout(base):
     # total going to pool from donations + fees
     contributed = db.Column(db.Numeric)
     # Total paid out in bonuses
-    bonus_payed = db.Column(db.Numeric)
+    bonus_paid = db.Column(db.Numeric)
     # Has this payout information been paid? Used to determine how many share
     # slices to keep
     paid = db.Column(db.Boolean, default=False)
@@ -125,13 +125,10 @@ class Block(base):
     orphan = db.Column(db.Boolean, default=False)
     # Is the block matured?
     mature = db.Column(db.Boolean, default=False)
-    # Block value
+    # Block total value (includes transaction fees)
     total_value = db.Column(db.Numeric)
     # Associated transaction fees
     transaction_fees = db.Column(db.Numeric)
-    # total going to pool from fees
-    contributed = db.Column(db.Numeric)
-    bonus_paid = db.Column(db.Numeric)
     # Difficulty of block when solved
     difficulty = db.Column(db.Float, nullable=False)
     # 3-8 letter code for the currency that was mined
@@ -147,6 +144,16 @@ class Block(base):
 
     def __str__(self):
         return "<{} h:{} hsh:{}>".format(self.currency, self.height, self.hash)
+
+    @property
+    def contributed(self):
+        # Total fees + donations associated with this block
+        return sum([bp.contributed for bp in self.block_payouts]) or 0
+
+    @property
+    def bonus_paid(self):
+        # Total fees + donations associated with this block
+        return sum([bp.bonus_paid for bp in self.block_payouts]) or 0
 
     @property
     def shares_to_solve(self):
