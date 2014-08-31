@@ -100,8 +100,8 @@ class BlockPayout(base):
     solve_slice = db.Column(db.Integer)
     # Shares on this chain
     shares = db.Column(db.Integer, nullable=False)
-    # total going to pool from donations
-    donated = db.Column(db.Numeric)
+    # total going to pool from donations + fees
+    contributed = db.Column(db.Numeric)
     # Total paid out in bonuses
     bonus_payed = db.Column(db.Numeric)
     # Has this payout information been paid? Used to determine how many share
