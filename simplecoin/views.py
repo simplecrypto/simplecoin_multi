@@ -103,8 +103,12 @@ def pool_stats():
 
 @main.before_request
 def add_pool_stats():
-    g.hashrates = {a: get_pool_hashrate(a) for a in algos}
-    g.worker_count = {a: cache.get('total_workers_{}'.format(a)) or 0 for a in algos}
+    g.algos = {}
+    for algo in algos:
+        if algos[algo].enabled == True:
+            g.algos[algo] = algos[algo]
+    g.hashrates = {a: get_pool_hashrate(a) for a in g.algos}
+    g.worker_count = {a: cache.get('total_workers_{}'.format(a)) or 0 for a in g.algos}
     g.alerts = get_alerts()
 
 

@@ -107,14 +107,17 @@ algos:
         hashes_per_share: 4294967296
         normalize_mult: 0.181818182
         display: X11
+        enabled: False
     scryptn:
         hashes_per_share: 65536
         normalize_mult: 2.127659574
         display: Scrypt-N
+        enabled: False
     scrypt:
         hashes_per_share: 65536
         normalize_mult: 1
         display: Scrypt
+        enabled: True
 
 currencies: 
     DRK:
