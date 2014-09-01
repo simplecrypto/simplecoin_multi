@@ -37,7 +37,8 @@ class ConfigObject(object):
 class Currency(ConfigObject):
     requires = ['algo', 'name', 'coinserv', 'address_version',
                 'trans_confirmations', 'block_time', 'block_mature_confirms']
-    defaults = dict(exchangeable=False)
+    defaults = dict(exchangeable=False,
+                    pool_payout_addr=None)
 
     def __init__(self, bootstrap):
         ConfigObject.__init__(self, bootstrap)
