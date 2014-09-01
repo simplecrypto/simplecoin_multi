@@ -12,6 +12,7 @@ from .exceptions import ConfigurationException, RemoteException
 
 
 class ConfigObject(object):
+    __getitem__ = lambda self, a: getattr(self, a)
     requires = []
     defaults = dict()
 
@@ -87,38 +88,35 @@ class CurrencyKeeper(dict):
 
     def __init__(self, currency_dictionary):
         super(CurrencyKeeper, self).__init__()
-        self.currency_lut = {}
         for key, config in currency_dictionary.iteritems():
             config['key'] = key
-            val = Currency(config)
-            setattr(self, val.key, val)
-            self.__setitem__(val.key, val)
-            if key in self.currency_lut:
+            obj = Currency(config)
+            if key in self:
                 raise ConfigurationException("Duplicate currency keys {}"
                                              .format(key))
+            self[obj.key] = obj
             # If a pool payout addr is specified, make sure it matches the
             # configured address version.
-            if config['pool_payout_addr'] is not None:
+            if obj['pool_payout_addr'] is not None:
                 try:
-                    ver = self.lookup_address(config['pool_payout_addr'])
+                    ver = self.lookup_address(obj['pool_payout_addr'])
                 except (KeyError, AttributeError):
                     raise ConfigurationException(
                         "Invalid pool_payoud_addr specified for {}".format(key))
-                if not ver in config['address_version']:
+                if ver not in obj['address_version']:
                     raise ConfigurationException(
                         "{} is not a valid {} address. Must be {}"
-                        .format(config['pool_payout_addr'], key,
-                                config['address_version']))
+                        .format(obj['pool_payout_addr'], key,
+                                obj['address_version']))
             # Check to make sure there is a valid + configured pool address for
             # unexchangeable currencies
             if config['exchangeable'] is False:
                 try:
-                    assert config['pool_payout_addr']
+                    assert obj['pool_payout_addr']
                 except AssertionError:
                     raise ConfigurationException(
                         "Unexchangeable currencies require a pool payout addr."
                         "No valid address found for {}".format(key))
-            self.currency_lut[key] = val
 
     @property
     def exchangeable_currencies(self):
@@ -130,12 +128,12 @@ class CurrencyKeeper(dict):
 
     @property
     def available_currencies(self):
-        return [k for k in self.currency_lut.iterkeys()]
+        return [k for k in self.iterkeys()]
 
     @property
     def available_versions(self):
         versions = {}
-        for v in self.currency_lut.itervalues():
+        for v in self.itervalues():
             for version in v.address_version:
                 versions.setdefault(version, [])
                 versions[version].append(v)

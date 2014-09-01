@@ -84,7 +84,7 @@ def make_context():
 manager.add_command("shell", Shell(make_context=make_context))
 manager.add_command('db', MigrateCommand)
 manager.add_command('scheduler', SchedulerCommand)
-manager.add_option('-c', '--config', default='/config.yml')
+manager.add_option('-c', '--config', default='config.yml')
 manager.add_option('-l', '--log-level',
                    choices=['DEBUG', 'INFO', 'WARN', 'ERROR'], default='INFO')
 
