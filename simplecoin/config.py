@@ -97,7 +97,7 @@ class CurrencyKeeper(dict):
                                              .format(key))
             # If a pool payout addr is specified, make sure it matches the
             # configured address version.
-            if config['pool_payout_addr']:
+            if config['pool_payout_addr'] is not None:
                 try:
                     ver = self.lookup_address(config['pool_payout_addr'])
                 except (KeyError, AttributeError):
