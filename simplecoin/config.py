@@ -324,12 +324,16 @@ class ChainKeeper(dict):
             self[id] = serv
 
 
+class Algo(ConfigObject):
+    defaults = dict(enabled=True)
+
+
 class AlgoKeeper(dict):
     def __init__(self, configs):
         super(AlgoKeeper, self).__init__()
         for algo, cfg in configs.iteritems():
             cfg['algo'] = algo
-            serv = ConfigObject(cfg)
+            serv = Algo(cfg)
             self[algo] = serv
 
 

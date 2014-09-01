@@ -280,6 +280,8 @@ navbar:
 # Logging
 # =======================================================================
 # where all webserver exceptions and logging messages will get put
-#log_file = webserver.log
+#webserver_log_file: webserver.log
 # all management commands will be logged here
-#manage_log_file = manage.log
+#manage_log_file: manage.log
+# all management commands will be logged here
+#scheduler_log_file: 
