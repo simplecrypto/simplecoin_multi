@@ -8,11 +8,10 @@ import argparse
 import json
 
 from decimal import Decimal, getcontext, ROUND_HALF_DOWN, ROUND_DOWN
-from bitcoinrpc import CoinRPCException
 from flask import current_app
 from flask.ext.script import Manager
-from apscheduler.threadpool import ThreadPool
 from cryptokit import bits_to_difficulty
+from cryptokit.rpc import CoinRPCException
 
 from simplecoin import (db, cache, redis_conn, create_app, currencies,
                         powerpools, chains)
