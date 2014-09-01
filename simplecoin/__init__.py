@@ -44,7 +44,7 @@ exchanges = LocalProxy(
     lambda: getattr(current_app, 'exchanges', None))
 
 
-def create_app(mode, config='/config.yml', log_level=None):
+def create_app(mode, config='config.yml', log_level=None):
 
     # Initialize our flask application
     # =======================================================================
@@ -58,7 +58,11 @@ def create_app(mode, config='/config.yml', log_level=None):
                        scheduler_log_file=None,
                        log_level='INFO',
                        worker_hashrate_fold=86400)
-    config_vars.update(yaml.load(open(root + config)))
+    if os.path.isabs(config):
+        config_path = config
+    else:
+        config_path = os.path.join(root, config)
+    config_vars.update(yaml.load(open(config_path)))
 
     # Inject all the yaml configs
     # =======================================================================
