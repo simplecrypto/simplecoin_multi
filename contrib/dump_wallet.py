@@ -1,11 +1,12 @@
 """ This is a utility to empty an entire wallets balance and send it to
 a specific address. It is useful for merged mining where getauxwork can't
 specify a destination address and fills up local wallets. """
-from bitcoinrpc import AuthServiceProxy, CoinRPCException
+from cryptokit.rpc import CoinserverRPC, CoinRPCException
 from decimal import Decimal
 import logging
 import argparse
 import re
+import sys
 
 
 parser = argparse.ArgumentParser(prog='simplecoin wallet dump script')
@@ -16,13 +17,13 @@ parser.add_argument('-s', '--simulate', action='store_true', default=False)
 parser.add_argument('config_path', help='the path to your rpc server config file', type=file)
 parser.add_argument('-p', '--passphrase-file', help='Path to a file containing your wallet passphrase', type=file)
 parser.add_argument('-o', '--offset', help='The amount that will be shaved off '
-                                            'the end to avoid stupid rounding error',
+                    'the end to avoid stupid rounding error',
                     type=Decimal, default=Decimal("0.0001"))
 parser.add_argument('recipient')
 args = parser.parse_args()
 
 root = logging.getLogger()
-ch = logging.StreamHandler()
+ch = logging.StreamHandler(stream=sys.stdout)
 ch.setLevel(logging.DEBUG)
 ch.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
 root.addHandler(ch)
@@ -38,7 +39,7 @@ for line in args.config_path:
 if args.passphrase_file:
     config['pass'] = args.passphrase_file.read().strip()
 
-rpc_connection = AuthServiceProxy(
+rpc_connection = CoinserverRPC(
     "http://{rpcuser}:{rpcpassword}@localhost:{rpcport}/"
     .format(**config))
 
