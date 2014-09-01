@@ -93,8 +93,30 @@ class CurrencyKeeper(dict):
             setattr(self, val.key, val)
             self.__setitem__(val.key, val)
             if key in self.currency_lut:
-                raise AttributeError("Duplicate currency keys {}"
-                                     .format(key))
+                raise ConfigurationException("Duplicate currency keys {}"
+                                             .format(key))
+            # If a pool payout addr is specified, make sure it matches the
+            # configured address version.
+            if config['pool_payout_addr']:
+                try:
+                    ver = self.lookup_address(config['pool_payout_addr'])
+                except (KeyError, AttributeError):
+                    raise ConfigurationException(
+                        "Invalid pool_payoud_addr specified for {}".format(key))
+                if not ver in config['address_version']:
+                    raise ConfigurationException(
+                        "{} is not a valid {} address. Must be {}"
+                        .format(config['pool_payout_addr'], key,
+                                config['address_version']))
+            # Check to make sure there is a valid + configured pool address for
+            # unexchangeable currencies
+            if config['exchangeable'] is False:
+                try:
+                    assert config['pool_payout_addr']
+                except AssertionError:
+                    raise ConfigurationException(
+                        "Unexchangeable currencies require a pool payout addr."
+                        "No valid address found for {}".format(key))
             self.currency_lut[key] = val
 
     @property

@@ -143,6 +143,9 @@ currencies:
         # whether or not we currently can exchange this currency. This is
         # used to determine valid user addresses
         exchangeable: True
+        # If a pool payout address is specified any pool earnings in that currency
+        # are paid out directly. If exchangeable is False a valid address is REQUIRED
+        pool_payout_addr:
     URO:
         # The algorithm for the currency
         algo: X11
@@ -169,6 +172,9 @@ currencies:
         # whether or not we currently can exchange this currency.
         # Used to determine valid user addresses
         exchangeable: True
+        # If a pool payout address is specified any pool earnings in that currency
+        # are paid out directly. If exchangeable is False a valid address is REQUIRED
+        pool_payout_addr:
 
 # set this to true and celery will only run scheduled tasks to refresh cache
 # objects. This allows you to run a staging version on the same database,
