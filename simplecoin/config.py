@@ -99,7 +99,7 @@ class CurrencyKeeper(dict):
             # configured address version.
             if obj['pool_payout_addr'] is not None:
                 try:
-                    ver = self.lookup_address(obj['pool_payout_addr'])
+                    ver = address_version(obj['pool_payout_addr'])
                 except (KeyError, AttributeError):
                     raise ConfigurationException(
                         "Invalid pool_payoud_addr specified for {}".format(key))
@@ -262,7 +262,9 @@ class Chain(ConfigObject):
         # The oldest slice we want to look at is either the minimum index number,
         # or start slice minus max_indexes...
         stop_slice = max(self.min_index, start_slice - self.max_indexes, stop_slice)
-        assert stop_slice <= start_slice
+        if stop_slice > start_slice:
+            raise Exception("stop_slice {} cannot be greater than start_slice {}!"
+                            .format(stop_slice, start_slice))
         found_shares = 0
         users = {}
         for index in xrange(start_slice, stop_slice, -1):
@@ -303,10 +305,11 @@ class PropChain(Chain):
                       filter(m.Block.hash != curr_block.hash).
                       order_by(m.Block.found_at.desc())).first()
         if last_block:
-            stop_slice = last_block.start_slice
+            last_block_payout = [bp for bp in last_block.block_payouts if bp.chainid == self.id][0]
+            stop_slice = last_block_payout.solve_slice
         else:
             stop_slice = 0
-        return self._calc_shares(block_payout.start_slice, stop_slice=stop_slice)
+        return self._calc_shares(block_payout.solve_slice, stop_slice=stop_slice)
 
 
 class ChainKeeper(dict):

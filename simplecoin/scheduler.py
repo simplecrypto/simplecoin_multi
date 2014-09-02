@@ -327,12 +327,13 @@ def run_payouts(dont_simulate=False):
     unproc_blocks = redis_conn.keys("unproc_block*")
     for key in unproc_blocks:
         hash = key[13:]
-        current_app.logger.info("Attempting to process block hash {}".format(hash))
+        current_app.logger.info("==== Attempting to process block hash {}".format(hash))
         try:
             payout(key, simulate=simulate)
         except Exception:
             db.session.rollback()
             current_app.logger.error("Unable to payout block {}".format(hash), exc_info=True)
+        current_app.logger.info("==== Done processing block hash {}".format(hash))
 
 
 def payout(redis_key, simulate=False):
@@ -377,6 +378,8 @@ def payout(redis_key, simulate=False):
             _, chain_id, key = key.split("_", 2)
             chain_id = int(chain_id)
             chain = chain_data.setdefault(chain_id, {})
+            if key == "shares":
+                value = Decimal(value)
             chain[key] = value
 
     current_app.logger.info("Parsed out chain data of {}".format(chain_data))
@@ -385,7 +388,10 @@ def payout(redis_key, simulate=False):
     # We want to determine each user's shares based on the payout method
     # of that share chain. Those shares will then be paid out proportionally
     # with payout_chain()
+    total_shares = sum([dat.get('shares', 0) for dat in chain_data.itervalues()])
+    chain_all_paid = Decimal('0')
     for id, data in chain_data.iteritems():
+        current_app.logger.info("**** Starting processing chain {}".format(id))
         bp = BlockPayout(chainid=id,
                          block=block,
                          solve_slice=int(data['solve_index']),
@@ -395,7 +401,15 @@ def payout(redis_key, simulate=False):
         user_shares = chains[id].calc_shares(bp)
         if not user_shares:
             user_shares[block.user] = 1
-        payout_chain(bp, block.total_value, user_shares, chain_id, simulate=simulate)
+        chain_total_value = block.total_value * (data['shares'] / total_shares)
+        payout_chain(bp, chain_total_value, user_shares, chain_id, simulate=simulate)
+        chain_all_paid += chain_total_value
+        current_app.logger.info("**** Done processing chain {}".format(id))
+
+    if abs(chain_all_paid - block.total_value) > Decimal('0.000000000001'):
+        raise Exception(
+            "Total paid out to all chains ({}) is not equal to total block value ({})!"
+            .format(chain_all_paid, block.total_value))
 
     if not simulate:
         db.session.commit()
@@ -430,8 +444,11 @@ def payout_chain(bp, chain_payout_amount, user_shares, sharechain_id, simulate=F
     for user, share_count in user_shares.iteritems():
         user_payouts[user] = (share_count * chain_payout_amount) / total_shares
 
-    # Check this section
-    assert sum(user_payouts.itervalues()) == chain_payout_amount
+    total_payouts = sum(user_payouts.itervalues())
+    if abs(total_payouts - chain_payout_amount) > Decimal('0.000000000001'):
+        raise Exception(
+            "Total to be paid out to chain ({}) is not ~equal to chain payout "
+            "amount ({})!".format(total_payouts, chain_payout_amount))
     current_app.logger.info("Successfully allocated all rewards among {} "
                             "users.".format(len(user_payouts)))
 
@@ -493,7 +510,7 @@ def payout_chain(bp, chain_payout_amount, user_shares, sharechain_id, simulate=F
     # Payout the collected amount to the pool
     if swing < 0:
         # Check to see if a pool payout addr is specified
-        pool_addr = currencies.lookup_address(currencies[bp.block.currency]['pool_payout_addr'])
+        pool_addr = currencies[bp.block.currency]['pool_payout_addr']
         if not pool_addr:
             pool_addr = current_app.config['donate_address']
             assert currencies[bp.block.currency]['exchangeable'] is True
@@ -503,7 +520,11 @@ def payout_chain(bp, chain_payout_amount, user_shares, sharechain_id, simulate=F
 
     # Check this section
     total_payouts = sum(user_payouts.itervalues())
-    assert total_payouts == (chain_payout_amount + swing)
+    if abs(total_payouts - (chain_payout_amount + swing)) > Decimal('0.000000000001'):
+        raise Exception(
+            "Total to be paid out to chain ({}) is not equal to chain payout "
+            "amount ({}) + swing ({})!".format(total_payouts, chain_payout_amount, swing))
+
     current_app.logger.info("Double check for payout distribution after adding "
                             "fees + donations completed. Total user payouts {}, total "
                             "block value {}.".format(total_payouts,
