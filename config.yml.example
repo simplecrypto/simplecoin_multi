@@ -173,8 +173,16 @@ currencies:
 # The cache database that redis will use
 redis_conn:
     db: 15
+    host: 'localhost'
+    port: 6379
+    password: 
 main_cache:
     CACHE_REDIS_DB: 15
+    CACHE_REDIS_PORT: 6379
+    CACHE_REDIS_HOST: localhost
+    CACHE_REDIS_PASSWORD: 
+    CACHE_KEY_PREFIX: 
+    CACHE_REDIS_URL: 
 
 # Payout configurations
 # ========================================================================
