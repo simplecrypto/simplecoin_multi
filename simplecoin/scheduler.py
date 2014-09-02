@@ -442,10 +442,10 @@ def payout_chain(bp, chain_payout_amount, user_shares, sharechain_id, simulate=F
         filter(UserSettings.user.in_(user_shares.keys())).all()
     # Grab defaults percs from config
     default_donate_perc = Decimal(current_app.config.get('default_donate_perc', '0'))
-    global_default_fee = current_app.config.get('fee_perc', '0.02')
+    global_default_fee = Decimal(current_app.config.get('fee_perc', '0.02'))
     # Set the fee percentage to the configured sharechain fee, fall back to a
     # global fee, fall back from that to a flat 2% fee
-    f_perc = Decimal(current_app.chains[sharechain_id].get('fee_perc', global_default_fee))
+    f_perc = chains[sharechain_id].fee_perc or global_default_fee
     # Add custom user percentages that apply into an easy to access dictionary
     custom_percs = {d.user: d.pdonation_perc for d in custom_settings}
 
