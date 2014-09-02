@@ -9,7 +9,7 @@ from flask.ext.migrate import MigrateCommand
 
 from simplecoin import create_manage_app, db, currencies, powerpools
 from simplecoin.scheduler import SchedulerCommand
-from simplecoin.models import Transaction, UserSettings, Payout, ShareSlice
+from simplecoin.models import Transaction, UserSettings, Payout, ShareSlice, DeviceSlice
 
 
 manager = Manager(create_manage_app)
@@ -64,6 +64,20 @@ def import_shares(input):
         if i % 100 == 0:
             print "{} completed".format(i)
             db.session.commit()
+
+
+@manager.option('input', type=argparse.FileType('r'))
+def import_device_slices(input):
+    for i, row in enumerate(input):
+        data = json.loads(row)
+        data['time'] = datetime.datetime.utcfromtimestamp(data['time'])
+        # Do a basic integrity check
+        assert data['time'] == DeviceSlice.floor_time(data['time'], data['span'])
+        db.session.add(DeviceSlice(**data))
+        # Print periodic progress
+        if i % 100 == 0:
+            db.session.commit()
+            print("{} inserted!".format(i))
 
 
 @manager.option('-t', '--txid', dest='transaction_id')
