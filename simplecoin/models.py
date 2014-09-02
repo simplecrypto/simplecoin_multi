@@ -618,6 +618,37 @@ class ShareSlice(TimeSlice, base):
                    dict(window=timedelta(days=30), slice=timedelta(hours=1))]
 
 
+class DeviceSlice(TimeSlice, base):
+    """ An data sample that pertains to a single workers device.  Currently
+    used to temperature and hashrate. """
+
+    time = db.Column(db.DateTime, primary_key=True)
+    user = db.Column(db.String, primary_key=True)
+    worker = db.Column(db.String, primary_key=True)
+    device = db.Column(db.SmallInteger, primary_key=True)
+    _stat = db.Column(db.SmallInteger, nullable=False, primary_key=True)
+
+    from_db = {0: "hashrate", 1: "temperature"}
+    to_db = {"hashrate": 0, "temperature": 1}
+
+    def get_stat(self, stat):
+        return self.from_db[stat]
+
+    def set_stat(self, stat):
+        self._stat = self.to_db[stat]
+    stat = property(get_stat, set_stat)
+
+    span = db.Column(db.SmallInteger, nullable=False)
+    value = db.Column(db.Float)
+
+    combine = average_combine
+    keys = ['user', 'worker', 'device']
+    key = namedtuple('Key', keys)
+    span_config = [dict(window=timedelta(hours=1), slice=timedelta(minutes=1)),
+                   dict(window=timedelta(days=1), slice=timedelta(minutes=5)),
+                   dict(window=timedelta(days=30), slice=timedelta(hours=1))]
+
+
 ################################################################################
 # User account related objects
 ################################################################################

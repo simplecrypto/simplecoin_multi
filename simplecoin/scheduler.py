@@ -19,7 +19,7 @@ from simplecoin.utils import last_block_time
 from simplecoin.exceptions import RemoteException
 from simplecoin.models import (Block, Payout, UserSettings, TradeRequest,
                                PayoutExchange, PayoutAggregate, ShareSlice,
-                               BlockPayout)
+                               BlockPayout, DeviceSlice)
 
 SchedulerCommand = Manager(usage='Run timed tasks manually')
 
@@ -612,6 +612,53 @@ def payout_chain(bp, chain_payout_amount, user_shares, sharechain_id, simulate=F
         # update the block status and collected amounts
         bp.contributed = collection_total
         bp.bonus_paid = payment_total
+
+
+@crontab
+@SchedulerCommand.command
+def collect_ppagent_data():
+    """ Grabs all the pending ppagent data points """
+    _grab_data("temp_*", "temperature")
+    _grab_data("hashrate_*", "hashrate")
+
+
+def _grab_data(prefix, stat):
+    proc_name = "processing_{}".format(stat)
+    unproc_mins = redis_conn.keys(prefix)
+    for key in unproc_mins:
+        current_app.logger.info("Processing key {}".format(key))
+        try:
+            (stamp, ) = key.split("_")[1:]
+        except Exception:
+            current_app.logger.error("Error processing key {}".format(key),
+                                     exc_info=True)
+            continue
+        minute = datetime.datetime.utcfromtimestamp(float(stamp))
+        # To ensure invalid stampt don't get committed
+        minute = ShareSlice.floor_time(minute, 0)
+        if stamp < (time.time() - 30):
+            current_app.logger.info("Skipping timestamp {}, too young".format(minute))
+            continue
+
+        redis_conn.rename(key, proc_name)
+        for user, value in redis_conn.hgetall(proc_name).iteritems():
+            try:
+                address, worker, did = user.split("_")
+                value = float(value)
+            except Exception:
+                current_app.logger.error("Error processing key {} on hash {}"
+                                         .format(user, key), exc_info=True)
+                continue
+
+            try:
+                slc = DeviceSlice(user=address, time=minute, worker=worker,
+                                  device=did, stat=stat, value=value, span=0)
+                db.session.add(slc)
+                db.session.commit()
+            except sqlalchemy.exc.IntegrityError:
+                current_app.logger.warn("SQLAlchemy collision", exc_info=True)
+                db.session.rollback()
+        redis_conn.delete(proc_name)
 
 
 @crontab

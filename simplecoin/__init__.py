@@ -195,6 +195,7 @@ def create_app(mode, config='config.yml', log_level=None):
             sched.add_cron_job(sch.create_trade_req, args=("buy",), second=5)
             # every minute at 55 seconds after the minute
             sched.add_cron_job(sch.collect_minutes, second=35)
+            sched.add_cron_job(sch.collect_ppagent_data, second=40)
             # every five minutes 20 seconds after the minute
             sched.add_cron_job(sch.compress_minute, minute='0,5,10,15,20,25,30,35,40,45,50,55', second=20)
             # every hour 2.5 minutes after the hour
@@ -203,7 +204,7 @@ def create_app(mode, config='config.yml', log_level=None):
             sched.add_cron_job(sch.update_block_state, second=2)
         else:
             app.logger.info("Stage mode has been set in the configuration, not "
-                                    "running scheduled database altering cron tasks")
+                            "running scheduled database altering cron tasks")
 
         sched.add_cron_job(sch.update_online_workers, minute='0,5,10,15,20,25,30,35,40,45,50,55', second=30)
         sched.add_cron_job(sch.cache_user_donation, minute='0,15,30,45', second=15)
