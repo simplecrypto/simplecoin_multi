@@ -491,7 +491,7 @@ class TimeSlice(object):
 
         # get the minute shares that are old enough to be compressed and
         # deleted
-        recent = cls.floor_time(datetime.utcnow(), span) - cls.span_config[span]['window']
+        recent = cls.floor_time(datetime.utcnow(), upper_span) - cls.span_config[span]['window']
         # the timestamp of the slice currently being processed
         current_slice = None
         # dictionary of lists keyed by item_hash
@@ -518,8 +518,8 @@ class TimeSlice(object):
                         db.session.delete(slc)
 
         # traverse minute shares that are old enough in time order
-        for slc in cls.query.filter(cls.time < recent).order_by(cls.time):
-            slice_time = cls.floor_time(slc.time, span + 1)
+        for slc in cls.query.filter(cls.time < recent).filter_by(span=span).order_by(cls.time):
+            slice_time = cls.floor_time(slc.time, upper_span)
 
             if current_slice is None:
                 current_slice = slice_time
@@ -637,6 +637,9 @@ class DeviceSlice(TimeSlice, base):
     def set_stat(self, stat):
         self._stat = self.to_db[stat]
     stat = property(get_stat, set_stat)
+    __table_args__ = (
+        db.Index('time_idx', 'time'),
+    )
 
     span = db.Column(db.SmallInteger, nullable=False)
     value = db.Column(db.Float)
