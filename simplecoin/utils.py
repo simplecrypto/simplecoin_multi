@@ -166,7 +166,7 @@ def get_pool_hashrate(algo):
     ten_min = sum([min.value for min in ten_min])
     # shares times hashes per n1 share divided by 600 seconds and 1000 to get
     # khash per second
-    return float(ten_min) / 600000 * algos[algo].hashes_per_share
+    return float(ten_min) / 600 * algos[algo].hashes_per_share
 
 
 @cache.memoize(timeout=30)
