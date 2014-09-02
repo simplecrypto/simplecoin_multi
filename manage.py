@@ -1,3 +1,7 @@
+import argparse
+import json
+import datetime
+
 from flask import current_app, _request_ctx_stack
 from flask.ext.migrate import stamp
 from flask.ext.script import Manager, Shell
@@ -5,7 +9,7 @@ from flask.ext.migrate import MigrateCommand
 
 from simplecoin import create_manage_app, db, currencies, powerpools
 from simplecoin.scheduler import SchedulerCommand
-from simplecoin.models import Transaction, UserSettings, Payout
+from simplecoin.models import Transaction, UserSettings, Payout, ShareSlice
 
 
 manager = Manager(create_manage_app)
@@ -48,6 +52,18 @@ def reset_payouts(merged_type="all"):
         base_q = base_q.filter_by(merged_type=merged_type)
     base_q.update({Payout.locked: False})
     db.session.commit()
+
+
+@manager.option('input', type=argparse.FileType('r'))
+def import_shares(input):
+    for i, line in enumerate(input):
+        data = json.loads(line)
+        data['time'] = datetime.datetime.utcfromtimestamp(data['time'])
+        slc = ShareSlice(algo="scrypt", **data)
+        db.session.add(slc)
+        if i % 100 == 0:
+            print "{} completed".format(i)
+            db.session.commit()
 
 
 @manager.option('-t', '--txid', dest='transaction_id')
