@@ -250,11 +250,13 @@ class Chain(ConfigObject):
         raise NotImplementedError
 
     def _calc_shares(self, start_slice, target_shares=None, stop_slice=None):
+        if target_shares == 0:
+            raise ValueError("Taget shares must be positive")
         if target_shares is None and stop_slice is None:
             raise ValueError("Must define either a stop slice or oldest valid slice.")
 
         current_app.logger.info("Calculating share count with start_slice {}; stop slice {}; target_shares {}"
-                                .format(start_slice, target_shares, stop_slice))
+                                .format(start_slice, stop_slice, target_shares))
 
         # We want to iterate backwards through the slices until we've collected
         # the target shares, or reached the stop slice.
@@ -291,7 +293,7 @@ class PPLNSChain(Chain):
 
     def calc_shares(self, block_payout):
         assert block_payout.chainid == self.id
-        target_shares = int(round(block_payout.block.difficulty * self.last_n))
+        target_shares = int(round(block_payout.block.difficulty * (2 ** 16) * self.last_n))
         return self._calc_shares(block_payout.solve_slice, target_shares=target_shares)
 
 
