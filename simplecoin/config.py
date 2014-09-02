@@ -32,7 +32,7 @@ class ConfigObject(object):
         return self.key
 
     def __hash__(self):
-        return self.key
+        return hash(self.key)
 
 
 class Currency(ConfigObject):
@@ -358,9 +358,12 @@ class AlgoKeeper(dict):
     def __init__(self, configs):
         super(AlgoKeeper, self).__init__()
         for algo, cfg in configs.iteritems():
-            cfg['algo'] = algo
+            cfg['key'] = algo
             serv = Algo(cfg)
             self[algo] = serv
+
+    def active_algos(self):
+        return [a for a in self.itervalues() if a.enabled]
 
 
 class PowerPool(ConfigObject):

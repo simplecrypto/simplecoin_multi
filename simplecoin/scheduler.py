@@ -14,12 +14,12 @@ from cryptokit import bits_to_difficulty
 from cryptokit.rpc import CoinRPCException
 
 from simplecoin import (db, cache, redis_conn, create_app, currencies,
-                        powerpools, chains)
+                        powerpools, chains, algos)
 from simplecoin.utils import last_block_time
 from simplecoin.exceptions import RemoteException
 from simplecoin.models import (Block, Payout, UserSettings, TradeRequest,
                                PayoutExchange, PayoutAggregate, ShareSlice,
-                               BlockPayout, DeviceSlice)
+                               BlockPayout, DeviceSlice, make_upper_lower)
 
 SchedulerCommand = Manager(usage='Run timed tasks manually')
 
@@ -244,6 +244,28 @@ def create_trade_req(typ):
                     "requests for".format(typ))
 
     db.session.commit()
+
+
+@crontab
+@SchedulerCommand.command
+def leaderboard():
+    users = {}
+    lower_10, upper_10 = make_upper_lower(offset=datetime.timedelta(minutes=1))
+    for slc in ShareSlice.get_span(ret_query=True, lower=lower_10, upper=upper_10):
+        algo = algos[slc.algo]
+        user = users.setdefault(slc.user, {})
+        user.setdefault(algo, 0)
+        user[algo] += slc.value
+
+    # Loop through and convert a summation of shares into a hashrate. Converts
+    # to hashes per second
+    for user, algo_shares in users.iteritems():
+        for algo, shares in algo_shares.items():
+            algo_shares[algo] = algo.hashes_per_share * shares
+            algo_shares.setdefault('normalized', 0)
+            algo_shares['normalized'] += users[user][algo] * algo.normalize_mult
+
+    cache.set("leaderboard", sorted(users.iteritems(), key=lambda x: x[1]['normalized'], reverse=True))
 
 
 @crontab

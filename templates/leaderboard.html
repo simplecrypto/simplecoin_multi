@@ -23,17 +23,17 @@ $(document).ready(function() {
       <thead>
         <tr>
           <th>User</th>
-          {% for _, algo in algos %}
-          <th>{{ algo }} Hashrate</th>
+          {% for disp, algo in algos %}
+          <th>{{ disp }} Hashrate</th>
           {% endfor %}
         </tr>
       </thead>
       <tbody>
-      {% for dat in users %}
+      {% for user, data in users %}
         <tr>
-          <th>{{ loop.index }}.  <a href="/{{ dat['user'] }}">{{ dat['user'] }}</a></th>
-          {% for algo in algos.values() %}
-          <th data-sort-value="{{ dat[algo] }}">{{ hashrate(dat[algo]) }}</th>
+          <th>{{ loop.index }}.  <a href="/{{ user }}">{{ user }}</a></th>
+          {% for disp, algo in algos %}
+          <th data-sort-value="{{ data.get(algo, 0) }}">{{ data.get(algo, 0) | hashrate }}</th>
           {% endfor %}
         </tr>
       {% else %}
