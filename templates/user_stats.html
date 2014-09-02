@@ -7,12 +7,6 @@
 $(document).ready(function() {
   {# Initial graph generation #}
   generate_graph($('#chart'), {address: '{{ username }}'});
-
-  $('div.collapse-button').bind( "click", function() {
-      $(this).text(function(i,old){
-          return old=='[ - ]' ?  '[ + ]' : '[ - ]';
-      });
-  });
 });
 </script>
 {% if g.alerts  %}
@@ -31,7 +25,7 @@ $(document).ready(function() {
   {% endfor %}
 {% endif %}
 <div class="container">
-  <div class="row page-header">
+  <div class="row row-header">
     <h2 style="word-wrap:break-word;margin-bottom:2px;">User Stats - {{ username }} </h2>
     {% for curr, name, merged_addr in merged_addrs %}
       <span style="padding-left:15px;">Merge mining {{ name }} payout address : {{ merged_addr }}
@@ -44,120 +38,163 @@ $(document).ready(function() {
     </span><br>
     <br>
   </div>
-  <div class="row row-header">
-    <h2>Worker Hashrates
-      <div class="btn btn-default btn-sm collapse-button" data-toggle="collapse" data-target="#chart">{% if hide_hr %}[ + ]{% else %}[ - ]{% endif %}</div></h2>
-    <div class="col-lg-12 collapse {% if not hide_hr %}in{% endif %}" id="chart">
-      <ul class="nav nav-tabs">
-        <li class="tab hour"><a>Hour</a></li>
-        <li class="tab day"><a>Day</a></li>
-        <li class="tab month"><a>Month</a></li>
-      </ul>
-    <div style="height:400px;">
-      <img src="{{ config['assets_address'] | safe }}/img/712.GIF" style="position:absolute;padding-top:150px;padding-left:400px;"><svg></svg>
-    </div>
-  </div>
-  </div>
-
-  {% if workers %}
-  <div class="row page-header">
-    <h2>Worker Status</h2>
-    <br>
-    {% for worker in workers %}
-    <div class="col-lg-10 col-lg-offset-1 col-md-12 col-sm-12 col-xs-12">
-      <div class="panel panel-default" style="background-color:#243749;">
-        <div class="panel-heading">
-          <h3>
-            <i class="fa fa-circle" style="color:{% if worker['online'] %}#5BCE00{% else %}#B12627{% endif %}"
-               data-toggle="tooltip" data-placement="right"
-               title="{% if worker['online'] %}Online{% else %}Offline{% endif %}"></i>&nbsp;
-            {{ worker['name'] }}
-            {% for server, connections in worker['servers'].iteritems() %}
-              &nbsp;&nbsp;<small style="font-size:8pt;">{{ server.display_text }} ({{ connections }} connections)</small>
-            {% endfor %}
-            <span class="pull-right">
-            <small class="text-right" style="padding-left:10px;font-weight:300;">Hashrate:
-              {{ worker['last_10_shares'].hashrate() | hashrate }} &nbsp;
-              <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Average hashrate over the last ten minutes based on accepted shares, NOT PPAgent."></i></small>
-            <small class="text-right" style="padding-left:10px;font-weight:300;">Efficiency:
-              {{ worker['total_shares'].efficiency | round(2) }}% &nbsp;
-              <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                       title="Computed from accepted/total({{ worker['total_shares'].accepted }}/{{ worker['total_shares'].total }}) shares submitted in the last 24 hours"></i></small>
-            </span>
-          </h3>
-          <div class="clearfix"></div>
-        </div>
-        <div class="panel-body" style="padding:0px;">
-          <div class="table-responsive  bs-component" style="position:relative;padding:9px;">
-            <div class="col-xs-6 text-center">
-              <h4>Accepted Shares: {{ '{:,}'.format(worker['total_shares'].accepted) }}&nbsp;
-                <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                     title="Accepted shares over the last 24 hours"></i></h4>
-            </div>
-            <div class="col-xs-6 text-center">
-              <h4>Rejected Shares: {{ '{:,}'.format(worker['total_shares'].rejected) }}&nbsp;
-                <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                     title="Rejected shares over the last 24 hours"></i></h4>
-            </div>
-            <div class="clearfix"></div>
+  <div class="row">
+    <div class="panel panel-default" style="background-color:#243749;">
+      <div class="panel-heading" data-toggle="collapse" data-target="#chart">
+        <h3>Hashrate graphs{% if hide_hr %} - <small>No hashrate data</small>{% endif %}
+          {% if not hide_hr %}<div id="worker-hashrates" class="btn btn-default pull-right btn-sm collapse-button">[-]</div>{% endif %}
+        </h3>
+      </div>
+      <div class="panel-body" style="padding:0px;">
+        <div class="no-padding col-lg-12 collapse {% if not hide_hr %}in{% endif %}" id="chart">
+          <ul class="nav nav-tabs" style="padding-left:15px;">
+            <li class="tab hour"><a>Hour</a></li>
+            <li class="tab day"><a>Day</a></li>
+            <li class="tab month"><a>Month</a></li>
+          </ul>
+          <div style="height:400px;">
+            <img src="{{ config['assets_address'] | safe }}/img/712.GIF" style="position:absolute;padding-top:150px;padding-left:400px;"><svg></svg>
           </div>
         </div>
       </div>
     </div>
-    {% endfor %}
   </div>
-  {% endif %}
 
 
-  <div class="row row-header">
-    <h2>Earning Overview</h2>
-    <br>
-    <div class="col-lg-12">
-      <div class="bs-example table-responsive">
-        <table class="table table-striped table-hover tablesorter" id="blockTable">
-          <tbody>
-            <tr>
-                <th>Currency</th>
-                {% for data in earning_summary %}<th>{{ data["currency"] }}</th>{% endfor %}
-            </tr>
-            <tr>
-                <th>Immature</th>
-                {% for data in earning_summary %}<td>{{ data["immature"] | currency }}</td>{% endfor %}
-            </tr>
-            <tr>
-                <th>Unconverted</th>
-                {% for data in earning_summary %}<td>{{ data["unconverted"] | currency }}</td>{% endfor %}
-            </tr>
-            <tr>
-                <th>Sent</th>
-                {% for data in earning_summary %}<td>{{ data["sent"] | currency }}</td>{% endfor %}
-            </tr>
-            <tr>
-                <th>Earned</th>
-                {% for data in earning_summary %}<td>{{ data["earned"] | currency }}</td>{% endfor %}
-            </tr>
-            <tr>
-                <th>Total</th>
-                {% for data in earning_summary %}<td>{{ (data["immature"] + data["unconverted"] + data["sent"] + data["earned"]) | currency }}</td>{% endfor %}
-            </tr>
-          </tbody>
-        </table>
+  <div class="row">
+    <div class="panel panel-default" style="background-color:#243749;">
+      <div class="panel-heading" data-toggle="collapse" data-target="#worker-stats">
+        <h3>Worker Status{% if not workers %} - <small>No worker data</small>{% endif %}
+          {% if workers %}<div id="worker-status" class="btn btn-default pull-right btn-sm collapse-button">[-]</div>{% endif %}
+        </h3>
+      </div>
+      <div class="panel-body collapse {% if workers %}in{% endif %}" style="padding:0px;" id="worker-stats">
+        {% for worker in workers %}
+
+        <div class="col-lg-10 col-lg-offset-1 col-md-12 col-sm-12 col-xs-12">
+          <div class="panel panel-default" >
+            <div class="panel-heading">
+              <h3>
+                <i class="fa fa-circle" style="color:{% if worker['online'] %}#5BCE00{% else %}#B12627{% endif %}"
+                   data-toggle="tooltip" data-placement="right"
+                   title="{% if worker['online'] %}Online{% else %}Offline{% endif %}"></i>&nbsp;
+                {{ worker['name'] }}
+                {% for server, connections in worker['servers'].iteritems() %}
+                  &nbsp;&nbsp;<small style="font-size:8pt;">{{ server.display_text }} ({{ connections }} connections)</small>
+                {% endfor %}
+                <span class="pull-right">
+                <small class="text-right" style="padding-left:10px;font-weight:300;">Hashrate:
+                  {{ worker['last_10_shares'].hashrate() | hashrate }} &nbsp;
+                  <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                           title="Average hashrate over the last ten minutes based on accepted shares, NOT PPAgent."></i></small>
+                <small class="text-right" style="padding-left:10px;font-weight:300;">Efficiency:
+                  {{ worker['total_shares'].efficiency | round(2) }}% &nbsp;
+                  <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                           title="Computed from accepted/total({{ worker['total_shares'].accepted }}/{{ worker['total_shares'].total }}) shares submitted in the last 24 hours"></i></small>
+                </span>
+              </h3>
+              <div class="clearfix"></div>
+            </div>
+            <div class="panel-body" style="padding:0px;">
+              <div class="table-responsive  bs-component" style="position:relative;padding:9px;">
+                <div class="col-xs-6 text-center">
+                  <h4>Accepted Shares: {{ '{:,}'.format(worker['total_shares'].accepted) }}&nbsp;
+                    <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                         title="Accepted shares over the last 24 hours"></i></h4>
+                </div>
+                <div class="col-xs-6 text-center">
+                  <h4>Rejected Shares: {{ '{:,}'.format(worker['total_shares'].rejected) }}&nbsp;
+                    <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                         title="Rejected shares over the last 24 hours"></i></h4>
+                </div>
+                <div class="clearfix"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+
+  </div>
+
+
+
+  <div class="row">
+    <div class="panel panel-default" style="background-color:#243749;">
+      <div class="panel-heading" data-toggle="collapse" data-target="#earnings-table">
+        <h3>Earning Overview{% if not earning_summary %} - <small>No earnings data</small>{% endif %}
+          {% if earning_summary %}<div id="earnings-overview" class="btn btn-default pull-right btn-sm collapse-button">[-]</div>{% endif %}
+        </h3>
+      </div>
+      <div class="panel-body" style="padding:0px;">
+        <div class="no-padding col-lg-12 collapse {% if earning_summary %}in{% endif %}" id="earnings-table">
+          <div class="bs-example table-responsive">
+            <table class="table table-striped table-hover tablesorter" id="blockTable" style="margin-bottom:0px;">
+              <tbody>
+                <tr>
+                    <th>Currency</th>
+                    {% for data in earning_summary %}<th>{{ data["currency"] }}</th>{% endfor %}
+                </tr>
+                <tr>
+                    <th>Immature</th>
+                    {% for data in earning_summary %}<td>{{ data["immature"] | currency }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <th>Unconverted</th>
+                    {% for data in earning_summary %}<td>{{ data["unconverted"] | currency }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <th>Sent</th>
+                    {% for data in earning_summary %}<td>{{ data["sent"] | currency }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <th>Earned</th>
+                    {% for data in earning_summary %}<td>{{ data["earned"] | currency }}</td>{% endfor %}
+                </tr>
+                <tr>
+                    <th>Total</th>
+                    {% for data in earning_summary %}<td>{{ (data["immature"] + data["unconverted"] + data["sent"] + data["earned"]) | currency }}</td>{% endfor %}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="row">
+    <div class="panel panel-default" style="background-color:#243749;">
+      <div class="panel-heading" data-toggle="collapse" data-target="#aggregates">
+        <h3>Recent Payouts{% if not aggregates %} - <small>No recent payouts</small>{% endif %}
+          {% if aggregates %}<div id="recent-payouts" class="btn btn-default pull-right btn-sm collapse-button">[-]</div>{% endif %}
+        </h3>
+      </div>
+      <div class="panel-body" style="padding:0px;">
+        <div class="no-padding col-lg-12 collapse {% if aggregates %}in{% endif %}" id="aggregates">
+          {% include "aggregate_table.html" %}
+          <a href="/{{ username }}/aggr_account">View all account transactions</a>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="row row-header">
-    <h2>Recent Payouts</h2>
-    <br>
-    {% include "aggregate_table.html" %}
-    <a href="/{{ username }}/aggr_account">View all account transactions</a>
-  </div>
-
-  <div class="row row-header">
-    <h2>Recent Block Credits</h2>
-    <br>
-    {% include "acct_table.html" %}
-    <a href="/{{ username }}/account">View all recent credits</a>
+  <div class="row">
+    <div class="panel panel-default" style="background-color:#243749;">
+      <div class="panel-heading" data-toggle="collapse" data-target="#payouts">
+        <h3>Recent Block Credits{% if not payouts %} - <small>No recent block credits</small>{% endif %}
+          {% if payouts %}<div id="recent-credits" class="btn btn-default pull-right btn-sm collapse-button">[-]</div>{% endif %}
+        </h3>
+      </div>
+      <div class="panel-body" style="padding:0px;">
+        <div class="no-padding col-lg-12 collapse {% if payouts %}in{% endif %}" id="payouts">
+          {% include "acct_table.html" %}
+          <a href="/{{ username }}/account">View all recent credits</a>
+        </div>
+      </div>
+    </div>
   </div>
 {% endblock %}

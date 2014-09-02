@@ -263,7 +263,7 @@ def collect_user_stats(user_address):
     # Could definitely be better... Makes a list of the dictionary keys sorted
     # by the worker name, then generates a list of dictionaries using the list
     # of keys
-    workers = [workers[key] for key in sorted(workers.iterkeys(), key=lambda tpl: tpl[1])]
+    workers = [workers[key] for key in sorted(workers.iterkeys(), key=lambda tpl: tpl[1])] or []
 
     settings = UserSettings.query.filter_by(user=user_address).first()
 

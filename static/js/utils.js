@@ -131,7 +131,27 @@ $(document).ready(function() {
     });
 
   // Setup collapse button for configuration guide
-  flip('#miner-config', '#config-guide', '[+]', '[-]');
+  new flip('#miner-config', '#config-guide', '[+]', '[-]');
+
+
+////////////////////////////////////////////
+// JS for user stats page
+////////////////////////////////////////////
+
+  // Setup collapse button for worker hashrates graph
+  new flip('#chart', '#worker-hashrates', '[+]', '[-]');
+
+  // Setup collapse button for worker hashrates graph
+  new flip('#worker-stats', '#worker-status', '[+]', '[-]');
+
+  // Setup collapse button for worker hashrates graph
+  new flip('#earnings-table', '#earnings-overview', '[+]', '[-]');
+
+  // Setup collapse button for worker hashrates graph
+  new flip('#aggregates', '#recent-payouts', '[+]', '[-]');
+
+  // Setup collapse button for worker hashrates graph
+  new flip('#payouts', '#recent-credits', '[+]', '[-]');
 
 ////////////////////////////////////////////
 // JS for configuration guide
