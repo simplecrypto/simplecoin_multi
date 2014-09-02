@@ -39,8 +39,9 @@
           <h5 class="stats">
             {% for algo in g.algos %}
               <div class="col-sm-4">
+                {{ g.algos[algo].display }} Status:<br>
                 <strong data-toggle="tooltip" data-placement="right"
-                  title="Total hashrate for the pool, represented in Megahashes per second">&nbsp;{{ g.algos[algo].display }}&nbsp;Hashrate
+                  title="Total hashrate for the pool, represented in Megahashes per second">&nbsp;Hashrate
                 </strong>:&nbsp;{{ g.hashrates[algo] | hashrate }}
                 <br>
                 <strong data-placement="right"
