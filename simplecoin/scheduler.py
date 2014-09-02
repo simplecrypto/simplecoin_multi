@@ -770,7 +770,7 @@ def server_status():
     status information.
     """
     algo_miners = {}
-    servers = []
+    servers = {}
     raw_servers = {}
     for powerpool in powerpools.itervalues():
         try:
@@ -781,15 +781,15 @@ def server_status():
             continue
         else:
             raw_servers[powerpool.stratum_address] = data
-            servers.append(dict(workers=data['client_count_authed'],
-                                miners=data['address_count'],
-                                hashrate=data['hps'],
-                                name=powerpool.stratum_address))
+            servers[powerpool] = dict(workers=data['client_count_authed'],
+                                      miners=data['address_count'],
+                                      hashrate=data['hps'],
+                                      name=powerpool.stratum_address)
             algo_miners.setdefault(powerpool.chain.algo, 0)
             algo_miners[powerpool.chain.algo] += data['address_count']
 
-    cache.set('raw_server_status', json.dumps(raw_servers), timeout=1200)
-    cache.set('server_status', json.dumps(servers), timeout=1200)
+    cache.set('raw_server_status', raw_servers, timeout=1200)
+    cache.set('server_status', servers, timeout=1200)
     cache.set('total_miners', algo_miners, timeout=1200)
 
 

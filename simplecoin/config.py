@@ -404,10 +404,6 @@ class PowerPool(ConfigObject):
     def chain(self):
         return chains[self._chain]
 
-    @property
-    def stratum_address(self):
-        return "stratum+tcp://{}:{}".format(self.location, self.port)
-
 
 class PowerPoolKeeper(dict):
     def __init__(self, mining_servers):

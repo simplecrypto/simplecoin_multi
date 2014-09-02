@@ -57,16 +57,18 @@ $(document).ready(function() {
         <thead>
           <tr>
             <th>Server</th>
-            <th>Hashrate (last hour)</th>
+            <th>Hashrate (last minute)</th>
             <th>Workers</th>
+            <th>Miners</th>
           </tr>
         </thead>
         <tbody>
-        {% for data in server_status %}
+        {% for pp, data in server_status.iteritems() %}
         <tr>
-          <th>{{ data['name'] }}</th>
-          <th>{{ "{:,.2f}".format(data['hashrate'] / 1000000) }} MH/s</th>
+          <th>{{ pp.stratum_address }} (diff {{pp.diff}})</th>
+          <th>{{ data['hashrate'] | hashrate }}</th>
           <th>{{ "{:,}".format(data['workers']) }}</th>
+          <th>{{ "{:,}".format(data['miners']) }}</th>
         </tr>
         {% endfor %}
         </tbody>

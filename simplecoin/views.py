@@ -88,11 +88,7 @@ def pool_stats():
     current_block = {'reward': cache.get('reward') or 0,
                      'difficulty': cache.get('difficulty') or 0,
                      'height': cache.get('blockheight') or 0}
-
-    try:
-        server_status = json.loads(str(cache.get('server_status')))
-    except ValueError:
-        server_status = None
+    server_status = cache.get('server_status') or {}
 
     blocks = (db.session.query(Block).filter_by(merged=False).
               order_by(Block.found_at.desc()).limit(blocks_show))
