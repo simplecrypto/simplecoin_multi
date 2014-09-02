@@ -75,8 +75,8 @@ def update_online_workers():
         try:
             data = powerpool.request('clients')
         except RemoteException:
-            current_app.logger.warn("Unable to connect to {} to gather worker summary."
-                                    .format(powerpool))
+            current_app.logger.warn("Unable to connect to PP {} to gather worker summary."
+                                    .format(powerpool.unique_id), exc_info=True)
             continue
 
         for address, connections in data['clients'].iteritems():
@@ -84,7 +84,7 @@ def update_online_workers():
             for connection in connections:
                 worker = user.setdefault(connection['worker'], {})
                 worker.setdefault(ppid, 0)
-                user[ppid] += 1
+                worker[ppid] += 1
 
     cache.set_many(users, timeout=480)
 

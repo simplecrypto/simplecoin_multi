@@ -36,7 +36,10 @@ class ShareTracker(object):
         return sum([self.types['dup'].shares, self.types['low'].shares, self.types['stale'].shares, self.types['acc'].shares])
 
     def hashrate(self, typ="acc"):
-        return self.types[typ].shares * self.algo.hashes_per_share / (self.highest - self.lowest).total_seconds()
+        if self.lowest:
+            return self.types[typ].shares * self.algo.hashes_per_share / (self.highest - self.lowest).total_seconds()
+        else:
+            return 0
 
     @property
     def rejected(self):
@@ -252,7 +255,7 @@ def collect_user_stats(user_address):
             except KeyError:
                 continue
 
-            worker = (user_address, worker, powerpool.algo)
+            worker = check_new(user_address, worker, powerpool.chain.algo)
             worker['online'] = True
             worker['servers'].setdefault(powerpool, 0)
             worker['servers'][powerpool] += 1
