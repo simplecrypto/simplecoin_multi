@@ -99,7 +99,7 @@ class BlockPayout(base):
     # Placeholder for the point at which the block was solved in this share chain.
     solve_slice = db.Column(db.Integer)
     # Shares on this chain
-    shares = db.Column(db.Integer, nullable=False)
+    shares = db.Column(db.Numeric, nullable=False)
     # total going to pool from donations + fees
     contributed = db.Column(db.Numeric)
     # Total paid out in bonuses
@@ -180,7 +180,7 @@ class Block(base):
     @property
     def luck(self):
         hps = current_app.algos[self.algo].hashes_per_share
-        return ((self.difficulty * (2 ** 32)) / ((self.shares_to_solve or 1) * hps)) * 100
+        return ((self.difficulty * (2 ** 32)) / ((float(self.shares_to_solve) or 1) * hps)) * 100
 
     @property
     def total_value_float(self):
