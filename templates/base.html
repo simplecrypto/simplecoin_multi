@@ -41,7 +41,7 @@
               <div class="col-sm-4">
                 <strong data-toggle="tooltip" data-placement="right"
                   title="Total hashrate for the pool, represented in Megahashes per second">&nbsp;{{ g.algos[algo].display }}&nbsp;Hashrate
-                </strong>:&nbsp;{{ g.hashrates[algo] }} MH/s
+                </strong>:&nbsp;{{ g.hashrates[algo] | hashrate }}
                 <br>
                 <strong data-placement="right"
                   title="Total active clients mining on Simple {{ config['coin_name'] | safe }}">
