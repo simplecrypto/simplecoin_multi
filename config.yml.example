@@ -60,47 +60,31 @@ chains:
         last_n: 2
         fee_perc: "0.02"
 
+# Information on where all our servers are located
+# =======================================================================
+locations:
+    CA:
+        location_acronym: CA
+        location: Beauharnois, Canada
+        country_flag: "/img/ca.svg"
+
 # Stratum + Powerpool Config
 # =======================================================================
 mining_servers:
     1:
-        address: ca.simplemulti.com
-        monitor_port: 3855
-        location_acronym: CA
-        location: Beauharnois, Canada
-        country_flag: "/img/ca.svg"
-        stratums:
-            3333:
-                diff: 64-2048
-                chain: 1
-            3333:
-                diff: 2048
-                chain: 1
-            3343:
-                diff: 64-2048
-                chain: 2
-            4444:
-                diff: 64-2048
-                chain: 3
+        address: vert.simplemulti.com
+        monitor_address: http://vert_pp_hidiff.simplevert.com/hidiff
+        port: 3345
+        location: CA
+        diff: 512
+        chain: 1
     2:
-        address: uk.simplemulti.com
-        monitor_port: 3855
-        location_acronym: UK
-        location: London, United Kingdom
-        country_flag: "/img/uk.svg"
-        stratums:
-            3333:
-                diff: 64-2048
-                chain: 1
-            3333:
-                diff: 2048
-                chain: 1
-            3343:
-                diff: 64-2048
-                chain: 2
-            4444:
-                diff: 64-2048
-                chain: 3
+        address: vert.simplemulti.com
+        monitor_address: http://vert_pp_vardiff.simplevert.com/vardiff
+        location: CA
+        port: 3344
+        diff: 8-2048
+        chain: 1
 
 algos:
     X11:

@@ -15,13 +15,13 @@
     <div class="row">
       <div class="col-sm-11 col-sm-offset-1">
         <form class="form-inline" role="form">
-          {% for server in servers %}
+          {% for loc in locations.itervalues() %}
           <div class="col-sm-4">
             <label class="radio-inline" style="width:100%;">
-              <input type="radio" name="region" class="form-control server-region" data-server-id="{{ server }}" value="{{ servers[server].address }}">
-              <h4><img src="{{ config['assets_address'] | safe }}{{ servers[server].country_flag }}"
-                       style="width:25px;" class="too-damn-bright"> &nbsp;{{ servers[server].location }}</h4>
-              <b>URL</b>: {{ servers[server].stratum_address }}
+              <input type="radio" name="region" class="form-control server-region" data-server-id="{{ loc }}" value="{{ loc.address }}">
+              <h4><img src="{{ config['assets_address'] | safe }}{{ loc.country_flag }}"
+                       style="width:25px;" class="too-damn-bright"> &nbsp;{{ loc.location }}</h4>
+                  {# <b>URL</b>: {{ loc.stratum_address }} #}
             </label>
           </div>
           {% endfor %}
@@ -44,26 +44,27 @@
           <div class="col-sm-5 col-sm-offset-2 no-padding" id="server-0">
             Pick a server to view available ports
           </div>
-        {% for server in servers %}
-          <div class="col-sm-12 no-padding default-hide" id="server-{{ server }}">
-          <h3><img src="{{ config['assets_address'] | safe }}{{ servers[server].country_flag }}"
-                   style="width:25px;" class="too-damn-bright"> &nbsp;{{ servers[server].location_acronym }} Ports</h3>
-          {% for algo in servers[server].stratums_by_algo %}
+        {% for loc in locations.itervalues() %}
+          <div class="col-sm-12 no-padding default-hide" id="server-{{ loc }}">
+          <h3><img src="{{ config['assets_address'] | safe }}{{ loc.country_flag }}"
+                   style="width:25px;" class="too-damn-bright"> &nbsp;{{ loc.location_acronym }} Ports</h3>
+          {% set algos = loc.stratums_by_algo() %}
+          {% for algo, algo_list in algos.iteritems() %}
             <div class="col-sm-4">
               <div class="col-sm-12 no-padding">
                 <h4>{{ algo }} ports:</h4>
               </div>
-              {% for port in servers[server].stratums_by_algo[algo] %}
+              {% for stratum in algo_list %}
               <div class="radio">
                 <label>
                   <div class="col-sm-12 no-padding">
-                    <input type="radio" name="port" class="stratum-ports" value="{{ port.port }}">
-                    <b>{{ port.chain.title }}:</b>
+                    <input type="radio" name="port" class="stratum-ports" value="{{ stratum.port }}">
+                    <b>{{ stratum.chain.title }}:</b>
                     <ul>
-                      <li>Port: {{ port.port }}</li>
-                      <li>Payout Method: {{ port.chain.type }}</li>
-                      <li>Diff: {{ port.diff }}</li>
-                      <li>{{ port.chain.hr_fee_perc }}% fee</li>
+                      <li>Port: {{ stratum.port }}</li>
+                      <li>Payout Method: {{ stratum.chain.type }}</li>
+                      <li>Diff: {{ stratum.diff }}</li>
+                      <li>{{ stratum.chain.hr_fee_perc }}% fee</li>
                     </ul>
                   </div>
                 </label>

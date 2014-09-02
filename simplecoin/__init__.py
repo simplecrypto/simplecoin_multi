@@ -31,6 +31,8 @@ cache = Cache()
 # ConfigKeeper proxies
 currencies = LocalProxy(
     lambda: getattr(current_app, 'currencies', None))
+locations = LocalProxy(
+    lambda: getattr(current_app, 'locations', None))
 powerpools = LocalProxy(
     lambda: getattr(current_app, 'powerpools', None))
 algos = LocalProxy(
@@ -67,6 +69,7 @@ def create_app(mode, config='config.yml', log_level=None):
     # Inject all the yaml configs
     # =======================================================================
     app.config.update(config_vars)
+    app.locations = LocationKeeper(app.config['locations'])
     app.currencies = CurrencyKeeper(app.config['currencies'])
     app.powerpools = PowerPoolKeeper(app.config['mining_servers'])
     app.exchanges = ExchangeManager(app.config['exchange_manager'])
@@ -223,5 +226,5 @@ def create_manage_app(**kwargs):
     return app
 
 
-from .config import CurrencyKeeper, PowerPoolKeeper, AlgoKeeper, ChainKeeper
+from .config import CurrencyKeeper, PowerPoolKeeper, AlgoKeeper, ChainKeeper, LocationKeeper
 import simplecoin.scheduler as sch

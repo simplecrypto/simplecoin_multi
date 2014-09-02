@@ -1,13 +1,13 @@
 import requests
 
-from flask import current_app, session
+from flask import current_app
 from cryptokit.rpc import CoinserverRPC, CoinRPCException
 from cryptokit.base58 import address_version
 from decimal import Decimal as dec
 from urlparse import urljoin
 
 from . import models as m
-from . import cache, redis_conn, currencies, exchanges, chains, algos
+from . import cache, redis_conn, currencies, exchanges, chains, powerpools, locations
 from .exceptions import ConfigurationException, RemoteException
 
 
@@ -324,6 +324,27 @@ class ChainKeeper(dict):
             self[id] = serv
 
 
+class Location(ConfigObject):
+    required = ['location_acronym', 'location', 'country_flag']
+
+    def stratums_by_algo(self):
+        by_algo = {}
+        for strat in powerpools.itervalues():
+            if strat._location == self.key:
+                lst = by_algo.setdefault(strat.chain.algo, [])
+                lst.append(strat)
+        return by_algo
+
+
+class LocationKeeper(dict):
+    def __init__(self, configs):
+        super(LocationKeeper, self).__init__()
+        for key, cfg in configs.iteritems():
+            cfg['key'] = key
+            loc = Location(cfg)
+            self[key] = loc
+
+
 class Algo(ConfigObject):
     defaults = dict(enabled=True)
 
@@ -339,45 +360,21 @@ class AlgoKeeper(dict):
 
 class PowerPool(ConfigObject):
     timeout = 10
-    requires = ['address', 'monitor_port', 'unique_id']
+    requires = ['_chain', 'port', 'address', 'monitor_address', 'unique_id',
+                '_location']
+
+    def __init__(self, bootstrap):
+        bootstrap['_chain'] = bootstrap.pop('chain')
+        bootstrap['_location'] = bootstrap.pop('location')
+        ConfigObject.__init__(self, bootstrap)
 
     @property
     def stratum_address(self):
-        return self._stratum_address()
+        return "stratum+tcp://{}:{}".format(self.address, self.port)
+    display_text = stratum_address
 
-    def _stratum_address(self):
-        return "stratum+tcp://{}".format(self.address)
-
-    @property
-    def monitor_address(self):
-        return self._monitor_address()
-
-    def _monitor_address(self):
-        return "http://{}:{}".format(self.address, self.monitor_port)
-
-    __repr__ = _monitor_address
-    __str__ = _monitor_address
-
-    @property
-    def display_text(self):
-        return self.stratum_address
-
-    @property
-    def hr_fee_perc(self):
-        return float(self.fee_perc) * 100
-
-    @property
-    def dec_fee_perc(self):
-        return dec(self.fee_perc)
-
-    @property
-    def stratums_by_algo(self):
-        algo_ports = {}
-        for stratum in self.stratums:
-            algo = stratum.chain.algo
-            lst = algo_ports.setdefault(algo, [])
-            lst.append(stratum)
-        return algo_ports
+    __repr__ = lambda self: self.monitor_address
+    __str__ = lambda self: self.monitor_address
 
     def __hash__(self):
         return self.unique_id
@@ -391,6 +388,18 @@ class PowerPool(ConfigObject):
         current_app.logger.debug("Got {} from remote".format(ret.text.encode('utf8')))
         return ret.json()
 
+    @property
+    def location(self):
+        return locations[self._location]
+
+    @property
+    def chain(self):
+        return chains[self._chain]
+
+    @property
+    def stratum_address(self):
+        return "stratum+tcp://{}:{}".format(self.powerpool.location, self.port)
+
 
 class PowerPoolKeeper(dict):
     def __init__(self, mining_servers):
@@ -402,27 +411,7 @@ class PowerPoolKeeper(dict):
 
             # Setup all the child stratum objects
             serv.stratums = []
-            for port, strat_cfg in cfg['stratums'].iteritems():
-                strat_cfg['port'] = port
-                serv.stratums.append(Stratum(strat_cfg))
-
             if serv.unique_id in self:
                 raise ConfigurationException("You cannot specify two servers "
                                              "with the same unique_id")
             self[serv.unique_id] = serv
-
-
-class Stratum(ConfigObject):
-    requires = ['_chain', 'port']
-
-    def __init__(self, bootstrap):
-        bootstrap['_chain'] = bootstrap.pop('chain')
-        ConfigObject.__init__(self, bootstrap)
-
-    @property
-    def chain(self):
-        return chains[self._chain]
-
-    @property
-    def stratum_address(self):
-        return "stratum+tcp://{}:{}".format(self.powerpool.location, self.port)

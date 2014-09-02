@@ -1,15 +1,11 @@
-import calendar
-from decimal import Decimal
-import time
-import datetime
 import yaml
 import json
 
 from flask import (current_app, request, render_template, Blueprint, jsonify,
                    g, session, Response)
 
-from .models import Block, ShareSlice, UserSettings, PayoutAddress, make_upper_lower, Payout, PayoutAggregate
-from . import db, root, cache, currencies, algos
+from .models import Block, ShareSlice, UserSettings, make_upper_lower, Payout, PayoutAggregate
+from . import db, root, cache, currencies, algos, locations
 from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
                     get_alerts, resort_recent_visit, collect_acct_items,
                     CommandException)
@@ -22,17 +18,16 @@ main = Blueprint('main', __name__)
 def home():
     news = yaml.load(open(root + '/static/yaml/news.yaml'))
     payout_currencies = currencies.exchangeable_currencies
-    servers = current_app.powerpools
     return render_template('home.html',
                            news=news,
                            payout_currencies=payout_currencies,
-                           servers=servers)
+                           locations=locations)
+
 
 @main.route("/configuration_guide")
 def configuration_guide():
-    servers = current_app.powerpools
     return render_template('config_guide_wrapper.html',
-                           servers=servers)
+                           locations=locations)
 
 
 @main.route("/news")
