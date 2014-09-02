@@ -707,6 +707,7 @@ def collect_minutes():
 @SchedulerCommand.command
 def compress_minute():
     ShareSlice.compress(0)
+    DeviceSlice.compress(0)
     db.session.commit()
 
 
@@ -714,6 +715,7 @@ def compress_minute():
 @SchedulerCommand.command
 def compress_five_minute():
     ShareSlice.compress(1)
+    DeviceSlice.compress(1)
     db.session.commit()
 
 
