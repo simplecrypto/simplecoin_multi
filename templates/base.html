@@ -45,7 +45,7 @@
                 <br>
                 <strong data-placement="right"
                   title="Total active clients mining on Simple {{ config['coin_name'] | safe }}">
-                  &nbsp;Active&nbsp;Workers</strong>:&nbsp;{{ g.worker_count[algo] }}
+                  &nbsp;Active&nbsp;Miners</strong>:&nbsp;{{ g.miner_count.get(algo, 0) }}
               </div>
             {% endfor %}
           </h5>

@@ -98,12 +98,10 @@ def pool_stats():
 
 @main.before_request
 def add_pool_stats():
-    g.algos = {}
-    for algo in algos:
-        if algos[algo].enabled == True:
-            g.algos[algo] = algos[algo]
+    g.algos = {k: v for k, v in algos.iteritems() if v.enabled is True}
     g.hashrates = {a: get_pool_hashrate(a) for a in g.algos}
-    g.worker_count = {a: cache.get('total_workers_{}'.format(a)) or 0 for a in g.algos}
+    # Dictionary keyed by algo
+    g.miner_count = cache.get('total_miners') or {}
     g.alerts = get_alerts()
 
 

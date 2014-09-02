@@ -726,7 +726,7 @@ def server_status():
     Periodicly poll the backend to get number of workers and other general
     status information.
     """
-    total_workers = 0
+    algo_miners = {}
     servers = []
     raw_servers = {}
     for powerpool in powerpools.itervalues():
@@ -737,23 +737,17 @@ def server_status():
                                     .format(powerpool))
             continue
         else:
-            # If the server is version 0.5
-            if 'server' in data:
-                workers = data['stratum_manager']['client_count_authed']
-                hashrate = data['stratum_manager']['mhps'] * 1000000
-                raw_servers[powerpool.stratum_address] = data
-            # If the server is version 0.4 or earlier. DEPRECATED
-            else:
-                workers = data['stratum_clients']
-                hashrate = data['shares']['hour_total'] / 3600.0 * current_app.config['hashes_per_share']
-            servers.append(dict(workers=workers,
-                                hashrate=hashrate,
+            raw_servers[powerpool.stratum_address] = data
+            servers.append(dict(workers=data['client_count_authed'],
+                                miners=data['address_count'],
+                                hashrate=data['hps'],
                                 name=powerpool.stratum_address))
-            total_workers += workers
+            algo_miners.setdefault(powerpool.chain.algo, 0)
+            algo_miners[powerpool.chain.algo] += data['address_count']
 
     cache.set('raw_server_status', json.dumps(raw_servers), timeout=1200)
     cache.set('server_status', json.dumps(servers), timeout=1200)
-    cache.set('total_workers', total_workers, timeout=1200)
+    cache.set('total_miners', algo_miners, timeout=1200)
 
 
 def main():

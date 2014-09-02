@@ -398,7 +398,7 @@ class PowerPool(ConfigObject):
 
     @property
     def stratum_address(self):
-        return "stratum+tcp://{}:{}".format(self.powerpool.location, self.port)
+        return "stratum+tcp://{}:{}".format(self.location, self.port)
 
 
 class PowerPoolKeeper(dict):
