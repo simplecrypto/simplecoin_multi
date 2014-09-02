@@ -1,6 +1,7 @@
 import datetime
 import time
 import yaml
+import json
 
 from flask import current_app, session
 from sqlalchemy.exc import SQLAlchemyError
@@ -259,6 +260,35 @@ def collect_user_stats(user_address):
             worker['online'] = True
             worker['servers'].setdefault(powerpool, 0)
             worker['servers'][powerpool] += 1
+
+    for worker in workers.itervalues():
+        worker['status'] = redis_conn.get("status_{address}_{name}".format(**worker))
+        if worker['status']:
+            worker['status'] = json.loads(worker['status'])
+            worker['status_stale'] = False
+            worker['status_time'] = datetime.datetime.utcnow()
+            try:
+                worker['total_hashrate'] = sum([gpu['MHS av'] for gpu in worker['status']['gpus']]) * 1000000
+            except Exception:
+                worker['total_hashrate'] = -1
+
+            try:
+                worker['wu'] = sum(
+                    [(gpu['Difficulty Accepted'] / gpu['Device Elapsed']) * 60
+                     for gpu in worker['status']['gpus']])
+            except KeyError:
+                worker['wu'] = 0
+
+            try:
+                worker['wue'] = worker['wu'] / (worker['total_hashrate'] / 1000)
+            except ZeroDivisionError:
+                worker['wue'] = 0.0
+
+            ver = worker['status'].get('v', '0.2.0').split('.')
+            try:
+                worker['status_version'] = [int(part) for part in ver]
+            except ValueError:
+                worker['status_version'] = "Unsupp"
 
     # Could definitely be better... Makes a list of the dictionary keys sorted
     # by the worker name, then generates a list of dictionaries using the list

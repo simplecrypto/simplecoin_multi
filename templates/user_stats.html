@@ -13,6 +13,11 @@ $(document).ready(function() {
           return old=='[ - ]' ?  '[ + ]' : '[ - ]';
       });
   });
+  $('div.collapse-button').bind( "click", function() {
+      $(this).text(function(i,old){
+          return old=='[ - ]' ?  '[ + ]' : '[ - ]';
+      });
+  });
 });
 </script>
 {% if g.alerts  %}
@@ -102,6 +107,131 @@ $(document).ready(function() {
             </div>
             <div class="clearfix"></div>
           </div>
+          {% if worker['status'] %}
+          {% set stat = worker['status'] %}
+          <div class="table-responsive bs-component worker-table-wrapper">
+            <div class="worker-wrapper">
+              <b>{{ stat['type'] }} status</b>
+            {% if not worker['name'] %}
+              {# Show a warning about unnamed workers #}
+              <small style="font-size:14px;color:#ff0000;font-weight:400;">
+                Multiple unnamed workers will do wonky things!
+              </small>
+            {% endif %}
+            {% if worker['status_stale'] == True %}
+              {# if stale then show a warning #}
+              <small colspan="3" style="font-size:14px;color:#EEA236;"> <i>Updated {{ worker['status_time'] | human_date_utc }}</i></small>
+              <div class="btn btn-default btn-sm collapse-button" data-toggle="collapse" data-target="#worker-{{ worker['name'] }}">
+                [ + ]
+              </div>
+            {% else %}
+              {# Not stale - show last updated time #}
+              <small colspan="3" style=" font-size:14px;font-weight:300;">
+                <i>Updated {{ worker['status_time'] | human_date_utc }}</i>
+              </small>
+              <div class="btn btn-default btn-sm collapse-button"
+                   data-toggle="collapse" data-target="#worker-{{ worker['name'] }}">
+                [ - ]
+              </div>
+            {% endif %}
+            </div>
+            {# Worker's miner stats #}
+            <div id="worker-{{ worker['name'] }}" class="collapse{% if worker['status_stale'] == False %} in{% endif %}">
+              <div class="table-responsive  bs-component" style="position:relative;padding:9px;">
+                <div class="col-xs-3 text-center">
+                  <h4>WU: {{ worker['wu'] | round(2) }}&nbsp;
+                    <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                         title="Work Utility is calculated from accepted n1 shares/time mining. This results in a number that represents the effective contributions, rather than the raw hashrate."></i></h4>
+                </div>
+                <div class="col-xs-3 text-center">
+                  <h4>{{ worker['total_hashrate'] | hashrate }}&nbsp;
+                    <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                         title="Summation of the reported average hashrates"></i>
+                  </h4>
+                </div>
+                <div class="col-xs-3 text-center">
+                  <h4>
+                    {% if worker['wue'] < 0.80 %}
+                    <i class="fa fa-circle" style="color:red"></i>&nbsp;
+                    {% elif (worker['wue'] < 0.87) and (worker['wue'] >= 0.80) %}
+                    <i class="fa fa-circle" style="color:yellow"></i>&nbsp;
+                    {% elif worker['wue'] >= 0.87 %}
+                    <i class="fa fa-circle" style="color:green"></i>&nbsp;
+                    {% endif %}
+                    WUE: {{ (worker['wue']*100)| round(2)}}%&nbsp;
+                    <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                         title="This value is calculated from the reported WU({{ worker['wu'] }}) / reported average hashrate({{ (worker['total_hashrate']*1000)|int }}). A value of 90%+ is ideal. To increase your WUE make sure your rig is not having hardware errors"></i></h4>
+                </div>
+                <div class="col-xs-3 text-center">
+                  <h4><i class="fa fa-bar-chart-o"></i> <a href="/{{ username }}/{{ worker['name'] }}">Detailed view</a></h4>
+                </div>
+                <div class="clearfix"></div>
+              </div>
+              <table class="table table-striped table-hover worker-table">
+                <thead>
+                  <tr>
+                    <th>GPU</th>
+                    <th>KHash/sec</th>
+                    <th>WUE</th>
+                    <th>Accepted/Rejected(%)</th>
+                    <th>HW Errors</th>
+                    <th>Temperature</th>
+                    <th>Fan Speed</th>
+                    <th>Core/Memory Clock</th>
+                  </tr>
+                </thead>
+                <tbody>
+                {% for gpu in stat['gpus'] %}
+                  <tr class="gpu" data-url="/{{ username }}/{{ worker['name'] }}/details/{{ loop.index0 }}">
+                    <th>{{ loop.index0 }}</th>
+                    <th>
+                      {{ (gpu.get('MHS av', 0)*1000)|round|int }}
+                    </th>
+                    <th>
+                      {% set accepted = gpu.get('Difficulty Accepted', 0) %}
+                      {% if accepted != 0 and gpu.get('Device Elapsed', 0) !=0 %}
+                        {% set WU = (accepted / gpu['Device Elapsed'])*60 %}
+                      {% else %}
+                        {% set WU = 0 %}
+                      {% endif %}
+                      {% if WU == 0 or (gpu.get('MHS av', 0.0001) == 0) %}
+                        -/-
+                      {% else %}
+                        {{ ( (WU / (gpu.get('MHS av', 0.0001)*1000) ) * 100 ) | round(1) }}%
+                      {% endif %}
+                    </th>
+                    <th>
+                      {{ '{:,}'.format(accepted|int) }} / {{ '{:,}'.format(gpu.get('Difficulty Rejected', 0)|int) }}
+                      {% if accepted != 0 %}
+                        &nbsp;({{ (((accepted - gpu.get('Difficulty Rejected', 0)) / accepted)*100)|round(2) }}%)
+                      {% else %}
+                        (0)
+                      {% endif %}
+                    </th>
+                    <th>{{ gpu.get('Hardware Errors', 0) }}</th>
+                    <th {% if gpu.get('temp', 0) > 90 %}class="danger"{% endif %}>{{ gpu.get('temp', 0) }}</th>
+                    <th>{{ gpu.get('Fan Percent', 0) }}%</th>
+                    <th>{{ gpu.get('GPU Clock', 0) }}/{{ gpu.get('Memory Clock', 0) }}</th>
+                  </tr>
+                {% endfor %}
+                  <tr>
+                    <th colspan="8" style="text-align:left;">
+                      <small>Running PPAgent v{{ stat.get('v', '0.2') }}</small>&nbsp;
+                      {% if worker['status_version'] < config['latest_ppagent'] %}
+                        {# Notice about out of date ppagent #}
+                        <a href="https://github.com/icook/ppagent#upgrade">
+                          <small style="color:#FFD600;font-weight:400;">
+                            Newer version available here
+                          </small>
+                        </a>&nbsp;&nbsp;
+                      {% endif %}
+                    </th>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {% endif %}
         </div>
       </div>
     </div>
