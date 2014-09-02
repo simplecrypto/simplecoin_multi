@@ -493,7 +493,7 @@ def payout_chain(bp, chain_payout_amount, user_shares, sharechain_id, simulate=F
     # Payout the collected amount to the pool
     if swing < 0:
         # Check to see if a pool payout addr is specified
-        pool_addr = currencies.lookup_address(currencies[bp.block.currency]['pool_payout_addr'])
+        pool_addr = currencies[bp.block.currency]['pool_payout_addr']
         if not pool_addr:
             pool_addr = current_app.config['donate_address']
             assert currencies[bp.block.currency]['exchangeable'] is True
