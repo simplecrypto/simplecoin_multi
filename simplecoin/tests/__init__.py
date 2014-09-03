@@ -1,17 +1,14 @@
 import simplecoin
-import yaml
 import unittest
 
-from flask import current_app
-from simplecoin import root, db
+from simplecoin import db
 
 
 class UnitTest(unittest.TestCase):
     """ Represents a set of tests that only need the database iniailized, but
     no fixture data """
     def setUp(self):
-        self.fee_configed = False
-        app = simplecoin.create_app('/test.yml')
+        app = simplecoin.create_app('webserver', config='test.yml')
         with app.app_context():
             self.db = simplecoin.db
             self.setup_db()
