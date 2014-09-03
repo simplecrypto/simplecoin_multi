@@ -60,6 +60,10 @@ def import_shares(input):
         data = json.loads(line)
         data['time'] = datetime.datetime.utcfromtimestamp(data['time'])
         slc = ShareSlice(algo="scrypt", **data)
+        floored = DeviceSlice.floor_time(data['time'], data['span'])
+        if data['time'] != floored:
+            current_app.logger.warn("{} != {}".format(data['time'], floored))
+        data['time'] = floored
         db.session.add(slc)
         if i % 100 == 0:
             print "{} completed".format(i)
@@ -71,8 +75,12 @@ def import_device_slices(input):
     for i, row in enumerate(input):
         data = json.loads(row)
         data['time'] = datetime.datetime.utcfromtimestamp(data['time'])
+        data['stat'] = data.pop('_stat')
         # Do a basic integrity check
-        assert data['time'] == DeviceSlice.floor_time(data['time'], data['span'])
+        floored = DeviceSlice.floor_time(data['time'], data['span'])
+        if data['time'] != floored:
+            current_app.logger.warn("{} != {}".format(data['time'], floored))
+        data['time'] = floored
         db.session.add(DeviceSlice(**data))
         # Print periodic progress
         if i % 100 == 0:
