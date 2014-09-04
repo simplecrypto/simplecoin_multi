@@ -8,7 +8,7 @@ Flask-Script==0.6.6
 PyYAML==3.10
 gunicorn==18.0
 lever==0.2.6
-redis==2.9.1
+redis==2.10.3
 six==1.6.1
 requests==2.2.1
 apscheduler==2.1.2
