@@ -66,6 +66,10 @@ def create_app(mode, config='config.yml', log_level=None):
         config_path = os.path.join(root, config)
     config_vars.update(yaml.load(open(config_path)))
 
+    # Checks existence + basic validity of required YAML config keys
+    # =======================================================================
+    ConfigChecker(config_vars).parse_config()
+
     # Inject all the yaml configs
     # =======================================================================
     app.config.update(config_vars)
@@ -80,6 +84,7 @@ def create_app(mode, config='config.yml', log_level=None):
                            currencies=app.currencies,
                            algos=app.algos,
                            chains=app.chains))
+
 
     # Setup logging
     # =======================================================================
@@ -227,5 +232,6 @@ def create_manage_app(**kwargs):
     return app
 
 
-from .config import CurrencyKeeper, PowerPoolKeeper, AlgoKeeper, ChainKeeper, LocationKeeper
+from .config import CurrencyKeeper, PowerPoolKeeper, AlgoKeeper, ChainKeeper, LocationKeeper, \
+    ConfigChecker
 import simplecoin.scheduler as sch

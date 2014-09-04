@@ -11,6 +11,55 @@ from . import cache, redis_conn, currencies, exchanges, chains, powerpools, loca
 from .exceptions import ConfigurationException, RemoteException
 
 
+class ConfigChecker(object):
+    """
+    This class provides various methods for validating config values and checks
+    configuration values and makes sure they're properly filled out.
+
+    It needs a lot of expansion :/
+
+    Currently validates the following keys:
+    pool_payout_address
+    """
+
+    def __init__(self, config):
+        self.config = config
+
+    def lookup_key(self, key):
+        """ Helper method: Checks the config for the specified key and raises
+        an error if not found """
+        try:
+            value = self.config[key]
+        except KeyError:
+            raise ConfigurationException('Failed when looking up \'{}\' in the '
+                                         'config. This key is required!'.format(key))
+        else:
+            return value
+
+    def check_truthiness(self, val):
+        """ Helper method: Checks a value for truthiness """
+        if not val:
+            raise ConfigurationException('Value \'{}\' is not truthy. This '
+                                         'value is required!'.format(val))
+
+    def check_is_bcaddress(self, val):
+        """ Helper method: Checks a value for truthiness """
+        try:
+            ver = address_version(val)
+        except (KeyError, AttributeError):
+            raise ConfigurationException("\'{}\' is not a valid bitcoin style "
+                                         "address".format(val))
+        return ver
+
+    def parse_config(self):
+        """ Go through config vals and perform the appropriate logic checks """
+
+        # Check the GLOBAL 'pool_payout_address field'
+        p_addr = self.lookup_key('pool_payout_address')
+        self.check_truthiness(p_addr)
+        self.check_is_bcaddress(p_addr)
+
+
 class ConfigObject(object):
     __getitem__ = lambda self, a: getattr(self, a)
     requires = []
@@ -110,13 +159,11 @@ class CurrencyKeeper(dict):
                                 obj['address_version']))
             # Check to make sure there is a valid + configured pool address for
             # unexchangeable currencies
-            if config['exchangeable'] is False:
-                try:
-                    assert obj['pool_payout_addr']
-                except AssertionError:
-                    raise ConfigurationException(
-                        "Unexchangeable currencies require a pool payout addr."
-                        "No valid address found for {}".format(key))
+            if not config['exchangeable'] and not obj['pool_payout_addr']:
+                raise ConfigurationException(
+                    "Unexchangeable currencies require a pool payout addr."
+                    "No valid address found for {}".format(key))
+
 
     @property
     def exchangeable_currencies(self):
