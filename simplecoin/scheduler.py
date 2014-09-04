@@ -606,7 +606,11 @@ def payout_chain(bp, chain_payout_amount, user_shares, sharechain_id, simulate=F
     new_total_payouts = 0
     for user in split_user_payouts.keys():
         new_total_payouts += sum(split_user_payouts[user].itervalues())
-    assert sum(user_payouts.itervalues()) == new_total_payouts
+    if abs(total_payouts - new_total_payouts) > Decimal('0.000000000001'):
+        raise Exception(
+            "Total to be paid out to after splitting payouts ({}) is not "
+            "close enough to original payout amount ({})!"
+            .format(new_total_payouts, total_payouts))
     current_app.logger.info("Successfully split user payouts to include {} "
                             "arbitrary payouts".format(total_splits))
 
