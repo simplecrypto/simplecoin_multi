@@ -277,13 +277,16 @@ def validate_address():
         currency = addr[0]
         address = addr[1]
 
-        curr = currencies.validate_bc_address(address)
+        if currency == 'Any':
+            curr = currencies.lookup_payable_addr(address)
+        else:
+            curr = currencies.validate_bc_address(address)
 
         if not curr:
             return jsonify({currency: False})
 
         if currency == 'Any':
-            return jsonify({'': True})
+            return jsonify({curr.key: True})
 
         if not currencies[currency] in curr:
             return jsonify({currency: False})

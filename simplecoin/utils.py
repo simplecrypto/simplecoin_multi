@@ -435,9 +435,9 @@ def validate_message_vals(address, **kwargs):
     set_addrs = kwargs['SET_ADDR']
     del_addrs = kwargs['DEL_ADDR']
     pdonate_perc = kwargs['SET_PDONATE_PERC']
-    adonate_perc = kwargs['SET_ADONATE_PERC']
-    adonate_addr = kwargs['SET_ADONATE_ADDR']
-    del_adonate_addr = kwargs['DEL_ADONATE_ADDR']
+    spayout_perc = kwargs['SET_SPAYOUT_PERC']
+    spayout_addr = kwargs['SET_SPAYOUT_ADDR']
+    del_spayout_addr = kwargs['DEL_SPAYOUT_ADDR']
     anon = kwargs['MAKE_ANON']
 
     # Make sure all addresses are valid
@@ -447,16 +447,16 @@ def validate_message_vals(address, **kwargs):
         except Exception:
             raise CommandException("Invalid {} address passed!".format(curr))
 
-    if adonate_addr:
+    if spayout_addr:
         try:
-            currencies.validate_bc_address(adonate_addr)
+            currencies.validate_bc_address(spayout_addr)
         except Exception:
             raise CommandException("Invalid currency address passed for arbitrary "
                                    "donation!")
 
     # Make sure all percentages are valid
-    adonate_perc = validate_str_perc(adonate_perc)
-    if adonate_perc is False:
+    spayout_perc = validate_str_perc(spayout_perc)
+    if spayout_perc is False:
         raise CommandException("Arbitrary donate percentage invalid! Check to "
                                "make sure its a value 0-100.")
 
@@ -466,35 +466,35 @@ def validate_message_vals(address, **kwargs):
                                "make sure its a value 0-100.")
 
     # Make sure percentages are <= 100
-    if pdonate_perc + adonate_perc > 100:
+    if pdonate_perc + spayout_perc > 100:
         raise CommandException("Donation percentages cannot total to more than "
                                "100%!")
 
     # Make sure we have both an arb donate addr + an arb donate % or neither
-    if not del_adonate_addr:
-        if not adonate_perc >= 0 or adonate_addr is False:
+    if not del_spayout_addr:
+        if not spayout_perc >= 0 or spayout_addr is False:
             raise CommandException("Arbitrary donate requires both an address"
                                    "and a percentage, or to remove it both "
                                    "must be removed.")
-    elif del_adonate_addr:
-        if adonate_perc > 0 or adonate_addr:
+    elif del_spayout_addr:
+        if spayout_perc > 0 or spayout_addr:
             raise CommandException("Attempted to perform two conflicting "
                                    "actions with arbitrary donate! This is "
                                    "probably our fault - please contact us!")
 
     # Make sure arb donate addr isn't also the main addr
-    if adonate_addr == address:
+    if spayout_addr == address:
         raise CommandException("Arbitrary donate address must not be the same "
                                "as the main user address")
 
-    return (set_addrs, del_addrs, pdonate_perc, adonate_perc, adonate_addr,
-            del_adonate_addr, anon)
+    return (set_addrs, del_addrs, pdonate_perc, spayout_perc, spayout_addr,
+            del_spayout_addr, anon)
 
 
 def verify_message(address, curr, message, signature):
     update_dict = {'SET_ADDR': {}, 'DEL_ADDR': [], 'MAKE_ANON': False,
-                   'SET_PDONATE_PERC': 0, 'SET_ADONATE_ADDR': False,
-                   'SET_ADONATE_PERC': 0, 'DEL_ADONATE_ADDR': False}
+                   'SET_PDONATE_PERC': 0, 'SET_SPAYOUT_ADDR': False,
+                   'SET_SPAYOUT_PERC': 0, 'DEL_SPAYOUT_ADDR': False}
     stamp = False
     site = False
     try:

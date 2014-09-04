@@ -660,9 +660,9 @@ class DeviceSlice(TimeSlice, base):
 class UserSettings(base):
     user = db.Column(db.String, primary_key=True)
     pdonation_perc = db.Column(db.Numeric, default=Decimal('0'))
-    adonation_perc = db.Column(db.Numeric)
-    adonation_addr = db.Column(db.String)
-    adonation_curr = db.Column(db.String)
+    spayout_perc = db.Column(db.Numeric)
+    spayout_addr = db.Column(db.String)
+    spayout_curr = db.Column(db.String)
     anon = db.Column(db.Boolean, default=False)
     addresses = db.relationship("PayoutAddress")
 
@@ -679,29 +679,29 @@ class UserSettings(base):
         return (self.pdonation_perc * 100).quantize(Decimal('0.01'))
 
     @property
-    def hr_adonate_perc(self):
-        return (self.adonation_perc * 100).quantize(Decimal('0.01'))
+    def hr_spayout_perc(self):
+        return (self.spayout_perc * 100).quantize(Decimal('0.01'))
 
     @classmethod
-    def update(cls, address, set_addrs, del_addrs, pdonate_perc, adonate_perc,
-               adonate_addr, del_adonate_addr, anon):
+    def update(cls, address, set_addrs, del_addrs, pdonate_perc, spayout_perc,
+               spayout_addr, del_spayout_addr, anon):
 
         user = cls.query.filter_by(user=address).first()
-        curr = currencies.lookup_payable_addr(adonate_addr).key
+        curr = currencies.lookup_payable_addr(spayout_addr).key
         if not user:
-            UserSettings.create(address, pdonate_perc, adonate_perc,
-                                adonate_addr, del_adonate_addr, anon, set_addrs)
+            UserSettings.create(address, pdonate_perc, spayout_perc,
+                                spayout_addr, del_spayout_addr, anon, set_addrs)
         else:
             user.pdonation_perc = pdonate_perc
             user.anon = anon
-            if del_adonate_addr:
-                user.adonation_perc = None
-                user.adonation_addr = None
-                user.adonation_curr = None
+            if del_spayout_addr:
+                user.spayout_perc = None
+                user.spayout_addr = None
+                user.spayout_curr = None
             else:
-                user.adonation_perc = adonate_perc
-                user.adonation_addr = adonate_addr
-                user.adonation_curr = curr
+                user.spayout_perc = spayout_perc
+                user.spayout_addr = spayout_addr
+                user.spayout_curr = curr
 
             # Set addresses
             for address in user.addresses:
@@ -725,17 +725,17 @@ class UserSettings(base):
         return user
 
     @classmethod
-    def create(cls, user, pdonate_perc, adonate_perc,  adonate_addr,
-               del_adonate_addr, anon, set_addrs):
+    def create(cls, user, pdonate_perc, spayout_perc,  spayout_addr,
+               del_spayout_addr, anon, set_addrs):
 
         user = cls(user=user,
                    pdonation_perc=pdonate_perc,
                    anon=anon)
-        curr = currencies.lookup_payable_addr(adonate_addr).key
-        if not del_adonate_addr:
-            user.adonation_perc = adonate_perc
-            user.adonation_addr = adonate_addr
-            user.adonation_curr = curr
+        curr = currencies.lookup_payable_addr(spayout_addr).key
+        if not del_spayout_addr:
+            user.spayout_perc = spayout_perc
+            user.spayout_addr = spayout_addr
+            user.spayout_curr = curr
         db.session.add(user)
 
         for currency, addr in set_addrs.iteritems():

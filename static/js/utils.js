@@ -217,7 +217,7 @@ $(document).ready(function() {
 
     var valid_address = function (_that) {
       if (_that.attr("name") == 'Any') {
-        msg_str += 'SET_ADONATE_ADDR ' + _that.val() + "\t";
+        msg_str += 'SET_SPAYOUT_ADDR ' + _that.val() + "\t";
       } else {
         msg_str += 'SET_ADDR ' + _that.attr("name") + " " + _that.val() + "\t";
       }
@@ -228,7 +228,7 @@ $(document).ready(function() {
       // Mark blank values for deletion - otherwise attempt to validate
       if ($( this ).val() == '') {
         if ($(this).attr("name") == 'Any') {
-          msg_str += 'DEL_ADONATE_ADDR True\t';
+          msg_str += 'DEL_SPAYOUT_ADDR True\t';
         } else {
           msg_str += 'DEL_ADDR ' + $( this ).attr("name") + '\t';
         }
@@ -256,7 +256,7 @@ $(document).ready(function() {
     }
 
     // Validate the Arbitrary donate %
-    var adObj = $("#arbitraryDonate");
+    var adObj = $("#sPayoutPerc");
     var adPerc = parseFloat(adObj.val());
     if (adObj.val() != '') {
       if (adPerc > 100 || adPerc < 0) {
@@ -265,7 +265,7 @@ $(document).ready(function() {
         obj.siblings(".help-block").hide();
         obj.addClass("alert alert-danger").css('color', 'white').show();
       } else {
-        msg_str += "SET_ADONATE_PERC " + adPerc + "\t"
+        msg_str += "SET_SPAYOUT_PERC " + adPerc + "\t"
       }
     }
 
@@ -284,7 +284,7 @@ $(document).ready(function() {
     }
 
     // Make sure if Arbitrary addr is not the main addr
-    if ( $("#arbitraryDonateAddr").val() == $("div#userAddr").data("addr")) {
+    if ( $("#sPayoutAddr").val() == $("div#userAddr").data("addr")) {
       has_failed = true;
       earnErr.show();
       earnErr.children("#arb-notmain").show();
