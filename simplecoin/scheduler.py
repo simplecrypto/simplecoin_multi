@@ -534,7 +534,7 @@ def payout_chain(bp, chain_payout_amount, user_shares, sharechain_id, simulate=F
         # Check to see if a pool payout addr is specified
         pool_addr = currencies[bp.block.currency]['pool_payout_addr']
         if not pool_addr:
-            pool_addr = current_app.config['donate_address']
+            pool_addr = current_app.config['pool_payout_addr']
             assert currencies[bp.block.currency]['exchangeable'] is True
         user_payouts[pool_addr] = swing * -1
         user_perc[pool_addr] = {'d_perc': 0, 'f_perc': 0}

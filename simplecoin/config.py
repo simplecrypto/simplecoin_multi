@@ -205,7 +205,7 @@ class CurrencyKeeper(dict):
 
 
 class Chain(ConfigObject):
-    requires = ['type', 'donate_address', 'valid_address_versions']
+    requires = ['type', 'valid_address_versions']
     defaults = dict(block_bonus="0")
     max_indexes = 1000
     min_index = 0
@@ -219,17 +219,6 @@ class Chain(ConfigObject):
         assert isinstance(self.block_bonus, basestring)
         self.fee_perc = dec(self.fee_perc)
         self.hr_fee_perc = round(self.fee_perc * 100, 2)
-
-    def validate(self):
-        """ NOT USED. Ideally will be run once all config objects are created.
-        """
-        for ver in self.valid_address_versions:
-            currencies.lookup_version(ver)
-
-        if not self.valid_address(self.donate_address):
-            raise ConfigurationException(
-                "You're desired donate address is not a one of your valid "
-                "payout address versions!")
 
     def valid_address(self, address):
         """ Is the given address valid for this payout chain? """
