@@ -217,7 +217,7 @@ class Payout(base):
     user = db.Column(db.String(34))
     sharechain_id = db.Column(db.SmallInteger)
     payout_address = db.Column(db.String(34))
-    currency = db.Column(db.String)
+    payout_currency = db.Column(db.String)
     amount = db.Column(db.Numeric, CheckConstraint('amount > 0', 'min_payout_amount'))
     fee_perc = db.Column(db.Numeric)
     pd_perc = db.Column(db.Numeric)

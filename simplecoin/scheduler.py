@@ -646,13 +646,14 @@ def payout_chain(bp, chain_payout_amount, user_shares, sharechain_id, simulate=F
 
             # Create a payout entry indicating this needs to be exchanged
             else:
+                curr = currencies.lookup_payable_addr(user).key
                 p = PayoutExchange.create(user=user,
                                           amount=amount,
                                           block=bp.block,
                                           fee_perc=user_perc[user]['f_perc'],
                                           pd_perc=user_perc[user]['d_perc'],
                                           sharechain_id=sharechain_id,
-                                          currency=bp.block.currency,
+                                          currency=curr,
                                           payout_address=addr)
             db.session.add(p)
 
