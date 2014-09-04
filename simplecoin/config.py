@@ -263,22 +263,39 @@ class Chain(ConfigObject):
 
         # The oldest slice we want to look at is either the minimum index number,
         # or start slice minus max_indexes...
-        stop_slice = max(self.min_index, start_slice - self.max_indexes, stop_slice)
+        new_stop_slice = max(self.min_index, start_slice - self.max_indexes, stop_slice)
+        current_app.logger.debug("Out of min_index ({}), start_slice - max_indexes "
+                                 "({}), and stop_index ({}) {} was used"
+                                 .format(self.min_index, start_slice -
+                                         self.max_indexes, stop_slice,
+                                         new_stop_slice))
+        stop_slice = new_stop_slice
         if stop_slice > start_slice:
             raise Exception("stop_slice {} cannot be greater than start_slice {}!"
                             .format(stop_slice, start_slice))
+
         found_shares = 0
         users = {}
+        index = 0
         for index in xrange(start_slice, stop_slice, -1):
             slc = "chain_{}_slice_{}".format(self.id, index)
-            for entry in redis_conn.lrange(slc, 0, -1):
+            entries = redis_conn.lrange(slc, 0, -1)
+            for entry in entries:
                 user, shares = entry.split(":")
-                shares = dec(shares)
-                users.setdefault(user, dec('0'))
-                users[user] += shares
-                found_shares += shares
+                if user not in users:
+                    users[user] = dec(shares)
+                else:
+                    users[user] += dec(shares)
+                found_shares += float(shares)
                 if target_shares and found_shares >= target_shares:
-                    return users
+                    break
+
+            if target_shares and found_shares >= target_shares:
+                break
+
+        current_app.logger.info(
+            "Collected and counted {:,} shares for {:,} users from slice #{:,} -> #{:,}."
+            .format(found_shares, len(users), start_slice, index))
 
         return users
 
