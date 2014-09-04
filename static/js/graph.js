@@ -1,37 +1,28 @@
-generate_graph = function(selector, params) {
+generate_graph = function(selector, params, chart_type, controls, typ) {
+    var chart_type = typeof chart_type !== 'undefined' ? chart_type : "stackedAreaChart";
+    var typ = typeof typ !== 'undefined' ? typ : "shares";
+    var controls = !!controls;
     var timespan = "hour";
-    // Calculate the hash rate based on the number of diff-1 shares generated
-    // in a minute
-    var calculate_hash = function(sharesPerMin, seconds) {
-        var khashes = ((hashes_per_share * sharesPerMin)/seconds)/1000;
-        return khashes
-    }
-    // Calculate a value to return for the y-scale, in khash or mhash
-    var y_scale = function(max_hash, seconds) {
-        return (calculate_hash(max_hash, seconds))/1000
-    }
 
     var generate_data = function(timespan) {
         var clean_data = [];
         var date_format;
-        var seconds;
         switch(timespan) {
             case "hour":
                 date_format = "%H:%M";
-                seconds = 60;
+                params.span = 0
                 break;
             case "day":
                 date_format = "%a %H:%M %p";
-                seconds = 300;
+                params.span = 1
                 break;
             case "month":
                 date_format = "%m/%d %H:%M";
-                seconds = 3600;
+                params.span = 2
                 break;
         }
 
-        params.window = timespan;
-        d3.json('/api/shares?' + $.param(params), function(data) {
+        d3.json('/api/' + typ + '?' + $.param(params), function(data) {
             start = data.start;
             end = data.end;
             step = data.step;
@@ -51,13 +42,14 @@ generate_graph = function(selector, params) {
 
             //Actually generate/regenerate the graph here
             generate_graph = function() {
-                var chart = nv.models.stackedAreaChart()
+                var chart = nv.models[chart_type]()
                             .x(function(d) { return d[0] })   //We can modify the data accessor functions...
                             .y(function(d) { return +d[1] / data.scale; })   //...in case your data is formatted differently.
                             .useInteractiveGuideline(true)    //Tooltips which show all data points. Very nice!
                             .transitionDuration(500)
-                            .showControls(true)       //Allow user to choose 'Stacked', 'Stream', 'Expanded' mode.
                             .clipEdge(true);
+                if(controls)
+                    chart = chart.showControls(controls);       //Allow user to choose 'Stacked', 'Stream', 'Expanded' mode.
 
                 // Format x-axis labels with custom function.
                 chart.xAxis
@@ -78,7 +70,7 @@ generate_graph = function(selector, params) {
                 selector.find('img').hide()
 
                 //Hack to update chart when click event occurs
-                $(".nv-stackedAreaChart").on("click", function() {
+                $(".nvd3").on("click", function() {
                     chart.update();
                 });
 

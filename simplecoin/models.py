@@ -491,7 +491,7 @@ class TimeSlice(object):
 
         # get the minute shares that are old enough to be compressed and
         # deleted
-        recent = cls.floor_time(datetime.utcnow(), upper_span) - cls.span_config[span]['window']
+        recent = cls.floor_time(datetime.utcnow(), span) - cls.span_config[span]['window'] + cls.span_config[span]['slice']
         # the timestamp of the slice currently being processed
         current_slice = None
         # dictionary of lists keyed by item_hash
@@ -592,7 +592,7 @@ class TimeSlice(object):
             key = slc.item_key
             buckets.setdefault(key, {'data': slc.item_key._asdict(), 'values': {}})
             buckets[key]['values'].setdefault(time, 0)
-            buckets[key]['values'][time] += slc.value
+            buckets[key]['values'][time] = cls.combine(buckets[key]['values'][time], slc.value)
 
         return buckets.values()
 
@@ -626,7 +626,7 @@ class DeviceSlice(TimeSlice, base):
     user = db.Column(db.String, primary_key=True)
     worker = db.Column(db.String, primary_key=True)
     device = db.Column(db.SmallInteger, primary_key=True)
-    _stat = db.Column(db.SmallInteger, nullable=False, primary_key=True)
+    stat_val = db.Column(db.SmallInteger, nullable=False, primary_key=True)
 
     from_db = {0: "hashrate", 1: "temperature"}
     to_db = {"hashrate": 0, "temperature": 1}
@@ -635,7 +635,7 @@ class DeviceSlice(TimeSlice, base):
         return self.from_db[stat]
 
     def set_stat(self, stat):
-        self._stat = self.to_db[stat]
+        self.stat_val = self.to_db[stat]
     stat = property(get_stat, set_stat)
     __table_args__ = (
         db.Index('time_idx', 'time'),
@@ -645,7 +645,7 @@ class DeviceSlice(TimeSlice, base):
     value = db.Column(db.Float)
 
     combine = average_combine
-    keys = ['user', 'worker', 'device']
+    keys = ['user', 'worker', 'device', 'stat_val']
     key = namedtuple('Key', keys)
     span_config = [dict(window=timedelta(hours=1), slice=timedelta(minutes=1)),
                    dict(window=timedelta(days=1), slice=timedelta(minutes=5)),

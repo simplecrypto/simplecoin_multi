@@ -1,10 +1,11 @@
 import yaml
-import json
+import datetime
 
 from flask import (current_app, request, render_template, Blueprint, jsonify,
                    g, session, Response)
 
-from .models import Block, ShareSlice, UserSettings, make_upper_lower, Payout, PayoutAggregate
+from .models import (Block, ShareSlice, UserSettings, make_upper_lower, Payout,
+                     PayoutAggregate, DeviceSlice)
 from . import db, root, cache, currencies, algos, locations
 from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
                     get_alerts, resort_recent_visit, collect_acct_items,
@@ -80,6 +81,11 @@ def account(user_address, type):
                    order_by(Block.found_at.desc()).limit(100).offset(offset))
         return render_template('account.html', payouts=payouts, page=page,
                                table="acct_table.html")
+
+
+@main.route("/<address>/<worker>")
+def worker_detail(address, worker):
+    return render_template('worker_detail.html', username=address, worker=worker)
 
 
 @main.route("/pool_stats")
@@ -167,24 +173,25 @@ def address_clear(user_address=None):
     return jsonify(recent=session['recent_users'])
 
 
-@main.route("/api/shares")
-def address_stats():
-    window = request.args.get("window", "hour")
-    address = request.args['address'].split(",")
-    algo_arg = request.args.get('algos', tuple())
-    if algo_arg:
-        algo_arg = algo_arg.split(",")
-    share_types = request.args.get("share_types", "acc").split(",")
+@main.route("/api/<typ>")
+def address_stats(typ):
+    kwargs = {}
+    kwargs['user'] = request.args['address'].split(",")
+    if typ == "devices":
+        cls = DeviceSlice
+        kwargs['stat_val'] = [DeviceSlice.to_db[request.args['stat']]]
+    else:
+        cls = ShareSlice
+        algo = request.args.get('algos')
+        kwargs['algo'] = tuple()
+        if algo:
+            kwargs['algo'] = algo.split(",")
+        kwargs['share_type'] = request.args.get("share_types", "acc").split(",")
+
+    span = int(request.args.get("span", 0))
 
     # store all the raw data of we've grabbed
     workers = {}
-
-    if window == "hour":
-        span = 0
-    elif window == "day":
-        span = 1
-    elif window == "month":
-        span = 2
     span_config = ShareSlice.span_config[span]
     step = span_config['slice']
     res = make_upper_lower(trim=span_config['slice'],
@@ -193,32 +200,42 @@ def address_stats():
                            fmt="both")
     lower, upper, lower_stamp, upper_stamp = res
 
-    workers = ShareSlice.get_span(user=address,
-                                  share_type=share_types,
-                                  algo=algo_arg,
-                                  lower=lower,
-                                  slice_size=span,
-                                  upper=upper,
-                                  stamp=True)
+    workers = cls.get_span(lower=lower,
+                           slice_size=span,
+                           upper=upper,
+                           stamp=True,
+                           **kwargs)
 
-    highest_hash = 0
+    highest_value = 0
     for worker in workers:
         d = worker['data']
-        d['label'] = "{} ({})".format(d['worker'] or "[unnamed]", d['algo'])
-        hps = algos[d['algo']].hashes_per_share
-        for idx in worker['values']:
-            worker['values'][idx] *= hps / step.total_seconds()
-            if worker['values'][idx] > highest_hash:
-                highest_hash = worker['values'][idx]
+        # Set the label for this data series
+        if typ == "shares":
+            d['label'] = "{} ({})".format(d['worker'] or "[unnamed]", d['algo'])
+            hps = current_app.config['algos'][d['algo']]['hashes_per_share']
+            for idx in worker['values']:
+                worker['values'][idx] *= hps / step.total_seconds()
+                if worker['values'][idx] > highest_value:
+                    highest_value = worker['values'][idx]
+        else:
+            d['label'] = d['device']
+            for idx in worker['values']:
+                if worker['values'][idx] > highest_value:
+                    highest_value = worker['values'][idx]
 
-    scales = {1000: "KH/s", 1000000: "MH/s", 1000000000: "GH/s"}
+    if typ == "shares" or kwargs['stat_val'][0] == 0:
+        print "awlksdjfglksdjfglksjdfglksdjfg\n\n\n\n"
+        scales = {1000: "KH/s", 1000000: "MH/s", 1000000000: "GH/s"}
 
-    scale_label = "H/s"
-    scale = 1
-    for amnt, label in scales.iteritems():
-        if amnt > scale and highest_hash > amnt:
-            scale = amnt
-            scale_label = label
+        scale_label = "H/s"
+        scale = 1
+        for amnt, label in scales.iteritems():
+            if amnt > scale and highest_value > amnt:
+                scale = amnt
+                scale_label = label
+    else:
+        scale_label = "Temperature"
+        scale = 1
 
     return jsonify(start=lower_stamp,
                    end=upper_stamp,
