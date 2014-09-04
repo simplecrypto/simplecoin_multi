@@ -50,7 +50,7 @@ class TradeRequest(base):
     """
     id = db.Column(db.Integer, primary_key=True)
     # 3-8 letter code for the currency to be traded
-    currency = db.Column(db.String(8), nullable=False)
+    currency = db.Column(db.String, nullable=False)
     # Quantity of currency to be traded
     quantity = db.Column(db.Numeric, nullable=False)
     locked = db.Column(db.Boolean, default=False)
@@ -115,7 +115,7 @@ class Block(base):
     hash = db.Column(db.String(64), primary_key=True)
     height = db.Column(db.Integer, nullable=False)
     # User who discovered block
-    user = db.Column(db.String(34))
+    user = db.Column(db.String)
     worker = db.Column(db.String)
     # When block was found
     found_at = db.Column(db.DateTime, nullable=False)
@@ -214,9 +214,9 @@ class Payout(base):
     id = db.Column(db.Integer, primary_key=True)
     blockhash = db.Column(db.String(64), db.ForeignKey('block.hash'))
     block = db.relationship('Block', foreign_keys=[blockhash], backref='payouts')
-    user = db.Column(db.String(34))
+    user = db.Column(db.String)
     sharechain_id = db.Column(db.SmallInteger)
-    payout_address = db.Column(db.String(34))
+    payout_address = db.Column(db.String)
     payout_currency = db.Column(db.String)
     amount = db.Column(db.Numeric, CheckConstraint('amount > 0', 'min_payout_amount'))
     fee_perc = db.Column(db.Numeric)
@@ -399,9 +399,9 @@ class PayoutAggregate(base):
     id = db.Column(db.Integer, primary_key=True)
     transaction_id = db.Column(db.String(64), db.ForeignKey('transaction.txid'))
     transaction = db.relationship('Transaction', backref='aggregates')
-    user = db.Column(db.String(34))
-    payout_address = db.Column(db.String(34), nullable=False)
-    currency = db.Column(db.String(8), nullable=False)
+    user = db.Column(db.String)
+    payout_address = db.Column(db.String, nullable=False)
+    currency = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     amount = db.Column(db.Numeric, CheckConstraint('amount > 0',
                                                    'min_aggregate_amount'))
@@ -601,7 +601,7 @@ class ShareSlice(TimeSlice, base):
     SHARE_TYPES = ["acc", "low", "dup", "stale"]
 
     time = db.Column(db.DateTime, primary_key=True)
-    user = db.Column(db.String(34), primary_key=True)
+    user = db.Column(db.String, primary_key=True)
     worker = db.Column(db.String, primary_key=True)
     algo = db.Column(db.String, primary_key=True)
     share_type = db.Column(db.Enum(*SHARE_TYPES, name="share_type"),
@@ -658,10 +658,11 @@ class DeviceSlice(TimeSlice, base):
 
 
 class UserSettings(base):
-    user = db.Column(db.String(34), primary_key=True)
+    user = db.Column(db.String, primary_key=True)
     pdonation_perc = db.Column(db.Numeric, default=Decimal('0'))
     adonation_perc = db.Column(db.Numeric)
-    adonation_addr = db.Column(db.String(34))
+    adonation_addr = db.Column(db.String)
+    adonation_curr = db.Column(db.String)
     anon = db.Column(db.Boolean, default=False)
     addresses = db.relationship("PayoutAddress")
 
@@ -686,6 +687,7 @@ class UserSettings(base):
                adonate_addr, del_adonate_addr, anon):
 
         user = cls.query.filter_by(user=address).first()
+        curr = currencies.lookup_payable_addr(adonate_addr).key
         if not user:
             UserSettings.create(address, pdonate_perc, adonate_perc,
                                 adonate_addr, del_adonate_addr, anon, set_addrs)
@@ -695,9 +697,11 @@ class UserSettings(base):
             if del_adonate_addr:
                 user.adonation_perc = None
                 user.adonation_addr = None
+                user.adonation_curr = None
             else:
                 user.adonation_perc = adonate_perc
                 user.adonation_addr = adonate_addr
+                user.adonation_curr = curr
 
             # Set addresses
             for address in user.addresses:
@@ -727,9 +731,11 @@ class UserSettings(base):
         user = cls(user=user,
                    pdonation_perc=pdonate_perc,
                    anon=anon)
+        curr = currencies.lookup_payable_addr(adonate_addr).key
         if not del_adonate_addr:
             user.adonation_perc = adonate_perc
             user.adonation_addr = adonate_addr
+            user.adonation_curr = curr
         db.session.add(user)
 
         for currency, addr in set_addrs.iteritems():
@@ -739,10 +745,10 @@ class UserSettings(base):
 
 
 class PayoutAddress(base):
-    address = db.Column(db.String(34), primary_key=True)
-    user = db.Column(db.String(34), db.ForeignKey('user_settings.user'))
+    address = db.Column(db.String, primary_key=True)
+    user = db.Column(db.String, db.ForeignKey('user_settings.user'))
     # Abbreviated currency name. EG 'LTC'
-    currency = db.Column(db.String(8))
+    currency = db.Column(db.String)
 
     @classmethod
     def create(cls, address, currency):
