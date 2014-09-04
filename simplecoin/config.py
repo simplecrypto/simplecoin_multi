@@ -20,16 +20,21 @@ class ConfigChecker(object):
 
     Currently validates the following keys:
     pool_payout_address
+    currencies
     """
 
     def __init__(self, config):
         self.config = config
 
-    def lookup_key(self, key):
+    def lookup_key(self, key, nested=None):
         """ Helper method: Checks the config for the specified key and raises
         an error if not found """
+
         try:
-            value = self.config[key]
+            if not nested:
+                value = self.config[key]
+            else:
+                value = nested[key]
         except KeyError:
             raise ConfigurationException('Failed when looking up \'{}\' in the '
                                          'config. This key is required!'.format(key))
@@ -42,6 +47,11 @@ class ConfigChecker(object):
             raise ConfigurationException('Value \'{}\' is not truthy. This '
                                          'value is required!'.format(val))
 
+    def check_type(self, val, obj_type):
+        """ Helper method: Checks a value to make sure its the correct type """
+        if not type(val) is obj_type:
+            raise ConfigurationException("\'{}\' is not an instance of {}".format(val))
+
     def check_is_bcaddress(self, val):
         """ Helper method: Checks a value for truthiness """
         try:
@@ -52,12 +62,35 @@ class ConfigChecker(object):
         return ver
 
     def parse_config(self):
-        """ Go through config vals and perform the appropriate logic checks """
+        """ Go through config keys and perform the appropriate logic checks """
 
         # Check the GLOBAL 'pool_payout_address field'
         p_addr = self.lookup_key('pool_payout_address')
         self.check_truthiness(p_addr)
         self.check_is_bcaddress(p_addr)
+
+        # Check the 'currencies' key
+        currencies = self.lookup_key('currencies')
+        self.check_truthiness(currencies)
+        self.check_type(currencies, dict)
+        for curr_key, curr_cfg in currencies.iteritems():
+            c_addr = self.lookup_key('pool_payout_addr', nested=currencies[curr_key])
+            c_ver = self.lookup_key('address_version', nested=currencies[curr_key])
+            self.check_type(c_ver, list)
+            exchangeable = self.lookup_key('exchangeable', nested=currencies[curr_key])
+            # If a pool payout addr is specified, make sure it matches the
+            # configured address version.
+            if c_addr:
+                ver = CurrencyKeeper.check_is_bcaddress(c_addr)
+                if ver not in c_ver:
+                    raise ConfigurationException("{} is not a valid {} address."
+                                                 " Must be {}"
+                                                 .format(c_addr, curr_key, c_ver))
+            # Check for valid  pool address for unexchangeable currencies
+            if not exchangeable and not c_addr:
+                raise ConfigurationException(
+                    "Unexchangeable currencies require a pool payout addr."
+                    "No valid address found for {}".format(curr_key))
 
 
 class ConfigObject(object):
@@ -144,25 +177,6 @@ class CurrencyKeeper(dict):
                 raise ConfigurationException("Duplicate currency keys {}"
                                              .format(key))
             self[obj.key] = obj
-            # If a pool payout addr is specified, make sure it matches the
-            # configured address version.
-            if obj['pool_payout_addr'] is not None:
-                try:
-                    ver = address_version(obj['pool_payout_addr'])
-                except (KeyError, AttributeError):
-                    raise ConfigurationException(
-                        "Invalid pool_payoud_addr specified for {}".format(key))
-                if ver not in obj['address_version']:
-                    raise ConfigurationException(
-                        "{} is not a valid {} address. Must be {}"
-                        .format(obj['pool_payout_addr'], key,
-                                obj['address_version']))
-            # Check to make sure there is a valid + configured pool address for
-            # unexchangeable currencies
-            if not config['exchangeable'] and not obj['pool_payout_addr']:
-                raise ConfigurationException(
-                    "Unexchangeable currencies require a pool payout addr."
-                    "No valid address found for {}".format(key))
 
 
     @property

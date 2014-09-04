@@ -224,7 +224,6 @@ def address_stats(typ):
                     highest_value = worker['values'][idx]
 
     if typ == "shares" or kwargs['stat_val'][0] == 0:
-        print "awlksdjfglksdjfglksjdfglksdjfg\n\n\n\n"
         scales = {1000: "KH/s", 1000000: "MH/s", 1000000000: "GH/s"}
 
         scale_label = "H/s"
