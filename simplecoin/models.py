@@ -53,7 +53,6 @@ class TradeRequest(base):
     currency = db.Column(db.String, nullable=False)
     # Quantity of currency to be traded
     quantity = db.Column(db.Numeric, nullable=False)
-    locked = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     type = db.Column(db.Enum("sell", "buy", name="req_type"), nullable=False)
 

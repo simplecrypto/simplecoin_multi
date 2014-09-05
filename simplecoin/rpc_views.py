@@ -1,11 +1,12 @@
 import six
 import sys
+import sqlalchemy
 
 from flask import current_app, request, abort, Blueprint, g
 from itsdangerous import TimedSerializer, BadData
 from decimal import Decimal
 
-from .models import Transaction, Payout, TradeRequest
+from .models import Transaction, PayoutAggregate, TradeRequest
 from .utils import Benchmark
 from . import db
 
@@ -45,19 +46,9 @@ def get_trade_requests():
     be processed. Transaction information is signed for safety. """
     current_app.logger.info("get_sell_requests being called, args of {}!".
                             format(g.signed))
-    lock = False
-    if isinstance(g.signed, dict) and g.signed['lock']:
-        lock = True
-
-    trade_requests = TradeRequest.query.filter_by(_status=0, locked=False).all()
+    trade_requests = TradeRequest.query.filter_by(_status=0).all()
     trs = [(tr.id, tr.currency, float(tr.quantity), tr.type) for tr in trade_requests]
-
-    if lock:
-        current_app.logger.info("Locking sell requests at retriever request.")
-        for tr in trade_requests:
-            tr.locked = True
-        db.session.commit()
-    return sign([trs, lock])
+    return sign(dict(trs=trs))
 
 
 @rpc_views.route("/update_trade_requests", methods=['POST'])
@@ -115,59 +106,32 @@ def update_trade_requests():
                 format(tr.id, tr.exchanged_quantity, len(tr.payouts)))
 
     db.session.commit()
-    return sign(dict(success=True, result="Trade requests successfully updated."))
-
-
-@rpc_views.route("/reset_trade_requests", methods=['POST'])
-def reset_trade_requests():
-    """ Used as a response from an rpc sell request system. This will reset
-    the locked status of a list of sell requests upon failure on the remote
-    side. Both request and response are signed. """
-    # basic checking of input
-    try:
-        assert 'reset' in g.signed
-        assert isinstance(g.signed['reset'], bool)
-        assert isinstance(g.signed['tr_ids'], list)
-        for id in g.signed['tr_ids']:
-            assert isinstance(id, int)
-    except AssertionError:
-        current_app.logger.warn("Invalid data passed to reset_trade_requests",
-                                exc_info=True)
-        abort(400)
-
-    if g.signed['reset'] and g.signed['tr_ids']:
-        srs = TradeRequest.query.filter(TradeRequest.id.in_(g.signed['tr_ids'])).all()
-        for sr in srs:
-            sr.locked = False
-        db.session.commit()
-        return sign(dict(success=True, result="Successfully reset"))
-
-    return sign(dict(result=True))
+    return sign(dict(success=True,
+                     result="Trade requests successfully updated."))
 
 
 @rpc_views.route("/get_payouts", methods=['POST'])
 def get_payouts():
-    """ Used by remote procedure call to retrieve a list of transactions to
+    """ Used by remote procedure call to retrieve a list of payout amounts to
     be processed. Transaction information is signed for safety. """
-    current_app.logger.info("get_payouts being called, args of {}!".format(g.signed))
-    merged = None
-    if isinstance(g.signed, dict) and g.signed['merged']:
-        merged = g.signed['merged']
+    current_app.logger.info("get_payouts being called, args of {}!"
+                            .format(g.signed))
+    currency = g.signed['currency']
 
     with Benchmark("Fetching payout information"):
-        query = (Payout.query.filter_by(transaction_id=None, merged_type=merged).
-                 join(Payout.block, aliased=True).filter_by(mature=True))
+        query = PayoutAggregate.query.filter_by(transaction_id=None,
+                                                currency=currency)
+        # XXX: Add the min payout amount code here!
         pids = [(p.user, p.amount, p.id) for p in query]
     return sign(dict(pids=pids))
 
 
 @rpc_views.route("/update_payouts", methods=['POST'])
-def update_transactions():
+def update_payouts():
     """ Used as a response from an rpc payout system. This will either reset
     the locked status of a list of transactions upon failure on the remote
     side, or create a new CoinTransaction object and link it to the
-    transactions to signify that the transaction has been processed. Both
-    request and response are signed. """
+    transactions to signify that the transaction has been processed. """
     # basic checking of input
     try:
         if 'coin_txid' in g.signed:
@@ -186,6 +150,28 @@ def update_transactions():
                                 exc_info=True)
         abort(400)
 
+    if 'coin_txid' in g.signed:
+        with Benchmark("Associating payout transaction ids"):
+            currency = g.signed['currency']
+
+            try:
+                trans = Transaction.create(txid=g.signed['coin_txid'],
+                                           currency=currency)
+                db.session.add(trans)
+                db.session.flush()
+            except sqlalchemy.exc.IntegrityError:
+                db.session.rollback()
+                current_app.logger.warn("Transaction id {} already exists!"
+                                        .format(g.signed['coin_txid']))
+
+            if g.signed['pids']:
+                PayoutAggregate.query.filter(
+                    PayoutAggregate.id.in_(g.signed['pids'])).update(
+                        {PayoutAggregate.transaction_id: g.signed['coin_txid']},
+                        synchronize_session=False)
+
+            db.session.commit()
+
     return sign(dict(result=True))
 
 
@@ -195,13 +181,24 @@ def confirm_transactions():
     # basic checking of input
     try:
         assert isinstance(g.signed['tids'], list)
+        assert isinstance(g.signed['fees'], list)
     except AssertionError:
         current_app.logger.warn("Invalid data passed to confirm_transactions",
                                 exc_info=True)
         abort(400)
 
-    Transaction.query.filter(Transaction.txid.in_(g.signed['tids'])).update(
-        {Transaction.confirmed: True}, synchronize_session=False)
+    txdata = {}
+    for txid, fee in g.signed['fees'].iteritems():
+        txdata.setdefault(txid, {})
+        txdata[txid][Transaction.fee] = fee
+
+    for txid in g.signed['tids']:
+        txdata.setdefault(txid, {})
+        txdata[txid][Transaction.confirmed] = True
+
+    for txid in txdata:
+        Transaction.query.filter(Transaction.txid.in_(txid)).update(
+            txdata[txid], synchronize_session=False)
     db.session.commit()
 
     return sign(dict(result=True))
