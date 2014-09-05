@@ -572,11 +572,10 @@ def payout_chain(bp, chain_payout_amount, user_shares, sharechain_id, simulate=F
         # Determine currency key of user's payout address & add their addr
         try:
             usr_currency = currencies.lookup_payable_addr(user).key
-        except Exception as e:
-            current_app.logger.warn('Unable to lookup user address {}! Got '
-                                    'exception: {}'.format(user, e))
+        except Exception:
+            current_app.logger.warn('User address {} is not payable!'.format(user))
             # This is an error we cannot handle gracefully, so abort the payout
-            return
+            raise
         else:
             user_payable_currencies[user] = {usr_currency: user}
 

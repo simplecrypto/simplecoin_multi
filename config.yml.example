@@ -191,7 +191,8 @@ main_cache:
 # default donation percentage applied to payouts if no custom is
 # defined
 default_donate_perc: '0'
-# address where all donated percents (or fees) will go
+# address where all donated percents (or fees) will go. ATM, this address MUST
+# be exchangeable + configured
 pool_payout_addr: DAbhwsnEq5TjtBP5j76TinhUqqLTktDAnD
 # block find reward. set to zero or comment out to not use. in satoshi
 block_bonus: 0

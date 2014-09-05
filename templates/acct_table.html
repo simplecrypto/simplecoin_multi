@@ -32,10 +32,10 @@
               <tr>
                 <td>{{ "{:,}".format(payout.id) }}</td>
                 <td>{{ payout.block.found_at | human_date_utc }}</td>
-                <td>{{ payout.payout_currency }}</td>
-                <td title="{{ payout.mined }}">{{ payout.mined | sig_round(2) }} {{ payout.currency }}</td>
-                <td data-sort-value="{{ payout.cut_perc }}">{{ payout.text_perc_applied }} {{ payout.currency }} ({{ '{:,}'.format(payout.hr_pd_perc) }}%/{{ '{:,}'.format(payout.hr_fee_perc) }}%)</td>
-                <td title="{{ payout.amount }}">{{ payout.amount | sig_round(2) }} {{ payout.currency }}</td>
+                <td>{{ payout.block.currency }}</td>
+                <td title="{{ payout.mined }}">{{ payout.mined | sig_round(2) }} {{ payout.block.currency }}</td>
+                <td data-sort-value="{{ payout.cut_perc }}">{{ payout.text_perc_applied }} {{ payout.block.currency }} ({{ '{:,}'.format(payout.hr_pd_perc) }}%/{{ '{:,}'.format(payout.hr_fee_perc) }}%)</td>
+                <td title="{{ payout.amount }}">{{ payout.amount | sig_round(2) }} {{ payout.block.currency }}</td>
                 <td>{{ payout.status }}</td>
                 <td><a href="/block/{{ payout.block.hash }}"># {{ '{:,}'.format(payout.block.height) }}</a></td>
               </tr>

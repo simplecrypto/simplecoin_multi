@@ -240,7 +240,7 @@ class CurrencyKeeper(dict):
             else:
                 raise AttributeError("Address '{}' version {} is not an "
                                      "exchangeable currency. Options are {}"
-                                     .format(address, curr.address_version,
+                                     .format(address, currency.address_version,
                                              self.exchangeable_currencies))
 
     def validate_bc_address(self, bc_address_str):
