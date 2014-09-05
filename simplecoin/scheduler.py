@@ -636,7 +636,7 @@ def payout_chain(bp, chain_payout_amount, user_shares, sharechain_id, simulate=F
                                   fee_perc=user_perc[user]['f_perc'],
                                   pd_perc=user_perc[user]['d_perc'],
                                   sharechain_id=sharechain_id,
-                                  currency=bp.block.currency,
+                                  payout_currency=bp.block.currency,
                                   payout_address=user_payable_currencies[user][bp.block.currency])
                 p.payable = True
 
@@ -649,7 +649,7 @@ def payout_chain(bp, chain_payout_amount, user_shares, sharechain_id, simulate=F
                                           fee_perc=user_perc[user]['f_perc'],
                                           pd_perc=user_perc[user]['d_perc'],
                                           sharechain_id=sharechain_id,
-                                          currency=curr,
+                                          payout_currency=curr,
                                           payout_address=addr)
             db.session.add(p)
 

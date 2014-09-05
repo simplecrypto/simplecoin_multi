@@ -241,8 +241,12 @@ class Payout(base):
                      'transaction_id']
 
     @property
-    def payout_currency(self):
-        return currencies[self.currency]
+    def currency(self):
+        return self.payout_currency
+
+    @property
+    def payout_currency_obj(self):
+        return currencies[self.payout_currency]
 
     @property
     def amount_float(self):
@@ -281,12 +285,12 @@ class Payout(base):
 
     @classmethod
     def create(cls, user, amount, block, fee_perc, pd_perc, sharechain_id,
-               currency, payout_address=None):
+               payout_currency, payout_address=None):
         payout = cls(user=user, amount=amount, block=block,
                      fee_perc=fee_perc, pd_perc=pd_perc,
                      sharechain_id=sharechain_id,
                      payout_address=payout_address or user,
-                     currency=currency)
+                     payout_currency=payout_currency)
         db.session.add(payout)
         return payout
 
@@ -384,7 +388,7 @@ class PayoutExchange(Payout):
         for version, currency_obj in current_app.currencies.iteritems():
             if self.currency == currency_obj.key:
                 currency_ver = version
-        return current_app.currencies[currency_ver].est_value(self.payout_currency, self.amount)
+        return current_app.currencies[currency_ver].est_value(self.payout_currency_obj, self.amount)
 
     @property
     def final_amount(self):
