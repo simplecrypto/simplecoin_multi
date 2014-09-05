@@ -276,13 +276,12 @@ def validate_address():
         addr = request.json
         currency = addr[0]
         address = addr[1]
-
-        if currency == 'Any':
-            curr = currencies.lookup_payable_addr(address)
-        else:
-            curr = currencies.validate_bc_address(address)
-
-        if not curr:
+        try:
+            if currency == 'Any':
+                curr = currencies.lookup_payable_addr(address)
+            else:
+                curr = currencies.validate_bc_address(address)
+        except ValueError:
             return jsonify({currency: False})
 
         if currency == 'Any':

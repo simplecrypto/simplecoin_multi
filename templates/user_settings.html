@@ -150,7 +150,7 @@
                   Split payout</label>
                 <div class="col-sm-8">
                   <div class="row no-margin">
-                    <div class="col-sm-3 no-padding">
+                    <div class="col-sm-2 no-padding">
                       <input type="text" class="form-control" id="sPayoutPerc"
                              name="sPayoutPerc" value="{{ user.hr_spayout_perc or '' }}">
                       <span class="form-control-feedback">%</span>
@@ -158,11 +158,18 @@
                       <div class="help-block invalid-range default-hide">
                         <i class='fa fa-exclamation-triangle'></i> 0-100%</div>
                     </div>
-                    <div class="col-sm-1" style="padding-top:9px;"> to </div>
-                    <div class="col-sm-8 no-padding">
+                    <div class="col-sm-3">
+                      <select class="form-control" id="sPayoutCurr" name="sPayoutCurr" style="padding:8px 8px;">
+                        {% for curr in ex_currencies %}
+                          <option value="{{ curr }}" id="spay-{{ curr }}"{% if curr.key == user.spayout_curr %} selected{% endif %}>{{ curr }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+
+                    <div class="col-sm-7 no-padding">
                       <input type="text" class="form-control address-field"
                              id="sPayoutAddr"
-                             name="Any" value="{{ user.spayout_addr or '' }}">
+                             name="{{ user.spayout_curr or 'Any' }}" value="{{ user.spayout_addr or '' }}">
                       <span class="help-block help-text">Input a valid
                         {{ currency }} address</span>
                       <span class="help-block checking-address default-hide">
@@ -170,6 +177,7 @@
                         validity</span>
                       <span class="help-block invalid-address default-hide">
                         <i class='fa fa-exclamation-triangle'></i> Invalid
+                        <span class="address-currency"></span>
                         address</span>
                       <span class="help-block valid-address default-hide">
                         <i class='fa fa-check'></i> Valid

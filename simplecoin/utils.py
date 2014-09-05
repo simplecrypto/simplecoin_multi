@@ -437,22 +437,37 @@ def validate_message_vals(address, **kwargs):
     pdonate_perc = kwargs['SET_PDONATE_PERC']
     spayout_perc = kwargs['SET_SPAYOUT_PERC']
     spayout_addr = kwargs['SET_SPAYOUT_ADDR']
+    spayout_curr = kwargs['SET_SPAYOUT_CURR']
     del_spayout_addr = kwargs['DEL_SPAYOUT_ADDR']
     anon = kwargs['MAKE_ANON']
 
     # Make sure all addresses are valid
     for curr, addr in set_addrs.iteritems():
         try:
-            currencies.validate_bc_address(addr)
+            curr_list = currencies.validate_bc_address(addr)
         except Exception:
             raise CommandException("Invalid {} address passed!".format(curr))
+        try:
+            curr_obj = currencies[curr]
+        except Exception:
+            raise CommandException("{} is not configured".format(curr))
+        # Be a bit extra paranoid
+        for curr_obj2 in curr_list:
+            if not curr_obj2.address_version == curr_obj.address_version:
+                raise CommandException("\'{}\' is not a valid {} "
+                                       "address".format(addr, curr))
 
+    # Make sure split payout currency addr is valid and matches the address
     if spayout_addr:
         try:
-            currencies.validate_bc_address(spayout_addr)
+            curr = currencies.lookup_payable_addr(spayout_addr)
         except Exception:
-            raise CommandException("Invalid currency address passed for arbitrary "
-                                   "donation!")
+            raise CommandException("Invalid currency address passed for "
+                                   "arbitrary donation!")
+
+        if not curr.key == spayout_curr:
+            raise CommandException("Split address \'{}\' is not a valid {} "
+                                   "address".format(spayout_addr, spayout_curr))
 
     # Make sure all percentages are valid
     spayout_perc = validate_str_perc(spayout_perc)
@@ -488,13 +503,14 @@ def validate_message_vals(address, **kwargs):
                                "as the main user address")
 
     return (set_addrs, del_addrs, pdonate_perc, spayout_perc, spayout_addr,
-            del_spayout_addr, anon)
+            spayout_curr, del_spayout_addr, anon)
 
 
 def verify_message(address, curr, message, signature):
     update_dict = {'SET_ADDR': {}, 'DEL_ADDR': [], 'MAKE_ANON': False,
                    'SET_PDONATE_PERC': 0, 'SET_SPAYOUT_ADDR': False,
-                   'SET_SPAYOUT_PERC': 0, 'DEL_SPAYOUT_ADDR': False}
+                   'SET_SPAYOUT_PERC': 0, 'DEL_SPAYOUT_ADDR': False,
+                   'SET_SPAYOUT_CURR': False}
     stamp = False
     site = False
     try:
@@ -527,7 +543,7 @@ def verify_message(address, curr, message, signature):
                                " message & try again.")
 
     now = datetime.datetime.utcnow()
-    if abs((now - stamp).seconds) > current_app.config.get('message_expiry', 900):
+    if abs((now - stamp).seconds) > current_app.config.get('message_expiry', 90000):
         raise CommandException("Signature/Message is too old to be accepted! "
                                "Make sure your system clock is set correctly, "
                                "then generate a new message & try again.")

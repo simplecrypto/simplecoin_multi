@@ -118,6 +118,10 @@ $(document).ready(function() {
       });
 
     });
+
+  // sloppy proc blur for first load
+  $(watch).blur();
+
   };
 
 ////////////////////////////////////////////
@@ -174,22 +178,29 @@ $(document).ready(function() {
     }, 1000);
   });
 
-    var validate_address = function (_that, fail_callback, success_callback) {
+  $("select#sPayoutCurr").change(function () {
+    var val = $(this).val();
+    $("#sPayoutAddr").attr("name", val);
+    $('.address-field').blur()
+  })
+  .change();
 
-      var AddrString = _that.val()
+  var validate_address = function (_that, fail_callback, success_callback) {
 
-      // check if alpha numeric
-      var alphanum = new RegExp(/^[a-z0-9]+$/i);
-      if (!alphanum.test(AddrString)) {
-        fail_callback(_that, 'invalid-address');
-      }
+    var AddrString = _that.val()
 
-      // check if proper length
-      if (_that.val().length != 34) {
-        fail_callback(_that, 'invalid-address');
-      }
+    // check if alpha numeric
+    var alphanum = new RegExp(/^[a-z0-9]+$/i);
+    if (!alphanum.test(AddrString)) {
+      fail_callback(_that, 'invalid-address');
+    }
 
-      success_callback(_that);
+    // check if proper length
+    if (_that.val().length != 34) {
+      fail_callback(_that, 'invalid-address');
+    }
+
+    success_callback(_that);
   };
 
   var interval = null;
@@ -216,8 +227,9 @@ $(document).ready(function() {
     };
 
     var valid_address = function (_that) {
-      if (_that.attr("name") == 'Any') {
+      if (_that.attr("id") == 'sPayoutAddr') {
         msg_str += 'SET_SPAYOUT_ADDR ' + _that.val() + "\t";
+        msg_str += 'SET_SPAYOUT_CURR ' + _that.attr("name") + "\t";
       } else {
         msg_str += 'SET_ADDR ' + _that.attr("name") + " " + _that.val() + "\t";
       }
@@ -227,7 +239,7 @@ $(document).ready(function() {
     $('input.address-field').each(function(index) {
       // Mark blank values for deletion - otherwise attempt to validate
       if ($( this ).val() == '') {
-        if ($(this).attr("name") == 'Any') {
+        if ($(this).attr("id") == 'sPayoutAddr') {
           msg_str += 'DEL_SPAYOUT_ADDR True\t';
         } else {
           msg_str += 'DEL_ADDR ' + $( this ).attr("name") + '\t';
@@ -277,7 +289,7 @@ $(document).ready(function() {
     }
 
     // Make sure if Arbitrary donate % is supplied so is an address
-    if ( (adObj.val() != '' && $("#arbitraryDonateAddr").val() == '') || (adObj.val() == '' && $("#arbitraryDonateAddr").val() != '') ) {
+    if ( (adObj.val() != '' && $("#sPayoutAddr").val() == '') || (adObj.val() == '' && $("#sPayoutAddr").val() != '') ) {
       has_failed = true;
       earnErr.show();
       earnErr.children("#arb-multipart").show();

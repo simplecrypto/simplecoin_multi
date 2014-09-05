@@ -580,18 +580,9 @@ def payout_chain(bp, chain_payout_amount, user_shares, sharechain_id, simulate=F
         # Add any addresses they've configured
         for addr_obj in user.addresses:
             user_payable_currencies[user.user][addr_obj.currency] = addr_obj.address
-        # Add arbitrary payout address if configured
-        if user.spayout_addr and user.spayout_perc:
-            try:
-                arb_currency = currencies.lookup_payable_addr(user.spayout_addr).key
-            except Exception as e:
-                current_app.logger.warn('Unable to lookup arbitrary payout '
-                                        'address {} for user {}! Got exception: {}'
-                                        .format(user.user, user.spayout_addr, e))
-                # We can log + ignore this problem. Instead of potentially
-                # paying out the user directly we'll convert the currency
-            else:
-                user_payable_currencies[user.user][arb_currency] = user.spayout_addr
+        # Add split payout address if configured
+        if user.spayout_addr and user.spayout_perc and user.spayout_curr:
+            user_payable_currencies[user.user][user.spayout_curr] = user.spayout_addr
 
     # Convert user_payouts to a dict tracking multiple payouts for a single user
     split_user_payouts = {}
@@ -599,9 +590,9 @@ def payout_chain(bp, chain_payout_amount, user_shares, sharechain_id, simulate=F
         split_user_payouts[user] = {user: payout}
 
     total_splits = 0
-    # if they have an arb payout address set up, go ahead and split their payout
+    # if they have a split payout address set up go ahead and split
     for p in custom_settings:
-        if p.spayout_addr and p.spayout_perc:
+        if p.spayout_addr and p.spayout_perc and p.spayout_curr:
             split_amt = split_user_payouts[p.user][p.user] * p.spayout_perc
             split_user_payouts[p.user][p.user] -= split_amt
             split_user_payouts[p.user][p.spayout_addr] = split_amt

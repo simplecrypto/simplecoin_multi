@@ -676,21 +676,27 @@ class UserSettings(base):
 
     @property
     def hr_perc(self):
-        return (self.pdonation_perc * 100).quantize(Decimal('0.01'))
+        return self.hr_pdonation_perc
+
+    @property
+    def hr_pdonation_perc(self):
+        if self.pdonation_perc:
+            return (self.pdonation_perc * 100).quantize(Decimal('0.01'))
 
     @property
     def hr_spayout_perc(self):
-        return (self.spayout_perc * 100).quantize(Decimal('0.01'))
+        if self.spayout_perc:
+            return (self.spayout_perc * 100).quantize(Decimal('0.01'))
 
     @classmethod
     def update(cls, address, set_addrs, del_addrs, pdonate_perc, spayout_perc,
-               spayout_addr, del_spayout_addr, anon):
+               spayout_addr, spayout_curr, del_spayout_addr, anon):
 
         user = cls.query.filter_by(user=address).first()
-        curr = currencies.lookup_payable_addr(spayout_addr).key
         if not user:
             UserSettings.create(address, pdonate_perc, spayout_perc,
-                                spayout_addr, del_spayout_addr, anon, set_addrs)
+                                spayout_addr, spayout_curr, del_spayout_addr,
+                                anon, set_addrs)
         else:
             user.pdonation_perc = pdonate_perc
             user.anon = anon
@@ -701,7 +707,7 @@ class UserSettings(base):
             else:
                 user.spayout_perc = spayout_perc
                 user.spayout_addr = spayout_addr
-                user.spayout_curr = curr
+                user.spayout_curr = spayout_curr
 
             # Set addresses
             for address in user.addresses:
@@ -726,16 +732,15 @@ class UserSettings(base):
 
     @classmethod
     def create(cls, user, pdonate_perc, spayout_perc,  spayout_addr,
-               del_spayout_addr, anon, set_addrs):
+               spayout_curr, del_spayout_addr, anon, set_addrs):
 
         user = cls(user=user,
                    pdonation_perc=pdonate_perc,
                    anon=anon)
-        curr = currencies.lookup_payable_addr(spayout_addr).key
         if not del_spayout_addr:
             user.spayout_perc = spayout_perc
             user.spayout_addr = spayout_addr
-            user.spayout_curr = curr
+            user.spayout_curr = spayout_curr
         db.session.add(user)
 
         for currency, addr in set_addrs.iteritems():
