@@ -57,7 +57,7 @@ def leaderboard():
     # Holds a dictionary keyed by username
     users = {}
     # A dictionary for copying. The default value of each keyed user in the above
-    algos_disp = [(a.display, a) for a in algos.active_algos()]
+    algos_disp = [(a.display, a.key) for a in algos.active_algos()]
     algos_disp.append(('Normalized', 'normalized'))
     users = cache.get("leaderboard") or {}
     return render_template('leaderboard.html', users=users, algos=algos_disp)

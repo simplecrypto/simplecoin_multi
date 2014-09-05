@@ -33,7 +33,8 @@ $(document).ready(function() {
         <tr>
           <th>{{ loop.index }}.  <a href="/{{ user }}">{{ user }}</a></th>
           {% for disp, algo in algos %}
-          <th data-sort-value="{{ data.get(algo, 0) }}">{{ data.get(algo, 0) | hashrate }}</th>
+          {% set dat = data.get(algo, 0) %}
+          <th data-sort-value="{{ dat }}">{% if dat %}{{ dat | hashrate }}{% endif %}</th>
           {% endfor %}
         </tr>
       {% else %}

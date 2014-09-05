@@ -5,12 +5,12 @@ import urllib3
 import sqlalchemy
 import decorator
 import argparse
-import json
 
 from decimal import Decimal, getcontext, ROUND_HALF_DOWN, ROUND_DOWN
 from flask import current_app
 from flask.ext.script import Manager
 from cryptokit import bits_to_difficulty
+from cryptokit.base58 import address_version
 from cryptokit.rpc import CoinRPCException
 
 from simplecoin import (db, cache, redis_conn, create_app, currencies,
@@ -252,18 +252,23 @@ def leaderboard():
     users = {}
     lower_10, upper_10 = make_upper_lower(offset=datetime.timedelta(minutes=1))
     for slc in ShareSlice.get_span(ret_query=True, lower=lower_10, upper=upper_10):
-        algo = algos[slc.algo]
-        user = users.setdefault(slc.user, {})
-        user.setdefault(algo, 0)
-        user[algo] += slc.value
+        try:
+            address_version(slc.user)
+        except Exception:
+            pass
+        else:
+            user = users.setdefault(slc.user, {})
+            user.setdefault(slc.algo, 0)
+            user[slc.algo] += slc.value
 
     # Loop through and convert a summation of shares into a hashrate. Converts
     # to hashes per second
     for user, algo_shares in users.iteritems():
-        for algo, shares in algo_shares.items():
-            algo_shares[algo] = algo.hashes_per_share * shares
+        for algo_key, shares in algo_shares.items():
+            algo_obj = algos[algo_key]
+            algo_shares[algo_key] = algo_obj.hashes_per_share * shares
             algo_shares.setdefault('normalized', 0)
-            algo_shares['normalized'] += users[user][algo] * algo.normalize_mult
+            algo_shares['normalized'] += users[user][algo_key] * algo_obj.normalize_mult
 
     cache.set("leaderboard", sorted(users.iteritems(), key=lambda x: x[1]['normalized'], reverse=True))
 
