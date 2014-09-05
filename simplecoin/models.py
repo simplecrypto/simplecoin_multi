@@ -161,6 +161,10 @@ class Block(base):
         return sum([bp.shares for bp in self.block_payouts])
 
     @property
+    def hr_shares_to_solve(self):
+        return int(self.shares_to_solve)
+
+    @property
     def status(self):
         if self.mature:
             return "Mature"
@@ -413,7 +417,7 @@ class PayoutAggregate(base):
 
     @property
     def payout_currency(self):
-        return currencies.lookup_address(self.payout_address)
+        return currencies[self.currency]
 
     @property
     def status(self):
