@@ -258,19 +258,23 @@ def leaderboard():
             pass
         else:
             user = users.setdefault(slc.user, {})
-            user.setdefault(slc.algo, 0)
-            user[slc.algo] += slc.value
+            user.setdefault(slc.algo, [0, 0])
+            user[slc.algo][0] += slc.value
+            user[slc.algo][1] += 1
 
     # Loop through and convert a summation of shares into a hashrate. Converts
     # to hashes per second
     for user, algo_shares in users.iteritems():
-        for algo_key, shares in algo_shares.items():
+        for algo_key, (shares, minutes) in algo_shares.items():
             algo_obj = algos[algo_key]
-            algo_shares[algo_key] = algo_obj.hashes_per_share * shares
+            algo_shares[algo_key] = algo_obj.hashes_per_share * (shares / (minutes * 60))
             algo_shares.setdefault('normalized', 0)
             algo_shares['normalized'] += users[user][algo_key] * algo_obj.normalize_mult
 
-    cache.set("leaderboard", sorted(users.iteritems(), key=lambda x: x[1]['normalized'], reverse=True))
+    sorted_users = sorted(users.iteritems(),
+                          key=lambda x: x[1]['normalized'],
+                          reverse=True)
+    cache.set("leaderboard", sorted_users, timeout=15 * 60)
 
 
 @crontab

@@ -205,8 +205,10 @@ def create_app(mode, config='config.yml', log_level=None):
             sched.add_cron_job(sch.compress_minute, minute='0,5,10,15,20,25,30,35,40,45,50,55', second=20)
             # every hour 2.5 minutes after the hour
             sched.add_cron_job(sch.compress_five_minute, minute=2, second=30)
-            # every 15 minutes 2 seconds after the minute
+            # every minute 2 seconds after the minute
             sched.add_cron_job(sch.update_block_state, second=2)
+            # every 15 minutes 2 seconds after the minute
+            sched.add_cron_job(sch.leaderboard, minute='0,5,10,15,20,25,30,35,40,45,50,55', second=30)
         else:
             app.logger.info("Stage mode has been set in the configuration, not "
                             "running scheduled database altering cron tasks")
