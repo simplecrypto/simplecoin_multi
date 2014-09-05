@@ -175,8 +175,10 @@ def address_clear(user_address=None):
 
 @main.route("/api/<typ>")
 def address_stats(typ):
-    kwargs = {}
+    kwargs = {'worker': tuple()}
     kwargs['user'] = request.args['address'].split(",")
+    if 'worker' in request.args:
+        kwargs['worker'] = request.args["worker"].split(",")
     if typ == "devices":
         cls = DeviceSlice
         kwargs['stat_val'] = [DeviceSlice.to_db[request.args['stat']]]
