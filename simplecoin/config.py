@@ -1,4 +1,5 @@
 import requests
+import collections
 
 from flask import current_app
 from cryptokit.rpc import CoinserverRPC, CoinRPCException
@@ -31,7 +32,7 @@ class ConfigChecker(object):
         an error if not found """
 
         try:
-            if not nested:
+            if nested is None:
                 value = self.config[key]
             else:
                 value = nested[key]
@@ -49,8 +50,9 @@ class ConfigChecker(object):
 
     def check_type(self, val, obj_type):
         """ Helper method: Checks a value to make sure its the correct type """
-        if not type(val) is obj_type:
-            raise ConfigurationException("\'{}\' is not an instance of {}".format(val))
+        if not isinstance(val, obj_type):
+            raise ConfigurationException("\'{}\' is not an instance of {}"
+                                         .format(val, obj_type.__name__))
 
     def check_is_bcaddress(self, val):
         """ Helper method: Checks a value for truthiness """
@@ -63,34 +65,13 @@ class ConfigChecker(object):
 
     def parse_config(self):
         """ Go through config keys and perform the appropriate logic checks """
-
         # Check the GLOBAL 'pool_payout_addrfield'
         p_addr = self.lookup_key('pool_payout_addr')
-        self.check_truthiness(p_addr)
         self.check_is_bcaddress(p_addr)
 
         # Check the 'currencies' key
         currencies = self.lookup_key('currencies')
-        self.check_truthiness(currencies)
-        self.check_type(currencies, dict)
-        for curr_key, curr_cfg in currencies.iteritems():
-            c_addr = self.lookup_key('pool_payout_addr', nested=currencies[curr_key])
-            c_ver = self.lookup_key('address_version', nested=currencies[curr_key])
-            self.check_type(c_ver, list)
-            exchangeable = self.lookup_key('exchangeable', nested=currencies[curr_key])
-            # If a pool payout addr is specified, make sure it matches the
-            # configured address version.
-            if c_addr:
-                ver = CurrencyKeeper.check_is_bcaddress(c_addr)
-                if ver not in c_ver:
-                    raise ConfigurationException("{} is not a valid {} address."
-                                                 " Must be {}"
-                                                 .format(c_addr, curr_key, c_ver))
-            # Check for valid  pool address for unexchangeable currencies
-            if not exchangeable and not c_addr:
-                raise ConfigurationException(
-                    "Unexchangeable currencies require a pool payout addr."
-                    "No valid address found for {}".format(curr_key))
+        self.check_type(currencies, collections.Mapping)
 
 
 class ConfigObject(object):
@@ -132,6 +113,26 @@ class Currency(ConfigObject):
                     bootstrap['coinserv']['address'],
                     bootstrap['coinserv']['port'],
                     pool_kwargs=dict(maxsize=bootstrap.get('maxsize', 10))))
+        self.exchangeable = bool(self.exchangeable)
+
+        # If a pool payout addr is specified, make sure it matches the
+        # configured address version.
+        if self.pool_payout_addr is not None:
+            try:
+                ver = address_version(self.pool_payout_addr)
+            except (KeyError, AttributeError):
+                ver = None
+            if ver not in self.address_version:
+                raise ConfigurationException(
+                    "{} is not a valid {} address. Must be version {}"
+                    .format(self.pool_payout_addr, self.key, self.address_version))
+
+        # Check to make sure there is a configured pool address for
+        # unexchangeable currencies
+        if self.exchangeable is False and self.pool_payout_addr is None:
+            raise ConfigurationException(
+                "Unexchangeable currencies require a pool payout addr."
+                "No valid address found for {}".format(self.key))
 
     @property
     @cache.memoize(timeout=3600)
@@ -177,7 +178,6 @@ class CurrencyKeeper(dict):
                 raise ConfigurationException("Duplicate currency keys {}"
                                              .format(key))
             self[obj.key] = obj
-
 
     @property
     def exchangeable_currencies(self):
