@@ -19,7 +19,7 @@ class ConfigChecker(object):
     It needs a lot of expansion :/
 
     Currently validates the following keys:
-    pool_payout_address
+    pool_payout_addr
     currencies
     """
 
@@ -64,8 +64,8 @@ class ConfigChecker(object):
     def parse_config(self):
         """ Go through config keys and perform the appropriate logic checks """
 
-        # Check the GLOBAL 'pool_payout_address field'
-        p_addr = self.lookup_key('pool_payout_address')
+        # Check the GLOBAL 'pool_payout_addrfield'
+        p_addr = self.lookup_key('pool_payout_addr')
         self.check_truthiness(p_addr)
         self.check_is_bcaddress(p_addr)
 
