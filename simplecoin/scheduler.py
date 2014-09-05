@@ -693,6 +693,9 @@ def _grab_data(prefix, stat):
             try:
                 address, worker, did = user.split("_")
                 value = float(value)
+                # Megahashes are was cgminer reports
+                if stat == "hashrate":
+                    value *= 1000000
             except Exception:
                 current_app.logger.error("Error processing key {} on hash {}"
                                          .format(user, key), exc_info=True)
