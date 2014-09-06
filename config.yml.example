@@ -207,7 +207,7 @@ coin_name: Multi
 # host for static assets e.g. {assets_address}/css/main.css
 assets_address: /static
 # logo img
-logo: 
+logo: "/img/logo.png"
 # xs leader img
 leader-xs: "/img/doge-miner-xs.jpg"
 # sm leader img
