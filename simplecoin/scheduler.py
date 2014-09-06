@@ -1,4 +1,5 @@
 import logging
+import itertools
 import datetime
 import time
 import urllib3
@@ -6,7 +7,7 @@ import sqlalchemy
 import decorator
 import argparse
 
-from decimal import Decimal, getcontext, ROUND_HALF_DOWN, ROUND_DOWN
+from decimal import Decimal, getcontext, ROUND_HALF_DOWN, ROUND_DOWN, localcontext
 from flask import current_app
 from flask.ext.script import Manager
 from cryptokit import bits_to_difficulty
@@ -371,6 +372,46 @@ def run_payouts(dont_simulate=False):
         current_app.logger.info("==== Done processing block hash {}".format(hash))
 
 
+def distributor(amount, splits):
+    """ Evenly distributes an amount among a dictionary.  Dictionary values
+    should be integers (or decimals) representing the ratio the amount should
+    be split among. Remainders are simply round robin distributed among splits.
+    """
+    # Round all values to the precision context
+    amount = +amount
+    for key in splits:
+        splits[key] = +splits[key]
+
+    total_count = sum(splits.itervalues())
+    distributed = Decimal('0')
+    # We round down here so the distribution cannot sum to more than the total
+    # amount
+    with localcontext() as ctx:
+        ctx.rounding = ROUND_DOWN
+        for key, val in splits.iteritems():
+            assert isinstance(val, Decimal)
+            splits[key] = (val / total_count) * amount
+            distributed += splits[key]
+
+    # The amount that hasn't been distributed
+    remainder = amount - distributed
+    # How many parts we can split this remainder into
+    divisions = int("".join(map(str, remainder.as_tuple()[1])))
+    smallest = remainder / divisions
+    # Loop over the dictionary keys in round robin order until we've
+    # distributed all the remaining parts
+    for i, key in zip(xrange(remainder / smallest), itertools.cycle(splits)):
+        splits[key] += smallest
+
+    total_after_rr = sum(splits.itervalues())
+    # And it should come out exact!
+    if total_after_rr != amount:
+        raise Exception("Value after distribution ({}) is not equal to amount"
+                        " to be distributed ({})!".format(total_after_rr, amount))
+
+    return splits
+
+
 def payout(redis_key, simulate=False):
     """
     Calculates payouts for users from share records for the latest found block.
@@ -412,7 +453,7 @@ def payout(redis_key, simulate=False):
         if key.startswith("chain_"):
             _, chain_id, key = key.split("_", 2)
             chain_id = int(chain_id)
-            chain = chain_data.setdefault(chain_id, {})
+            chain = chain_data.setdefault(chain_id, {'shares': Decimal('0')})
             if key == "shares":
                 value = Decimal(value)
             chain[key] = value
@@ -423,7 +464,7 @@ def payout(redis_key, simulate=False):
     # We want to determine each user's shares based on the payout method
     # of that share chain. Those shares will then be paid out proportionally
     # with payout_chain()
-    total_shares = sum([dat.get('shares', 0) for dat in chain_data.itervalues()])
+    total_shares = sum([dat['shares'] for dat in chain_data.itervalues()])
     chain_all_paid = Decimal('0')
     for id, data in chain_data.iteritems():
         current_app.logger.info("**** Starting processing chain {}".format(id))
@@ -433,7 +474,9 @@ def payout(redis_key, simulate=False):
                          shares=data['shares'])
         db.session.add(bp)
         block_payouts.append(bp)
+        # Actually fetch the shares from redis!
         user_shares = chains[id].calc_shares(bp)
+        # If we have nothing, default to paying out the block finder everything
         if not user_shares:
             user_shares[block.user] = 1
         chain_total_value = block.total_value * (data['shares'] / total_shares)
@@ -441,6 +484,7 @@ def payout(redis_key, simulate=False):
         chain_all_paid += chain_total_value
         current_app.logger.info("**** Done processing chain {}".format(id))
 
+    # Another paranoid double check
     if abs(chain_all_paid - block.total_value) > Decimal('0.000000000001'):
         raise Exception(
             "Total paid out to all chains ({}) is not equal to total block value ({})!"
