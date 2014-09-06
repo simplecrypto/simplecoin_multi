@@ -74,21 +74,20 @@ def update_trade_requests():
         tr._status = 6
 
         if not tr.payouts:
-            current_app.logger.warn("Trade request has no attached payouts")
+            current_app.logger.warn("Trade request #{} has no attached payouts".format(tr.id))
         if tr.payouts:
             # calculate user payouts based on percentage of the total
             # exchanged value
             for payout in tr.payouts:
                 if tr.type == "sell":
                     assert payout.sell_amount is None
-                    current_app.logger.warn(tr.exchanged_quantity)
                     payout.sell_amount = (payout.amount * tr.exchanged_quantity) / tr.quantity
                 elif tr.type == "buy":
                     assert payout.buy_amount is None
                     payout.buy_amount = (payout.sell_amount * tr.exchanged_quantity) / tr.quantity
                     payout.payable = True
                 else:
-                    raise AttributeError("Invalid tr type")
+                    raise AttributeError("Invalid tr type \'{}\'".format(tr.type))
 
             # double check successful distribution at the satoshi
             if tr.type == "sell":
@@ -116,7 +115,12 @@ def get_payouts():
     be processed. Transaction information is signed for safety. """
     current_app.logger.info("get_payouts being called, args of {}!"
                             .format(g.signed))
-    currency = g.signed['currency']
+    try:
+        currency = g.signed['currency']
+    except KeyError:
+        current_app.logger.warn("Invalid data passed to get_payouts",
+                                exc_info=True)
+        abort(400)
 
     with Benchmark("Fetching payout information"):
         query = PayoutAggregate.query.filter_by(transaction_id=None,
@@ -128,49 +132,44 @@ def get_payouts():
 
 @rpc_views.route("/update_payouts", methods=['POST'])
 def update_payouts():
-    """ Used as a response from an rpc payout system. This will either reset
-    the locked status of a list of transactions upon failure on the remote
-    side, or create a new CoinTransaction object and link it to the
+    """ Used as a response from an rpc payout system. This will create a
+    new CoinTransaction object and link it to the
     transactions to signify that the transaction has been processed. """
     # basic checking of input
     try:
-        if 'coin_txid' in g.signed:
-            assert len(g.signed['coin_txid']) == 64
-        else:
-            assert 'reset' in g.signed
-            assert isinstance(g.signed['reset'], bool)
+        assert 'coin_txid' in g.signed
+        assert 'currency' in g.signed
+        assert 'pids' in g.signed
+        assert 'tx_fee' in g.signed
+        assert len(g.signed['coin_txid']) == 64
         assert isinstance(g.signed['pids'], list)
-        assert isinstance(g.signed['bids'], list)
         for id in g.signed['pids']:
-            assert isinstance(id, int)
-        for id in g.signed['bids']:
             assert isinstance(id, int)
     except AssertionError:
         current_app.logger.warn("Invalid data passed to confirm",
                                 exc_info=True)
         abort(400)
 
-    if 'coin_txid' in g.signed:
-        with Benchmark("Associating payout transaction ids"):
-            currency = g.signed['currency']
+    with Benchmark("Associating payout transaction ids"):
+        currency = g.signed['currency']
 
-            try:
-                trans = Transaction.create(txid=g.signed['coin_txid'],
-                                           currency=currency)
-                db.session.add(trans)
-                db.session.flush()
-            except sqlalchemy.exc.IntegrityError:
-                db.session.rollback()
-                current_app.logger.warn("Transaction id {} already exists!"
-                                        .format(g.signed['coin_txid']))
+        try:
+            trans = Transaction(txid=g.signed['coin_txid'],
+                                fees=g.signed['tx_fee'],
+                                currency=currency)
+            db.session.add(trans)
+            db.session.flush()
+        except sqlalchemy.exc.IntegrityError:
+            db.session.rollback()
+            current_app.logger.warn("Transaction id {} already exists!"
+                                    .format(g.signed['coin_txid']))
 
-            if g.signed['pids']:
-                PayoutAggregate.query.filter(
-                    PayoutAggregate.id.in_(g.signed['pids'])).update(
-                        {PayoutAggregate.transaction_id: g.signed['coin_txid']},
-                        synchronize_session=False)
+        PayoutAggregate.query.filter(
+            PayoutAggregate.id.in_(g.signed['pids'])).update(
+                {PayoutAggregate.transaction_id: g.signed['coin_txid']},
+                synchronize_session=False)
 
-            db.session.commit()
+        db.session.commit()
 
     return sign(dict(result=True))
 
@@ -181,17 +180,12 @@ def confirm_transactions():
     # basic checking of input
     try:
         assert isinstance(g.signed['tids'], list)
-        assert isinstance(g.signed['fees'], list)
     except AssertionError:
         current_app.logger.warn("Invalid data passed to confirm_transactions",
                                 exc_info=True)
         abort(400)
 
     txdata = {}
-    for txid, fee in g.signed['fees'].iteritems():
-        txdata.setdefault(txid, {})
-        txdata[txid][Transaction.fee] = fee
-
     for txid in g.signed['tids']:
         txdata.setdefault(txid, {})
         txdata[txid][Transaction.confirmed] = True
