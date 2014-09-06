@@ -126,36 +126,34 @@ def get_payouts():
         query = PayoutAggregate.query.filter_by(transaction_id=None,
                                                 currency=currency)
         # XXX: Add the min payout amount code here!
-        pids = [(p.user, p.amount, p.id) for p in query]
+        pids = [(p.user, str(p.amount), p.id) for p in query]
     return sign(dict(pids=pids))
 
 
-@rpc_views.route("/update_payouts", methods=['POST'])
-def update_payouts():
-    """ Used as a response from an rpc payout system. This will create a
-    new CoinTransaction object and link it to the
+@rpc_views.route("/associate_payouts", methods=['POST'])
+def associate_payouts():
+    """ Used to update a SC Payout with a network transaction. This will
+    create a new CoinTransaction object and link it to the
     transactions to signify that the transaction has been processed. """
     # basic checking of input
     try:
         assert 'coin_txid' in g.signed
-        assert 'currency' in g.signed
         assert 'pids' in g.signed
-        assert 'tx_fee' in g.signed
         assert len(g.signed['coin_txid']) == 64
         assert isinstance(g.signed['pids'], list)
         for id in g.signed['pids']:
             assert isinstance(id, int)
-    except AssertionError:
+        tx_fee = Decimal(g.signed['tx_fee'])
+        currency = g.signed['currency']
+    except (AssertionError, KeyError, TypeError):
         current_app.logger.warn("Invalid data passed to confirm",
                                 exc_info=True)
         abort(400)
 
     with Benchmark("Associating payout transaction ids"):
-        currency = g.signed['currency']
-
         try:
             trans = Transaction(txid=g.signed['coin_txid'],
-                                fees=g.signed['tx_fee'],
+                                fees=tx_fee,
                                 currency=currency)
             db.session.add(trans)
             db.session.flush()
