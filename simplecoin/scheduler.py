@@ -131,8 +131,7 @@ def create_aggrs():
 
     q = Payout.query.filter_by(payable=True, aggregate_id=None).all()
     for payout in q:
-        curr = currencies.lookup_address(payout.payout_address).key
-        aggr = get_payout_aggr(curr, payout.user, payout.payout_address)
+        aggr = get_payout_aggr(payout.payout_currency, payout.user, payout.payout_address)
         payout.aggregate = aggr
         if payout.type == 1:
             aggr.amount += payout.buy_amount
@@ -154,7 +153,7 @@ def create_aggrs():
                        amount=user_extra,
                        fee_perc=0,
                        pd_perc=0,
-                       currency=currency,
+                       payout_currency=currency,
                        payout_address=payout_address,
                        payable=True)
             db.session.add(p)

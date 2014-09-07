@@ -222,7 +222,7 @@ def create_app(mode, config='config.yml', log_level=None):
     # =======================================================================
     from . import views, models, api, rpc_views
     app.register_blueprint(views.main)
-    app.register_blueprint(rpc_views.main)
+    app.register_blueprint(rpc_views.rpc_views)
     app.register_blueprint(api.api, url_prefix='/api')
 
     return app

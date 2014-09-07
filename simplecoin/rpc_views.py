@@ -1,56 +1,71 @@
-from decimal import Decimal
-from itsdangerous import TimedSerializer
-from flask import current_app, request, abort, Blueprint
+import six
+import sys
+import sqlalchemy
 
-from .models import Transaction, Payout, TradeRequest
+from flask import current_app, request, abort, Blueprint, g
+from itsdangerous import TimedSerializer, BadData
+from decimal import Decimal
+
+from .models import Transaction, PayoutAggregate, TradeRequest
 from .utils import Benchmark
 from . import db
 
 
-main = Blueprint('rpc', __name__)
+rpc_views = Blueprint('rpc_views', __name__)
 
 
-@main.route("/get_trade_requests", methods=['POST'])
+@rpc_views.errorhandler(Exception)
+def api_error_handler(exc):
+    try:
+        six.reraise(type(exc), exc, tb=sys.exc_info()[2])
+    except Exception:
+        current_app.logger.error(
+            "Unhandled exception encountered in rpc view",
+            exc_info=True)
+    resp = dict(result=False)
+    return sign(resp, 500)
+
+
+def sign(data, code=200):
+    serialized = g.signer.dumps(data)
+    return serialized
+
+
+@rpc_views.before_request
+def check_signature():
+    g.signer = TimedSerializer(current_app.config['rpc_signature'])
+    try:
+        g.signed = g.signer.loads(request.data)
+    except BadData:
+        abort(403)
+
+
+@rpc_views.route("/rpc/get_trade_requests", methods=['POST'])
 def get_trade_requests():
     """ Used by remote procedure call to retrieve a list of sell requests to
     be processed. Transaction information is signed for safety. """
-    s = TimedSerializer(current_app.config['rpc_signature'])
-    args = s.loads(request.data)
     current_app.logger.info("get_sell_requests being called, args of {}!".
-                            format(args))
-    lock = False
-    if isinstance(args, dict) and args['lock']:
-        lock = True
-
-    trade_requests = TradeRequest.query.filter_by(_status=0, locked=False).all()
+                            format(g.signed))
+    trade_requests = TradeRequest.query.filter_by(_status=0).all()
     trs = [(tr.id, tr.currency, float(tr.quantity), tr.type) for tr in trade_requests]
-
-    if lock:
-        current_app.logger.info("Locking sell requests at retriever request.")
-        for tr in trade_requests:
-            tr.locked = True
-        db.session.commit()
-    return s.dumps([trs, lock])
+    return sign(dict(trs=trs))
 
 
-@main.route("/update_trade_requests", methods=['POST'])
+@rpc_views.route("/rpc/update_trade_requests", methods=['POST'])
 def update_trade_requests():
     """ Used as a response from an rpc sell request system. This will update
     the amount received for a sell request and its status. Both request and
     response are signed. """
-    s = TimedSerializer(current_app.config['rpc_signature'])
-    data = s.loads(request.data)
-
     # basic checking of input
     try:
-        assert 'completed_trs' in data
-        assert isinstance(data['completed_trs'], dict)
+        assert 'completed_trs' in g.signed
+        assert isinstance(g.signed['completed_trs'], dict)
     except AssertionError:
         current_app.logger.warn("Invalid data passed to update_sell_requests",
                                 exc_info=True)
         abort(400)
 
-    for tr_id, (quantity, fees) in data['completed_trs'].iteritems():
+    for tr_id, (quantity, fees) in g.signed['completed_trs'].iteritems():
         tr_id = int(tr_id)
         tr = (TradeRequest.query.filter_by(id=tr_id).with_lockmode('update').
               one())
@@ -59,21 +74,20 @@ def update_trade_requests():
         tr._status = 6
 
         if not tr.payouts:
-            current_app.logger.warn("Trade request has no attached payouts")
+            current_app.logger.warn("Trade request #{} has no attached payouts".format(tr.id))
         if tr.payouts:
             # calculate user payouts based on percentage of the total
             # exchanged value
             for payout in tr.payouts:
                 if tr.type == "sell":
                     assert payout.sell_amount is None
-                    current_app.logger.warn(tr.exchanged_quantity)
                     payout.sell_amount = (payout.amount * tr.exchanged_quantity) / tr.quantity
                 elif tr.type == "buy":
                     assert payout.buy_amount is None
                     payout.buy_amount = (payout.sell_amount * tr.exchanged_quantity) / tr.quantity
                     payout.payable = True
                 else:
-                    raise AttributeError("Invalid tr type")
+                    raise AttributeError("Invalid tr type \'{}\'".format(tr.type))
 
             # double check successful distribution at the satoshi
             if tr.type == "sell":
@@ -91,123 +105,93 @@ def update_trade_requests():
                 format(tr.id, tr.exchanged_quantity, len(tr.payouts)))
 
     db.session.commit()
-    return s.dumps(dict(success=True, result="Trade requests successfully "
-                                             "updated."))
+    return sign(dict(success=True,
+                     result="Trade requests successfully updated."))
 
 
-@main.route("/reset_trade_requests", methods=['POST'])
-def reset_trade_requests():
-    """ Used as a response from an rpc sell request system. This will reset
-    the locked status of a list of sell requests upon failure on the remote
-    side. Both request and response are signed. """
-    s = TimedSerializer(current_app.config['rpc_signature'])
-    data = s.loads(request.data)
-
-    # basic checking of input
+@rpc_views.route("/rpc/get_payouts", methods=['POST'])
+def get_payouts():
+    """ Used by remote procedure call to retrieve a list of payout amounts to
+    be processed. Transaction information is signed for safety. """
+    current_app.logger.info("get_payouts being called, args of {}!"
+                            .format(g.signed))
     try:
-        assert 'reset' in data
-        assert isinstance(data['reset'], bool)
-        assert isinstance(data['tr_ids'], list)
-        for id in data['tr_ids']:
-            assert isinstance(id, int)
-    except AssertionError:
-        current_app.logger.warn("Invalid data passed to reset_trade_requests",
+        currency = g.signed['currency']
+    except KeyError:
+        current_app.logger.warn("Invalid data passed to get_payouts",
                                 exc_info=True)
         abort(400)
 
-    if data['reset'] and data['tr_ids']:
-        srs = TradeRequest.query.filter(TradeRequest.id.in_(data['tr_ids'])).all()
-        for sr in srs:
-            sr.locked = False
-        db.session.commit()
-        return s.dumps(dict(success=True, result="Successfully reset"))
-
-    return s.dumps(True)
-
-
-@main.route("/get_payouts", methods=['POST'])
-def get_payouts():
-    """ Used by remote procedure call to retrieve a list of transactions to
-    be processed. Transaction information is signed for safety. """
-    s = TimedSerializer(current_app.config['rpc_signature'])
-    args = s.loads(request.data)
-    current_app.logger.info("get_payouts being called, args of {}!".format(args))
-    lock = False
-    merged = None
-    if isinstance(args, dict) and args['lock']:
-        lock = True
-    if isinstance(args, dict) and args['merged']:
-        merged = args['merged']
-
     with Benchmark("Fetching payout information"):
-        pids = [(p.user, p.amount, p.id) for p in Payout.query.filter_by(transaction_id=None, locked=False, merged_type=merged).
-                join(Payout.block, aliased=True).filter_by(mature=True)]
-
-        if lock:
-            if pids:
-                current_app.logger.info("Locking {} payout ids at retriever request."
-                                        .format(len(pids)))
-                (Payout.query.filter(Payout.id.in_(p[2] for p in pids))
-                 .update({Payout.locked: True}, synchronize_session=False))
-            db.session.commit()
-    return s.dumps([pids, lock])
+        query = PayoutAggregate.query.filter_by(transaction_id=None,
+                                                currency=currency)
+        # XXX: Add the min payout amount code here!
+        pids = [(p.user, str(p.amount), p.id) for p in query]
+    return sign(dict(pids=pids))
 
 
-@main.route("/update_payouts", methods=['POST'])
-def update_transactions():
-    """ Used as a response from an rpc payout system. This will either reset
-    the locked status of a list of transactions upon failure on the remote
-    side, or create a new CoinTransaction object and link it to the
-    transactions to signify that the transaction has been processed. Both
-    request and response are signed. """
-    s = TimedSerializer(current_app.config['rpc_signature'])
-    data = s.loads(request.data)
-
+@rpc_views.route("/rpc/associate_payouts", methods=['POST'])
+def associate_payouts():
+    """ Used to update a SC Payout with a network transaction. This will
+    create a new CoinTransaction object and link it to the
+    transactions to signify that the transaction has been processed. """
     # basic checking of input
     try:
-        if 'coin_txid' in data:
-            assert len(data['coin_txid']) == 64
-        else:
-            assert 'reset' in data
-            assert isinstance(data['reset'], bool)
-        assert isinstance(data['pids'], list)
-        assert isinstance(data['bids'], list)
-        for id in data['pids']:
-            assert isinstance(id, int)
-        for id in data['bids']:
-            assert isinstance(id, int)
-    except AssertionError:
-        current_app.logger.warn("Invalid data passed to confirm", exc_info=True)
+        assert 'coin_txid' in g.signed
+        assert 'pids' in g.signed
+        assert len(g.signed['coin_txid']) == 64
+        assert isinstance(g.signed['pids'], list)
+
+        for id in g.signed['pids']:
+            id = int(id)
+        tx_fee = Decimal(g.signed['tx_fee'])
+        currency = g.signed['currency']
+    except (AssertionError, KeyError, TypeError):
+        current_app.logger.warn("Invalid data passed to confirm",
+                                exc_info=True)
         abort(400)
 
-    if data['reset']:
-        with Benchmark("Resetting {:,} payouts and {:,} bonus payouts locked status"
-                       .format(len(data['pids']), len(data['bids']))):
-            if data['pids']:
-                Payout.query.filter(Payout.id.in_(data['pids'])).update(
-                    {Payout.locked: False}, synchronize_session=False)
-            db.session.commit()
-        return s.dumps(dict(success=True, result="Successfully reset"))
+    with Benchmark("Associating payout transaction ids"):
+        try:
+            trans = Transaction(txid=g.signed['coin_txid'],
+                                network_fee=tx_fee,
+                                currency=currency)
+            db.session.add(trans)
+            db.session.flush()
+        except sqlalchemy.exc.IntegrityError:
+            db.session.rollback()
+            current_app.logger.warn("Transaction id {} already exists!"
+                                    .format(g.signed['coin_txid']))
 
-    return s.dumps(True)
+        PayoutAggregate.query.filter(
+            PayoutAggregate.id.in_(g.signed['pids'])).update(
+                {PayoutAggregate.transaction_id: g.signed['coin_txid']},
+                synchronize_session=False)
+
+        db.session.commit()
+
+    return sign(dict(result=True))
 
 
-@main.route("/confirm_transactions", methods=['POST'])
+@rpc_views.route("/rpc/confirm_transactions", methods=['POST'])
 def confirm_transactions():
     """ Used to confirm that a transaction is now complete on the network. """
-    s = TimedSerializer(current_app.config['rpc_signature'])
-    data = s.loads(request.data)
-
     # basic checking of input
     try:
-        assert isinstance(data['tids'], list)
+        assert isinstance(g.signed['tids'], list)
     except AssertionError:
         current_app.logger.warn("Invalid data passed to confirm_transactions",
                                 exc_info=True)
         abort(400)
 
-    Transaction.query.filter(Transaction.txid.in_(data['tids'])).update(
-        {Transaction.confirmed: True}, synchronize_session=False)
+    txdata = {}
+    for txid in g.signed['tids']:
+        txdata.setdefault(txid, {})
+        txdata[txid][Transaction.confirmed] = True
+
+    for txid in txdata:
+        Transaction.query.filter(Transaction.txid.in_(txid)).update(
+            txdata[txid], synchronize_session=False)
     db.session.commit()
 
-    return s.dumps(True)
+    return sign(dict(result=True))

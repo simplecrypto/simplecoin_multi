@@ -53,7 +53,6 @@ class TradeRequest(base):
     currency = db.Column(db.String, nullable=False)
     # Quantity of currency to be traded
     quantity = db.Column(db.Numeric, nullable=False)
-    locked = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     type = db.Column(db.Enum("sell", "buy", name="req_type"), nullable=False)
 
@@ -210,6 +209,9 @@ class Transaction(base):
     confirmed = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     currency = db.Column(db.String)
+    network_fee = db.Column(db.Numeric)
+
+    standard_join = ['txid', 'confirmed', 'created_at', 'currency', '__dont_mongo']
 
 
 class Payout(base):
@@ -417,7 +419,7 @@ class PayoutAggregate(base):
 
     @property
     def payout_currency(self):
-        return currencies[self.currency]
+        return self.currency
 
     @property
     def status(self):
