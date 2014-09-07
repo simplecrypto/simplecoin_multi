@@ -117,13 +117,13 @@ def create_aggrs():
     aggrs = {}
     adds = {}
 
-    def get_payout_aggr(currency, user, payout_address):
+    def get_payout_aggr(currency, user, address):
         """ Create a aggregate if we don't have one for this batch,
         otherwise use the one that was already created """
-        key = (currency, user, payout_address)
+        key = (currency, user, address)
         if key not in aggrs:
             aggr = PayoutAggregate(currency=currency, count=0, user=user,
-                                   payout_address=payout_address)
+                                   address=address)
             db.session.add(aggr)
             db.session.flush()
             # silly way to defer the constraint
@@ -133,7 +133,7 @@ def create_aggrs():
 
     q = Payout.query.filter_by(payable=True, aggregate_id=None).all()
     for payout in q:
-        aggr = get_payout_aggr(payout.payout_currency, payout.user, payout.payout_address)
+        aggr = get_payout_aggr(payout.currency, payout.user, payout.address)
         payout.aggregate = aggr
         if payout.type == 1:
             aggr.amount += payout.buy_amount
@@ -143,7 +143,7 @@ def create_aggrs():
         aggr.count += 1
 
     # Round down to a payable amount (1 satoshi) + record remainder
-    for (currency, user, payout_address), aggr in aggrs.iteritems():
+    for (currency, user, address), aggr in aggrs.iteritems():
         with decimal.localcontext() as ctx:
             ctx.rounding = decimal.ROUND_DOWN
             amt_payable = aggr.amount.quantize(current_app.SATOSHI)
@@ -157,7 +157,7 @@ def create_aggrs():
                            fee_perc=0,
                            pd_perc=0,
                            currency=currency,
-                           payout_address=payout_address,
+                           address=address,
                            payable=True)
                 db.session.add(p)
                 current_app.logger.info(
@@ -165,7 +165,7 @@ def create_aggrs():
                     .format(currency, user_extra, user))
 
     # Generate some simple stats about what we've done
-    for (currency, user, payout_address), aggr in aggrs.iteritems():
+    for (currency, user, address), aggr in aggrs.iteritems():
         adds.setdefault(currency, [0, 0, 0])
         adds[currency][0] += aggr.amount
         adds[currency][1] += aggr.count
@@ -173,7 +173,7 @@ def create_aggrs():
 
     for curr, (tamount, tcount, count) in adds.iteritems():
         current_app.logger.info(
-            "Created {} aggregates paying {} {} for {} payouts"
+            "Created {:,} aggregates paying {} {} for {:,} payouts"
             .format(count, tamount, curr, tcount))
 
     if not adds:
@@ -225,7 +225,7 @@ def create_trade_req(typ):
             # We're selling using the mined currency
             req.quantity += payout.amount
         elif typ == "buy":
-            curr = currencies.lookup_address(payout.payout_address).key
+            curr = currencies[payout.currency].key
             req = get_trade_req(curr)
             payout.buy_req = req
             # We're buying using the currency from the sell request
@@ -569,11 +569,10 @@ def payout(redis_key, simulate=False):
                 # Check to make sure no funny business
                 assert sum(c[2] for c in converted) == shares, "Settings apply function returned bad stuff"
                 # Create the separate payout objects from settings return info
-                for payout_address, payout_currency, shares in converted:
-                    chain.make_credit_obj(shares=shares,
-                                          **filter_valid(username,
-                                                         payout_address,
-                                                         payout_currency))
+                for address, currency, shares in converted:
+                    chain.make_credit_obj(
+                        shares=shares,
+                        **filter_valid(username, address, currency))
             else:
                 # (try to) Payout directly to mining address
                 chain.make_credit_obj(

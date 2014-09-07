@@ -272,8 +272,8 @@ class Payout(base):
     block = db.relationship('Block', foreign_keys=[blockhash], backref='payouts')
     user = db.Column(db.String)
     sharechain_id = db.Column(db.SmallInteger)
-    address = db.Column(db.String)
-    currency = db.Column(db.String)
+    address = db.Column(db.String, nullable=False)
+    currency = db.Column(db.String, nullable=False)
     amount = db.Column(db.Numeric, CheckConstraint('amount > 0', 'min_payout_amount'))
     fee_perc = db.Column(db.SmallInteger)
     pd_perc = db.Column(db.SmallInteger)
@@ -297,8 +297,8 @@ class Payout(base):
                      'transaction_id']
 
     @property
-    def payout_currency_obj(self):
-        return currencies[self.payout_currency]
+    def currency_obj(self):
+        return currencies[self.currency]
 
     @property
     def amount_float(self):
@@ -412,7 +412,7 @@ class PayoutExchange(Payout):
 
         # Don't say we're purchasing if we'd be shown as purchasing BTC to
         # avoid confusion
-        btc = currencies.lookup_address(self.payout_address).key == "BTC"
+        btc = self.currency == "BTC"
         if self.buy_req and not btc:
             return "Purchasing desired currency"
 
@@ -445,7 +445,7 @@ class PayoutAggregate(base):
     transaction_id = db.Column(db.String(64), db.ForeignKey('transaction.txid'))
     transaction = db.relationship('Transaction', backref='aggregates')
     user = db.Column(db.String)
-    payout_address = db.Column(db.String, nullable=False)
+    address = db.Column(db.String, nullable=False)
     currency = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     amount = db.Column(db.Numeric, CheckConstraint('amount > 0',
@@ -465,15 +465,6 @@ class PayoutAggregate(base):
     @property
     def timestamp(self):
         return calendar.timegm(self.found_at.utctimetuple())
-
-    @classmethod
-    def create(cls, txid, user, amount, payout_address, count=None):
-        aggr = cls(user=user,
-                   payout_address=payout_address,
-                   amount=amount,
-                   count=count)
-        db.session.add(aggr)
-        return aggr
 
 
 @classmethod
