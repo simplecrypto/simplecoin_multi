@@ -13,24 +13,37 @@
         </div>
         <div class="panel-body">
           <ul>
-            <li>No registration - use your wallet address as a username</li>
-            <li>Autoexchange mining rewards to your desired currency</li>
+            <li>No registration. Use a wallet address as a username</li>
+            <li>Automatically exchanges mining rewards to the currency of your username address</li>
+            <li>Auto convert is disableable for currencies you want to keep</li>
             <li>Seamless merge mining</li>
-            <li>1% single currency fee, 2% multi fee</li>
-            <li>No transaction fees</li>
-            <li>No currency conversion fees</li>
+            <li>2% fee on profit-switching port, 1% fee otherwise</li>
+            <li>No payout transaction fees</li>
+            <li>Miners keep block transaction fees</li>
+            <li>Currency conversion fees are passed along to miner</li>
             <li>Vardiff enabled + manual difficulty selection available</li>
             <li>Daily payouts - No minimum amount</li>
             <li>PPLNS payout</li>
           </ul>
         </div>
+          <div class="well well-lg" style="text-align:center;background-color:#212F3D;margin-bottom:0px;">
+            <h3 data-toggle="collapse" data-target="#payout-currencies">Current Payout Currencies
+              <div id="pool-details" class="btn btn-default pull-right btn-sm collapse-button">[+]</div></h3>
+          </div>
+          <div class="panel-body collapse" id="payout-currencies" style="padding-bottom:0px;padding-top:0px;">
+            <ul style="padding-top:15px;padding-bottom:15px;">
+              {% for c in payout_currencies %}
+              <li>{{ c }}</li>
+              {% endfor %}
+            </ul>
+          </div>
       </div>
 
       <div class="panel panel-default" style="min-height: 250px;">
         <div class="panel-heading">Payouts + currency conversion info
         </div>
         <div class="panel-body">
-          <p>You can mine with any valid address for a currency we pay out in. {{ payout_currencies }}</p>
+          <p>You can mine with any valid address for a currency we pay out in.</p>
           <p>Your earnings are (by default) converted to the currency of that address</p>
           <p>If you want to keep a specific coin, instead of converting
             it, just add a payout address for it to your account.</p>
@@ -46,6 +59,8 @@
         </div>
         <div class="panel-body">
           <h4><b>No registration required, payouts go to the address used as username.</b></h4>
+          <b>Note</b>: Username <b>MUST</b> be a valid address for a currency we payout in, listed <a href="#" data-toggle="collapse" data-target="#payout-currencies">here</a>
+          <p>
           <ol>
               <li>Configure your stratum client with the information below and start mining:
                 <p><small>

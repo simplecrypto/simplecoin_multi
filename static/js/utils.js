@@ -137,6 +137,11 @@ $(document).ready(function() {
   // Setup collapse button for configuration guide
   flip('#miner-config', '#config-guide', '[+]', '[-]');
 
+  // Setup collapse button for currencies
+  flip('#payout-currencies', '#pool-details', '[+]', '[-]');
+
+
+
 ////////////////////////////////////////////
 // JS for configuration guide
 ////////////////////////////////////////////
@@ -145,6 +150,12 @@ $(document).ready(function() {
     $('span.mining-username').html(valid_address);
     wrap_link('#stats-link', valid_address);
     wrap_link('#settings-link', valid_address);
+  });
+
+  // config guide - set username + curr
+  $('#availCurr').change(function() {
+    $('#configUserAddr').attr("name", $(this).val());
+    $('#configUserAddr').blur();
   });
 
   $('.server-region').change(function() {

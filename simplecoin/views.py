@@ -27,7 +27,9 @@ def home():
 
 @main.route("/configuration_guide")
 def configuration_guide():
+    payout_currencies = currencies.exchangeable_currencies
     return render_template('config_guide_wrapper.html',
+                           payout_currencies=payout_currencies,
                            locations=locations)
 
 
