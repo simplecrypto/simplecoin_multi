@@ -30,7 +30,7 @@
                 <th data-sort-value="{{ aggr.timestamp }}">{{ aggr.created_at | human_date_utc }}</th>
                 <th>{{ aggr.amount }}</th>
                 <th>{{ aggr.currency }}</th>
-                <th>{{ aggr.transaction_id or "" }}</th>
+                <th>{% if aggr.transaction %}{{ aggr.transaction.txid }}{% endif %}</th>
                 <th>{{ aggr.status }}</th>
               </tr>
             {% endfor %}

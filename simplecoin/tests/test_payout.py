@@ -3,7 +3,7 @@ import unittest
 from decimal import Decimal
 from simplecoin import db, currencies
 from simplecoin.scheduler import distributor
-from simplecoin.tests import RedisUnitTest
+from simplecoin.tests import RedisUnitTest, UnitTest
 from simplecoin.models import Payout, Block
 from simplecoin.scheduler import payout
 
@@ -45,9 +45,10 @@ class TestPayouts(RedisUnitTest):
         "merged": "0"
     }
 
-    def test_payout_multichain(self):
+    def test_payout_multichain(self, **kwargs):
         bd = self.test_block_data.copy()
         bd.update(dict(chain_2_solve_index="1", chain_2_shares="18"))
+        bd.update(**kwargs)
         self.app.redis.hmset(
             "unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f",
             bd)
@@ -67,11 +68,16 @@ class TestPayouts(RedisUnitTest):
         self.assertEqual(
             payouts[1].address,
             currencies[self.app.config['pool_payout_currency']].pool_payout_addr)
+        for p in payouts:
+            assert p.block == block
 
-    def test_payout(self):
+    def test_payout(self, **kwargs):
+        bd = self.test_block_data.copy()
+        bd.update(**kwargs)
         self.app.redis.hmset(
             "unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f",
-            self.test_block_data)
+            bd)
+
         self.app.redis.rpush("chain_1_slice_17", *["Vfmiz3ZVZfXFvpZTtsLnvHXJCRmsZiaVFH:1"] * 30)
         payout("unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f")
 
@@ -85,3 +91,13 @@ class TestPayouts(RedisUnitTest):
         self.assertEqual(block.height, 247)
         self.assertEqual(len(block.chain_payouts), 1)
         self.assertEqual(block.chain_payouts[0].amount, block.total_value)
+        for p in payouts:
+            assert p.block == block
+
+    def test_payout_merged(self):
+        self.test_payout(merged="1")
+        assert Block.query.first().merged
+
+    def test_payout_multichain_merged(self):
+        self.test_payout_multichain(merged="1")
+        assert Block.query.first().merged

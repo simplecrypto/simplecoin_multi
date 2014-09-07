@@ -15,6 +15,7 @@ class SqliteNumeric(types.TypeDecorator):
     def load_dialect_impl(self, dialect):
         if dialect.name == "sqlite":
             return dialect.type_descriptor(types.VARCHAR)
+        return self.impl
 
     def process_bind_param(self, value, dialect):
         if dialect.name == "sqlite":

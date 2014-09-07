@@ -92,8 +92,8 @@ class TradeRequest(base):
 class ChainPayout(base):
     # The share chain that contributed this portion of shares to the block
     chainid = db.Column(db.Integer, primary_key=True)
-    blockhash = db.Column(db.String, db.ForeignKey('block.hash'), primary_key=True)
-    block = db.relationship('Block', foreign_keys=[blockhash], backref='chain_payouts')
+    block_id = db.Column(db.Integer, db.ForeignKey('block.id'), primary_key=True)
+    block = db.relationship('Block', foreign_keys=[block_id], backref='chain_payouts')
     # Placeholder for the point at which the block was solved in this share chain.
     solve_slice = db.Column(db.Integer)
     # Shares on this chain. Used to get portion of total block
@@ -157,7 +157,8 @@ class ChainPayout(base):
 class Block(base):
     """ This class stores metadata on all blocks found by the pool """
     # the hash of the block for orphan checking
-    hash = db.Column(db.String(64), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
+    hash = db.Column(db.String(64), unique=True)
     height = db.Column(db.Integer, nullable=False)
     # User who discovered block
     user = db.Column(db.String)
@@ -255,10 +256,11 @@ class Block(base):
 
 
 class Transaction(base):
-    txid = db.Column(db.String(64), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
+    txid = db.Column(db.String(64), unique=True)
     confirmed = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    currency = db.Column(db.String)
+    currency = db.Column(db.String, nullable=False)
     network_fee = db.Column(db.Numeric)
 
     standard_join = ['txid', 'confirmed', 'created_at', 'currency', '__dont_mongo']
@@ -268,8 +270,8 @@ class Payout(base):
     """ A payout for currency directly crediting a users balance. These
     have no intermediary exchanges. """
     id = db.Column(db.Integer, primary_key=True)
-    blockhash = db.Column(db.String(64), db.ForeignKey('block.hash'))
-    block = db.relationship('Block', foreign_keys=[blockhash], backref='payouts')
+    block_id = db.Column(db.Integer, db.ForeignKey('block.id'))
+    block = db.relationship('Block', foreign_keys=[block_id], backref='payouts')
     user = db.Column(db.String)
     sharechain_id = db.Column(db.SmallInteger)
     address = db.Column(db.String, nullable=False)
@@ -285,6 +287,7 @@ class Payout(base):
 
     __table_args__ = (
         db.Index('payable_idx', 'payable'),
+        db.Index('user_idx', 'user'),
     )
 
     __mapper_args__ = {
@@ -442,7 +445,7 @@ class PayoutExchange(Payout):
 
 class PayoutAggregate(base):
     id = db.Column(db.Integer, primary_key=True)
-    transaction_id = db.Column(db.String(64), db.ForeignKey('transaction.txid'))
+    transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id'))
     transaction = db.relationship('Transaction', backref='aggregates')
     user = db.Column(db.String)
     address = db.Column(db.String, nullable=False)

@@ -451,7 +451,7 @@ def payout(redis_key, simulate=False):
         worker=data.get('worker'),
         found_at=datetime.datetime.utcfromtimestamp(float(data['solve_time'])),
         algo=data['algo'],
-        merged=merged)
+        merged=bool(merged))
 
     db.session.add(block)
     db.session.flush()
