@@ -310,7 +310,7 @@ def collect_user_stats(user_address):
             summary['earned'] += aggr.amount
 
     # Loop through all unaggregated payouts to find the rest
-    payouts = Payout.query.filter_by(user=user_address, aggregate_id=None).options(db.joinedload('block')).all()
+    payouts = Payout.query.filter_by(user=user_address, aggregate_id=None).filter(Payout.block != None).options(db.joinedload('block')).all()
     for payout in payouts:
         # Group by their desired payout currency
         summary = earning_summary.setdefault(payout.block.currency, def_earnings.copy())
