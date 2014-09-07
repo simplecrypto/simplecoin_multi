@@ -463,7 +463,7 @@ def validate_message_vals(address, **kwargs):
             curr = currencies.lookup_payable_addr(spayout_addr)
         except Exception:
             raise CommandException("Invalid currency address passed for "
-                                   "arbitrary donation!")
+                                   "split payout!")
 
         if not curr.key == spayout_curr:
             raise CommandException("Split address \'{}\' is not a valid {} "
@@ -472,7 +472,7 @@ def validate_message_vals(address, **kwargs):
     # Make sure all percentages are valid
     spayout_perc = validate_str_perc(spayout_perc)
     if spayout_perc is False:
-        raise CommandException("Arbitrary donate percentage invalid! Check to "
+        raise CommandException("Split payout percentage invalid! Check to "
                                "make sure its a value 0-100.")
 
     pdonate_perc = validate_str_perc(pdonate_perc)
@@ -488,18 +488,18 @@ def validate_message_vals(address, **kwargs):
     # Make sure we have both an arb donate addr + an arb donate % or neither
     if not del_spayout_addr:
         if not spayout_perc >= 0 or spayout_addr is False:
-            raise CommandException("Arbitrary donate requires both an address"
+            raise CommandException("Split payout requires both an address"
                                    "and a percentage, or to remove it both "
                                    "must be removed.")
     elif del_spayout_addr:
         if spayout_perc > 0 or spayout_addr:
             raise CommandException("Attempted to perform two conflicting "
-                                   "actions with arbitrary donate! This is "
+                                   "actions with split payout! This is "
                                    "probably our fault - please contact us!")
 
     # Make sure arb donate addr isn't also the main addr
     if spayout_addr == address:
-        raise CommandException("Arbitrary donate address must not be the same "
+        raise CommandException("Split payout address must not be the same "
                                "as the main user address")
 
     return (set_addrs, del_addrs, pdonate_perc, spayout_perc, spayout_addr,

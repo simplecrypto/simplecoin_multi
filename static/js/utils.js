@@ -278,7 +278,7 @@ $(document).ready(function() {
       msg_str += "SET_PDONATE_PERC " + pdPerc + "\t"
     }
 
-    // Validate the Arbitrary donate %
+    // Validate the Split payout %
     var adObj = $("#sPayoutPerc");
     var adPerc = parseFloat(adObj.val());
     if (adObj.val() != '') {
@@ -299,14 +299,14 @@ $(document).ready(function() {
       earnErr.children("#global-perc").show();
     }
 
-    // Make sure if Arbitrary donate % is supplied so is an address
+    // Make sure if Split payout % is supplied so is an address
     if ( (adObj.val() != '' && $("#sPayoutAddr").val() == '') || (adObj.val() == '' && $("#sPayoutAddr").val() != '') ) {
       has_failed = true;
       earnErr.show();
       earnErr.children("#arb-multipart").show();
     }
 
-    // Make sure if Arbitrary addr is not the main addr
+    // Make sure if Split payout addr is not the main addr
     if ( $("#sPayoutAddr").val() == $("div#userAddr").data("addr")) {
       has_failed = true;
       earnErr.show();
