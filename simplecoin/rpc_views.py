@@ -40,7 +40,7 @@ def check_signature():
         abort(403)
 
 
-@rpc_views.route("/get_trade_requests", methods=['POST'])
+@rpc_views.route("/rpc/get_trade_requests", methods=['POST'])
 def get_trade_requests():
     """ Used by remote procedure call to retrieve a list of sell requests to
     be processed. Transaction information is signed for safety. """
@@ -51,7 +51,7 @@ def get_trade_requests():
     return sign(dict(trs=trs))
 
 
-@rpc_views.route("/update_trade_requests", methods=['POST'])
+@rpc_views.route("/rpc/update_trade_requests", methods=['POST'])
 def update_trade_requests():
     """ Used as a response from an rpc sell request system. This will update
     the amount received for a sell request and its status. Both request and
@@ -109,7 +109,7 @@ def update_trade_requests():
                      result="Trade requests successfully updated."))
 
 
-@rpc_views.route("/get_payouts", methods=['POST'])
+@rpc_views.route("/rpc/get_payouts", methods=['POST'])
 def get_payouts():
     """ Used by remote procedure call to retrieve a list of payout amounts to
     be processed. Transaction information is signed for safety. """
@@ -130,7 +130,7 @@ def get_payouts():
     return sign(dict(pids=pids))
 
 
-@rpc_views.route("/associate_payouts", methods=['POST'])
+@rpc_views.route("/rpc/associate_payouts", methods=['POST'])
 def associate_payouts():
     """ Used to update a SC Payout with a network transaction. This will
     create a new CoinTransaction object and link it to the
@@ -141,8 +141,9 @@ def associate_payouts():
         assert 'pids' in g.signed
         assert len(g.signed['coin_txid']) == 64
         assert isinstance(g.signed['pids'], list)
+
         for id in g.signed['pids']:
-            assert isinstance(id, int)
+            id = int(id)
         tx_fee = Decimal(g.signed['tx_fee'])
         currency = g.signed['currency']
     except (AssertionError, KeyError, TypeError):
@@ -153,7 +154,7 @@ def associate_payouts():
     with Benchmark("Associating payout transaction ids"):
         try:
             trans = Transaction(txid=g.signed['coin_txid'],
-                                fees=tx_fee,
+                                network_fee=tx_fee,
                                 currency=currency)
             db.session.add(trans)
             db.session.flush()
@@ -172,7 +173,7 @@ def associate_payouts():
     return sign(dict(result=True))
 
 
-@rpc_views.route("/confirm_transactions", methods=['POST'])
+@rpc_views.route("/rpc/confirm_transactions", methods=['POST'])
 def confirm_transactions():
     """ Used to confirm that a transaction is now complete on the network. """
     # basic checking of input
