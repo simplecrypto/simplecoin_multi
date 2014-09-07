@@ -15,6 +15,7 @@ apscheduler==2.1.2
 setproctitle==1.1.8
 decorator==3.4.0
 ago==0.0.6
+tabulate==0.7.2
 
 # Dependencies of top level requirements
 SQLAlchemy==0.9.1

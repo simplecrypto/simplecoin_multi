@@ -2,6 +2,7 @@ import simplecoin
 import unittest
 
 from simplecoin import db
+from mockredis.noseplugin import WithRedis
 
 
 class UnitTest(unittest.TestCase):
@@ -27,3 +28,10 @@ class UnitTest(unittest.TestCase):
         self.db.drop_all()
         self.db.create_all()
         db.session.commit()
+
+
+class RedisUnitTest(UnitTest):
+    def setUp(self):
+        UnitTest.setUp(self)
+        self.app.redis = WithRedis.Redis()
+        self.app.redis.flushdb()

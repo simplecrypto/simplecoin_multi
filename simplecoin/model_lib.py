@@ -1,8 +1,34 @@
+from decimal import Decimal
 from flask.ext.sqlalchemy import (_BoundDeclarativeMeta, BaseQuery,
                                   _QueryProperty)
 from sqlalchemy.ext.declarative import declarative_base
+import sqlalchemy.types as types
 
 from . import db
+
+
+class SqliteNumeric(types.TypeDecorator):
+    """ Replaces the regular Numeric column and stores decimals as strings
+    if we're using SQLite """
+    impl = types.Numeric
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == "sqlite":
+            return dialect.type_descriptor(types.VARCHAR)
+
+    def process_bind_param(self, value, dialect):
+        if dialect.name == "sqlite":
+            if isinstance(value, Decimal):
+                return str(value)
+        return value
+
+    def process_result_value(self, value, dialect):
+        if dialect.name == "sqlite":
+            if value is None:
+                return None
+            return Decimal(value)
+        return value
+db.Numeric = SqliteNumeric
 
 
 class BaseMapper(object):

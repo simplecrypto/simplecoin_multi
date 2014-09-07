@@ -1,23 +1,54 @@
-# General
+# Global Configuration Information
 # =======================================================================
 # The postgresql database connection configuration
 SQLALCHEMY_DATABASE_URI: postgresql://simplecoin:testing@localhost:5432/simplecoin
 # the session encryption key
 SECRET_KEY: 'somethting_really_secret'
-# Use debug settings
+
+# Mode configurations
+# ------------------------------------------------------------------------
+# Put flask webserver into DEBUG mode.
 #DEBUG: False
-# email server authentication
-email:
-    enabled: False
-    send_address: 'simpledogepool@gmail.com'
-    username:
-    password:
-    ehlo: simpledoge.com
-    timeout: 10
-    server: email-smtp.us-east-1.amazonaws.com
-    port: 587
-    debug: True
-    tls: True
+
+# set this to true and celery will only run scheduled tasks to refresh cache
+# objects. This allows you to run a staging version on the same database,
+# but with separate caches
+#stage: False
+
+# Cache configuration
+# ------------------------------------------------------------------------
+# The cache database that redis will use
+redis_conn:
+    db: 15
+    host: 'localhost'
+    port: 6379
+    password: 
+main_cache:
+    CACHE_REDIS_DB: 15
+    CACHE_REDIS_PORT: 6379
+    CACHE_REDIS_HOST: localhost
+    CACHE_REDIS_PASSWORD: 
+    CACHE_KEY_PREFIX: 
+    CACHE_REDIS_URL: 
+
+# Misc Global
+# -----------------------------------------------------------------------
+# The currency that invalid mining will go to if the mined currency has no
+# specified pool_payout_addr. This _must_ be exchangeable and define a
+# pool_payout_addr.
+pool_payout_currency: BTC
+# The signature that the simplecoin_rpc_client will use fetch payouts and push
+# completed payout information. Needs to be kept secure!
+rpc_signature: "keep_this_very_secret"
+
+# Logging
+# -----------------------------------------------------------------------
+# where all webserver exceptions and logging messages will get put
+#webserver_log_file: webserver.log
+# all management commands will be logged here
+#manage_log_file: manage.log
+# all management commands will be logged here
+#scheduler_log_file: 
 
 exchange_manager:
     cryptsy:
@@ -29,10 +60,6 @@ exchange_manager:
     poloniex:
         public_key: 
         private_key: 
-
-# Default values for new miner config
-default_stratum_url: stratum+tcp://stratum.simplemulti.com
-default_stratum_port: 3363
 
 # Sharechain Configuration
 # =======================================================================
@@ -60,13 +87,18 @@ chains:
         last_n: 2
         fee_perc: "0.02"
 
-# Information on where all our servers are located
+# Information on where all our servers are located.
 # =======================================================================
+# Used to render getting started page
 locations:
     CA:
         location_acronym: CA
         location: Beauharnois, Canada
         country_flag: "/img/ca.svg"
+
+# Default values for new miner config
+default_stratum_url: stratum+tcp://stratum.simplemulti.com
+default_stratum_port: 3363
 
 # Stratum + Powerpool Config
 # =======================================================================
@@ -163,39 +195,6 @@ currencies:
         # are paid out directly. If exchangeable is False a valid address is REQUIRED
         pool_payout_addr:
 
-# set this to true and celery will only run scheduled tasks to refresh cache
-# objects. This allows you to run a staging version on the same database,
-# but with separate caches
-#stage: False
-
-# Cache configuration
-# ========================================================================
-# The cache database that redis will use
-redis_conn:
-    db: 15
-    host: 'localhost'
-    port: 6379
-    password: 
-main_cache:
-    CACHE_REDIS_DB: 15
-    CACHE_REDIS_PORT: 6379
-    CACHE_REDIS_HOST: localhost
-    CACHE_REDIS_PASSWORD: 
-    CACHE_KEY_PREFIX: 
-    CACHE_REDIS_URL: 
-
-# Payout configurations
-# ========================================================================
-# Controls how payout database entries are calculated
-#
-# default donation percentage applied to payouts if no custom is
-# defined
-default_donate_perc: '0'
-# address where all donated percents (or fees) will go. ATM, this address MUST
-# be exchangeable + configured
-pool_payout_addr: DAbhwsnEq5TjtBP5j76TinhUqqLTktDAnD
-# block find reward. set to zero or comment out to not use. in satoshi
-block_bonus: 0
 
 # Coin/Branding
 # =======================================================================
@@ -214,7 +213,6 @@ leader-xs: "/img/doge-miner-xs.jpg"
 leader-sm: "/img/doge-miner-sm.jpg"
 # fullsize leader img
 leader: "/img/doge-miner.jpg"
-rpc_signature: test
 
 # Main Nav Links
 # =======================================================================
@@ -269,12 +267,3 @@ navbar:
             - title: Github
               icon: github
               link: http://www.github.com/simplecrypto/
-
-# Logging
-# =======================================================================
-# where all webserver exceptions and logging messages will get put
-#webserver_log_file: webserver.log
-# all management commands will be logged here
-#manage_log_file: manage.log
-# all management commands will be logged here
-#scheduler_log_file: 

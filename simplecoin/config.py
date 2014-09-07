@@ -2,17 +2,42 @@ import requests
 import collections
 
 from flask import current_app
-from cryptokit.rpc import CoinserverRPC, CoinRPCException
+from cryptokit.rpc import CoinserverRPC
 from cryptokit.base58 import address_version
 from decimal import Decimal as dec
 from urlparse import urljoin
+from autoex.ex_manager import ExchangeManager
 
 from . import models as m
 from . import cache, redis_conn, currencies, exchanges, chains, powerpools, locations
 from .exceptions import ConfigurationException, RemoteException
 
 
-class ConfigChecker(object):
+class ConfigObject(object):
+    __getitem__ = lambda self, a: getattr(self, a)
+    requires = []
+    defaults = dict()
+
+    def __init__(self, bootstrap):
+        for req in self.requires:
+            if req not in bootstrap:
+                raise ConfigurationException(
+                    "{} item requires {}".format(self.__class__.__name__, req))
+        # Default settings
+        self.__dict__.update(self.defaults)
+        self.__dict__.update(bootstrap)
+
+    def __str__(self):
+        return self.key
+
+    def __repr__(self):
+        return self.key
+
+    def __hash__(self):
+        return hash(self.key)
+
+
+class ConfigChecker(ConfigObject):
     """
     This class provides various methods for validating config values and checks
     configuration values and makes sure they're properly filled out.
@@ -24,8 +49,36 @@ class ConfigChecker(object):
     currencies
     """
 
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, cfg, app):
+        # A shim for now. This should be removed soon, as we move all global
+        # config access to this object
+        app.config.update(cfg)
+        # Set main configuration object
+        app.config_obj = self
+        # Update values
+        self.__dict__.update(cfg)
+
+        # Check the 'currencies' key
+        currencies = self.lookup_key('currencies')
+        self.check_type(currencies, collections.Mapping)
+
+        # Objectize child config objects
+        # =======================================================================
+        app.locations = LocationKeeper(cfg.pop('locations'))
+        app.currencies = CurrencyKeeper(cfg.pop('currencies'))
+        app.powerpools = PowerPoolKeeper(cfg.pop('mining_servers'))
+        app.exchanges = ExchangeManager(cfg.pop('exchange_manager'))
+        app.algos = AlgoKeeper(cfg.pop('algos'))
+        app.chains = ChainKeeper(cfg.pop('chains'))
+
+        # Verify global pool payout information
+        pool_curr = cfg['pool_payout_currency']
+        if pool_curr not in app.currencies:
+            raise ConfigurationException("Invalid pool payout currency!")
+        if app.currencies[pool_curr].exchangeable is not True:
+            raise ConfigurationException("Pool payout currency must be exchangeable!")
+        if app.currencies[pool_curr].pool_payout_addr is None:
+            raise ConfigurationException("Pool payout currency must define a pool_payout_addr!")
 
     def lookup_key(self, key, nested=None):
         """ Helper method: Checks the config for the specified key and raises
@@ -33,7 +86,7 @@ class ConfigChecker(object):
 
         try:
             if nested is None:
-                value = self.config[key]
+                value = self[key]
             else:
                 value = nested[key]
         except KeyError:
@@ -62,40 +115,6 @@ class ConfigChecker(object):
             raise ConfigurationException("\'{}\' is not a valid bitcoin style "
                                          "address".format(val))
         return ver
-
-    def parse_config(self):
-        """ Go through config keys and perform the appropriate logic checks """
-        # Check the GLOBAL 'pool_payout_addrfield'
-        p_addr = self.lookup_key('pool_payout_addr')
-        self.check_is_bcaddress(p_addr)
-
-        # Check the 'currencies' key
-        currencies = self.lookup_key('currencies')
-        self.check_type(currencies, collections.Mapping)
-
-
-class ConfigObject(object):
-    __getitem__ = lambda self, a: getattr(self, a)
-    requires = []
-    defaults = dict()
-
-    def __init__(self, bootstrap):
-        for req in self.requires:
-            if req not in bootstrap:
-                raise ConfigurationException(
-                    "{} item requires {}".format(self.__class__.__name__, req))
-        # Default settings
-        self.__dict__.update(self.defaults)
-        self.__dict__.update(bootstrap)
-
-    def __str__(self):
-        return self.key
-
-    def __repr__(self):
-        return self.key
-
-    def __hash__(self):
-        return hash(self.key)
 
 
 class Currency(ConfigObject):
@@ -171,12 +190,24 @@ class CurrencyKeeper(dict):
 
     def __init__(self, currency_dictionary):
         super(CurrencyKeeper, self).__init__()
+        # If no mining currency is specified explicitly for username, then
+        # we will use this map to lookup
+        self.version_map = {}
         for key, config in currency_dictionary.iteritems():
             config['key'] = key
             obj = Currency(config)
             if key in self:
                 raise ConfigurationException("Duplicate currency keys {}"
                                              .format(key))
+
+            if obj.exchangeable:
+                for version in obj.address_version:
+                    if version in self.version_map:
+                        raise ConfigurationException(
+                            "Cannot have overlappting exchangeable address_versions."
+                            "Tried to add {} for {}, but already has {}"
+                            .format(version, obj, self.version_map[version]))
+                    self.version_map[version] = obj
             self[obj.key] = obj
 
     @property
@@ -266,7 +297,7 @@ class CurrencyKeeper(dict):
 
 
 class Chain(ConfigObject):
-    requires = ['type', 'valid_address_versions']
+    requires = ['type', 'valid_address_versions', 'fee_perc']
     defaults = dict(block_bonus="0")
     max_indexes = 1000
     min_index = 0

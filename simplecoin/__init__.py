@@ -17,7 +17,6 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.migrate import Migrate
 from jinja2 import FileSystemLoader
 from werkzeug.local import LocalProxy
-from autoex.ex_manager import ExchangeManager
 
 import simplecoin.filters as filters
 
@@ -31,6 +30,8 @@ cache = Cache()
 # ConfigKeeper proxies
 currencies = LocalProxy(
     lambda: getattr(current_app, 'currencies', None))
+global_config = LocalProxy(
+    lambda: getattr(current_app, 'config_obj', None))
 locations = LocalProxy(
     lambda: getattr(current_app, 'locations', None))
 powerpools = LocalProxy(
@@ -66,25 +67,9 @@ def create_app(mode, config='config.yml', log_level=None):
         config_path = os.path.join(root, config)
     config_vars.update(yaml.load(open(config_path)))
 
-    # Checks existence + basic validity of required YAML config keys
+    # Objectizes all configurations
     # =======================================================================
-    ConfigChecker(config_vars).parse_config()
-
-    # Inject all the yaml configs
-    # =======================================================================
-    app.config.update(config_vars)
-    app.locations = LocationKeeper(app.config['locations'])
-    app.currencies = CurrencyKeeper(app.config['currencies'])
-    app.powerpools = PowerPoolKeeper(app.config['mining_servers'])
-    app.exchanges = ExchangeManager(app.config['exchange_manager'])
-    app.algos = AlgoKeeper(app.config['algos'])
-    app.chains = ChainKeeper(app.config['chains'])
-    # Keep us from using raw config values, bad pattern
-    app.config.update(dict(mining_servers=app.powerpools,
-                           currencies=app.currencies,
-                           algos=app.algos,
-                           chains=app.chains))
-
+    ConfigChecker(config_vars, app)
 
     # Setup logging
     # =======================================================================

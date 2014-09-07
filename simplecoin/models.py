@@ -6,11 +6,10 @@ from collections import namedtuple
 from datetime import datetime, timedelta
 from flask import current_app
 from sqlalchemy.schema import CheckConstraint
-from cryptokit import bits_to_difficulty
 
 from .model_lib import base
 from .filters import sig_round
-from . import db, currencies
+from . import db, currencies, chains
 
 
 def make_upper_lower(trim=None, span=None, offset=None, clip=None, fmt="dt"):
@@ -90,22 +89,69 @@ class TradeRequest(base):
         return tr
 
 
-class BlockPayout(base):
+class ChainPayout(base):
     # The share chain that contributed this portion of shares to the block
     chainid = db.Column(db.Integer, primary_key=True)
     blockhash = db.Column(db.String, db.ForeignKey('block.hash'), primary_key=True)
-    block = db.relationship('Block', foreign_keys=[blockhash], backref='block_payouts')
+    block = db.relationship('Block', foreign_keys=[blockhash], backref='chain_payouts')
     # Placeholder for the point at which the block was solved in this share chain.
     solve_slice = db.Column(db.Integer)
-    # Shares on this chain
-    shares = db.Column(db.Numeric, nullable=False)
-    # total going to pool from donations + fees
-    contributed = db.Column(db.Numeric)
-    # Total paid out in bonuses
-    bonus_paid = db.Column(db.Numeric)
-    # Has this payout information been paid? Used to determine how many share
-    # slices to keep
-    paid = db.Column(db.Boolean, default=False)
+    # Shares on this chain. Used to get portion of total block
+    chain_shares = db.Column(db.Numeric, nullable=False)
+    # Payout shares. The number of shares computed to payout users
+    payout_shares = db.Column(db.Numeric, nullable=False)
+    # Total portion that this chain recieved
+    amount = db.Column(db.Numeric)
+    # total going to pool from donations
+    donations = db.Column(db.Numeric)
+    # total going to pool from fees
+    fees = db.Column(db.Numeric)
+
+    @property
+    def config_obj(self):
+        return chains[self.chainid]
+
+    def make_credit_obj(self, user, address, currency, shares):
+        """ Makes the appropriate credit object given a few details. Payout
+        amount too be calculated. """
+        # If they're trying to get paid to invalid currency pay it to the
+        # pool
+
+        key = (user, address, currency)
+
+        # If there's already a payout object with this information
+        if key in self.credits:
+            self.credits[key].shares += shares
+            return
+
+        # Create a payout record indicating this can be distributed
+        if self.block.currency == currency:
+            cls = Payout
+        # Create a payout entry indicating this needs to be exchanged
+        else:
+            cls = PayoutExchange
+
+        p = cls(user=user,
+                block=self.block,
+                sharechain_id=self.chainid,
+                currency=currency.key,
+                address=address)
+        p.shares = shares
+
+        db.session.add(p)
+        self.credits[key] = p
+
+    def distribute(self):
+        share_distrib = {}
+        total_shares = 0
+        for key, credit in self.credits.iteritems():
+            share_distrib[key] = credit.shares
+            total_shares += credit.shares
+
+        assert total_shares == self.payout_shares, "Chain had payout share count mismatch at distribution time!"
+        credit_distrib = distributor(self.amount, share_distrib)
+        for key in share_distrib:
+            self.credits[key].amount = credit_distrib[key]
 
 
 class Block(base):
@@ -143,6 +189,10 @@ class Block(base):
 
     def __str__(self):
         return "<{} h:{} hsh:{}>".format(self.currency, self.height, self.hash)
+
+    @property
+    def currency_obj(self):
+        return currencies[self.currency]
 
     @property
     def contributed(self):
@@ -222,11 +272,11 @@ class Payout(base):
     block = db.relationship('Block', foreign_keys=[blockhash], backref='payouts')
     user = db.Column(db.String)
     sharechain_id = db.Column(db.SmallInteger)
-    payout_address = db.Column(db.String)
-    payout_currency = db.Column(db.String)
+    address = db.Column(db.String)
+    currency = db.Column(db.String)
     amount = db.Column(db.Numeric, CheckConstraint('amount > 0', 'min_payout_amount'))
-    fee_perc = db.Column(db.Numeric)
-    pd_perc = db.Column(db.Numeric)
+    fee_perc = db.Column(db.SmallInteger)
+    pd_perc = db.Column(db.SmallInteger)
     type = db.Column(db.SmallInteger)
     payable = db.Column(db.Boolean, default=False)
 
@@ -247,10 +297,6 @@ class Payout(base):
                      'transaction_id']
 
     @property
-    def currency(self):
-        return self.payout_currency
-
-    @property
     def payout_currency_obj(self):
         return currencies[self.payout_currency]
 
@@ -264,7 +310,7 @@ class Payout(base):
 
     @property
     def cut_perc(self):
-        return self.pd_perc + self.fee_perc
+        return Decimal(self.pd_perc + self.fee_perc) / 100
 
     @property
     def hr_fee_perc(self):
@@ -288,17 +334,6 @@ class Payout(base):
     @property
     def mined(self):
         return self.amount / (1 - self.cut_perc)
-
-    @classmethod
-    def create(cls, user, amount, block, fee_perc, pd_perc, sharechain_id,
-               payout_currency, payout_address=None):
-        payout = cls(user=user, amount=amount, block=block,
-                     fee_perc=fee_perc, pd_perc=pd_perc,
-                     sharechain_id=sharechain_id,
-                     payout_address=payout_address or user,
-                     payout_currency=payout_currency)
-        db.session.add(payout)
-        return payout
 
     @property
     def height(self):
@@ -470,6 +505,7 @@ class TimeSlice(object):
 
     @classmethod
     def create(cls, user, worker, algo, value, time):
+        # XXX: Unused I think, need to be cut
         dt = cls.floor_time(time)
         slc = cls(user=user, value=value, time=dt, worker=worker)
         db.session.add(slc)
@@ -676,6 +712,37 @@ class UserSettings(base):
     anon = db.Column(db.Boolean, default=False)
     addresses = db.relationship("PayoutAddress")
 
+    def apply(self, shares, user_currency, block_currency, valid_currencies):
+        """ Given a share amount, a currency we're paying out, and the valid
+        exchangeable currencies we return a new distribution of shares among
+        some number of addresses. """
+        # Handle converting their payout address into one for the block type if
+        # the user has specified one. If they haven't and the block can't payout
+        # the user_currency then it will get caught downstream and converted to
+        # the pools payout information
+        main_address = self.user
+        main_currency = user_currency
+        for addr in self.addresses:
+            if addr.currency == block_currency:
+                main_address = addr.address
+                main_currency = addr.currency
+
+        # Handle special payout splitting if the special payout currency is
+        # payable from this block currency (and spayout is defined of course)
+        if (self.spayout_addr and
+                self.spayout_perc and
+                self.spayout_curr in valid_currencies):
+            ret = distributor(
+                shares,
+                {
+                    0: 1 - self.spayout_perc,
+                    1: self.spayout_perc
+                })
+            return ((main_address, main_currency, ret[0]),
+                    (self.spayout_addr, self.spayout_curr, ret[1]))
+
+        return (main_address, main_currency, shares)
+
     @property
     def exchangeable_addresses(self):
         return {pa_obj.currency: pa_obj.address for pa_obj in self.addresses if pa_obj.exchangeable}
@@ -775,3 +842,6 @@ class PayoutAddress(base):
     @property
     def exchangeable(self):
         return currencies[self.currency].exchangeable
+
+
+from .scheduler import distributor
