@@ -51,7 +51,7 @@ $(document).ready(function() {
   </div>
   <div class="row row-header">
     <h2>Worker Hashrates
-      <div class="btn btn-default btn-sm collapse-button" data-toggle="collapse">{% if hide_hr %}[ + ]{% else %}[ - ]{% endif %}</div></h2>
+      <div class="btn btn-default btn-sm collapse-button" data-toggle="collapse" data-target="#chart" id="hashrate-collapse">{% if hide_hr %}[+]{% else %}[-]{% endif %}</div></h2>
     <div class="col-lg-12 collapse {% if not hide_hr %}in{% endif %}" id="chart">
       <ul class="nav nav-tabs">
         <li class="tab hour"><a>Hour</a></li>

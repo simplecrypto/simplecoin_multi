@@ -141,6 +141,14 @@ $(document).ready(function() {
   flip('#payout-currencies', '#pool-details', '[+]', '[-]');
 
 
+////////////////////////////////////////////
+// JS for user stats page
+////////////////////////////////////////////
+
+
+  // Setup collapse button for currencies
+  flip('#chart', '#hashrate-collapse', '[+]', '[-]');
+
 
 ////////////////////////////////////////////
 // JS for configuration guide
