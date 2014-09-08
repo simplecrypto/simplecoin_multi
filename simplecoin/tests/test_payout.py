@@ -7,7 +7,7 @@ from simplecoin import db, currencies
 from simplecoin.scheduler import distributor
 from simplecoin.tests import RedisUnitTest, UnitTest
 import simplecoin.models as m
-from simplecoin.scheduler import payout
+from simplecoin.scheduler import credit_block
 from simplecoin.rpc_views import update_trade_requests
 
 
@@ -136,7 +136,7 @@ class TestPayouts(RedisUnitTest):
         self.app.redis.rpush("chain_1_slice_17", *["DJCgMCyjBKxok3eEGed5SGhbWaGj5QTcxF:1"] * 30)
         self.app.redis.rpush("chain_2_slice_1", *["testing:1"] * 32)
 
-        payout("unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f")
+        credit_block("unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f")
         pool_payout = currencies[self.app.config['pool_payout_currency']]
 
         db.session.rollback()
@@ -161,7 +161,7 @@ class TestPayouts(RedisUnitTest):
             bd)
 
         self.app.redis.rpush("chain_1_slice_17", *["DJCgMCyjBKxok3eEGed5SGhbWaGj5QTcxF:1"] * 30)
-        payout("unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f")
+        credit_block("unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f")
 
         db.session.rollback()
         db.session.expunge_all()

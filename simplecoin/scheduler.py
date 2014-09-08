@@ -358,16 +358,16 @@ def update_block_state():
 
 @crontab
 @SchedulerCommand.option('-ds', '--dont-simulate', default=False, action="store_true")
-def run_payouts(dont_simulate=False):
-    """ Loops through all the blocks that haven't been paid out and attempts
-    to pay them out """
+def generate_credits(dont_simulate=True):
+    """ Loops through all the blocks that haven't been credited out and
+    attempts to process them """
     simulate = not dont_simulate
     unproc_blocks = redis_conn.keys("unproc_block*")
     for key in unproc_blocks:
         hash = key[13:]
         current_app.logger.info("==== Attempting to process block hash {}".format(hash))
         try:
-            payout(key, simulate=simulate)
+            credit_block(key, simulate=simulate)
         except Exception:
             db.session.rollback()
             current_app.logger.error("Unable to payout block {}".format(hash), exc_info=True)
@@ -417,7 +417,7 @@ def distributor(amount, splits):
     return splits
 
 
-def payout(redis_key, simulate=False):
+def credit_block(redis_key, simulate=False):
     """
     Calculates credits for users from share records for the latest found block.
     """

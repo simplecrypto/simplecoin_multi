@@ -178,7 +178,7 @@ def create_app(mode, config='config.yml', log_level=None):
         # be run by the staging server
         if not app.config.get('stage', False):
             # every minute at 55 seconds after the minute
-            sched.add_cron_job(sch.run_payouts, second=55, args=[True])
+            sched.add_cron_job(sch.generate_credits, second=55)
             # every minute at 55 seconds after the minute
             sched.add_cron_job(sch.create_trade_req, args=("sell",), second=0)
             # every minute at 55 seconds after the minute
@@ -192,8 +192,6 @@ def create_app(mode, config='config.yml', log_level=None):
             sched.add_cron_job(sch.compress_five_minute, minute=2, second=30)
             # every minute 2 seconds after the minute
             sched.add_cron_job(sch.update_block_state, second=2)
-            # every 15 minutes 2 seconds after the minute
-            sched.add_cron_job(sch.leaderboard, minute='0,5,10,15,20,25,30,35,40,45,50,55', second=30)
         else:
             app.logger.info("Stage mode has been set in the configuration, not "
                             "running scheduled database altering cron tasks")
@@ -201,6 +199,8 @@ def create_app(mode, config='config.yml', log_level=None):
         sched.add_cron_job(sch.update_online_workers, minute='0,5,10,15,20,25,30,35,40,45,50,55', second=30)
         sched.add_cron_job(sch.cache_user_donation, minute='0,15,30,45', second=15)
         sched.add_cron_job(sch.server_status, second=15)
+        # every 15 minutes 2 seconds after the minute
+        sched.add_cron_job(sch.leaderboard, minute='0,5,10,15,20,25,30,35,40,45,50,55', second=30)
         sched.start()
 
     # Route registration
