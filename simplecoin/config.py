@@ -28,10 +28,10 @@ class ConfigObject(object):
         self.__dict__.update(bootstrap)
 
     def __str__(self):
-        return self.key
+        return str(self.key)
 
     def __repr__(self):
-        return self.key
+        return str("{} {}".format(self.__class__.__name__, self.key))
 
     def __hash__(self):
         return hash(self.key)
@@ -403,6 +403,7 @@ class ChainKeeper(dict):
         defaults = configs.pop('defaults', {})
         for id, cfg in configs.iteritems():
             pass_cfg = defaults.copy()
+            pass_cfg['key'] = id
             pass_cfg['id'] = id
             pass_cfg.update(cfg)
             serv = self.type_map[cfg['type']](pass_cfg)
@@ -471,10 +472,21 @@ class PowerPool(ConfigObject):
         url = urljoin(self.monitor_address, url)
         ret = requests.request(method, url, timeout=self.timeout, **kwargs)
         if ret.status_code != 200:
-            raise RemoteException("Non 200 from remote: {}".format(ret.text))
+            raise RemoteException("Non 200 from endpoint {}: {}"
+                                  .format(url, ret.text.encode('utf8')[:100]))
 
-        current_app.logger.debug("Got {} from remote".format(ret.text.encode('utf8')))
-        return ret.json()
+        current_app.logger.debug("Got {} from remote"
+                                 .format(ret.text.encode('utf8')))
+        try:
+            return ret.json()
+        except ValueError:
+            raise RemoteException("Non json from endpoint {}: {}"
+                                  .format(url, ret.text.encode('utf8')[:100]))
+
+    def full_info(self):
+        return ("<id {}; chain {}; location {}; monitor_address {}>"
+                .format(self.unique_id, self.chain, self.location,
+                        self.monitor_address))
 
     @property
     def location(self):

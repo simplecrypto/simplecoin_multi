@@ -78,7 +78,7 @@ def update_online_workers():
             data = powerpool.request('clients')
         except RemoteException:
             current_app.logger.warn("Unable to connect to PP {} to gather worker summary."
-                                    .format(powerpool.unique_id), exc_info=True)
+                                    .format(powerpool.full_info()), exc_info=True)
             continue
 
         for address, connections in data['clients'].iteritems():
@@ -796,8 +796,8 @@ def server_status():
         try:
             data = powerpool.request('')
         except Exception:
-            current_app.logger.warn("Couldn't connect to internal monitor at {}"
-                                    .format(powerpool))
+            current_app.logger.warn("Couldn't connect to internal monitor {}"
+                                    .format(powerpool.full_info()))
             continue
         else:
             raw_servers[powerpool.stratum_address] = data
