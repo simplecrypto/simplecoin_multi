@@ -58,25 +58,37 @@ def update_trade_requests():
     response are signed. """
     # basic checking of input
     try:
-        assert 'completed_trs' in g.signed
-        assert isinstance(g.signed['completed_trs'], dict)
+        assert 'trs' in g.signed
+        assert isinstance(g.signed['trs'], dict)
+        for tr_id, tr in g.signed['trs'].iteritems():
+            assert isinstance(tr_id, int)
+            assert isinstance(tr, dict)
+            assert 'status' in tr
+            assert isinstance(tr['status'], int)
+            if tr['status'] == 6:
+                assert 'quantity' in tr
+                assert 'fees' in tr
     except AssertionError:
         current_app.logger.warn("Invalid data passed to update_sell_requests",
                                 exc_info=True)
         abort(400)
 
     updated = []
-    for tr_id, (quantity, fees) in g.signed['completed_trs'].iteritems():
+    for tr_id, tr_dict in g.signed['trs'].iteritems():
         try:
             tr = (TradeRequest.query.filter_by(id=int(tr_id)).
                   with_lockmode('update').one())
-            tr.exchanged_quantity = Decimal(quantity)
-            tr.fees = Decimal(fees)
-            tr.distribute()
+            tr._status = tr_dict['status']
+
+            if tr_dict['status'] == 6:
+                tr.exchanged_quantity = Decimal(tr_dict['quantity'])
+                tr.fees = Decimal(tr_dict['fees'])
+                tr.distribute()
         except Exception:
             db.session.rollback()
             current_app.logger.error("Unable to update trade request {}"
                                      .format(tr_id), exc_info=True)
+            abort(400)
         else:
             updated.append(tr_id)
 
@@ -99,8 +111,7 @@ def get_payouts():
         abort(400)
 
     with Benchmark("Fetching payout information"):
-        query = Payout.query.filter_by(transaction_id=None,
-                                                currency=currency)
+        query = Payout.query.filter_by(transaction_id=None, currency=currency)
         # XXX: Add the min payout amount code here!
         pids = [(p.user, str(p.amount), p.id) for p in query]
     return sign(dict(pids=pids))

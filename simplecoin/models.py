@@ -104,9 +104,11 @@ class TradeRequest(base):
     @property
     def status(self):
         if self._status == 0:
+            return "Processing Trade Request"
+        elif self._status == 1:
             return "Pending Exchange Deposit"
         elif self._status == 2:
-            return "Selling on Exchange"
+            return "Trading on Exchange"
         elif self._status == 4:
             return "Pending Exchange Withdrawal"
         elif self._status == 6:
