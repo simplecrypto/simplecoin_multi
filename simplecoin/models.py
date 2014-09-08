@@ -56,9 +56,9 @@ class TradeRequest(base):
     type = db.Column(db.Enum("sell", "buy", name="req_type"), nullable=False)
 
     # These values should only be updated by sctrader
-    exchanged_quantity = db.Column(db.Numeric(scale=28), default=None)
+    exchanged_quantity = db.Column(db.Numeric, default=None)
     # Fees from fulfilling this tr
-    fees = db.Column(db.Numeric(scale=28), default=None)
+    fees = db.Column(db.Numeric, default=None)
     _status = db.Column(db.SmallInteger, default=0)
 
     def distribute(self):
@@ -131,15 +131,15 @@ class ChainPayout(base):
     # Placeholder for the point at which the block was solved in this share chain.
     solve_slice = db.Column(db.Integer)
     # Shares on this chain. Used to get portion of total block
-    chain_shares = db.Column(db.Numeric(scale=28), nullable=False)
+    chain_shares = db.Column(db.Numeric, nullable=False)
     # Payout shares. The number of shares computed to payout users
-    payout_shares = db.Column(db.Numeric(scale=28), nullable=False)
+    payout_shares = db.Column(db.Numeric, nullable=False)
     # Total portion that this chain recieved
-    amount = db.Column(db.Numeric(scale=28))
+    amount = db.Column(db.Numeric)
     # total going to pool from donations
-    donations = db.Column(db.Numeric(scale=28))
+    donations = db.Column(db.Numeric)
     # total going to pool from fees
-    fees = db.Column(db.Numeric(scale=28))
+    fees = db.Column(db.Numeric)
 
     @property
     def config_obj(self):
@@ -207,9 +207,9 @@ class Block(base):
     # Is the block matured?
     mature = db.Column(db.Boolean, default=False)
     # Block total value (includes transaction fees)
-    total_value = db.Column(db.Numeric(scale=28))
+    total_value = db.Column(db.Numeric)
     # Associated transaction fees
-    transaction_fees = db.Column(db.Numeric(scale=28))
+    transaction_fees = db.Column(db.Numeric)
     # Difficulty of block when solved
     difficulty = db.Column(db.Float, nullable=False)
     # 3-8 letter code for the currency that was mined
@@ -296,7 +296,7 @@ class Transaction(base):
     confirmed = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     currency = db.Column(db.String, nullable=False)
-    network_fee = db.Column(db.Numeric(scale=28))
+    network_fee = db.Column(db.Numeric)
 
     standard_join = ['txid', 'confirmed', 'created_at', 'currency', '__dont_mongo']
 
@@ -311,7 +311,7 @@ class Credit(base):
     sharechain_id = db.Column(db.SmallInteger)
     address = db.Column(db.String, nullable=False)
     currency = db.Column(db.String, nullable=False)
-    amount = db.Column(db.Numeric(scale=28), CheckConstraint('amount > 0', 'min_credit_amount'))
+    amount = db.Column(db.Numeric, CheckConstraint('amount > 0', 'min_credit_amount'))
     fee_perc = db.Column(db.SmallInteger)
     pd_perc = db.Column(db.SmallInteger)
     type = db.Column(db.SmallInteger)
@@ -411,11 +411,11 @@ class CreditExchange(Credit):
     sell_req_id = db.Column(db.Integer, db.ForeignKey('trade_request.id'))
     sell_req = db.relationship('TradeRequest', foreign_keys=[sell_req_id],
                                backref='sell_credits')
-    sell_amount = db.Column(db.Numeric(scale=28))
+    sell_amount = db.Column(db.Numeric)
     buy_req_id = db.Column(db.Integer, db.ForeignKey('trade_request.id'))
     buy_req = db.relationship('TradeRequest', foreign_keys=[buy_req_id],
                               backref='buy_credits')
-    buy_amount = db.Column(db.Numeric(scale=28))
+    buy_amount = db.Column(db.Numeric)
 
     @property
     def status(self):
@@ -487,7 +487,7 @@ class Payout(base):
     address = db.Column(db.String, nullable=False)
     currency = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    amount = db.Column(db.Numeric(scale=28), CheckConstraint('amount > 0',
+    amount = db.Column(db.Numeric, CheckConstraint('amount > 0',
                                                    'min_payout_amount'))
     count = db.Column(db.SmallInteger)
 
@@ -735,8 +735,8 @@ class DeviceSlice(TimeSlice, base):
 
 class UserSettings(base):
     user = db.Column(db.String, primary_key=True)
-    pdonation_perc = db.Column(db.Numeric(scale=28), default=Decimal('0'))
-    spayout_perc = db.Column(db.Numeric(scale=28))
+    pdonation_perc = db.Column(db.Numeric, default=Decimal('0'))
+    spayout_perc = db.Column(db.Numeric)
     spayout_addr = db.Column(db.String)
     spayout_curr = db.Column(db.String)
     anon = db.Column(db.Boolean, default=False)
