@@ -244,14 +244,13 @@ class CurrencyKeeper(dict):
         """
         curr = self.validate_bc_address(address)
 
-        for currency in curr:
-            if currency in currencies.exchangeable_currencies:
-                return currency
-            else:
-                raise AttributeError("Address '{}' version {} is not an "
-                                     "exchangeable currency. Options are {}"
-                                     .format(address, currency.address_version,
-                                             self.exchangeable_currencies))
+        if curr:
+            return curr
+        else:
+            raise AttributeError("Address '{}' version {} is not an "
+                                 "exchangeable currency. Options are {}"
+                                 .format(address, curr.address_version,
+                                         self.exchangeable_currencies))
 
     def validate_bc_address(self, bc_address_str):
         """
@@ -270,9 +269,8 @@ class CurrencyKeeper(dict):
             raise ValueError('Address should be 33-35 characters long')
 
         # Check to see if the address can be looked up from the config
-        curr = currencies.lookup_address(bc_address_str)
-        # If we've arrived here we'll consider it valid
-        return curr
+        ver = address_version(bc_address_str)
+        return ver
 
 
 class Chain(ConfigObject):
