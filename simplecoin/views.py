@@ -76,12 +76,12 @@ def account(user_address, type):
         payouts = (Payout.query.filter_by(user=user_address).join(Credit.block).
                    order_by(Payout.created_at.desc()).limit(100).offset(offset))
         return render_template('account.html', payouts=payouts, page=page,
-                               table="aggregate_table.html")
+                               table="payout_table.html")
     else:
         credits = (Credit.query.filter_by(user=user_address).join(Credit.block).
                    order_by(Block.found_at.desc()).limit(100).offset(offset))
         return render_template('account.html', credits=credits, page=page,
-                               table="acct_table.html")
+                               table="credit_table.html")
 
 
 @main.route("/<address>/<worker>")
