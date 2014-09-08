@@ -179,28 +179,37 @@ def create_app(mode, config='config.yml', log_level=None):
         if not app.config.get('stage', False):
             # every minute at 55 seconds after the minute
             sched.add_cron_job(sch.generate_credits, second=55)
-            # every minute at 55 seconds after the minute
-            sched.add_cron_job(sch.create_trade_req, args=("sell",), second=0)
-            # every minute at 55 seconds after the minute
-            sched.add_cron_job(sch.create_trade_req, args=("buy",), second=5)
+            sched.add_cron_job(sch.create_trade_req, args=("sell",), minute=1,
+                               hour="0,6,12,18")
+            sched.add_cron_job(sch.create_trade_req, args=("buy",), minute=1,
+                               hour="0,6,12,18")
             # every minute at 55 seconds after the minute
             sched.add_cron_job(sch.collect_minutes, second=35)
             sched.add_cron_job(sch.collect_ppagent_data, second=40)
             # every five minutes 20 seconds after the minute
-            sched.add_cron_job(sch.compress_minute, minute='0,5,10,15,20,25,30,35,40,45,50,55', second=20)
+            sched.add_cron_job(sch.compress_minute,
+                               minute='0,5,10,15,20,25,30,35,40,45,50,55',
+                               second=20)
             # every hour 2.5 minutes after the hour
             sched.add_cron_job(sch.compress_five_minute, minute=2, second=30)
             # every minute 2 seconds after the minute
             sched.add_cron_job(sch.update_block_state, second=2)
+            # every day
+            sched.add_cron_job(sch.update_block_state, hour=0, second=0, minute=3)
         else:
             app.logger.info("Stage mode has been set in the configuration, not "
                             "running scheduled database altering cron tasks")
 
-        sched.add_cron_job(sch.update_online_workers, minute='0,5,10,15,20,25,30,35,40,45,50,55', second=30)
-        sched.add_cron_job(sch.cache_user_donation, minute='0,15,30,45', second=15)
+        sched.add_cron_job(sch.update_online_workers,
+                           minute='0,5,10,15,20,25,30,35,40,45,50,55',
+                           second=30)
+        sched.add_cron_job(sch.cache_user_donation, minute='0,15,30,45',
+                           second=15)
         sched.add_cron_job(sch.server_status, second=15)
         # every 15 minutes 2 seconds after the minute
-        sched.add_cron_job(sch.leaderboard, minute='0,5,10,15,20,25,30,35,40,45,50,55', second=30)
+        sched.add_cron_job(sch.leaderboard,
+                           minute='0,5,10,15,20,25,30,35,40,45,50,55',
+                           second=30)
         sched.start()
 
     # Route registration
