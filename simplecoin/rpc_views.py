@@ -65,47 +65,23 @@ def update_trade_requests():
                                 exc_info=True)
         abort(400)
 
+    updated = []
     for tr_id, (quantity, fees) in g.signed['completed_trs'].iteritems():
-        tr_id = int(tr_id)
-        tr = (TradeRequest.query.filter_by(id=tr_id).with_lockmode('update').
-              one())
-        tr.exchanged_quantity = Decimal(quantity)
-        tr.fees = Decimal(fees)
-        tr._status = 6
-
-        if not tr.payouts:
-            current_app.logger.warn("Trade request #{} has no attached payouts".format(tr.id))
-        if tr.payouts:
-            # calculate user payouts based on percentage of the total
-            # exchanged value
-            for payout in tr.payouts:
-                if tr.type == "sell":
-                    assert payout.sell_amount is None
-                    payout.sell_amount = (payout.amount * tr.exchanged_quantity) / tr.quantity
-                elif tr.type == "buy":
-                    assert payout.buy_amount is None
-                    payout.buy_amount = (payout.sell_amount * tr.exchanged_quantity) / tr.quantity
-                    payout.payable = True
-                else:
-                    raise AttributeError("Invalid tr type \'{}\'".format(tr.type))
-
-            # double check successful distribution at the satoshi
-            if tr.type == "sell":
-                payout_amt = sum([p.sell_amount for p in tr.payouts]).\
-                    quantize(current_app.SATOSHI)
-                assert payout_amt == tr.exchanged_quantity.quantize(current_app.SATOSHI)
-            elif tr.type == "buy":
-                buy_amount = sum([p.buy_amount for p in tr.payouts]).\
-                    quantize(current_app.SATOSHI)
-                assert buy_amount == tr.exchanged_quantity.quantize(current_app.SATOSHI)
-
-            current_app.logger.info(
-                "Successfully pushed trade result for request id {:,} and "
-                "amount {:,} to {:,} payouts.".
-                format(tr.id, tr.exchanged_quantity, len(tr.payouts)))
+        try:
+            tr = (TradeRequest.query.filter_by(id=int(tr_id)).
+                  with_lockmode('update').one())
+            tr.exchanged_quantity = Decimal(quantity)
+            tr.fees = Decimal(fees)
+            tr.distribute()
+        except Exception:
+            db.session.rollback()
+            current_app.logger.error("Unable to update trade request {}"
+                                     .format(tr_id), exc_info=True)
+        else:
+            updated.append(tr_id)
 
     db.session.commit()
-    return sign(dict(success=True,
+    return sign(dict(success=True, updated_ids=updated,
                      result="Trade requests successfully updated."))
 
 

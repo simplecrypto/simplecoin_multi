@@ -1,11 +1,14 @@
 import unittest
+import flask
 
+from itsdangerous import TimedSerializer, BadData
 from decimal import Decimal
 from simplecoin import db, currencies
 from simplecoin.scheduler import distributor
 from simplecoin.tests import RedisUnitTest, UnitTest
-from simplecoin.models import Credit, Block
+import simplecoin.models as m
 from simplecoin.scheduler import payout
+from simplecoin.rpc_views import update_trade_requests
 
 
 class TestDistributor(unittest.TestCase):
@@ -25,6 +28,84 @@ class TestDistributor(unittest.TestCase):
 
         assert splits["b"] > (splits["a"] * Decimal("2.5"))
         assert splits["a"] > (splits["c"] * Decimal("33.33333"))
+
+
+class TestTradeRequest(UnitTest):
+    def test_push_tr_buy(self):
+        credits = []
+        tr = m.TradeRequest(
+            quantity=sum(xrange(1, 20)),
+            type="buy",
+            currency="TEST"
+        )
+        db.session.add(tr)
+        for i in xrange(1, 20):
+            c = m.CreditExchange(
+                amount=i,
+                sell_amount=i,
+                sell_req=None,
+                buy_req=tr,
+                currency="TEST",
+                address="test{}".format(i))
+            credits.append(c)
+            db.session.add(c)
+
+        db.session.commit()
+        push_data = {'completed_trs': {tr.id: ("1000", "1")}}
+        db.session.expunge_all()
+
+        with self.app.test_request_context('/?name=Peter'):
+            flask.g.signer = TimedSerializer(self.app.config['rpc_signature'])
+            flask.g.signed = push_data
+            update_trade_requests()
+
+        db.session.rollback()
+        db.session.expunge_all()
+
+        previous = 0
+        for credit in m.CreditExchange.query.all():
+            print credit.id, credit.sell_amount, credit.buy_amount
+            assert credit.buy_amount > previous
+            previous = credit.buy_amount
+
+        assert m.TradeRequest.query.first()._status == 6
+
+    def test_push_tr(self):
+        credits = []
+        tr = m.TradeRequest(
+            quantity=sum(xrange(1, 20)),
+            type="sell",
+            currency="TEST"
+        )
+        db.session.add(tr)
+        for i in xrange(1, 20):
+            c = m.CreditExchange(
+                amount=i,
+                sell_req=tr,
+                currency="TEST",
+                address="test{}".format(i))
+            credits.append(c)
+            db.session.add(c)
+
+        db.session.commit()
+        push_data = {'completed_trs': {tr.id: ("1000", "1")}}
+        db.session.expunge_all()
+
+        with self.app.test_request_context('/?name=Peter'):
+            flask.g.signer = TimedSerializer(self.app.config['rpc_signature'])
+            flask.g.signed = push_data
+            update_trade_requests()
+
+        db.session.rollback()
+        db.session.expunge_all()
+
+        previous = 0
+        for credit in m.CreditExchange.query.all():
+            print credit.id, credit.amount, credit.sell_amount
+            assert credit.sell_amount > previous
+            previous = credit.sell_amount
+
+        assert m.TradeRequest.query.first()._status == 6
 
 
 class TestPayouts(RedisUnitTest):
@@ -60,9 +141,9 @@ class TestPayouts(RedisUnitTest):
 
         db.session.rollback()
         db.session.expunge_all()
-        payouts = Credit.query.all()
+        payouts = m.Credit.query.all()
         self.assertEqual(len(payouts), 3)
-        block = Block.query.first()
+        block = m.Block.query.first()
         self.assertEqual(len(block.chain_payouts), 2)
         self.assertEqual(block.chain_payouts[0].amount, block.total_value / 2)
         self.assertEqual(block.chain_payouts[1].amount, block.total_value / 2)
@@ -70,7 +151,7 @@ class TestPayouts(RedisUnitTest):
         for p in payouts:
             assert p.block == block
 
-        assert Credit.query.filter_by(source=1).one().amount == Decimal("0.250")
+        assert m.Credit.query.filter_by(source=1).one().amount == Decimal("0.250")
 
     def test_payout(self, **kwargs):
         bd = self.test_block_data.copy()
@@ -84,9 +165,9 @@ class TestPayouts(RedisUnitTest):
 
         db.session.rollback()
         db.session.expunge_all()
-        payouts = Credit.query.all()
+        payouts = m.Credit.query.all()
         self.assertEqual(len(payouts), 2)
-        block = Block.query.first()
+        block = m.Block.query.first()
         self.assertEqual(block.currency, self.test_block_data['currency'])
         self.assertEqual(block.total_value, Decimal("50"))
         self.assertEqual(block.height, 247)
@@ -95,12 +176,12 @@ class TestPayouts(RedisUnitTest):
         for p in payouts:
             assert p.block == block
 
-        assert Credit.query.filter_by(source=1).one().amount == Decimal("0.50")
+        assert m.Credit.query.filter_by(source=1).one().amount == Decimal("0.50")
 
     def test_payout_merged(self):
         self.test_payout(merged="1")
-        assert Block.query.first().merged
+        assert m.Block.query.first().merged
 
     def test_payout_multichain_merged(self):
         self.test_payout_multichain(merged="1")
-        assert Block.query.first().merged
+        assert m.Block.query.first().merged

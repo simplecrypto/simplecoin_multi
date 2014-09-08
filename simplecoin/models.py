@@ -61,6 +61,40 @@ class TradeRequest(base):
     fees = db.Column(db.Numeric(scale=28), default=None)
     _status = db.Column(db.SmallInteger, default=0)
 
+    def distribute(self):
+        assert self.type in ["buy", "sell"], "Invalid type!"
+        assert self.exchanged_quantity > 0
+
+        credits = self.credits  # Do caching here, avoid multiple lookups
+        if not credits:
+            current_app.logger.warn("Trade request #{} has no attached credits"
+                                    .format(self.id))
+        else:
+            # calculate user payouts based on percentage of the total
+            # exchanged value
+            if self.type == "sell":
+                portions = {c.id: c.amount for c in credits}
+            elif self.type == "buy":
+                portions = {c.id: c.sell_amount for c in credits}
+            amounts = distributor(self.exchanged_quantity, portions)
+
+            for credit in credits:
+                if self.type == "sell":
+                    assert credit.sell_amount is None
+                    credit.sell_amount = amounts[credit.id]
+                elif self.type == "buy":
+                    assert credit.buy_amount is None
+                    credit.buy_amount = amounts[credit.id]
+                    # Mark the credit ready for payout to users
+                    credit.payable = True
+
+            current_app.logger.info(
+                "Successfully pushed trade result for request id {:,} and "
+                "amount {:,} to {:,} credits.".
+                format(self.id, self.exchanged_quantity, len(credits)))
+
+        self._status = 6
+
     @property
     def credits(self):
         if self.type == "sell":
