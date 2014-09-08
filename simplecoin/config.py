@@ -219,10 +219,6 @@ class CurrencyKeeper(dict):
         return [c for c in self.itervalues() if c.exchangeable is False]
 
     @property
-    def available_currencies(self):
-        return [k for k in self.iterkeys()]
-
-    @property
     def available_versions(self):
         versions = {}
         for v in self.itervalues():
@@ -230,23 +226,6 @@ class CurrencyKeeper(dict):
                 versions.setdefault(version, [])
                 versions[version].append(v)
         return versions
-
-    def lookup_address(self, address):
-        ver = address_version(address)
-        try:
-            return self.lookup_version(ver)
-        except AttributeError:
-            raise AttributeError("Address '{}' version {} is not a configured "
-                                 "currency. Options are {}"
-                                 .format(address, ver, self.available_versions))
-
-    def lookup_version(self, version):
-        try:
-            return self.available_versions[version]
-        except KeyError:
-            raise AttributeError(
-                "Address version {} doesn't match available versions {}"
-                .format(version, self.available_versions))
 
     def lookup_payable_addr(self, address):
         """
