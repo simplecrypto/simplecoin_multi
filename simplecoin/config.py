@@ -10,7 +10,7 @@ from autoex.ex_manager import ExchangeManager
 
 from . import models as m
 from . import cache, redis_conn, currencies, exchanges, chains, powerpools, locations
-from .exceptions import ConfigurationException, RemoteException
+from .exceptions import ConfigurationException, RemoteException, InvalidAddressException
 
 
 class ConfigObject(object):
@@ -79,6 +79,7 @@ class ConfigChecker(ConfigObject):
             raise ConfigurationException("Pool payout currency must be exchangeable!")
         if app.currencies[pool_curr].pool_payout_addr is None:
             raise ConfigurationException("Pool payout currency must define a pool_payout_addr!")
+        self.pool_payout_currency = app.currencies[pool_curr]
 
     def lookup_key(self, key, nested=None):
         """ Helper method: Checks the config for the specified key and raises
@@ -245,12 +246,15 @@ class CurrencyKeeper(dict):
         curr = self.validate_bc_address(address)
 
         if curr:
-            return self.version_map[curr]
+            try:
+                return self.version_map[curr]
+            except KeyError:
+                raise InvalidAddressException(
+                    "Valid address, but not a known exchangeable currency")
         else:
-            raise AttributeError("Address '{}' version {} is not an "
-                                 "exchangeable currency. Options are {}"
-                                 .format(address, curr.address_version,
-                                         self.exchangeable_currencies))
+            raise InvalidAddressException(
+                "Address '{}' version {} is not an exchangeable currency. Options are {}"
+                .format(address, curr.address_version, self.exchangeable_currencies))
 
     def validate_bc_address(self, bc_address_str):
         """
@@ -262,14 +266,17 @@ class CurrencyKeeper(dict):
         """
         # First check to make sure the address contains only alphanumeric chars
         if not bc_address_str.isalnum():
-            raise TypeError('Address should be alphanumeric')
+            raise InvalidAddressException('Address should be alphanumeric')
 
         # Check to make sure str is the proper length
         if not len(bc_address_str) >= 33 or not len(bc_address_str) <= 35:
-            raise ValueError('Address should be 33-35 characters long')
+            raise InvalidAddressException('Address should be 33-35 characters long')
 
         # Check to see if the address can be looked up from the config
-        ver = address_version(bc_address_str)
+        try:
+            ver = address_version(bc_address_str)
+        except (AttributeError, ValueError):
+            raise InvalidAddressException("Invalid")
         return ver
 
 

@@ -18,7 +18,7 @@ from cryptokit.rpc import CoinRPCException
 from simplecoin import (db, cache, redis_conn, create_app, currencies,
                         powerpools, algos, global_config)
 from simplecoin.utils import last_block_time
-from simplecoin.exceptions import RemoteException
+from simplecoin.exceptions import RemoteException, InvalidAddressException
 from simplecoin.models import (Block, Credit, UserSettings, TradeRequest,
                                CreditExchange, Payout, ShareSlice, ChainPayout,
                                DeviceSlice, make_upper_lower)
@@ -530,7 +530,7 @@ def payout(redis_key, simulate=False):
         valid_currencies.append(block.currency_obj)
 
     # Get the pools payout information for this block
-    global_curr = currencies[global_config.pool_payout_currency]
+    global_curr = global_config.pool_payout_currency
     pool_payout = dict(address=block.currency_obj.pool_payout_addr,
                        currency=block.currency_obj,
                        user=global_curr.pool_payout_addr)
@@ -734,11 +734,13 @@ def collect_minutes():
         # To ensure invalid stampt don't get committed
         minute = ShareSlice.floor_time(minute, 0)
         if stamp < (time.time() - 30):
-            current_app.logger.info("Skipping timestamp {}, too young".format(minute))
+            current_app.logger.info("Skipping timestamp {}, too young"
+                                    .format(minute))
             continue
 
         redis_conn.rename(key, "processing_shares")
         for user, shares in redis_conn.hgetall("processing_shares").iteritems():
+
             shares = float(shares)
             # messily parse out the worker/address combo...
             parts = user.split(".")
@@ -747,6 +749,15 @@ def collect_minutes():
             else:
                 worker = ''
             address = parts[0]
+
+            if address != "pool":
+                try:
+                    curr = currencies.lookup_payable_addr(address)
+                except InvalidAddressException:
+                    curr = None
+
+                if not curr:
+                    address = global_config.pool_payout_currency.pool_payout_addr
 
             try:
                 slc = ShareSlice(user=address, time=minute, worker=worker, algo=algo,

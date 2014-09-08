@@ -6,6 +6,7 @@ from flask import (current_app, request, render_template, Blueprint, jsonify,
 from .models import (Block, ShareSlice, UserSettings, make_upper_lower, Credit,
                      Payout, DeviceSlice)
 from . import db, root, cache, currencies, algos, locations
+from .exceptions import InvalidAddressException
 from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
                     get_alerts, resort_recent_visit, collect_acct_items,
                     CommandException)
@@ -263,8 +264,9 @@ def handle_message(address, curr):
         except CommandException as e:
             result = "Error: {}".format(e)
         except Exception as e:
-            current_app.logger.info("Unhandled exception in Command validation",
-                                    exc_info=True)
+            current_app.logger.info(
+                "Unhandled exception in Command validation",
+                exc_info=True)
             result = "An unhandled error occurred: {}".format(e)
         else:
             result = "Successfully changed!"
@@ -281,7 +283,7 @@ def validate_address():
         address = addr[1]
         try:
             curr = currencies.lookup_payable_addr(address)
-        except (ValueError, AttributeError):
+        except InvalidAddressException:
             return jsonify({currency: False})
 
         if currency == 'Any' or currency == curr.key:

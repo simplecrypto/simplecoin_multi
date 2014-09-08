@@ -8,3 +8,7 @@ class ConfigurationException(Exception):
 
 class RemoteException(Exception):
     pass
+
+
+class InvalidAddressException(ValueError):
+    pass

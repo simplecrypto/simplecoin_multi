@@ -8,7 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from cryptokit.rpc import CoinRPCException
 from decimal import Decimal as dec
 
-from .exceptions import CommandException
+from .exceptions import CommandException, InvalidAddressException
 from . import db, cache, root, redis_conn, currencies, powerpools, algos
 from .models import (ShareSlice, Block, Credit, UserSettings, make_upper_lower,
                      Payout)
@@ -447,7 +447,7 @@ def validate_message_vals(address, **kwargs):
     for curr, addr in set_addrs.iteritems():
         try:
             curr_list = currencies.validate_bc_address(addr)
-        except Exception:
+        except InvalidAddressException:
             raise CommandException("Invalid {} address passed!".format(curr))
         try:
             curr_obj = currencies[curr]
