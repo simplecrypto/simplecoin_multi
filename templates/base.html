@@ -115,6 +115,10 @@
     <div class="col-lg-8 col-lg-offset-2 text-center">
       <small>BTC Donate: <a href="bitcoin:185cYTmEaTtKmBZc8aSGCr9v2VCDLqQHgR">
         185cYTmEaTtKmBZc8aSGCr9v2VCDLqQHgR</a></small>
+      {% if config.get('stage') %}
+      <br />
+      <small><b>STAGE Mode</b></small>
+      {% endif %}
     </div>
   </div>
   {% endblock %}
