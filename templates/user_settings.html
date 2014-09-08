@@ -135,7 +135,7 @@
                     <div class="col-sm-3 no-padding">
                       <input type="text" class="form-control" id="poolDonate"
                              name="poolDonate"
-                             value="{{ user.hr_perc or (config['default_donate_perc']|float * 100) }}">
+                             value="{{ user.hr_perc or 0.0 }}">
                       <span class="form-control-feedback">%</span>
                       <div class="help-block invalid-range default-hide">
                         <i class='fa fa-exclamation-triangle'></i> 0-100%</div>
