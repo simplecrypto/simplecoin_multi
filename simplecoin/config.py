@@ -243,18 +243,14 @@ class CurrencyKeeper(dict):
         Although it makes this assumption - it should return a consistent
         Currency obj even if configuration is incorrect
         """
-        curr = self.validate_bc_address(address)
+        ver = self.validate_bc_address(address)
 
-        if curr:
-            try:
-                return self.version_map[curr]
-            except KeyError:
-                raise InvalidAddressException(
-                    "Valid address, but not a known exchangeable currency")
-        else:
+        try:
+            return self.version_map[ver]
+        except KeyError:
             raise InvalidAddressException(
                 "Address '{}' version {} is not an exchangeable currency. Options are {}"
-                .format(address, curr.address_version, self.exchangeable_currencies))
+                .format(address, ver, self.exchangeable_currencies))
 
     def validate_bc_address(self, bc_address_str):
         """
