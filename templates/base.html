@@ -2,8 +2,8 @@
 <head>
   <meta http-equiv="content-type" content="text/html; charset=UTF-8">
   <meta name="og:image" content="{{ config['assets_address'] | safe }}{{ config['leader-xs'] | safe }}">
-  <title>Simple {{ config['coin_name'] | safe }}{% if page_title %} - {{ page_title }}{% endif %}</title>
-  <meta name="description" content="A custom mining pool with no registration and a focus on developing new tools for miners">
+  <title>{{ config['site_title'] | safe }}{% if page_title %} - {{ page_title }}{% endif %}</title>
+  <meta name="description" content="{{ config['site_meta_desc'] | safe }}">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
@@ -30,7 +30,7 @@
             <a style=" text-decoration:none;" href="/">
               <div>
                 <img src="{{ config['assets_address'] | safe }}{{ config['logo'] | safe }}" style="padding-bottom: 5px;float:left;width:64px;">
-                <p>&nbsp;Simple&nbsp;{{ config['coin_name'] | safe }}</p>
+                <p>{{ config['site_title'] | safe }}</p>
               </div>
             </a>
           </h1>

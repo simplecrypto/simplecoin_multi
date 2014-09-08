@@ -140,7 +140,7 @@ def exception():
     return ""
 
 
-@main.route("/<user_address>")
+@main.route("/stats/<user_address>")
 def user_dashboard(user_address):
     # Do some checking to make sure the address is valid + payable
     try:

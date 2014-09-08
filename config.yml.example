@@ -207,12 +207,11 @@ coin_name: Multi
 assets_address: /static
 # logo img
 logo: "/img/logo.png"
-# xs leader img
-leader-xs: "/img/doge-miner-xs.jpg"
-# sm leader img
-leader-sm: "/img/doge-miner-sm.jpg"
-# fullsize leader img
-leader: "/img/doge-miner.jpg"
+########### Metatags SEO ##############
+site_meta_desc: |
+    A custom mining pool with automatic
+    exchanging between currencies, no registration, and a focus on developing new
+    tools for miners
 
 # Main Nav Links
 # =======================================================================

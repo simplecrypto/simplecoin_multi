@@ -7,7 +7,7 @@ $(document).ready(function() {
   //  Action stats form based on input val
     $('#statsform').submit(function(){
       var address = $('#inputAddress').val();
-      $(this).attr('action', "/" + address);
+      $(this).attr('action', "/stats/" + address);
     });
     
     // Handling of removing address
@@ -25,7 +25,7 @@ $(document).ready(function() {
             $('<button>', {type: 'button', class: 'close', 'data-address': value}).html('×')
           ).append(
             $('<h4>').append(
-              $('<a>', {href: '/' + value}).html(value)
+              $('<a>', {href: '/stats/' + value}).html(value)
             )
           )
           $('#recent-users').append(recentAddress);
@@ -41,7 +41,7 @@ $(document).ready(function() {
     <fieldset>
       <div class="form-group">
         <div class="col-lg-9">
-          <input type="text" class="form-control" id="inputAddress" placeholder="Paste your {{ config['coin_name'] }} address for quick access to individualized stats.">
+          <input type="text" class="form-control" id="inputAddress" placeholder="Paste your User Address for quick access to individualized stats.">
           <span class="help-block">
               {% if 'recent_users' in session %}
                 <h4>Recently Visited Stats:</h4>
@@ -49,7 +49,7 @@ $(document).ready(function() {
                 {% for address, perc in session['recent_users'] %}
                   <p>
                     <button type="button" class="close" data-address="{{ address }}">×</button>
-                    <h4><a style="opacity:{{ perc | fader(0.1, 0.3, 0.4, '0.8', '0.9', '1.0') }};" href="/{{ address }}">{{ address }}</a></h4>
+                    <h4><a style="opacity:{{ perc | fader(0.1, 0.3, 0.4, '0.8', '0.9', '1.0') }};" href="/stats/{{ address }}">{{ address }}</a></h4>
                   </p>
                 {% endfor %}
                 </div>

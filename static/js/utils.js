@@ -39,7 +39,7 @@ $(document).ready(function() {
   var wrap_link = function(selector, address) {
       var html = $(selector).html();
       var url = $(selector).data('url');
-      $(selector).html('<a href="' + url + '/' + address + '">' + html + '</a>');
+      $(selector).html('<a href="' + url + '/stats/' + address + '">' + html + '</a>');
   };
 
   // Checks the ref's value and sets the target's html to that val
@@ -131,7 +131,7 @@ $(document).ready(function() {
   //  Action stats form based on input val
     $('#statsform').submit(function(){
       var address = $('#inputAddress').val();
-      $(this).attr('action', "/" + address);
+      $(this).attr('action', "/stats/" + address);
     });
 
   // Setup collapse button for configuration guide
@@ -155,6 +155,7 @@ $(document).ready(function() {
   // config guide - set username + curr
   $('#availCurr').change(function() {
     $('#configUserAddr').attr("name", $(this).val());
+    $('.chosen-currency').text($(this).val());
     $('#configUserAddr').blur();
   });
 
