@@ -19,8 +19,8 @@ from simplecoin import (db, cache, redis_conn, create_app, currencies,
                         powerpools, algos, global_config)
 from simplecoin.utils import last_block_time
 from simplecoin.exceptions import RemoteException
-from simplecoin.models import (Block, Payout, UserSettings, TradeRequest,
-                               PayoutExchange, PayoutAggregate, ShareSlice,
+from simplecoin.models import (Block, Credit, UserSettings, TradeRequest,
+                               CreditExchange, PayoutAggregate, ShareSlice,
                                ChainPayout, DeviceSlice, make_upper_lower)
 
 SchedulerCommand = Manager(usage='Run timed tasks manually')
@@ -50,7 +50,7 @@ def crontab(func, *args, **kwargs):
         db.session.rollback()
     except Exception:
         current_app.logger.error("Unhandled exception in {}".format(func.__name__),
-                                exc_info=True)
+                                 exc_info=True)
 
     t = time.time() - t
     cache.cache._client.hmset('cron_last_run_{}'.format(func.__name__),
@@ -131,14 +131,14 @@ def create_aggrs():
             aggrs[key] = aggr
         return aggrs[key]
 
-    q = Payout.query.filter_by(payable=True, aggregate_id=None).all()
-    for payout in q:
-        aggr = get_payout_aggr(payout.currency, payout.user, payout.address)
-        payout.aggregate = aggr
-        if payout.type == 1:
-            aggr.amount += payout.buy_amount
+    q = Credit.query.filter_by(payable=True, aggregate_id=None).all()
+    for credit in q:
+        aggr = get_payout_aggr(credit.currency, credit.user, credit.address)
+        credit.aggregate = aggr
+        if credit.type == 1:
+            aggr.amount += credit.buy_amount
         else:
-            aggr.amount += payout.amount
+            aggr.amount += credit.amount
 
         aggr.count += 1
 
@@ -151,8 +151,8 @@ def create_aggrs():
             aggr.amount = amt_payable
 
             if user_extra > 0:
-                # Generate a new payout to catch fractional amounts in the next payout
-                p = Payout(user=user,
+                # Generate a new credit to catch fractional amounts in the next payout
+                p = Credit(user=user,
                            amount=user_extra,
                            fee_perc=0,
                            pd_perc=0,
@@ -161,7 +161,7 @@ def create_aggrs():
                            payable=True)
                 db.session.add(p)
                 current_app.logger.info(
-                    "Created {} payout for remainder of {} for {}"
+                    "Created {} credit for remainder of {} for {}"
                     .format(currency, user_extra, user))
 
     # Generate some simple stats about what we've done
@@ -173,11 +173,11 @@ def create_aggrs():
 
     for curr, (tamount, tcount, count) in adds.iteritems():
         current_app.logger.info(
-            "Created {:,} aggregates paying {} {} for {:,} payouts"
+            "Created {:,} aggregates paying {} {} for {:,} credits"
             .format(count, tamount, curr, tcount))
 
     if not adds:
-        current_app.logger.info("No payable payouts were aggregated")
+        current_app.logger.info("No payable credits were aggregated")
 
     db.session.commit()
 
@@ -186,7 +186,7 @@ def create_aggrs():
 @SchedulerCommand.command
 def create_trade_req(typ):
     """
-    Takes all the payouts in need of exchanging (either buying or selling, not
+    Takes all the credits in need of exchanging (either buying or selling, not
     both) and attaches them to a new trade request.
     """
     reqs = {}
@@ -202,49 +202,49 @@ def create_trade_req(typ):
             reqs[currency] = req
         return reqs[currency]
 
-    # Attach unattached payouts in need of exchange to a new batch of
+    # Attach unattached credits in need of exchange to a new batch of
     # sellrequests
 
-    q = PayoutExchange.query.options(db.joinedload('block'))
-    # To create a sell request, we find all the payouts with no sell request
+    q = CreditExchange.query.options(db.joinedload('block'))
+    # To create a sell request, we find all the credits with no sell request
     # that are mature
     if typ == "sell":
-        q = q.filter_by(sell_req=None).join(Payout.block, aliased=True)
-    # To create a buy request, we find all the payouts with completed sell
+        q = q.filter_by(sell_req=None).join(Credit.block, aliased=True)
+    # To create a buy request, we find all the credits with completed sell
     # requests that are mature
     elif typ == "buy":
         q = (q.filter_by(buy_req=None).
-             join(PayoutExchange.sell_req, aliased=True).
-             filter_by(_status=6).join(Payout.block, aliased=True).
+             join(CreditExchange.sell_req, aliased=True).
+             filter_by(_status=6).join(Credit.block, aliased=True).
              filter_by(mature=True))
-    for payout in q:
+    for credit in q:
         if typ == "sell":
-            curr = payout.block.currency
+            curr = credit.block.currency
             req = get_trade_req(curr)
-            payout.sell_req = req
+            credit.sell_req = req
             # We're selling using the mined currency
-            req.quantity += payout.amount
+            req.quantity += credit.amount
         elif typ == "buy":
-            curr = currencies[payout.currency].key
+            curr = currencies[credit.currency].key
             req = get_trade_req(curr)
-            payout.buy_req = req
+            credit.buy_req = req
             # We're buying using the currency from the sell request
-            req.quantity += payout.sell_amount
+            req.quantity += credit.sell_amount
 
         adds.setdefault(curr, 0)
         adds[curr] += 1
 
     for curr, req in reqs.iteritems():
         if typ == "buy":
-            current_app.logger.info("Created a buy trade request for {} with {} BTC containing {:,} PayoutExchanges"
-                        .format(req.currency, req.quantity, adds[curr]))
+            current_app.logger.info("Created a buy trade request for {} with {} BTC containing {:,} CreditExchanges"
+                                    .format(req.currency, req.quantity, adds[curr]))
         else:
-            current_app.logger.info("Created a sell trade request for {} {} containing {:,} PayoutExchanges"
-                        .format(req.quantity, req.currency, adds[curr]))
+            current_app.logger.info("Created a sell trade request for {} {} containing {:,} CreditExchanges"
+                                    .format(req.quantity, req.currency, adds[curr]))
 
     if not reqs:
-        current_app.logger.info("No PayoutExchange's found to create {} "
-                    "requests for".format(typ))
+        current_app.logger.info("No CreditExchange's found to create {} "
+                                "requests for".format(typ))
 
     db.session.commit()
 
@@ -296,7 +296,7 @@ def update_block_state():
                 heights[currency.key] = currency.coinserv.getblockcount()
             except (urllib3.exceptions.HTTPError, CoinRPCException) as e:
                 current_app.logger.error("Unable to communicate with {} RPC server: {}"
-                             .format(currency.key, e))
+                                         .format(currency.key, e))
                 return None
         return heights[currency.key]
 
@@ -321,37 +321,37 @@ def update_block_state():
         # the RPC server excessively
         if (blockheight - block.height) < currency.block_mature_confirms:
             current_app.logger.info("Not doing confirm check on block {} since it's not"
-                        "at check threshold (last height {})"
-                        .format(block, blockheight))
+                                    "at check threshold (last height {})"
+                                    .format(block, blockheight))
             continue
 
         try:
             # Check to see if the block hash exists in the block chain
             output = currency.coinserv.getblock(block.hash)
             current_app.logger.debug("Confirms: {}; Height diff: {}"
-                         .format(output['confirmations'],
-                                 blockheight - block.height))
+                                     .format(output['confirmations'],
+                                             blockheight - block.height))
         except urllib3.exceptions.HTTPError as e:
             current_app.logger.error("Unable to communicate with {} RPC server: {}"
-                         .format(currency.key, e))
+                                     .format(currency.key, e))
             continue
         except CoinRPCException:
             current_app.logger.info("Block {} not in coin database, assume orphan!"
-                        .format(block))
+                                    .format(block))
             block.orphan = True
         else:
             # if the block has the proper number of confirms
             if output['confirmations'] > currency.block_mature_confirms:
                 current_app.logger.info("Block {} meets {} confirms, mark mature"
-                            .format(block, currency.block_mature_confirms))
+                                        .format(block, currency.block_mature_confirms))
                 block.mature = True
-                for payout in block.payouts:
-                    if payout.type == 0:
-                        payout.payable = True
+                for credit in block.credits:
+                    if credit.type == 0:
+                        credit.payable = True
             # else if the result shows insufficient confirms, mark orphan
             elif output['confirmations'] < currency.block_mature_confirms:
                 current_app.logger.info("Block {} occured {} height ago, but not enough confirms. Marking orphan."
-                            .format(block, currency.block_mature_confirms))
+                                        .format(block, currency.block_mature_confirms))
                 block.orphan = True
 
         db.session.commit()
@@ -420,7 +420,7 @@ def distributor(amount, splits):
 
 def payout(redis_key, simulate=False):
     """
-    Calculates payouts for users from share records for the latest found block.
+    Calculates credits for users from share records for the latest found block.
     """
     # Don't do this truthiness thing
     if simulate is not True:

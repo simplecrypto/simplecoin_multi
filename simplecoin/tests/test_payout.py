@@ -4,7 +4,7 @@ from decimal import Decimal
 from simplecoin import db, currencies
 from simplecoin.scheduler import distributor
 from simplecoin.tests import RedisUnitTest, UnitTest
-from simplecoin.models import Payout, Block
+from simplecoin.models import Credit, Block
 from simplecoin.scheduler import payout
 
 
@@ -59,7 +59,7 @@ class TestPayouts(RedisUnitTest):
 
         db.session.rollback()
         db.session.expunge_all()
-        payouts = Payout.query.all()
+        payouts = Credit.query.all()
         assert len(payouts) == 2
         block = Block.query.first()
         self.assertEqual(len(block.chain_payouts), 2)
@@ -83,7 +83,7 @@ class TestPayouts(RedisUnitTest):
 
         db.session.rollback()
         db.session.expunge_all()
-        payouts = Payout.query.all()
+        payouts = Credit.query.all()
         assert len(payouts) == 1
         block = Block.query.first()
         self.assertEqual(block.currency, self.test_block_data['currency'])

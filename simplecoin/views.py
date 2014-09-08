@@ -1,10 +1,9 @@
 import yaml
-import datetime
 
 from flask import (current_app, request, render_template, Blueprint, jsonify,
                    g, session, Response)
 
-from .models import (Block, ShareSlice, UserSettings, make_upper_lower, Payout,
+from .models import (Block, ShareSlice, UserSettings, make_upper_lower, Credit,
                      PayoutAggregate, DeviceSlice)
 from . import db, root, cache, currencies, algos, locations
 from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
@@ -74,12 +73,12 @@ def account(user_address, type):
     offset = page * 100
 
     if type == "aggr":
-        aggrs = (PayoutAggregate.query.filter_by(user=user_address).join(Payout.block).
+        aggrs = (PayoutAggregate.query.filter_by(user=user_address).join(Credit.block).
                  order_by(PayoutAggregate.created_at.desc()).limit(100).offset(offset))
         return render_template('account.html', aggregates=aggrs, page=page,
                                table="aggregate_table.html")
     else:
-        payouts = (Payout.query.filter_by(user=user_address).join(Payout.block).
+        payouts = (Credit.query.filter_by(user=user_address).join(Credit.block).
                    order_by(Block.found_at.desc()).limit(100).offset(offset))
         return render_template('account.html', payouts=payouts, page=page,
                                table="acct_table.html")

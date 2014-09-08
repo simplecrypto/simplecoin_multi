@@ -62,10 +62,10 @@ class TradeRequest(base):
     _status = db.Column(db.SmallInteger, default=0)
 
     @property
-    def payouts(self):
+    def credits(self):
         if self.type == "sell":
-            return self.sell_payouts
-        return self.buy_payouts
+            return self.sell_credits
+        return self.buy_credits
 
     @property
     def status(self):
@@ -126,10 +126,10 @@ class ChainPayout(base):
 
         # Create a payout record indicating this can be distributed
         if self.block.currency == currency:
-            cls = Payout
+            cls = Credit
         # Create a payout entry indicating this needs to be exchanged
         else:
-            cls = PayoutExchange
+            cls = CreditExchange
 
         p = cls(user=user,
                 block=self.block,
@@ -198,17 +198,17 @@ class Block(base):
     @property
     def contributed(self):
         # Total fees + donations associated with this block
-        return sum([bp.contributed for bp in self.block_payouts]) or 0
+        return sum([bp.contributed for bp in self.chain_payouts]) or 0
 
     @property
     def bonus_paid(self):
         # Total fees + donations associated with this block
-        return sum([bp.bonus_paid for bp in self.block_payouts]) or 0
+        return sum([bp.bonus_paid for bp in self.chain_payouts]) or 0
 
     @property
     def shares_to_solve(self):
         # Total shares that were required to solve the block
-        return sum([bp.shares for bp in self.block_payouts])
+        return sum([bp.shares for bp in self.chain_payouts])
 
     @property
     def hr_shares_to_solve(self):
@@ -266,23 +266,23 @@ class Transaction(base):
     standard_join = ['txid', 'confirmed', 'created_at', 'currency', '__dont_mongo']
 
 
-class Payout(base):
-    """ A payout for currency directly crediting a users balance. These
+class Credit(base):
+    """ A credit for currency directly crediting a users balance. These
     have no intermediary exchanges. """
     id = db.Column(db.Integer, primary_key=True)
     block_id = db.Column(db.Integer, db.ForeignKey('block.id'))
-    block = db.relationship('Block', foreign_keys=[block_id], backref='payouts')
+    block = db.relationship('Block', foreign_keys=[block_id], backref='credits')
     user = db.Column(db.String)
     sharechain_id = db.Column(db.SmallInteger)
     address = db.Column(db.String, nullable=False)
     currency = db.Column(db.String, nullable=False)
-    amount = db.Column(db.Numeric, CheckConstraint('amount > 0', 'min_payout_amount'))
+    amount = db.Column(db.Numeric, CheckConstraint('amount > 0', 'min_credit_amount'))
     fee_perc = db.Column(db.SmallInteger)
     pd_perc = db.Column(db.SmallInteger)
     type = db.Column(db.SmallInteger)
     payable = db.Column(db.Boolean, default=False)
 
-    aggregate = db.relationship('PayoutAggregate', backref='payouts')
+    aggregate = db.relationship('PayoutAggregate', backref='credits')
     aggregate_id = db.Column(db.Integer, db.ForeignKey('payout_aggregate.id'))
 
     __table_args__ = (
@@ -368,17 +368,17 @@ class Payout(base):
         return self.amount
 
 
-class PayoutExchange(Payout):
-    """ A payout that needs a sale and a buy to get to the correct currency
+class CreditExchange(Credit):
+    """ A credit that needs a sale and a buy to get to the correct currency
     """
-    id = db.Column(db.Integer, db.ForeignKey('payout.id'), primary_key=True)
+    id = db.Column(db.Integer, db.ForeignKey('credit.id'), primary_key=True)
     sell_req_id = db.Column(db.Integer, db.ForeignKey('trade_request.id'))
     sell_req = db.relationship('TradeRequest', foreign_keys=[sell_req_id],
-                               backref='sell_payouts')
+                               backref='sell_credits')
     sell_amount = db.Column(db.Numeric)
     buy_req_id = db.Column(db.Integer, db.ForeignKey('trade_request.id'))
     buy_req = db.relationship('TradeRequest', foreign_keys=[buy_req_id],
-                              backref='buy_payouts')
+                              backref='buy_credits')
     buy_amount = db.Column(db.Numeric)
 
     @property
@@ -432,7 +432,7 @@ class PayoutExchange(Payout):
         for version, currency_obj in current_app.currencies.iteritems():
             if self.currency == currency_obj.key:
                 currency_ver = version
-        return current_app.currencies[currency_ver].est_value(self.payout_currency_obj, self.amount)
+        return current_app.currencies[currency_ver].est_value(self.currency_obj, self.amount)
 
     @property
     def final_amount(self):

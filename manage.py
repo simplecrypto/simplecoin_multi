@@ -9,7 +9,7 @@ from flask.ext.migrate import MigrateCommand
 
 from simplecoin import create_manage_app, db, currencies, powerpools
 from simplecoin.scheduler import SchedulerCommand
-from simplecoin.models import Transaction, UserSettings, Payout, ShareSlice, DeviceSlice
+from simplecoin.models import Transaction, UserSettings, Credit, ShareSlice, DeviceSlice
 
 
 manager = Manager(create_manage_app)
@@ -47,10 +47,10 @@ def reset_payouts(merged_type="all"):
     Can in certain circumstances reset payouts that are already paid when
     pushes fail. """
     # regular
-    base_q = Payout.query.filter_by(locked=True)
+    base_q = Credit.query.filter_by(locked=True)
     if merged_type != "all":
         base_q = base_q.filter_by(merged_type=merged_type)
-    base_q.update({Payout.locked: False})
+    base_q.update({Credit.locked: False})
     db.session.commit()
 
 

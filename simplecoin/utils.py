@@ -10,7 +10,7 @@ from decimal import Decimal as dec
 
 from .exceptions import CommandException
 from . import db, cache, root, redis_conn, currencies, powerpools, algos
-from .models import (ShareSlice, Block, Payout, UserSettings, make_upper_lower,
+from .models import (ShareSlice, Block, Credit, UserSettings, make_upper_lower,
                      PayoutAggregate)
 
 
@@ -207,9 +207,9 @@ def last_10_shares(user, algo):
 
 def collect_acct_items(address, limit=None, offset=0):
     """ Get account items for a specific user """
-    payouts = (Payout.query.filter_by(user=address).join(Payout.block).
+    credits = (Credit.query.filter_by(user=address).join(Credit.block).
                order_by(Block.found_at.desc()).limit(limit).offset(offset))
-    return payouts
+    return credits
 
 
 def collect_user_stats(user_address):
@@ -310,24 +310,24 @@ def collect_user_stats(user_address):
             summary['earned'] += aggr.amount
 
     # Loop through all unaggregated payouts to find the rest
-    payouts = Payout.query.filter_by(user=user_address, aggregate_id=None).filter(Payout.block != None).options(db.joinedload('block')).all()
-    for payout in payouts:
-        # Group by their desired payout currency
-        summary = earning_summary.setdefault(payout.block.currency, def_earnings.copy())
+    credits = Credit.query.filter_by(user=user_address, aggregate_id=None).filter(Credit.block != None).options(db.joinedload('block')).all()
+    for credit in credits:
+        # Group by their desired currency
+        summary = earning_summary.setdefault(credit.block.currency, def_earnings.copy())
 
         # For non-traded values run an estimate calculation
-        if payout.type == 1:  # PayoutExchange
-            if not payout.block.mature:
-                summary['immature'] += payout.est_value
-            elif payout.block.mature and not payout.payable:
-                summary['unconverted'] += payout.est_value
+        if credit.type == 1:  # CreditExchange
+            if not credit.block.mature:
+                summary['immature'] += credit.est_value
+            elif credit.block.mature and not credit.payable:
+                summary['unconverted'] += credit.est_value
             else:
                 summary['earned'] += aggr.final_amount
         else:
-            if not payout.block.mature:
-                summary['immature'] += payout.amount
+            if not credit.block.mature:
+                summary['immature'] += credit.amount
             else:
-                summary['earned'] += payout.amount
+                summary['earned'] += credit.amount
 
     # Set the currency as a value of the summary dictionary so we can convert
     # the dictionary of dictionaries into a list of dictionaries for rendering
@@ -342,7 +342,7 @@ def collect_user_stats(user_address):
     f_perc = dec(current_app.config.get('fee_perc', dec('0.02'))) * 100
 
     return dict(workers=workers,
-                payouts=payouts[:20],
+                credits=credits[:20],
                 aggregates=aggregates[:20],
                 settings=settings,
                 next_payout=next_payout,
@@ -427,6 +427,7 @@ def validate_str_perc(perc, round=dec('0.01')):
             return False
         else:
             return dec_perc
+
 
 ##############################################################################
 # Message validation and verification functions
