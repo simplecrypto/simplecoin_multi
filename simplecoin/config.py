@@ -245,7 +245,7 @@ class CurrencyKeeper(dict):
         curr = self.validate_bc_address(address)
 
         if curr:
-            return curr
+            return self.version_map[curr]
         else:
             raise AttributeError("Address '{}' version {} is not an "
                                  "exchangeable currency. Options are {}"

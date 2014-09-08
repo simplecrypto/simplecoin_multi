@@ -280,20 +280,14 @@ def validate_address():
         currency = addr[0]
         address = addr[1]
         try:
-            if currency == 'Any':
-                curr = currencies.lookup_payable_addr(address)
-            else:
-                curr = currencies.validate_bc_address(address)
-        except ValueError:
+            curr = currencies.lookup_payable_addr(address)
+        except (ValueError, AttributeError):
             return jsonify({currency: False})
 
-        if currency == 'Any':
-            return jsonify({curr.key: True})
-
-        if not currencies[currency] in curr:
-            return jsonify({currency: False})
-        else:
+        if currency == 'Any' or currency == curr.key:
             return jsonify({currency: True})
+        else:
+            return jsonify({currency: False})
 
 
 @main.route("/settings/<user_address>", methods=['POST', 'GET'])
@@ -302,8 +296,9 @@ def settings(user_address):
     try:
         curr = currencies.lookup_payable_addr(user_address)
     except Exception:
-        return render_template('invalid_address.html',
-                                allowed_currencies=currencies.exchangeable_currencies)
+        return render_template(
+            'invalid_address.html',
+            allowed_currencies=currencies.exchangeable_currencies)
 
     result, alert_cls = handle_message(user_address, curr)
     user = UserSettings.query.filter_by(user=user_address).first()
