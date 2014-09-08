@@ -36,8 +36,8 @@ class TestPayouts(RedisUnitTest):
         "fees": "0",
         "worker": "testing",
         "height": "247",
-        "currency": "VTC",
-        "algo": "scryptn",
+        "currency": "DOGE",
+        "algo": "scrypt",
         "address": "Vfmiz3ZVZfXFvpZTtsLnvHXJCRmsZiaVFH",
         "total_subsidy": "5000000000",
         "hex_bits": "1e0ffff0",
@@ -52,24 +52,25 @@ class TestPayouts(RedisUnitTest):
         self.app.redis.hmset(
             "unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f",
             bd)
-        self.app.redis.rpush("chain_1_slice_17", *["Vfmiz3ZVZfXFvpZTtsLnvHXJCRmsZiaVFH:1"] * 30)
+        self.app.redis.rpush("chain_1_slice_17", *["DJCgMCyjBKxok3eEGed5SGhbWaGj5QTcxF:1"] * 30)
         self.app.redis.rpush("chain_2_slice_1", *["testing:1"] * 32)
 
         payout("unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f")
+        pool_payout = currencies[self.app.config['pool_payout_currency']]
 
         db.session.rollback()
         db.session.expunge_all()
         payouts = Credit.query.all()
-        assert len(payouts) == 2
+        self.assertEqual(len(payouts), 3)
         block = Block.query.first()
         self.assertEqual(len(block.chain_payouts), 2)
         self.assertEqual(block.chain_payouts[0].amount, block.total_value / 2)
         self.assertEqual(block.chain_payouts[1].amount, block.total_value / 2)
-        self.assertEqual(
-            payouts[1].address,
-            currencies[self.app.config['pool_payout_currency']].pool_payout_addr)
+        self.assertEqual(payouts[1].address, pool_payout.pool_payout_addr)
         for p in payouts:
             assert p.block == block
+
+        assert Credit.query.filter_by(source=1).one().amount == Decimal("0.250")
 
     def test_payout(self, **kwargs):
         bd = self.test_block_data.copy()
@@ -78,13 +79,13 @@ class TestPayouts(RedisUnitTest):
             "unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f",
             bd)
 
-        self.app.redis.rpush("chain_1_slice_17", *["Vfmiz3ZVZfXFvpZTtsLnvHXJCRmsZiaVFH:1"] * 30)
+        self.app.redis.rpush("chain_1_slice_17", *["DJCgMCyjBKxok3eEGed5SGhbWaGj5QTcxF:1"] * 30)
         payout("unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f")
 
         db.session.rollback()
         db.session.expunge_all()
         payouts = Credit.query.all()
-        assert len(payouts) == 1
+        self.assertEqual(len(payouts), 2)
         block = Block.query.first()
         self.assertEqual(block.currency, self.test_block_data['currency'])
         self.assertEqual(block.total_value, Decimal("50"))
@@ -93,6 +94,8 @@ class TestPayouts(RedisUnitTest):
         self.assertEqual(block.chain_payouts[0].amount, block.total_value)
         for p in payouts:
             assert p.block == block
+
+        assert Credit.query.filter_by(source=1).one().amount == Decimal("0.50")
 
     def test_payout_merged(self):
         self.test_payout(merged="1")

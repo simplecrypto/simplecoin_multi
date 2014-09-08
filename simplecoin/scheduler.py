@@ -537,7 +537,7 @@ def payout(redis_key, simulate=False):
     # If this currency has no payout address, switch to global default
     if pool_payout['address'] is None:
         pool_payout['address'] = global_curr.pool_payout_addr
-        pool_payout['currency'] = global_curr.key
+        pool_payout['currency'] = global_curr
         assert block.currency_obj.exchangeable, "Block is un-exchangeable"
 
     # Double check valid. Paranoid
@@ -545,6 +545,19 @@ def payout(redis_key, simulate=False):
 
     def filter_valid(user, address, currency):
         if currency not in valid_currencies:
+            current_app.logger.debug(
+                "Converted user {}, addr {}, currency {} => pool addr"
+                " because invalid currency"
+                .format(user, address, currency))
+            return pool_payout
+        try:
+            if isinstance(currency, basestring):
+                currency = currencies[currency]
+        except KeyError:
+            current_app.logger.debug(
+                "Converted user {}, addr {}, currency {} => pool addr"
+                " because invalid currency"
+                .format(user, address, currency))
             return pool_payout
         return dict(address=address, currency=currency, user=user)
 
@@ -564,7 +577,8 @@ def payout(redis_key, simulate=False):
             settings = custom_settings.get(username)
             shares = chain.user_shares.pop(username)
             if settings:
-                converted = settings.apply(shares, currency, block.currency, valid_currencies)
+                converted = settings.apply(
+                    shares, currency, block.currency, valid_currencies)
                 # Check to make sure no funny business
                 assert sum(c[2] for c in converted) == shares, "Settings apply function returned bad stuff"
                 # Create the separate payout objects from settings return info
@@ -607,7 +621,7 @@ def payout(redis_key, simulate=False):
             assert isinstance(fee_perc, Decimal)
             assert isinstance(donate_perc, Decimal)
             fee_amount = credit.amount * fee_perc
-            donate_amount = credit.amount * fee_perc
+            donate_amount = credit.amount * donate_perc
             credit.amount -= fee_amount
             credit.amount -= donate_amount
 
@@ -618,6 +632,24 @@ def payout(redis_key, simulate=False):
             # Bookkeeping
             donations_collected += donate_amount
             fees_collected += fee_amount
+
+    if fees_collected > 0:
+        p = Credit(user=pool_payout['user'],
+                   block=block,
+                   currency=pool_payout['currency'].key,
+                   source=1,
+                   address=pool_payout['address'],
+                   amount=+fees_collected)
+        db.session.add(p)
+
+    if donations_collected > 0:
+        p = Credit(user=pool_payout['user'],
+                   block=block,
+                   currency=pool_payout['currency'].key,
+                   source=2,
+                   address=pool_payout['address'],
+                   amount=+donations_collected)
+        db.session.add(p)
 
     current_app.logger.info("Collected {} in donation".format(donations_collected))
     current_app.logger.info("Collected {} from fees".format(fees_collected))

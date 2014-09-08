@@ -135,6 +135,7 @@ class ChainPayout(base):
                 block=self.block,
                 sharechain_id=self.chainid,
                 currency=currency.key,
+                source=0,
                 address=address)
         p.shares = shares
 
@@ -281,6 +282,7 @@ class Credit(base):
     pd_perc = db.Column(db.SmallInteger)
     type = db.Column(db.SmallInteger)
     payable = db.Column(db.Boolean, default=False)
+    source = db.Column(db.SmallInteger)
 
     payout = db.relationship('Payout', backref='credits')
     payout_id = db.Column(db.Integer, db.ForeignKey('payout.id'))
