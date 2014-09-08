@@ -282,8 +282,8 @@ class Credit(base):
     type = db.Column(db.SmallInteger)
     payable = db.Column(db.Boolean, default=False)
 
-    aggregate = db.relationship('PayoutAggregate', backref='credits')
-    aggregate_id = db.Column(db.Integer, db.ForeignKey('payout_aggregate.id'))
+    payout = db.relationship('Payout', backref='credits')
+    payout_id = db.Column(db.Integer, db.ForeignKey('payout.id'))
 
     __table_args__ = (
         db.Index('payable_idx', 'payable'),
@@ -352,14 +352,14 @@ class Credit(base):
             return "Pending Block Confirmation"
 
         if self.payable:
-            if self.aggregate:
-                if self.aggregate.transaction:
-                    if self.aggregate.transaction.confirmed is True:
+            if self.payout:
+                if self.payout.transaction:
+                    if self.payout.transaction.confirmed is True:
                         return "Payout Transaction {} Confirmed".\
-                            format(self.aggregate.transaction.txid)
+                            format(self.payout.transaction.txid)
                     else:
                         return "Payout Transaction {} Pending".\
-                            format(self.aggregate.transaction.txid)
+                            format(self.payout.transaction.txid)
                 return "Payout Pending"
             return "Pending batching for payout"
 
@@ -391,25 +391,25 @@ class CreditExchange(Credit):
             return "Pending Block Confirmation"
 
         if self.payable:
-            if self.aggregate:
-                if self.aggregate.transaction:
-                    if self.aggregate.transaction.confirmed is True:
+            if self.payout:
+                if self.payout.transaction:
+                    if self.payout.transaction.confirmed is True:
                         return "Payout Transaction {} Confirmed".\
-                            format(self.aggregate.transaction.txid)
+                            format(self.payout.transaction.txid)
                     else:
                         return "Payout Transaction {} Pending".\
-                            format(self.aggregate.transaction.txid)
+                            format(self.payout.transaction.txid)
                 return "Payout Pending"
             return "Pending batching for payout"
 
-        if self.aggregate:
-            if self.aggregate.transaction:
-                if self.aggregate.transaction.confirmed is True:
+        if self.payout:
+            if self.payout.transaction:
+                if self.payout.transaction.confirmed is True:
                     return "Payout Transaction {} Confirmed".\
-                        format(self.aggregate.transaction.txid)
+                        format(self.payout.transaction.txid)
                 else:
                     return "Payout Transaction {} Pending".\
-                        format(self.aggregate.transaction.txid)
+                        format(self.payout.transaction.txid)
             else:
                 return "Pending batching for payout"
 
@@ -443,16 +443,16 @@ class CreditExchange(Credit):
     }
 
 
-class PayoutAggregate(base):
+class Payout(base):
     id = db.Column(db.Integer, primary_key=True)
     transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id'))
-    transaction = db.relationship('Transaction', backref='aggregates')
+    transaction = db.relationship('Transaction', backref='payouts')
     user = db.Column(db.String)
     address = db.Column(db.String, nullable=False)
     currency = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     amount = db.Column(db.Numeric, CheckConstraint('amount > 0',
-                                                   'min_aggregate_amount'))
+                                                   'min_payout_amount'))
     count = db.Column(db.SmallInteger)
 
     @property

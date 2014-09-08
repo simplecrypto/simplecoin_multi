@@ -20,8 +20,8 @@ from simplecoin import (db, cache, redis_conn, create_app, currencies,
 from simplecoin.utils import last_block_time
 from simplecoin.exceptions import RemoteException
 from simplecoin.models import (Block, Credit, UserSettings, TradeRequest,
-                               CreditExchange, PayoutAggregate, ShareSlice,
-                               ChainPayout, DeviceSlice, make_upper_lower)
+                               CreditExchange, Payout, ShareSlice, ChainPayout,
+                               DeviceSlice, make_upper_lower)
 
 SchedulerCommand = Manager(usage='Run timed tasks manually')
 
@@ -109,46 +109,45 @@ def cache_user_donation():
 
 @crontab
 @SchedulerCommand.command
-def create_aggrs():
+def create_payouts():
     """
     Groups payable payouts at the end of the day by currency for easier paying
     out and database compaction, allowing deletion of regular payout records.
     """
-    aggrs = {}
+    payouts = {}
     adds = {}
 
-    def get_payout_aggr(currency, user, address):
-        """ Create a aggregate if we don't have one for this batch,
+    def get_payout(currency, user, address):
+        """ Create a payout if we don't have one for this batch,
         otherwise use the one that was already created """
         key = (currency, user, address)
-        if key not in aggrs:
-            aggr = PayoutAggregate(currency=currency, count=0, user=user,
-                                   address=address)
-            db.session.add(aggr)
+        if key not in payouts:
+            payout = Payout(currency=currency, count=0, user=user, address=address)
+            db.session.add(payout)
             db.session.flush()
             # silly way to defer the constraint
-            aggr.amount = 0
-            aggrs[key] = aggr
-        return aggrs[key]
+            payout.amount = 0
+            payouts[key] = payout
+        return payouts[key]
 
-    q = Credit.query.filter_by(payable=True, aggregate_id=None).all()
+    q = Credit.query.filter_by(payable=True, payout_id=None).all()
     for credit in q:
-        aggr = get_payout_aggr(credit.currency, credit.user, credit.address)
-        credit.aggregate = aggr
+        payout = get_payout(credit.currency, credit.user, credit.address)
+        credit.payout = payout
         if credit.type == 1:
-            aggr.amount += credit.buy_amount
+            payout.amount += credit.buy_amount
         else:
-            aggr.amount += credit.amount
+            payout.amount += credit.amount
 
-        aggr.count += 1
+        payout.count += 1
 
     # Round down to a payable amount (1 satoshi) + record remainder
-    for (currency, user, address), aggr in aggrs.iteritems():
+    for (currency, user, address), payout in payouts.iteritems():
         with decimal.localcontext() as ctx:
             ctx.rounding = decimal.ROUND_DOWN
-            amt_payable = aggr.amount.quantize(current_app.SATOSHI)
-            user_extra = aggr.amount - amt_payable
-            aggr.amount = amt_payable
+            amt_payable = payout.amount.quantize(current_app.SATOSHI)
+            user_extra = payout.amount - amt_payable
+            payout.amount = amt_payable
 
             if user_extra > 0:
                 # Generate a new credit to catch fractional amounts in the next payout
@@ -165,19 +164,19 @@ def create_aggrs():
                     .format(currency, user_extra, user))
 
     # Generate some simple stats about what we've done
-    for (currency, user, address), aggr in aggrs.iteritems():
+    for (currency, user, address), payout in payouts.iteritems():
         adds.setdefault(currency, [0, 0, 0])
-        adds[currency][0] += aggr.amount
-        adds[currency][1] += aggr.count
+        adds[currency][0] += payout.amount
+        adds[currency][1] += payout.count
         adds[currency][2] += 1
 
     for curr, (tamount, tcount, count) in adds.iteritems():
         current_app.logger.info(
-            "Created {:,} aggregates paying {} {} for {:,} credits"
+            "Created {:,} payouts paying {} {} for {:,} credits"
             .format(count, tamount, curr, tcount))
 
     if not adds:
-        current_app.logger.info("No payable credits were aggregated")
+        current_app.logger.info("No payable credits were grouped into payouts")
 
     db.session.commit()
 

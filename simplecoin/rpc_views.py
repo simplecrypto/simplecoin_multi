@@ -6,7 +6,7 @@ from flask import current_app, request, abort, Blueprint, g
 from itsdangerous import TimedSerializer, BadData
 from decimal import Decimal
 
-from .models import Transaction, PayoutAggregate, TradeRequest
+from .models import Transaction, Payout, TradeRequest
 from .utils import Benchmark
 from . import db
 
@@ -123,7 +123,7 @@ def get_payouts():
         abort(400)
 
     with Benchmark("Fetching payout information"):
-        query = PayoutAggregate.query.filter_by(transaction_id=None,
+        query = Payout.query.filter_by(transaction_id=None,
                                                 currency=currency)
         # XXX: Add the min payout amount code here!
         pids = [(p.user, str(p.amount), p.id) for p in query]
@@ -163,9 +163,9 @@ def associate_payouts():
             current_app.logger.warn("Transaction id {} already exists!"
                                     .format(g.signed['coin_txid']))
 
-        PayoutAggregate.query.filter(
-            PayoutAggregate.id.in_(g.signed['pids'])).update(
-                {PayoutAggregate.transaction_id: g.signed['coin_txid']},
+        Payout.query.filter(
+            Payout.id.in_(g.signed['pids'])).update(
+                {Payout.transaction_id: g.signed['coin_txid']},
                 synchronize_session=False)
 
         db.session.commit()

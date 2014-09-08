@@ -4,7 +4,7 @@ from flask import (current_app, request, render_template, Blueprint, jsonify,
                    g, session, Response)
 
 from .models import (Block, ShareSlice, UserSettings, make_upper_lower, Credit,
-                     PayoutAggregate, DeviceSlice)
+                     Payout, DeviceSlice)
 from . import db, root, cache, currencies, algos, locations
 from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
                     get_alerts, resort_recent_visit, collect_acct_items,
@@ -65,22 +65,22 @@ def leaderboard():
 
 
 @main.route("/<user_address>/account", defaults={'type': 'payout'})
-@main.route("/<user_address>/aggr_account", defaults={'type': 'aggr'})
+@main.route("/<user_address>/aggr_account", defaults={'type': 'credit'})
 def account(user_address, type):
     page = int(request.args.get('page', 0))
     if page < 0:
         page = 0
     offset = page * 100
 
-    if type == "aggr":
-        aggrs = (PayoutAggregate.query.filter_by(user=user_address).join(Credit.block).
-                 order_by(PayoutAggregate.created_at.desc()).limit(100).offset(offset))
-        return render_template('account.html', aggregates=aggrs, page=page,
+    if type == "payout":
+        payouts = (Payout.query.filter_by(user=user_address).join(Credit.block).
+                   order_by(Payout.created_at.desc()).limit(100).offset(offset))
+        return render_template('account.html', payouts=payouts, page=page,
                                table="aggregate_table.html")
     else:
-        payouts = (Credit.query.filter_by(user=user_address).join(Credit.block).
+        credits = (Credit.query.filter_by(user=user_address).join(Credit.block).
                    order_by(Block.found_at.desc()).limit(100).offset(offset))
-        return render_template('account.html', payouts=payouts, page=page,
+        return render_template('account.html', credits=credits, page=page,
                                table="acct_table.html")
 
 

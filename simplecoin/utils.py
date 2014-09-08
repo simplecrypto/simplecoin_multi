@@ -11,7 +11,7 @@ from decimal import Decimal as dec
 from .exceptions import CommandException
 from . import db, cache, root, redis_conn, currencies, powerpools, algos
 from .models import (ShareSlice, Block, Credit, UserSettings, make_upper_lower,
-                     PayoutAggregate)
+                     Payout)
 
 
 class ShareTracker(object):
@@ -301,16 +301,17 @@ def collect_user_stats(user_address):
     earning_summary = {}
     def_earnings = dict(sent=dec('0'), earned=dec('0'), unconverted=dec('0'), immature=dec('0'), currency=None)
     # Go through already grouped aggregates
-    aggregates = PayoutAggregate.query.filter_by(user=user_address).all()
-    for aggr in aggregates:
-        summary = earning_summary.setdefault(aggr.payout_currency, def_earnings.copy())
-        if aggr.transaction_id:  # Mark sent if there's a txid attached
-            summary['sent'] += aggr.amount
+    payouts = Payout.query.filter_by(user=user_address).all()
+    for payout in payouts:
+        summary = earning_summary.setdefault(payout.payout_currency, def_earnings.copy())
+        if payout.transaction_id:  # Mark sent if there's a txid attached
+            summary['sent'] += payout.amount
         else:
-            summary['earned'] += aggr.amount
+            summary['earned'] += payout.amount
 
-    # Loop through all unaggregated payouts to find the rest
-    credits = Credit.query.filter_by(user=user_address, aggregate_id=None).filter(Credit.block != None).options(db.joinedload('block')).all()
+    # Loop through all unaggregated credits to find the rest
+    credits = (Credit.query.filter_by(user=user_address, payout_id=None).
+               filter(Credit.block != None).options(db.joinedload('block'))).all()
     for credit in credits:
         # Group by their desired currency
         summary = earning_summary.setdefault(credit.block.currency, def_earnings.copy())
@@ -322,7 +323,7 @@ def collect_user_stats(user_address):
             elif credit.block.mature and not credit.payable:
                 summary['unconverted'] += credit.est_value
             else:
-                summary['earned'] += aggr.final_amount
+                summary['earned'] += payout.final_amount
         else:
             if not credit.block.mature:
                 summary['immature'] += credit.amount
@@ -343,7 +344,7 @@ def collect_user_stats(user_address):
 
     return dict(workers=workers,
                 credits=credits[:20],
-                aggregates=aggregates[:20],
+                payouts=payouts[:20],
                 settings=settings,
                 next_payout=next_payout,
                 earning_summary=earning_summary.values(),
