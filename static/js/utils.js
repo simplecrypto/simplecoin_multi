@@ -39,7 +39,7 @@ $(document).ready(function() {
   var wrap_link = function(selector, address) {
       var html = $(selector).html();
       var url = $(selector).data('url');
-      $(selector).html('<a href="' + url + '/stats/' + address + '">' + html + '</a>');
+      $(selector).html('<a href="' + url + '/' + address + '">' + html + '</a>');
   };
 
   // Checks the ref's value and sets the target's html to that val
@@ -160,16 +160,16 @@ $(document).ready(function() {
   });
 
   $('.server-region').change(function() {
-          html_from_val(this, 'span.stratum-url', '', '')
+      html_from_val(this, 'span.stratum-url', '', '')
   });
   $('.stratum-ports').change(function() {
-          html_from_val(this, 'span.stratum-port', '', '')
+      html_from_val(this, 'span.stratum-port', '', '')
   });
   $('#workername').keyup(function() {
-          html_from_val(this, 'span.mining-workername', '.', '.1')
+      html_from_val(this, 'span.mining-workername', '.', '.1')
   });
   $('#mining-diff').change(function() {
-          html_from_val(this, 'span.mining-diff', 'diff=', 'x')
+      html_from_val(this, 'span.mining-diff', '--diff ', 'x')
   });
 
 ////////////////////////////////////////////

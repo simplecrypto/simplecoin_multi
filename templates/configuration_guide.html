@@ -149,10 +149,8 @@
           <b>Username: </b><span class="mining-username"><span style="color:red">Fill in username above</span></span><span class="mining-workername">.worker1</span><br>
           <b>Password: </b><span class="mining-diff">x</span><br>
           <b>Commandline example:</b> ./sgminer
-          -o stratum+tcp://<span class="stratum-url"><span style="color:red">Select region above</span></span>:
-          <span class="stratum-port"><span style="color:red">Select port above</span></span>
-          -u <span class="mining-username"><span style="color:red">Fill in username above</span></span>
-          <span class="mining-workername">.worker1</span>
+          -o stratum+tcp://<span class="stratum-url"><span style="color:red">Select region above</span></span>:<span class="stratum-port"><span style="color:red">Select port above</span></span>
+          -u <span class="mining-username"><span style="color:red">Fill in username above</span></span><span class="mining-workername">.worker1</span>
           -p <span class="mining-diff">x</span> -I 13
         </div>
       </div>
@@ -164,8 +162,8 @@
     <div class="row">
       <div class="col-sm-11 col-sm-offset-1">
         <p><b>Stats link</b>:
-          <span id="stats-link" data-url="{{ config['site_url'] }}">
-            {{ config['site_url'] }}/<span class="mining-username">[Your Payout Address]</span>
+          <span id="stats-link" data-url="{{ config['site_url'] }}/stats">
+            {{ config['site_url'] }}/stats/<span class="mining-username">[Your Payout Address]</span>
           </span>
         </p>
         <p>After a few minutes of mining your stats page should be showing a
@@ -180,8 +178,8 @@
     <div class="row">
       <div class="col-sm-11 col-sm-offset-1">
         <p><b>Settings link</b>:
-          <span id="settings-link" data-url="{{ config['site_url'] }}/user_settings">
-            {{ config['site_url'] }}/user_settings/<span class="mining-username">[Your Payout Address]</span>
+          <span id="settings-link" data-url="{{ config['site_url'] }}/settings">
+            {{ config['site_url'] }}/settings/<span class="mining-username">[Your Payout Address]</span>
           </span>
         </p>
         More configuration of your account is available on your account
