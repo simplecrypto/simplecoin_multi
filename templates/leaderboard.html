@@ -31,7 +31,13 @@ $(document).ready(function() {
       <tbody>
       {% for user, data in users %}
         <tr>
-          <th>{{ loop.index }}.  <a href="/{{ user }}">{{ user }}</a></th>
+          <th>{{ loop.index }}. 
+            {% if user == "Anonymous" %}
+              {{ user }}
+            {% else %}
+              <a href="/{{ user }}">{{ user }}</a>
+            {% endif %}
+          </th>
           {% for disp, algo in algos %}
           {% set dat = data.get(algo, 0) %}
           <th data-sort-value="{{ dat }}">{% if dat %}{{ dat | hashrate }}{% endif %}</th>

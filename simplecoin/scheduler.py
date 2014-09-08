@@ -259,6 +259,15 @@ def leaderboard():
     sorted_users = sorted(users.iteritems(),
                           key=lambda x: x[1]['normalized'],
                           reverse=True)
+
+    # This is really bad.... XXX: Needs rework!
+    if users:
+        anon = [s.user for s in UserSettings.query.filter(
+            UserSettings.user.in_(users.keys())).filter_by(anon=True).all()]
+        for i, (user, data) in enumerate(sorted_users):
+            if user in anon:
+                sorted_users[i] = ("Anonymous", data)
+
     cache.set("leaderboard", sorted_users, timeout=15 * 60)
 
 
