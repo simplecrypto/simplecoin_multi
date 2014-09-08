@@ -7,7 +7,7 @@ from simplecoin import db, currencies
 from simplecoin.scheduler import distributor
 from simplecoin.tests import RedisUnitTest, UnitTest
 import simplecoin.models as m
-from simplecoin.scheduler import credit_block
+from simplecoin.scheduler import credit_block, create_payouts
 from simplecoin.rpc_views import update_trade_requests
 
 
@@ -28,6 +28,50 @@ class TestDistributor(unittest.TestCase):
 
         assert splits["b"] > (splits["a"] * Decimal("2.5"))
         assert splits["a"] > (splits["c"] * Decimal("33.33333"))
+
+
+class TestGeneratePayout(UnitTest):
+    def test_payout_generation(self):
+        too_low = m.Credit(
+            amount="0.0000000001",
+            currency="DOGE",
+            payable=True,
+            address="too_low")
+        db.session.add(too_low)
+        grouped = m.Credit(
+            amount="12.2394857987234598723453245",
+            currency="DOGE",
+            payable=True,
+            address="grouped")
+        db.session.add(grouped)
+        double2 = m.Credit(
+            amount="12",
+            currency="DOGE",
+            payable=True,
+            address="double")
+        db.session.add(double2)
+        double1 = m.CreditExchange(
+            buy_amount="12",
+            currency="DOGE",
+            payable=True,
+            address="double")
+        db.session.add(double1)
+
+        db.session.commit()
+
+        create_payouts()
+        db.session.rollback()
+
+        assert too_low.payout is None
+        assert grouped.payout is not None
+        remain = m.Credit.query.filter_by(address="grouped", payout=None).one()
+        grouped_result = m.Payout.query.filter_by(address="grouped").one()
+        double_result = m.Payout.query.filter_by(address="double").one()
+        self.assertEquals(grouped_result.amount, Decimal("12.23948579"))
+        self.assertEquals(remain.amount, Decimal('8.7234598723453245E-9'))
+        self.assertEquals(grouped_result.amount + remain.amount,
+                          grouped.amount)
+        self.assertEquals(double_result.amount, double2.amount * 2)
 
 
 class TestTradeRequest(UnitTest):

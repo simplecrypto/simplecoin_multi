@@ -336,6 +336,10 @@ class Credit(base):
                      'transaction_id']
 
     @property
+    def payable_amount(self):
+        return self.amount
+
+    @property
     def currency_obj(self):
         return currencies[self.currency]
 
@@ -399,10 +403,6 @@ class Credit(base):
                 return "Payout Pending"
             return "Pending batching for payout"
 
-    @property
-    def final_amount(self):
-        return self.amount
-
 
 class CreditExchange(Credit):
     """ A credit that needs a sale and a buy to get to the correct currency
@@ -416,6 +416,10 @@ class CreditExchange(Credit):
     buy_req = db.relationship('TradeRequest', foreign_keys=[buy_req_id],
                               backref='buy_credits')
     buy_amount = db.Column(db.Numeric)
+
+    @property
+    def payable_amount(self):
+        return self.buy_amount
 
     @property
     def status(self):

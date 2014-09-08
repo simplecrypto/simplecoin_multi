@@ -114,69 +114,52 @@ def create_payouts():
     Groups payable payouts at the end of the day by currency for easier paying
     out and database compaction, allowing deletion of regular payout records.
     """
-    payouts = {}
-    adds = {}
-
-    def get_payout(currency, user, address):
-        """ Create a payout if we don't have one for this batch,
-        otherwise use the one that was already created """
-        key = (currency, user, address)
-        if key not in payouts:
-            payout = Payout(currency=currency, count=0, user=user, address=address)
-            db.session.add(payout)
-            db.session.flush()
-            # silly way to defer the constraint
-            payout.amount = 0
-            payouts[key] = payout
-        return payouts[key]
+    grouped_credits = {}
 
     q = Credit.query.filter_by(payable=True, payout_id=None).all()
     for credit in q:
-        payout = get_payout(credit.currency, credit.user, credit.address)
-        credit.payout = payout
-        if credit.type == 1:
-            payout.amount += credit.buy_amount
-        else:
-            payout.amount += credit.amount
-
-        payout.count += 1
+        key = (credit.currency, credit.user, credit.address)
+        lst = grouped_credits.setdefault(key, [])
+        lst.append(credit)
 
     # Round down to a payable amount (1 satoshi) + record remainder
-    for (currency, user, address), payout in payouts.iteritems():
-        with decimal.localcontext() as ctx:
-            ctx.rounding = decimal.ROUND_DOWN
-            amt_payable = payout.amount.quantize(current_app.SATOSHI)
-            user_extra = payout.amount - amt_payable
-            payout.amount = amt_payable
+    for (currency, user, address), credits in grouped_credits.iteritems():
+        total = sum([credit.payable_amount for credit in credits])
+        if total < currencies[currency].minimum_payout:
+            current_app.logger.info(
+                "Skipping payout gen of {} for {} because insuff minimum"
+                .format(currency, user))
+            continue
 
-            if user_extra > 0:
-                # Generate a new credit to catch fractional amounts in the next payout
-                p = Credit(user=user,
-                           amount=user_extra,
-                           fee_perc=0,
-                           pd_perc=0,
-                           currency=currency,
-                           address=address,
-                           payable=True)
-                db.session.add(p)
-                current_app.logger.info(
-                    "Created {} credit for remainder of {} for {}"
-                    .format(currency, user_extra, user))
+        payout = Payout(currency=currency, user=user, address=address,
+                        amount=total, count=len(credits))
+        db.session.add(payout)
+        db.session.flush()
 
-    # Generate some simple stats about what we've done
-    for (currency, user, address), payout in payouts.iteritems():
-        adds.setdefault(currency, [0, 0, 0])
-        adds[currency][0] += payout.amount
-        adds[currency][1] += payout.count
-        adds[currency][2] += 1
+        for credit in credits:
+            credit.payout = payout
 
-    for curr, (tamount, tcount, count) in adds.iteritems():
+        amt_payable = payout.amount.quantize(
+            current_app.SATOSHI, rounding=decimal.ROUND_DOWN)
+        extra = payout.amount - amt_payable
+        payout.amount = amt_payable
+
+        if extra > 0:
+            # Generate a new credit to catch fractional amounts in the next
+            # payout
+            p = Credit(user=user,
+                       amount=extra,
+                       fee_perc=0,
+                       source=3,
+                       pd_perc=0,
+                       currency=currency,
+                       address=address,
+                       payable=True)
+            db.session.add(p)
+
         current_app.logger.info(
-            "Created {:,} payouts paying {} {} for {:,} credits"
-            .format(count, tamount, curr, tcount))
-
-    if not adds:
-        current_app.logger.info("No payable credits were grouped into payouts")
+            "Created payout for {} {} with remainder of {}"
+            .format(currency, user, extra))
 
     db.session.commit()
 

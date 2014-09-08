@@ -122,6 +122,7 @@ class Currency(ConfigObject):
     requires = ['algo', 'name', 'coinserv', 'address_version',
                 'trans_confirmations', 'block_time', 'block_mature_confirms']
     defaults = dict(exchangeable=False,
+                    minimum_payout='0.00000001',
                     pool_payout_addr=None)
 
     def __init__(self, bootstrap):
@@ -134,6 +135,7 @@ class Currency(ConfigObject):
                     bootstrap['coinserv']['port'],
                     pool_kwargs=dict(maxsize=bootstrap.get('maxsize', 10))))
         self.exchangeable = bool(self.exchangeable)
+        self.minimum_payout = dec(self.minimum_payout)
 
         # If a pool payout addr is specified, make sure it matches the
         # configured address version.
