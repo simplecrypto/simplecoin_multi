@@ -95,6 +95,7 @@ locations:
         location_acronym: CA
         location: Beauharnois, Canada
         country_flag: "/img/ca.svg"
+        address: stratum.simplemulti.com
 
 # Default values for new miner config
 default_stratum_url: stratum+tcp://stratum.simplemulti.com

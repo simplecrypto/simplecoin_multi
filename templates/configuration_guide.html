@@ -21,7 +21,7 @@
               <input type="radio" name="region" class="form-control server-region" data-server-id="{{ loc }}" value="{{ loc.address }}">
               <h4><img src="{{ config['assets_address'] | safe }}{{ loc.country_flag }}"
                        style="width:25px;" class="too-damn-bright"> &nbsp;{{ loc.location }}</h4>
-                  {# <b>URL</b>: {{ loc.stratum_address }} #}
+                  <b>URL</b>: {{ loc.address }}
             </label>
           </div>
           {% endfor %}
