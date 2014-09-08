@@ -200,7 +200,7 @@ def address_stats(typ):
     step = span_config['slice']
     res = make_upper_lower(trim=span_config['slice'],
                            span=span_config['window'],
-                           clip=span_config['slice'],
+                           clip=span_config['slice'] * 2,
                            fmt="both")
     lower, upper, lower_stamp, upper_stamp = res
 
