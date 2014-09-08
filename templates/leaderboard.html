@@ -35,7 +35,7 @@ $(document).ready(function() {
             {% if user == "Anonymous" %}
               {{ user }}
             {% else %}
-              <a href="/{{ user }}">{{ user }}</a>
+              <a href="/stats/{{ user }}">{{ user }}</a>
             {% endif %}
           </th>
           {% for disp, algo in algos %}
