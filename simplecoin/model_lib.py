@@ -12,9 +12,18 @@ class SqliteNumeric(types.TypeDecorator):
     if we're using SQLite """
     impl = types.Numeric
 
+    def __init__(self, *args, **kwargs):
+        if self.impl == types.Numeric:
+            kwargs['scale'] = 28
+            kwargs['precision'] = 1000
+        types.TypeDecorator.__init__(self, *args, **kwargs)
+
     def load_dialect_impl(self, dialect):
         if dialect.name == "sqlite":
-            return dialect.type_descriptor(types.VARCHAR)
+            self.impl = dialect.type_descriptor(types.VARCHAR)
+        else:
+            # Class attribute -> instance attribute
+            self.impl = self.impl
         return self.impl
 
     def process_bind_param(self, value, dialect):

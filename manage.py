@@ -15,9 +15,13 @@ from simplecoin.models import Transaction, UserSettings, Credit, ShareSlice, Dev
 manager = Manager(create_manage_app)
 
 
-@manager.command
-def init_db():
+@manager.option('-e', '--emit', help='prints the SQL that is executed',
+                action="store_true")
+def init_db(emit=False):
     """ Resets entire database to empty state """
+    if emit:
+        import logging
+        logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
     db.session.commit()
     db.drop_all()
     db.create_all()
