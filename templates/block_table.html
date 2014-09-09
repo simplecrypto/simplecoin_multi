@@ -35,7 +35,7 @@ $(document).ready(function() {
       <tr>
         <td data-sort-value="{{ block.timestamp }}">{{ block.found_at | human_date_utc }}</td>
         <td>{{ block.currency }}</td>
-        <td>{{ block.algo }}</td>
+        <td>{{ block.algo_obj.display }}</td>
         <td>{{ '{:,}'.format(block.hr_shares_to_solve or 1) }}</td>
         <td>{{ '{:,}'.format((block.luck or 0) | round(2)) }} %</td>
         <td data-sort-value="{{ block.duration.total_seconds() }}">{{ block.duration }}</td>

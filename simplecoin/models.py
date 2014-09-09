@@ -9,7 +9,7 @@ from sqlalchemy.schema import CheckConstraint
 
 from .model_lib import base
 from .filters import sig_round
-from . import db, currencies, chains
+from . import db, currencies, chains, algos
 
 
 def make_upper_lower(trim=None, span=None, offset=None, clip=None, fmt="dt"):
@@ -229,6 +229,10 @@ class Block(base):
         return "<{} h:{} hsh:{}>".format(self.currency, self.height, self.hash)
 
     @property
+    def algo_obj(self):
+        return algos[self.algo]
+
+    @property
     def currency_obj(self):
         return currencies[self.currency]
 
@@ -249,7 +253,7 @@ class Block(base):
 
     @property
     def hr_shares_to_solve(self):
-        return int(self.shares_to_solve)
+        return float(self.shares_to_solve)
 
     @property
     def status(self):
