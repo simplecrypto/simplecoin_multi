@@ -84,6 +84,11 @@ def account(user_address, type):
         return render_template('account.html', credits=credits, page=page,
                                table="credit_table.html")
 
+@main.route("/block/<blockhash>")
+def block_detail(blockhash):
+    block = db.session.query(Block).filter_by(hash=blockhash).first()
+    return render_template('block_details.html', block=block)
+
 
 @main.route("/<address>/<worker>")
 def worker_detail(address, worker):
