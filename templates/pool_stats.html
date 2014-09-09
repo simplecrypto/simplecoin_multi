@@ -68,11 +68,11 @@ $(document).ready(function() {
         {% for pp, data in server_status.iteritems() %}
         <tr>
           <th>{{ pp.stratum_address }} (diff {{pp.diff}})</th>
-          <th>{{ pp.chain.algo.display }}</th>
-          <th>{{ pp.chain.title }} ({{ pp.chain.type }})</th>
-          <th>{{ data['hashrate'] | hashrate }}</th>
-          <th>{{ "{:,}".format(data['workers']) }}</th>
-          <th>{{ "{:,}".format(data['miners']) }}</th>
+          <td>{{ pp.chain.algo.display }}</td>
+          <td>{{ pp.chain.title }} ({{ pp.chain.type }})</td>
+          <td>{{ data['hashrate'] | hashrate }}</td>
+          <td>{{ "{:,}".format(data['workers']) }}</td>
+          <td>{{ "{:,}".format(data['miners']) }}</td>
         </tr>
         {% endfor %}
         </tbody>
