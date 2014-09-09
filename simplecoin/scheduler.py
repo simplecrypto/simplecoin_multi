@@ -806,8 +806,8 @@ def server_status():
                                       miners=data['address_count'],
                                       hashrate=data['hps'],
                                       name=powerpool.stratum_address)
-            algo_miners.setdefault(powerpool.chain.algo, 0)
-            algo_miners[powerpool.chain.algo] += data['address_count']
+            algo_miners.setdefault(powerpool.chain.algo.key, 0)
+            algo_miners[powerpool.chain.algo.key] += data['address_count']
 
     cache.set('raw_server_status', raw_servers, timeout=1200)
     cache.set('server_status', servers, timeout=1200)

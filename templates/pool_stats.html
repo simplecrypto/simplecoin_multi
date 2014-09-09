@@ -68,7 +68,7 @@ $(document).ready(function() {
         {% for pp, data in server_status.iteritems() %}
         <tr>
           <th>{{ pp.stratum_address }} (diff {{pp.diff}})</th>
-          <th>{{ pp.chain.algo }}</th>
+          <th>{{ pp.chain.algo.display }}</th>
           <th>{{ pp.chain.title }} ({{ pp.chain.type }})</th>
           <th>{{ data['hashrate'] | hashrate }}</th>
           <th>{{ "{:,}".format(data['workers']) }}</th>

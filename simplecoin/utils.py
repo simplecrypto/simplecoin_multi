@@ -256,7 +256,7 @@ def collect_user_stats(user_address):
             except KeyError:
                 continue
 
-            worker = check_new(user_address, worker, powerpool.chain.algo)
+            worker = check_new(user_address, worker, powerpool.chain.algo.key)
             worker['online'] = True
             worker['servers'].setdefault(powerpool, 0)
             worker['servers'][powerpool] += 1
