@@ -281,13 +281,13 @@ $(document).ready(function() {
     <h2>Recent Payouts</h2>
     <br>
     {% include "payout_table.html" %}
-    <a href="/{{ username }}/aggr_account">View all account transactions</a>
+    <a href="/{{ username }}/account">View all account transactions</a>
   </div>
 
   <div class="row row-header">
     <h2>Recent Block Credits</h2>
     <br>
     {% include "credit_table.html" %}
-    <a href="/{{ username }}/account">View all recent credits</a>
+    <a href="/{{ username }}/aggr_account">View all recent credits</a>
   </div>
 {% endblock %}
