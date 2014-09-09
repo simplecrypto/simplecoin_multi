@@ -243,16 +243,16 @@ def leaderboard():
             pass
         else:
             user = users.setdefault(slc.user, {})
-            user.setdefault(slc.algo, [0, 0])
+            user.setdefault(slc.algo, [0, set()])
             user[slc.algo][0] += slc.value
-            user[slc.algo][1] += 1
+            user[slc.algo][1].add(slc.time)
 
     # Loop through and convert a summation of shares into a hashrate. Converts
     # to hashes per second
     for user, algo_shares in users.iteritems():
         for algo_key, (shares, minutes) in algo_shares.items():
             algo_obj = algos[algo_key]
-            algo_shares[algo_key] = algo_obj.hashes_per_share * (shares / (minutes * 60))
+            algo_shares[algo_key] = algo_obj.hashes_per_share * (shares / (len(minutes) * 60))
             algo_shares.setdefault('normalized', 0)
             algo_shares['normalized'] += users[user][algo_key] * algo_obj.normalize_mult
 
