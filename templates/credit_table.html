@@ -19,7 +19,7 @@
             <tr>
               <th>ID</th>
               <th>Time</th>
-              <th>Currency</th>
+              <th>Dest Currency</th>
               <th>Mined</th>
               <th>Donation + Fee Amt (d%/f%)</th>
               <th>Total credited</th>
@@ -32,12 +32,13 @@
               <tr>
                 <td>{{ "{:,}".format(credit.id) }}</td>
                 <td>{{ credit.block.found_at | human_date_utc }}</td>
-                <td>{{ credit.block.currency }}</td>
+                <td>{{ credit.currency }}</td>
                 <td title="{{ credit.mined }}">{{ credit.mined | sig_round(2) }} {{ credit.block.currency }}</td>
                 <td data-sort-value="{{ credit.cut_perc }}">{{ credit.text_perc_applied }} {{ credit.block.currency }} ({{ '{:,}'.format(credit.hr_pd_perc) }}%/{{ '{:,}'.format(credit.hr_fee_perc) }}%)</td>
                 <td title="{{ credit.amount }}">{{ credit.amount | sig_round(2) }} {{ credit.block.currency }}</td>
                 <td>{{ credit.status }}</td>
-                <td><a href="/block/{{ credit.block.hash }}"># {{ '{:,}'.format(credit.block.height) }}</a></td>
+                {# <td><a href="/block/{{ credit.block.hash }}"># {{ '{:,}'.format(credit.block.height) }}</a></td> #}
+                <td>{{ credit.block.currency }}# {{ '{:,}'.format(credit.block.height) }}</td>
               </tr>
             {% endfor %}
 
