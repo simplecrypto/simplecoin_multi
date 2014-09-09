@@ -204,7 +204,14 @@ def last_10_shares(user, algo):
         return sum([min.value for min in minutes])
     return 0
 
+@cache.memoize(timeout=60)
+def collect_user_credits(address):
+    credits = (Credit.query.filter_by(user=address, payout_id=None).
+               filter(Credit.block != None).join(Credit.block)
+               .order_by(Block.height.desc())).all()
+    return credits
 
+@cache.memoize(timeout=60)
 def collect_acct_items(address, limit=None, offset=0):
     """ Get account items for a specific user """
     credits = (Credit.query.filter_by(user=address).join(Credit.block).
@@ -295,7 +302,7 @@ def collect_user_stats(user_address):
     # of keys
     workers = [workers[key] for key in sorted(workers.iterkeys(), key=lambda tpl: tpl[1])]
 
-    settings = UserSettings.query.filter_by(user=user_address).one()
+    settings = UserSettings.query.filter_by(user=user_address).first()
 
     # Generate payout history and stats for earnings all time
     earning_summary = {}
@@ -310,9 +317,8 @@ def collect_user_stats(user_address):
             summary['earned'] += payout.amount
 
     # Loop through all unaggregated credits to find the rest
-    credits = (Credit.query.filter_by(user=user_address, payout_id=None).
-               filter(Credit.block != None).options(db.joinedload('block'))
-               .order_by(Credit.id.desc()).all())
+    credits = collect_user_credits(user_address)
+
     for credit in credits:
         # Group by their desired currency
         summary = earning_summary.setdefault(credit.block.currency, def_earnings.copy())

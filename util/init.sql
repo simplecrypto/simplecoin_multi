@@ -1,9 +1,12 @@
-CREATE USER simplecoin WITH PASSWORD 'testing';
+CREATE USER simplemulti WITH PASSWORD 'testing';
+CREATE USER simplemulti_ro WITH PASSWORD 'testing';
 -- Production database
-DROP DATABASE IF EXISTS simplecoin;
-CREATE DATABASE simplecoin;
-GRANT ALL PRIVILEGES ON DATABASE simplecoin to simplecoin;
+DROP DATABASE IF EXISTS simplemulti;
+CREATE DATABASE simplemulti;
+GRANT ALL PRIVILEGES ON DATABASE simplemulti to simplemulti;
+GRANT ALL PRIVILEGES ON DATABASE simplemulti to simplemulti_ro;
 -- Create a testing database to be different than dev
-DROP DATABASE IF EXISTS simplecoin_testing;
-CREATE DATABASE simplecoin_testing;
-GRANT ALL PRIVILEGES ON DATABASE simplecoin_testing to simplecoin;
+DROP DATABASE IF EXISTS simplemulti_testing;
+CREATE DATABASE simplemulti_testing;
+GRANT ALL PRIVILEGES ON DATABASE simplemulti_testing to simplemulti;
+GRANT ALL PRIVILEGES ON DATABASE simplemulti_testing to simplemulti_ro;
