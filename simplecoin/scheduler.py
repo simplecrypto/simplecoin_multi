@@ -422,7 +422,7 @@ def credit_block(redis_key, simulate=False):
 
     data = redis_conn.hgetall(redis_key)
     current_app.logger.debug("Processing block with details {}".format(data))
-    merged = int(data.get('merged', False))
+    merged = bool(int(data.get('merged', False)))
     # If start_time isn't listed explicitly do our best to derive from
     # statistical share records
     if 'start_time' in data:
@@ -442,7 +442,7 @@ def credit_block(redis_key, simulate=False):
         worker=data.get('worker'),
         found_at=datetime.datetime.utcfromtimestamp(float(data['solve_time'])),
         algo=data['algo'],
-        merged=bool(merged))
+        merged=merged)
 
     db.session.add(block)
     db.session.flush()
