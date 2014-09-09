@@ -235,17 +235,17 @@ class Block(base):
     @property
     def contributed(self):
         # Total fees + donations associated with this block
-        return sum([bp.contributed for bp in self.chain_payouts]) or 0
+        return sum([(bp.donations + bp.fees) for bp in self.chain_payouts]) or 0
 
-    @property
-    def bonus_paid(self):
-        # Total fees + donations associated with this block
-        return sum([bp.bonus_paid for bp in self.chain_payouts]) or 0
+    # @property
+    # def bonus_paid(self):
+    #     # Total fees + donations associated with this block
+    #     return sum([bp.bonus_paid for bp in self.chain_payouts]) or 0
 
     @property
     def shares_to_solve(self):
         # Total shares that were required to solve the block
-        return sum([bp.shares for bp in self.chain_payouts])
+        return sum([bp.chain_shares for bp in self.chain_payouts])
 
     @property
     def hr_shares_to_solve(self):
@@ -271,7 +271,7 @@ class Block(base):
     @property
     def luck(self):
         hps = current_app.algos[self.algo].hashes_per_share
-        return ((self.difficulty * (2 ** 32)) / ((float(self.shares_to_solve) or 1) * hps)) * 100
+        return ((self.difficulty * (2 ** 32)) / ((float(self.hr_shares_to_solve) or 1) * hps)) * 100
 
     @property
     def total_value_float(self):
