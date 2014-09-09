@@ -31,7 +31,7 @@ $(document).ready(function() {
       <tbody>
       {% for user, data in users %}
         <tr>
-          <th>{{ loop.index }}. 
+          <th>{{ loop.index }}.
             {% if user == "Anonymous" %}
               {{ user }}
             {% else %}
@@ -40,7 +40,7 @@ $(document).ready(function() {
           </th>
           {% for disp, algo in algos %}
           {% set dat = data.get(algo, 0) %}
-          <th data-sort-value="{{ dat }}">{% if dat %}{{ dat | hashrate }}{% endif %}</th>
+          <td data-sort-value="{{ dat }}">{% if dat %}{{ dat | hashrate }}{% endif %}</td>
           {% endfor %}
         </tr>
       {% else %}
