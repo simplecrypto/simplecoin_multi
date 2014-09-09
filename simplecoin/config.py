@@ -9,7 +9,8 @@ from urlparse import urljoin
 from autoex.ex_manager import ExchangeManager
 
 from . import models as m
-from . import cache, redis_conn, currencies, exchanges, chains, powerpools, locations
+from . import (cache, redis_conn, currencies, exchanges, chains, powerpools,
+               locations, algos)
 from .exceptions import ConfigurationException, RemoteException, InvalidAddressException
 
 
@@ -279,12 +280,13 @@ class CurrencyKeeper(dict):
 
 
 class Chain(ConfigObject):
-    requires = ['type', 'valid_address_versions', 'fee_perc']
+    requires = ['type', 'valid_address_versions', 'fee_perc', '_algo']
     defaults = dict(block_bonus="0")
     max_indexes = 1000
     min_index = 0
 
     def __init__(self, bootstrap):
+        bootstrap['_algo'] = bootstrap.pop('algo')
         ConfigObject.__init__(self, bootstrap)
         # Check all our valid versions and ensure we have configuration
         # information on them
@@ -306,6 +308,10 @@ class Chain(ConfigObject):
 
     def __hash__(self):
         return self.id
+
+    @property
+    def algo(self):
+        return algos[self._algo]
 
     def calc_shares(self, block_payout):
         """ Pass a block_payout object with only chain ID and blockhash
