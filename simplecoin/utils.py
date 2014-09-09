@@ -295,13 +295,13 @@ def collect_user_stats(user_address):
     # of keys
     workers = [workers[key] for key in sorted(workers.iterkeys(), key=lambda tpl: tpl[1])]
 
-    settings = UserSettings.query.filter_by(user=user_address).first()
+    settings = UserSettings.query.filter_by(user=user_address).one()
 
     # Generate payout history and stats for earnings all time
     earning_summary = {}
     def_earnings = dict(sent=dec('0'), earned=dec('0'), unconverted=dec('0'), immature=dec('0'), currency=None)
     # Go through already grouped aggregates
-    payouts = Payout.query.filter_by(user=user_address).all()
+    payouts = Payout.query.filter_by(user=user_address).order_by(Payout.created_at).all()
     for payout in payouts:
         summary = earning_summary.setdefault(payout.payout_currency, def_earnings.copy())
         if payout.transaction_id:  # Mark sent if there's a txid attached
@@ -311,7 +311,8 @@ def collect_user_stats(user_address):
 
     # Loop through all unaggregated credits to find the rest
     credits = (Credit.query.filter_by(user=user_address, payout_id=None).
-               filter(Credit.block != None).options(db.joinedload('block'))).all()
+               filter(Credit.block != None).options(db.joinedload('block'))
+               .order_by(Credit.id.desc()).all())
     for credit in credits:
         # Group by their desired currency
         summary = earning_summary.setdefault(credit.block.currency, def_earnings.copy())
@@ -323,7 +324,7 @@ def collect_user_stats(user_address):
             elif credit.block.mature and not credit.payable:
                 summary['unconverted'] += credit.est_value
             else:
-                summary['earned'] += payout.final_amount
+                summary['earned'] += credit.final_amount
         else:
             if not credit.block.mature:
                 summary['immature'] += credit.amount
