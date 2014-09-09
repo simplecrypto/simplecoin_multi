@@ -204,18 +204,20 @@ def last_10_shares(user, algo):
         return sum([min.value for min in minutes])
     return 0
 
-@cache.memoize(timeout=60)
-def collect_user_credits(address):
-    credits = (Credit.query.filter_by(user=address, payout_id=None).
-               filter(Credit.block != None).join(Credit.block)
-               .order_by(Block.height.desc())).all()
-    return credits
 
 @cache.memoize(timeout=60)
 def collect_acct_items(address, limit=None, offset=0):
     """ Get account items for a specific user """
     credits = (Credit.query.filter_by(user=address).join(Credit.block).
                order_by(Block.found_at.desc()).limit(limit).offset(offset))
+    return credits
+
+
+def collect_user_credits(address):
+    credits = (Credit.query.filter_by(user=address, payout_id=None).
+               filter(Credit.block != None).options(db.joinedload('payout'),
+                                                    db.joinedload('block'))
+               .order_by(Credit.id.desc())).all()
     return credits
 
 
