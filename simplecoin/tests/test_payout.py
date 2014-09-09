@@ -193,7 +193,12 @@ class TestPayouts(RedisUnitTest):
         self.assertEqual(block.chain_payouts[1].amount, block.total_value / 2)
         self.assertEqual(payouts[1].address, pool_payout.pool_payout_addr)
         for p in payouts:
+            print p.id, p.currency, p.block.currency, p.type
             assert p.block == block
+            if p.block.currency == p.currency:
+                assert p.type == 0
+            else:
+                assert p.type == 1
 
         assert m.Credit.query.filter_by(source=1).one().amount == Decimal("0.250")
 
@@ -218,7 +223,12 @@ class TestPayouts(RedisUnitTest):
         self.assertEqual(len(block.chain_payouts), 1)
         self.assertEqual(block.chain_payouts[0].amount, block.total_value)
         for p in payouts:
+            print p.id, p.currency, p.block.currency, p.type
             assert p.block == block
+            if p.block.currency == p.currency:
+                assert p.type == 0
+            else:
+                assert p.type == 1
 
         assert m.Credit.query.filter_by(source=1).one().amount == Decimal("0.50")
 

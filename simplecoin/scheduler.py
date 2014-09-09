@@ -627,21 +627,23 @@ def credit_block(redis_key, simulate=False):
             fees_collected += fee_amount
 
     if fees_collected > 0:
-        p = Credit(user=pool_payout['user'],
-                   block=block,
-                   currency=pool_payout['currency'].key,
-                   source=1,
-                   address=pool_payout['address'],
-                   amount=+fees_collected)
+        p = Credit.make_credit(
+            user=pool_payout['user'],
+            block=block,
+            currency=pool_payout['currency'].key,
+            source=1,
+            address=pool_payout['address'],
+            amount=+fees_collected)
         db.session.add(p)
 
     if donations_collected > 0:
-        p = Credit(user=pool_payout['user'],
-                   block=block,
-                   currency=pool_payout['currency'].key,
-                   source=2,
-                   address=pool_payout['address'],
-                   amount=+donations_collected)
+        p = Credit.make_credit(
+            user=pool_payout['user'],
+            block=block,
+            currency=pool_payout['currency'].key,
+            source=2,
+            address=pool_payout['address'],
+            amount=+donations_collected)
         db.session.add(p)
 
     current_app.logger.info("Collected {} in donation".format(donations_collected))

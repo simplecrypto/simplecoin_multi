@@ -160,19 +160,13 @@ class ChainPayout(base):
             self.credits[key].shares += shares
             return
 
-        # Create a payout record indicating this can be distributed
-        if self.block.currency == currency:
-            cls = Credit
-        # Create a payout entry indicating this needs to be exchanged
-        else:
-            cls = CreditExchange
-
-        p = cls(user=user,
-                block=self.block,
-                sharechain_id=self.chainid,
-                currency=currency.key,
-                source=0,
-                address=address)
+        p = Credit.make_credit(
+            user=user,
+            block=self.block,
+            sharechain_id=self.chainid,
+            currency=currency.key,
+            source=0,
+            address=address)
         p.shares = shares
 
         db.session.add(p)
@@ -340,6 +334,20 @@ class Credit(base):
     standard_join = ['status', 'created_at', 'explorer_link',
                      'text_perc_applied', 'mined', 'amount_float', 'height',
                      'transaction_id']
+
+    @classmethod
+    def make_credit(self, currency, block, **kwargs):
+        assert isinstance(currency, basestring)
+        # Create a payout entry indicating this needs to be exchanged or not
+        if currency != block.currency:
+            cls = CreditExchange
+        else:
+            cls = Credit
+
+        p = cls(block=block,
+                currency=currency,
+                **kwargs)
+        return p
 
     @property
     def payable_amount(self):
