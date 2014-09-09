@@ -1,6 +1,7 @@
     <script>
     $(document).ready(function() {
       $("#blockCreditTable").tablesorter({
+        sortList: [[1,0]],
         textExtraction: function(node) {
           var attr = $(node).attr('data-sort-value');
           if (typeof attr !== 'undefined' && attr !== false) {
