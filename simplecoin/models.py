@@ -359,11 +359,11 @@ class Credit(base):
 
     @property
     def hr_fee_perc(self):
-        return round((float(self.fee_perc) * 100), 2)
+        return round(float(self.fee_perc), 2)
 
     @property
     def hr_pd_perc(self):
-        return round((float(self.pd_perc) * 100), 2)
+        return round(float(self.pd_perc), 2)
 
     @property
     def perc_applied(self):
