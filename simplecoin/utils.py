@@ -446,7 +446,7 @@ def validate_message_vals(address, **kwargs):
     # Make sure all addresses are valid
     for curr, addr in set_addrs.iteritems():
         try:
-            curr_list = currencies.validate_bc_address(addr)
+            curr_ver = currencies.validate_bc_address(addr)
         except InvalidAddressException:
             raise CommandException("Invalid {} address passed!".format(curr))
         try:
@@ -454,10 +454,9 @@ def validate_message_vals(address, **kwargs):
         except Exception:
             raise CommandException("{} is not configured".format(curr))
         # Be a bit extra paranoid
-        for curr_obj2 in curr_list:
-            if not curr_obj2.address_version == curr_obj.address_version:
-                raise CommandException("\'{}\' is not a valid {} "
-                                       "address".format(addr, curr))
+        if not curr_ver in curr_obj.address_version:
+            raise CommandException("\'{}\' is not a valid {} "
+                                   "address".format(addr, curr))
 
     # Make sure split payout currency addr is valid and matches the address
     if spayout_addr:
