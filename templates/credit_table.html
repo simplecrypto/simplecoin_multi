@@ -32,7 +32,7 @@
             {% for credit in credits %}
               <tr>
                 <td>{{ "{:,}".format(credit.id) }}</td>
-                <td>{{ credit.block.found_at | human_date_utc }}</td>
+                <td data-sort-value="{{ credit.block.found_at }}">{{ credit.block.found_at | human_date_utc }}</td>
                 <td>{{ credit.currency }}</td>
                 <td title="{{ credit.mined }}">{{ credit.mined | sig_round(2) }} {{ credit.block.currency }}</td>
                 <td data-sort-value="{{ credit.cut_perc }}">{{ credit.text_perc_applied }} {{ credit.block.currency }} ({{ '{:,}'.format(credit.hr_pd_perc) }}%/{{ '{:,}'.format(credit.hr_fee_perc) }}%)</td>
