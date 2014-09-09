@@ -42,7 +42,7 @@ $(document).ready(function() {
         <td>{{ '{:,}'.format(block.total_value_float | round(2)) }}</td>
         <td>{{ '{:,}'.format(block.difficulty | round(4)) }}</td>
         <td><a href="/stats/{{ block.user }}">{{ block.user | truncate(9, True) }}</a></td>
-        <td>{{ block.hash | truncate(9, True) }}</td>
+        <td><a href="/block/{{ block.hash }}">{{ block.hash | truncate(9, True) }}</a></td>
         <td>{{ '{:,}'.format(block.height) }}</td>
         <td>{{ block.status }}</td>
       </tr>

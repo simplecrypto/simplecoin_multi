@@ -39,7 +39,7 @@
                 <td title="{{ credit.amount }}">{{ credit.amount | sig_round(2) }} {{ credit.block.currency }}</td>
                 <td>{{ credit.status }}</td>
                 {# <td><a href="/block/{{ credit.block.hash }}"># {{ '{:,}'.format(credit.block.height) }}</a></td> #}
-                <td>{{ credit.block.currency }}# {{ '{:,}'.format(credit.block.height) }}</td>
+                <td><a href="/block/{{ credit.block.hash }}">{{ credit.block.currency }}# {{ '{:,}'.format(credit.block.height) }}</a></td>
               </tr>
             {% endfor %}
 

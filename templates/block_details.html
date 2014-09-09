@@ -32,10 +32,10 @@
                 <th>Round Duration</th><td data-sort-value="{{ block.duration.total_seconds() }}">{{ block.duration }}</td>
               </tr>
               <tr>
-                <th>Coinbase Value</th><td>{{ '{0:,}'.format(block.total_value_float - block.transaction_fees|float) }}</td>
+                <th>Coinbase Value</th><td>{{ '{0:,.8f}'.format(block.total_value_float - block.transaction_fees|float) }}</td>
               </tr>
               <tr>
-                <th>Transaction fees</th><td>{{ '{0:,}'.format(block.transaction_fees ) }}</td>
+                <th>Transaction fees</th><td>{{ '{0:,.8f}'.format(block.transaction_fees|float|abs) }}</td>
               </tr>
 
               <tr>
