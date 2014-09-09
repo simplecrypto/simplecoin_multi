@@ -771,7 +771,7 @@ class UserSettings(base):
         # payable from this block currency (and spayout is defined of course)
         if (self.spayout_addr and
                 self.spayout_perc and
-                self.spayout_curr in valid_currencies):
+                currencies[self.spayout_curr] in valid_currencies):
             ret = distributor(
                 shares,
                 {
@@ -781,7 +781,7 @@ class UserSettings(base):
             return ((main_address, main_currency, ret[0]),
                     (self.spayout_addr, self.spayout_curr, ret[1]))
 
-        return (main_address, main_currency, shares)
+        return ((main_address, main_currency, shares), )
 
     @property
     def exchangeable_addresses(self):

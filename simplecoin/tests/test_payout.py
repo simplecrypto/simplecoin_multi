@@ -95,7 +95,7 @@ class TestTradeRequest(UnitTest):
             db.session.add(c)
 
         db.session.commit()
-        push_data = {'completed_trs': {tr.id: ("1000", "1")}}
+        push_data = {'trs': {tr.id: {"status": 6, "quantity": "1000", "fees": "1"}}}
         db.session.expunge_all()
 
         with self.app.test_request_context('/?name=Peter'):
@@ -132,7 +132,7 @@ class TestTradeRequest(UnitTest):
             db.session.add(c)
 
         db.session.commit()
-        push_data = {'completed_trs': {tr.id: ("1000", "1")}}
+        push_data = {'trs': {tr.id: {"status": 6, "quantity": "1000", "fees": "1"}}}
         db.session.expunge_all()
 
         with self.app.test_request_context('/?name=Peter'):
@@ -221,6 +221,44 @@ class TestPayouts(RedisUnitTest):
             assert p.block == block
 
         assert m.Credit.query.filter_by(source=1).one().amount == Decimal("0.50")
+
+    def test_payout_donation(self):
+        s = m.UserSettings(user="DJCgMCyjBKxok3eEGed5SGhbWaGj5QTcxF",
+                           pdonation_perc=Decimal("0.05"))
+        db.session.add(s)
+        self.app.redis.hmset(
+            "unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f",
+            self.test_block_data.copy())
+
+        self.app.redis.rpush("chain_1_slice_17", *["DJCgMCyjBKxok3eEGed5SGhbWaGj5QTcxF:1"] * 30)
+        credit_block("unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f")
+
+        db.session.rollback()
+        db.session.expunge_all()
+
+        assert m.Credit.query.filter_by(user="DJCgMCyjBKxok3eEGed5SGhbWaGj5QTcxF").count() == 1
+        donation = m.Credit.query.filter_by(source=2).one()
+        assert donation.amount < 3
+
+    def test_payout_special_split(self):
+        s = m.UserSettings(user="DJCgMCyjBKxok3eEGed5SGhbWaGj5QTcxF",
+                           spayout_perc=Decimal("0.05"),
+                           spayout_addr="DAbhwsnEq5TjtBP5j76TinhUqqLTktDAnD",
+                           spayout_curr="DOGE")
+        db.session.add(s)
+        self.app.redis.hmset(
+            "unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f",
+            self.test_block_data.copy())
+
+        self.app.redis.rpush("chain_1_slice_17", *["DJCgMCyjBKxok3eEGed5SGhbWaGj5QTcxF:1"] * 30)
+        credit_block("unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f")
+
+        db.session.rollback()
+        db.session.expunge_all()
+
+        assert m.Credit.query.filter_by(user="DJCgMCyjBKxok3eEGed5SGhbWaGj5QTcxF").count() == 2
+        split = m.Credit.query.filter_by(address="DAbhwsnEq5TjtBP5j76TinhUqqLTktDAnD").one()
+        assert split.amount < 3
 
     def test_payout_merged(self):
         self.test_payout(merged="1")

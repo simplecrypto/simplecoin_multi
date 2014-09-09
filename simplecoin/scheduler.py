@@ -500,7 +500,7 @@ def credit_block(redis_key, simulate=False):
         if not chain.user_shares:
             chain.user_shares[block.user] = 1
         # Add the users to the set, no dups
-        users.union(chain.user_shares.keys())
+        users.update(chain.user_shares.keys())
 
         # Record how many shares were used to payout
         chain.payout_shares = sum(chain.user_shares.itervalues())
@@ -517,9 +517,9 @@ def credit_block(redis_key, simulate=False):
     # The currencies that are valid to pay out in from this block. Basically,
     # this block currency + all exchangeable currencies if this block's
     # currency is also exchangeable
-    valid_currencies = currencies.exchangeable_currencies
+    valid_currencies = [block.currency_obj]
     if block.currency_obj.exchangeable is True:
-        valid_currencies.append(block.currency_obj)
+        valid_currencies.extend(currencies.exchangeable_currencies)
 
     # Get the pools payout information for this block
     global_curr = global_config.pool_payout_currency
@@ -536,12 +536,6 @@ def credit_block(redis_key, simulate=False):
     address_version(pool_payout['address'])
 
     def filter_valid(user, address, currency):
-        if currency not in valid_currencies:
-            current_app.logger.debug(
-                "Converted user {}, addr {}, currency {} => pool addr"
-                " because invalid currency"
-                .format(user, address, currency))
-            return pool_payout
         try:
             if isinstance(currency, basestring):
                 currency = currencies[currency]
@@ -551,6 +545,13 @@ def credit_block(redis_key, simulate=False):
                 " because invalid currency"
                 .format(user, address, currency))
             return pool_payout
+        if currency not in valid_currencies:
+            current_app.logger.debug(
+                "Converted user {}, addr {}, currency {} => pool addr"
+                " because invalid currency"
+                .format(user, address, currency))
+            return pool_payout
+
         return dict(address=address, currency=currency, user=user)
 
     # Parse usernames and user settings to build appropriate credit objects
@@ -607,7 +608,7 @@ def credit_block(redis_key, simulate=False):
             donate_perc = Decimal('0')
             settings = custom_settings.get(credit.user)
             if settings:
-                donate_perc = settings.pdonate_perc
+                donate_perc = settings.pdonation_perc
 
             # Application
             assert isinstance(fee_perc, Decimal)
