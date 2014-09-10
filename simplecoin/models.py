@@ -516,7 +516,10 @@ class Payout(base):
     @property
     def status(self):
         if self.transaction_id:
-            return "Complete"
+            if self.transaction.confirmed is False:
+                return "Funds Sent - Pending TX confirmation"
+            else:
+                return "Complete"
         return "Payout pending"
 
     @property
