@@ -178,14 +178,13 @@ def confirm_transactions():
                                 exc_info=True)
         abort(400)
 
-    txdata = {}
-    for txid in g.signed['tids']:
-        txdata.setdefault(txid, {})
-        txdata[txid][Transaction.confirmed] = True
+    transactions = (db.session.query(Transaction)
+                    .filter(Transaction.txid.in_(g.signed['tids']))
+                    .all())
 
-    for txid in txdata:
-        Transaction.query.filter(Transaction.txid.in_(txid)).update(
-            txdata[txid], synchronize_session=False)
+    for transaction in transactions:
+        transaction.confirmed = True
+
     db.session.commit()
 
     return sign(dict(result=True))
