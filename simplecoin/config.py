@@ -394,7 +394,7 @@ class PropChain(Chain):
                       filter(m.Block.hash != curr_block.hash).
                       order_by(m.Block.found_at.desc())).first()
         if last_block:
-            last_block_payout = [bp for bp in last_block.block_payouts if bp.chainid == self.id][0]
+            last_block_payout = [bp for bp in last_block.chain_payouts if bp.chainid == self.id][0]
             stop_slice = last_block_payout.solve_slice
         else:
             stop_slice = 0
