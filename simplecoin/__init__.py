@@ -130,6 +130,7 @@ def create_app(mode, config='config.yml', log_level=None):
     # Helpful global vars
     # =======================================================================
     app.SATOSHI = Decimal('0.00000001')
+    app.MAX_DECIMALS = 28
 
     # Configure app for running manage.py functions
     # =======================================================================

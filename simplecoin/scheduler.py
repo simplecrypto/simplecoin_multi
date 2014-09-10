@@ -366,47 +366,73 @@ def generate_credits(dont_simulate=True):
         current_app.logger.info("==== Done processing block hash {}".format(hash))
 
 
-def distributor(amount, splits):
-    """ Evenly distributes an amount among a dictionary. Dictionary values
-    should be integers (or decimals) representing the ratio the amount should
-    be split among. Remainders are simply round robin distributed among splits.
+def distributor(amount, splits, scale=None, addtl_prec=0):
+    """ Evenly (exactly) distributes an amount among a dictionary. Dictionary
+    values should be integers (or decimals) representing the ratio the amount
+    should be split among. Arithmetic will be performed to `scale` decimal
+    places. Amount will be rounded down to `scale` number of decimal places
+    _before_ distribution. Remainders from distribution will be given to users
+    in order of who deserved the largest remainders, albiet in round robin
+    fashion. `addtl_prec` allows you to specify additional precision for 
+    computing share remainders, allowing a higher likelyhood of fair distribution
+    of amount remainders among keys. Usually not needed.
     """
-    # Round all values to the precision context
-    amount = +amount
-    for key in splits:
-        splits[key] = +splits[key]
+    if scale is None:
+        scale = current_app.MAX_DECIMALS
+    scale = int(scale) * -1
 
-    total_count = sum(splits.itervalues())
-    distributed = Decimal('0')
-    # We round down here so the distribution cannot sum to more than the total
-    # amount
-    with decimal.localcontext() as ctx:
+    with decimal.localcontext(decimal.BasicContext) as ctx:
         ctx.rounding = decimal.ROUND_DOWN
-        for key, val in splits.iteritems():
-            assert isinstance(val, Decimal)
-            splits[key] = (val / total_count) * amount
-            distributed += splits[key]
+        smallest = Decimal((0, (1, ), scale))
+        # Round the distribution amount to correct scale. We will distribute
+        # exactly this much
+        amount = ctx.quantize(amount, scale)
+        # For finding percentage of total splits and the precision for our 
+        # following multiplication operations
+        total_count = 0
+        largest = 0
+        amount_len = len(str(amount._int))
+        for value in splits.itervalues():
+            pos_len = (len(str(value._int)) * amount_len) + value._exp
+            largest = max(largest, pos_len)
+            total_count += value
 
-    # The amount that hasn't been distributed
-    remainder = amount - distributed
-    if remainder == 0:
+        # Set our precision for operations to only what we need it to be,
+        # nothing more. This garuntees a large enough precision without
+        # setting it so high as to waste a ton of CPU power. A real issue 
+        # with the slowness of Python Decimals
+        ctx.prec = largest + abs(scale) + addtl_prec
+
+        # Count how much we give out, and also the remainders of adjusting to
+        # desired scale
+        remainders = {}
+        total_distributed = 0
+        for key, value in splits.iteritems():
+            assert isinstance(value, Decimal)
+            share = (value / total_count) * amount
+            splits[key] = share.quantize(smallest)
+            remainders[key] = share - splits[key]
+            total_distributed += splits[key]
+
+        # The amount that hasn't been distributed due to rounding down
+        count = (amount - total_distributed) / smallest
+        assert total_distributed <= amount
+        if count != 0:
+            # Loop over the dictionary keys in remainder order until we
+            # distribute the leftovers
+            keylist = sorted(remainders.iterkeys(), key=remainders.get, reverse=True)
+            for i, key in zip(xrange(count), itertools.cycle(keylist)):
+                splits[key] += smallest
+
+        total = sum(splits.itervalues())
+        # Check that we don't have extra decimal places
+        assert total._exp >= scale
+        # And it should come out exact!
+        if total != amount:
+            raise Exception(
+                "Value after distribution ({}) is not equal to amount"
+                " to be distributed ({})!".format(total, amount))
         return splits
-
-    # How many parts we can split this remainder into
-    divisions = int("".join(map(str, remainder.as_tuple()[1])))
-    smallest = remainder / divisions
-    # Loop over the dictionary keys in round robin order until we've
-    # distributed all the remaining parts
-    for i, key in zip(xrange(remainder / smallest), itertools.cycle(splits)):
-        splits[key] += smallest
-
-    total_after_rr = sum(splits.itervalues())
-    # And it should come out exact!
-    if total_after_rr != amount:
-        raise Exception("Value after distribution ({}) is not equal to amount"
-                        " to be distributed ({})!".format(total_after_rr, amount))
-
-    return splits
 
 
 def credit_block(redis_key, simulate=False):

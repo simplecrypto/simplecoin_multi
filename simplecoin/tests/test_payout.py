@@ -1,4 +1,4 @@
-import unittest
+import time
 import flask
 
 from itsdangerous import TimedSerializer, BadData
@@ -11,7 +11,7 @@ from simplecoin.scheduler import credit_block, create_payouts
 from simplecoin.rpc_views import update_trade_requests
 
 
-class TestDistributor(unittest.TestCase):
+class TestDistributor(UnitTest):
     def test_even_distrib(self):
         splits = {"a": Decimal(100)}
         distributor(Decimal("100"), splits)
@@ -28,6 +28,17 @@ class TestDistributor(unittest.TestCase):
 
         assert splits["b"] > (splits["a"] * Decimal("2.5"))
         assert splits["a"] > (splits["c"] * Decimal("33.33333"))
+
+    def test_edge_case(self):
+        t = time.time()
+        amount = Decimal("1.00007884")
+        splits = {
+            ('1EdX51g85cUCYSS7ZppZ38nZ3hAu6Empgd', u'DAbhwsnEq5TjtBP5j76TinhUqqLTktDAnD', currencies['DOGE']): Decimal('0.32187500'),
+            ('1EdX51g85cUCYSS7ZppZ38nZ3hAu6Empgd', u'1EdX51g85cUCYSS7ZppZ38nZ3hAu6Empgd', currencies['BTC']): Decimal('2.89687500'),
+            ('FZwXU6fmej3A2jNtwEFWHNzCtG4bW5d2sY', 'FZwXU6fmej3A2jNtwEFWHNzCtG4bW5d2sY', currencies['FRAC']): Decimal('2.78515625')}
+
+        distributor(amount, splits)
+        print time.time() - t
 
 
 class TestGeneratePayout(UnitTest):
