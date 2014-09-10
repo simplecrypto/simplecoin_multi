@@ -138,20 +138,28 @@ def associate_payouts():
         abort(400)
 
     with Benchmark("Associating payout transaction ids"):
-        try:
-            trans = Transaction(txid=g.signed['coin_txid'],
-                                network_fee=tx_fee,
-                                currency=currency)
-            db.session.add(trans)
-            db.session.flush()
-        except sqlalchemy.exc.IntegrityError:
-            db.session.rollback()
-            current_app.logger.warn("Transaction id {} already exists!"
-                                    .format(g.signed['coin_txid']))
+
+        trans = (db.session.query(Transaction)
+                 .filter_by(txid=g.signed['coin_txid'], currency=currency)
+                 .first())
+        if not trans:
+            try:
+                trans = Transaction(txid=g.signed['coin_txid'],
+                                    network_fee=tx_fee,
+                                    currency=currency)
+                db.session.add(trans)
+                db.session.flush()
+            except sqlalchemy.exc.SQLAlchemyError as e:
+                db.session.rollback()
+                current_app.logger.warn("Got an SQLalchemy error attempting to "
+                                        "create a new transaction with id {}. "
+                                        "\nError:"
+                                        .format(g.signed['coin_txid'], e))
+                abort(400)
 
         Payout.query.filter(
             Payout.id.in_(g.signed['pids'])).update(
-                {Payout.transaction_id: g.signed['coin_txid']},
+                {Payout.transaction_id: trans.id},
                 synchronize_session=False)
 
         db.session.commit()
