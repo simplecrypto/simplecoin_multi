@@ -392,12 +392,10 @@ def _distributor(amount, splits, scale=None, addtl_prec=0):
         # nothing more. This garuntees a large enough precision without setting
         # it so high as to waste a ton of CPU power. A real issue with the
         # slowness of Python Decimals
-        largest = 0
-        amount_len = len(str(amount._int)) + amount._exp
-        for value in splits.itervalues():
-            pos_len = (len(str(value._int)) * amount_len) + value._exp
-            largest = max(largest, pos_len)
-        ctx.prec = largest + abs(scale) + addtl_prec
+        # get very largest non-decimal value a share might recieve
+        largest_val = (max(splits.itervalues()) * amount).quantize(0, rounding=decimal.ROUND_UP)
+        # convert to length of digits and add the decimal scale
+        ctx.prec = len(str(largest_val)) + (scale * -1) + addtl_prec
 
         # Round the distribution amount to correct scale. We will distribute
         # exactly this much

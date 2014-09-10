@@ -48,15 +48,19 @@ class TestDistributor(unittest.TestCase):
                   "d": Decimal('0.71484375')}
         _distributor(amount, splits)
 
+    def test_prec_calc(self):
+        amount = Decimal("1.4531250")
+        splits = {0: Decimal('0.9000000000000000000000000000'),
+                  1: Decimal('0.1000000000000000000000000000')}
+        _distributor(amount, splits)
+
     def test_edge_case(self):
-        t = time.time()
         amount = Decimal("1.00007884")
         splits = {"test": Decimal('0.32187500'),
                   "two": Decimal('2.89687500'),
                   "other": Decimal('2.78515625')}
 
         _distributor(amount, splits)
-        print time.time() - t
 
 
 class TestGeneratePayout(UnitTest):
