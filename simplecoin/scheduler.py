@@ -384,14 +384,12 @@ def distributor(amount, splits, scale=None, addtl_prec=0):
     with decimal.localcontext(decimal.BasicContext) as ctx:
         ctx.rounding = decimal.ROUND_DOWN
         smallest = Decimal((0, (1, ), scale))
-        # Round the distribution amount to correct scale. We will distribute
-        # exactly this much
-        amount = ctx.quantize(amount, scale)
+
         # For finding percentage of total splits and the precision for our 
         # following multiplication operations
         total_count = 0
         largest = 0
-        amount_len = len(str(amount._int))
+        amount_len = len(str(amount._int)) + amount._exp
         for value in splits.itervalues():
             pos_len = (len(str(value._int)) * amount_len) + value._exp
             largest = max(largest, pos_len)
@@ -402,6 +400,13 @@ def distributor(amount, splits, scale=None, addtl_prec=0):
         # setting it so high as to waste a ton of CPU power. A real issue 
         # with the slowness of Python Decimals
         ctx.prec = largest + abs(scale) + addtl_prec
+
+        # Round the distribution amount to correct scale. We will distribute
+        # exactly this much
+        new_amount = amount.quantize(smallest)
+        # Check that after rounding the distribution amount is within 0.001% of
+        # desired
+        assert abs(amount - new_amount) < (amount / 10000)
 
         # Count how much we give out, and also the remainders of adjusting to
         # desired scale
