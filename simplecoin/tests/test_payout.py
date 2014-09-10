@@ -1,20 +1,21 @@
 import time
 import flask
+import unittest
 
 from itsdangerous import TimedSerializer
 from decimal import Decimal
 from simplecoin import db, currencies
-from simplecoin.scheduler import distributor
+from simplecoin.scheduler import _distributor
 from simplecoin.tests import RedisUnitTest, UnitTest
 import simplecoin.models as m
 from simplecoin.scheduler import credit_block, create_payouts
 from simplecoin.rpc_views import update_trade_requests
 
 
-class TestDistributor(UnitTest):
+class TestDistributor(unittest.TestCase):
     def test_even_distrib(self):
         splits = {"a": Decimal(100)}
-        distributor(Decimal("100"), splits)
+        _distributor(Decimal("100"), splits)
         assert splits["a"] == 100
 
     def test_basic_distrib(self):
@@ -23,7 +24,7 @@ class TestDistributor(UnitTest):
                   "c": Decimal(3)}
         amount = Decimal("100")
 
-        distributor(amount, splits)
+        _distributor(amount, splits)
         for k, val in splits.iteritems():
             assert isinstance(val, Decimal)
 
@@ -36,8 +37,16 @@ class TestDistributor(UnitTest):
         splits = {0: Decimal('0.9000000000000000000000000000'),
                   1: Decimal('0.1000000000000000000000000000')}
 
-        ret = distributor(amount, splits)
+        ret = _distributor(amount, splits)
         self.assertEquals(sum(ret.itervalues()), amount)
+
+    def test_final_hopefully(self):
+        amount = Decimal("1.0117691900000000000000000000")
+        splits = {"a": Decimal('0.0976562500000000000000000000'),
+                  "b": Decimal('8.3125'),
+                  "c": Decimal('0.8789062500000000000000000000'),
+                  "d": Decimal('0.71484375')}
+        _distributor(amount, splits)
 
     def test_edge_case(self):
         t = time.time()
@@ -46,7 +55,7 @@ class TestDistributor(UnitTest):
                   "two": Decimal('2.89687500'),
                   "other": Decimal('2.78515625')}
 
-        distributor(amount, splits)
+        _distributor(amount, splits)
         print time.time() - t
 
 
@@ -297,3 +306,16 @@ class TestPayouts(RedisUnitTest):
     def test_payout_multichain_merged(self):
         self.test_payout_multichain(merged="1")
         assert m.Block.query.first().merged
+
+
+if __name__ == "__main__":
+    import random
+    import sys
+    while True:
+        amount = Decimal.from_float(random.uniform(0, 100000))
+        splits = {}
+        for i in xrange(random.randint(1, 5)):
+            splits[i] = Decimal.from_float(random.uniform(1, 100))
+
+        sys.stdout.write(".")
+        _distributor(amount, splits)

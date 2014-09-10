@@ -366,55 +366,57 @@ def generate_credits(dont_simulate=True):
         current_app.logger.info("==== Done processing block hash {}".format(hash))
 
 
-def distributor(amount, splits, scale=None, addtl_prec=0):
+def distributor(*args, **kwargs):
+    if not kwargs.get('scale'):
+        kwargs['scale'] = current_app.MAX_DECIMALS
+    return _distributor(*args, **kwargs)
+
+
+def _distributor(amount, splits, scale=None, addtl_prec=0):
     """ Evenly (exactly) distributes an amount among a dictionary. Dictionary
     values should be integers (or decimals) representing the ratio the amount
     should be split among. Arithmetic will be performed to `scale` decimal
     places. Amount will be rounded down to `scale` number of decimal places
     _before_ distribution. Remainders from distribution will be given to users
     in order of who deserved the largest remainders, albiet in round robin
-    fashion. `addtl_prec` allows you to specify additional precision for 
-    computing share remainders, allowing a higher likelyhood of fair distribution
-    of amount remainders among keys. Usually not needed.
-    """
-    if scale is None:
-        scale = current_app.MAX_DECIMALS
-    scale = int(scale) * -1
+    fashion. `addtl_prec` allows you to specify additional precision for
+    computing share remainders, allowing a higher likelyhood of fair
+    distribution of amount remainders among keys. Usually not needed.  """
+    scale = int(scale or 28) * -1
 
     with decimal.localcontext(decimal.BasicContext) as ctx:
         ctx.rounding = decimal.ROUND_DOWN
         smallest = Decimal((0, (1, ), scale))
 
-        # For finding percentage of total splits and the precision for our 
-        # following multiplication operations
-        total_count = 0
+        # Set our precision for operations to only what we need it to be,
+        # nothing more. This garuntees a large enough precision without setting
+        # it so high as to waste a ton of CPU power. A real issue with the
+        # slowness of Python Decimals
         largest = 0
         amount_len = len(str(amount._int)) + amount._exp
         for value in splits.itervalues():
             pos_len = (len(str(value._int)) * amount_len) + value._exp
             largest = max(largest, pos_len)
-            total_count += value
-
-        # Set our precision for operations to only what we need it to be,
-        # nothing more. This garuntees a large enough precision without
-        # setting it so high as to waste a ton of CPU power. A real issue 
-        # with the slowness of Python Decimals
         ctx.prec = largest + abs(scale) + addtl_prec
 
         # Round the distribution amount to correct scale. We will distribute
         # exactly this much
+        total_count = sum(splits.itervalues())
         new_amount = amount.quantize(smallest)
         # Check that after rounding the distribution amount is within 0.001% of
         # desired
         assert abs(amount - new_amount) < (amount / 10000)
+        amount = new_amount
 
         # Count how much we give out, and also the remainders of adjusting to
         # desired scale
         remainders = {}
         total_distributed = 0
+        percent = 0
         for key, value in splits.iteritems():
             assert isinstance(value, Decimal)
             share = (value / total_count) * amount
+            percent += (value / total_count)
             splits[key] = share.quantize(smallest)
             remainders[key] = share - splits[key]
             total_distributed += splits[key]
