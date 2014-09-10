@@ -379,7 +379,8 @@ class PPLNSChain(Chain):
 
     def calc_shares(self, block_payout):
         assert block_payout.chainid == self.id
-        target_shares = int(round(block_payout.block.difficulty * (2 ** 16) * self.last_n))
+        n = (block_payout.block.difficulty * (2 ** 32)) / self.algo.hashes_per_share
+        target_shares = int(round(n * self.last_n))
         return self._calc_shares(block_payout.solve_slice, target_shares=target_shares)
 
 
