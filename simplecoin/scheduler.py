@@ -311,9 +311,9 @@ def update_block_state():
         # Skip checking if height difference isn't sufficient. Avoids polling
         # the RPC server excessively
         if (blockheight - block.height) < currency.block_mature_confirms:
-            current_app.logger.info("Not doing confirm check on block {} since it's not"
-                                    "at check threshold (last height {})"
-                                    .format(block, blockheight))
+            current_app.logger.debug(
+                "Not doing confirm check on block {} since it's not at check "
+                "threshold (last height {})".format(block, blockheight))
             continue
 
         try:

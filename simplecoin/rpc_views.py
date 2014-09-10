@@ -112,7 +112,6 @@ def get_payouts():
 
     with Benchmark("Fetching payout information"):
         query = Payout.query.filter_by(transaction_id=None, currency=currency)
-        # XXX: Add the min payout amount code here!
         pids = [(p.user, p.address, str(p.amount), p.id) for p in query]
     return sign(dict(pids=pids))
 
