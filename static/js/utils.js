@@ -272,6 +272,21 @@ $(document).ready(function() {
       }
     });
 
+    // Loop through the currency inputs on the page
+    $('input.address-field-unex').each(function(index) {
+      // Mark blank values for deletion - otherwise attempt to validate
+      if ($( this ).val() == '') {
+        if ($(this).attr("id") == 'sPayoutAddr') {
+          msg_str += 'DEL_SPAYOUT_ADDR True\t';
+        } else {
+          msg_str += 'DEL_ADDR ' + $( this ).attr("name") + '\t';
+        }
+        return true
+      } else {
+        validate_address($(this), invalid_address, valid_address);
+      }
+    });
+
     // Check for Anon checked
     if ($("#anonymous").is(':checked') == true ){
       msg_str += 'MAKE_ANON' + ' TRUE' + "\t";
