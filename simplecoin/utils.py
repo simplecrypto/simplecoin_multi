@@ -258,14 +258,15 @@ def collect_user_stats(user_address):
     hide_hr = newest < datetime.datetime.utcnow() - datetime.timedelta(seconds=current_app.config['worker_hashrate_fold'])
 
     # pull online status from cached pull direct from powerpool servers
-    for worker, connection_summary in (cache.get('addr_online_' + user_address) or {}).iteritems():
+    for worker_name, connection_summary in (cache.get('addr_online_' + user_address) or {}).iteritems():
         for ppid, connections in connection_summary.iteritems():
             try:
                 powerpool = powerpools[ppid]
             except KeyError:
+                # XXX: Needs a warning here!
                 continue
 
-            worker = check_new(user_address, worker, powerpool.chain.algo.key)
+            worker = check_new(user_address, worker_name, powerpool.chain.algo.key)
             worker['online'] = True
             worker['servers'].setdefault(powerpool, 0)
             worker['servers'][powerpool] += 1
