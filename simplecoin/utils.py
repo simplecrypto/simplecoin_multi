@@ -541,6 +541,8 @@ def verify_message(address, curr, message, signature):
                 time = float(parts[2])
                 stamp = datetime.datetime.utcfromtimestamp(time)
             else:
+                current_app.logger.warn('User tried to use the following '
+                                        'invalid command: \n{}'.format(parts[0]))
                 raise CommandException("Invalid command given! Generate a new "
                                        "message & try again.")
     except (IndexError, ValueError):
