@@ -17,14 +17,17 @@ def fader(val, perc1, perc2, perc3, color1, color2, color3):
 
 
 def sig_round(x, sig=2):
-    if x == 0:
-        return "0"
-    whole = int(str(x).split(".")[0])
-    if whole != x:
-        x -= whole
-    else:
-        whole = 0
-    return "{:,f}".format(whole + round(x, sig - int(floor(log10(abs(x)))) - 1)).rstrip('0').rstrip('.')
+    try:
+        if x == 0:
+            return "0"
+        whole = int(str(x).split(".")[0])
+        if whole != x:
+            x -= whole
+        else:
+            whole = 0
+        return "{:,f}".format(whole + round(x, sig - int(floor(log10(abs(x)))) - 1)).rstrip('0').rstrip('.')
+    except Exception:
+        return "Err. Will fix soon"
 
 
 def duration(seconds):
