@@ -626,7 +626,13 @@ def credit_block(redis_key, simulate=False):
     donations_collected = 0
     for chain in chains:
         chain_fee_perc = chain.config_obj.fee_perc
-        for credit in chain.credits.itervalues():
+        for key, credit in chain.credits.items():
+            # don't try to payout users with zero payout
+            if credit.amount == 0:
+                db.session.expunge(credit)
+                del chain.credits[key]
+                continue
+
             # Skip fees/donations for the pool address
             if credit.user == pool_payout['user']:
                 continue

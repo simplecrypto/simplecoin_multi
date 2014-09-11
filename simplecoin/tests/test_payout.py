@@ -8,7 +8,7 @@ from simplecoin import db, currencies
 from simplecoin.scheduler import _distributor
 from simplecoin.tests import RedisUnitTest, UnitTest
 import simplecoin.models as m
-from simplecoin.scheduler import credit_block, create_payouts
+from simplecoin.scheduler import credit_block, create_payouts, generate_credits
 from simplecoin.rpc_views import update_trade_requests
 
 
@@ -310,6 +310,41 @@ class TestPayouts(RedisUnitTest):
     def test_payout_multichain_merged(self):
         self.test_payout_multichain(merged="1")
         assert m.Block.query.first().merged
+
+    def test_generate_zero(self):
+        chain_shares = {1: {'D5nYTCs9aNg5QAcw35KZj45ZA9iFbN6ZU7': Decimal('381120')}}
+        self.app.redis.rpush(
+            "chain_1_slice_25",
+            *["{}:{}".format(user, shares) for user, shares in chain_shares[1].iteritems()])
+
+        self.app.redis.hmset(
+            "unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f",
+            {'chain_1_solve_index': '45',
+             'hash': '0dbc436b29e577e7932dd13655179f3c3e06b2940be4e0e04f87069caa0f603f',
+             'total_subsidy': '13517762478',
+             'start_time': '1410401945.063338',
+             'address': 'DMNvCJ33EBQn14S1hb1chBk1XoiBEZ4ScJ',
+             'worker': 'worker1',
+             'height': '35630',
+             'currency': 'SYS',
+             'algo': 'scrypt',
+             'fees': '-1',
+             'chain_1_shares': '56583488',
+             'hex_bits': '1C008FA7',
+             'solve_time': '1410412589.175215',
+             'merged': '1'})
+
+        s = m.UserSettings(user="D5nYTCs9aNg5QAcw35KZj45ZA9iFbN6ZU7",
+                           spayout_perc=Decimal("1.00"),
+                           spayout_addr="1JBDMJWBYgA6Rmp8EUPyzFQp79uNsJb67R",
+                           spayout_curr="BTC",
+                           pdonation_perc=Decimal("0.05"))
+        db.session.add(s)
+        db.session.commit()
+        db.session.expunge_all()
+
+        generate_credits()
+        db.session.rollback()
 
 
 if __name__ == "__main__":
