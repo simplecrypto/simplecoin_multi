@@ -367,7 +367,11 @@ class Credit(base):
 
     @property
     def cut_perc(self):
-        return Decimal(self.pd_perc + self.fee_perc) / 100
+        cut_perc = (self.pd_perc or 0) + (self.fee_perc or 0)
+        if cut_perc == 0:
+            return Decimal('0')
+        else:
+            return Decimal(cut_perc) / 100
 
     @property
     def hr_fee_perc(self):
