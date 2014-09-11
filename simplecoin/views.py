@@ -255,6 +255,9 @@ def address_stats(typ):
 
 @main.errorhandler(Exception)
 def handle_error(error):
+    sentry = current_app.extensions.get('sentry')
+    if sentry:
+        sentry.captureException()
     current_app.logger.exception(error)
     return render_template("500.html")
 
