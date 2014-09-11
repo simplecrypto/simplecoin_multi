@@ -393,7 +393,7 @@ def _distributor(amount, splits, scale=None, addtl_prec=0):
         # it so high as to waste a ton of CPU power. A real issue with the
         # slowness of Python Decimals
         # get very largest non-decimal value a share might recieve
-        largest_val = (max(splits.itervalues()) * amount).quantize(0, rounding=decimal.ROUND_UP)
+        largest_val = int(round(max(splits.itervalues()) * amount))
         # convert to length of digits and add the decimal scale
         ctx.prec = len(str(largest_val)) + (scale * -1) + addtl_prec
 
@@ -448,7 +448,7 @@ def credit_block(redis_key, simulate=False):
     if simulate is not True:
         simulate = False
     if simulate:
-        current_app.logger.debug("Running in simulate mode, no commit will be performed")
+        current_app.logger.warn("Running in simulate mode, no commit will be performed")
         current_app.logger.setLevel(logging.DEBUG)
 
     data = redis_conn.hgetall(redis_key)
