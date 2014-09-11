@@ -541,6 +541,8 @@ def verify_message(address, curr, message, signature):
             elif parts[0] == 'Generated':
                 time = float(parts[2])
                 stamp = datetime.datetime.utcfromtimestamp(time)
+            elif parts[0] == "" or parts[0] == " ":
+                parts.pop(0)
             else:
                 current_app.logger.warn('User tried to use the following '
                                         'invalid command: \n{}'.format(parts[0]))
