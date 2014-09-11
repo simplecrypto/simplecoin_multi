@@ -393,7 +393,7 @@ def _distributor(amount, splits, scale=None, addtl_prec=0):
         # it so high as to waste a ton of CPU power. A real issue with the
         # slowness of Python Decimals
         # get very largest non-decimal value a share might recieve
-        largest_val = int(round(max(splits.itervalues()) * amount))
+        largest_val = int(round(amount))
         # convert to length of digits and add the decimal scale
         ctx.prec = len(str(largest_val)) + (scale * -1) + addtl_prec
 
