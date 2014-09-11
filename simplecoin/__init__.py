@@ -127,6 +127,14 @@ def create_app(mode, config='config.yml', log_level=None):
     cache.init_app(app, config=cache_config)
     app.redis = Redis(**app.config.get('redis_conn', {}))
 
+    if app.config.get('sentry'):
+        try:
+            from raven.contrib.flask import Sentry
+            sentry = Sentry()
+            sentry.init_app(app, logging=True, level=logging.ERROR)
+        except Exception:
+            app.logger.error("Unable to initialize sentry!")
+
     # Helpful global vars
     # =======================================================================
     app.SATOSHI = Decimal('0.00000001')
