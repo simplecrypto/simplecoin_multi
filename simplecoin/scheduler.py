@@ -88,7 +88,7 @@ def update_online_workers():
                 worker.setdefault(ppid, 0)
                 worker[ppid] += 1
 
-    cache.set_many(users, timeout=480)
+    cache.set_many(users, timeout=660)
 
 
 @crontab
