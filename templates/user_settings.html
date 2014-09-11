@@ -198,7 +198,7 @@
                   <span class="help-block">Set an address to disable
                     {{ user_currency }} conversion for that currency</span>
               </p>
-              {% for curr_obj in ex_currencies %}
+              {% for curr_obj in ex_currencies if not user_currency_name == curr_obj.key %}
               <div class="form-group">
                 <label for="{{ curr_obj.key }}" class="col-sm-3 control-label">
                   {{ curr_obj.key }}:</label>
