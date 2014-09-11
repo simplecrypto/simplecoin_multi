@@ -285,9 +285,10 @@ def update_block_state():
         if currency.key not in heights:
             try:
                 heights[currency.key] = currency.coinserv.getblockcount()
-            except (urllib3.exceptions.HTTPError, CoinRPCException) as e:
-                current_app.logger.error("Unable to communicate with {} RPC server: {}"
-                                         .format(currency.key, e))
+            except CoinRPCException as e:
+                current_app.logger.error(
+                    "Unable to communicate with {} RPC server: {}"
+                    .format(currency.key, e))
                 return None
         return heights[currency.key]
 

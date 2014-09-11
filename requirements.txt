@@ -1,5 +1,5 @@
 # Top level requirements
-git+https://github.com/simplecrypto/cryptokit.git@v0.2.10#egg=cryptokit
+git+https://github.com/simplecrypto/cryptokit.git@v0.2.11#egg=cryptokit
 git+ssh://git@github.com/ericecook/autoex.git
 Flask==0.10.1
 Flask-Cache==0.12
