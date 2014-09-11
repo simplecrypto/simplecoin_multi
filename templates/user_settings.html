@@ -235,7 +235,7 @@
                 <label for="{{ curr_obj.key }}" class="col-sm-3 control-label">
                   {{ curr_obj.key }}:</label>
                 <div class="col-sm-6">
-                  <input type="text" class="form-control address-field"
+                  <input type="text" class="form-control address-field-unex"
                          name="{{ curr_obj.key }}" id="{{ curr_obj.key }}"
                          {% if curr_obj.key in user.unexchangeable_addresses %}
                          value="{{ user.unexchangeable_addresses[curr_obj.key] }}"

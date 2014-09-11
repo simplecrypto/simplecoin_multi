@@ -147,8 +147,8 @@ class Currency(ConfigObject):
                 ver = None
             if ver not in self.address_version:
                 raise ConfigurationException(
-                    "{} is not a valid {} address. Must be version {}"
-                    .format(self.pool_payout_addr, self.key, self.address_version))
+                    "{} is not a valid {} address. Must be version {}, got version {}"
+                    .format(self.pool_payout_addr, self.key, self.address_version, ver))
 
         # Check to make sure there is a configured pool address for
         # unexchangeable currencies

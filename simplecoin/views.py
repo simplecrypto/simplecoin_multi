@@ -296,6 +296,22 @@ def validate_address():
         else:
             return jsonify({currency: False})
 
+@main.route("/validate_address_unex", methods=['POST', 'GET'])
+def validate_address_unex():
+    if request.method == "POST":
+        addr = request.json
+        currency = addr[0]
+        address = addr[1]
+        try:
+            ver = currencies.validate_bc_address(address)
+        except InvalidAddressException:
+            return jsonify({currency: False})
+
+        if ver in currencies[currency].address_version:
+            return jsonify({currency: True})
+        else:
+            return jsonify({currency: False})
+
 
 @main.route("/settings/<user_address>", methods=['POST', 'GET'])
 def settings(user_address):

@@ -62,7 +62,7 @@ $(document).ready(function() {
   };
 
   // Runs an ajax request to the server to validate a BC address
-  var validate_address = function (watch, success_callback) {
+  var validate_address = function (watch, success_callback, url) {
     $(watch).on("blur", function () {
       var _that = $(this);
       var currency = _that.attr("name");
@@ -104,7 +104,7 @@ $(document).ready(function() {
         type: "POST",
         dataType: "json",
         contentType: "application/json; charset=utf-8",
-        url: "/validate_address",
+        url: url,
         data: json
       }).done(function(data) {
         for (var property in data) {
@@ -158,7 +158,7 @@ $(document).ready(function() {
     $('span.mining-username').html(valid_address);
     wrap_link('#stats-link', valid_address);
     wrap_link('#settings-link', valid_address);
-  });
+  }, '/validate_address');
 
   // config guide - set username + curr
   $('#availCurr').change(function() {
@@ -184,7 +184,9 @@ $(document).ready(function() {
 // JS for user settings
 ////////////////////////////////////////////
 
-  new validate_address('.address-field', function () {});
+  new validate_address('.address-field', function () {}, '/validate_address');
+
+  new validate_address('.address-field-unex', function () {}, '/validate_address_unex');
 
   var interval = null;
 
