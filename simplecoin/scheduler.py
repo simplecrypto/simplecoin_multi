@@ -49,6 +49,9 @@ def crontab(func, *args, **kwargs):
         current_app.logger.error("SQLAlchemyError occurred, rolling back: {}".format(e), exc_info=True)
         db.session.rollback()
     except Exception:
+        sentry = current_app.extensions.get('sentry')
+        if sentry:
+            sentry.captureException()
         current_app.logger.error("Unhandled exception in {}".format(func.__name__),
                                  exc_info=True)
 
@@ -861,7 +864,8 @@ def main():
                         default='INFO')
     args = parser.parse_args()
 
-    create_app("scheduler", log_level=args.log_level)
+    app = create_app("scheduler", log_level=args.log_level)
+    app.scheduler.start()
 
 
 if __name__ == "__main__":

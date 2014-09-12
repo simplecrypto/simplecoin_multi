@@ -127,11 +127,11 @@ def create_app(mode, config='config.yml', log_level=None):
     cache.init_app(app, config=cache_config)
     app.redis = Redis(**app.config.get('redis_conn', {}))
 
+    sentry = False
     if app.config.get('sentry'):
         try:
             from raven.contrib.flask import Sentry
             sentry = Sentry()
-            sentry.init_app(app, logging=True, level=logging.ERROR)
         except Exception:
             app.logger.error("Unable to initialize sentry!")
 
@@ -145,6 +145,9 @@ def create_app(mode, config='config.yml', log_level=None):
     if mode == "manage":
         # Initialize the migration settings
         Migrate(app, db)
+        # Disable for management mode
+        if sentry:
+            sentry = False
 
     # Configure app for serving web content
     # =======================================================================
@@ -169,6 +172,9 @@ def create_app(mode, config='config.yml', log_level=None):
     # Configure app for running scheduler.py functions + instantiate scheduler
     # =======================================================================
     elif mode == "scheduler":
+        if sentry and 'SENTRY_NAME' in app.config:
+            app.config['SENTRY_NAME'] = app.config['SENTRY_NAME'] + "_scheduler"
+
         app.logger.info("=" * 80)
         app.logger.info("SimpleCoin cron scheduler starting up...")
         setproctitle.setproctitle("simplecoin_scheduler")
@@ -219,7 +225,11 @@ def create_app(mode, config='config.yml', log_level=None):
         sched.add_cron_job(sch.leaderboard,
                            minute='0,5,10,15,20,25,30,35,40,45,50,55',
                            second=30)
-        sched.start()
+
+        app.scheduler = sched
+
+    if sentry:
+        sentry.init_app(app, logging=True, level=logging.ERROR)
 
     # Route registration
     # =======================================================================
