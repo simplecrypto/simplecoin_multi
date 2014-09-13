@@ -60,15 +60,15 @@ def update_trade_requests():
     try:
         assert 'trs' in g.signed
         assert isinstance(g.signed['trs'], dict)
-        for tr_id, tr in g.signed['trs'].iteritems():
-            assert isinstance(tr_id, int)
+        for tr_id, tr in g.signed['trs'].items():
+            int(tr_id)
             assert isinstance(tr, dict)
             assert 'status' in tr
-            assert isinstance(tr['status'], int)
+            g.signed['trs'][tr_id]['status'] = int(tr['status'])
             if tr['status'] == 6:
                 assert 'quantity' in tr
                 assert 'fees' in tr
-    except AssertionError:
+    except (AssertionError, TypeError):
         current_app.logger.warn("Invalid data passed to update_sell_requests",
                                 exc_info=True)
         abort(400)
