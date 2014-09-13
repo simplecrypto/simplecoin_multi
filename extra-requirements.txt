@@ -1,0 +1,2 @@
+git+https://github.com/icook/raven-python.git@0a25979c28368078809233fb5932a30167e149ed#egg=raven
+blinker==1.3
