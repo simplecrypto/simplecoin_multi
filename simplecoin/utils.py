@@ -311,7 +311,7 @@ def collect_user_stats(user_address):
     earning_summary = {}
     def_earnings = dict(sent=dec('0'), earned=dec('0'), unconverted=dec('0'), immature=dec('0'), currency=None)
     # Go through already grouped aggregates
-    payouts = Payout.query.filter_by(user=user_address).order_by(Payout.created_at).all()
+    payouts = Payout.query.filter_by(user=user_address).order_by(Payout.created_at.desc()).all()
     for payout in payouts:
         summary = earning_summary.setdefault(payout.payout_currency, def_earnings.copy())
         if payout.transaction_id:  # Mark sent if there's a txid attached
