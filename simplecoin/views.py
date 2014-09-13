@@ -74,7 +74,7 @@ def account(user_address, type):
     offset = page * 100
 
     if type == "payout":
-        payouts = (Payout.query.filter_by(user=user_address).join(Credit.block).
+        payouts = (Payout.query.filter_by(user=user_address).
                    order_by(Payout.created_at.desc()).limit(100).offset(offset))
         return render_template('account.html', payouts=payouts, page=page,
                                table="payout_table.html")
@@ -83,6 +83,7 @@ def account(user_address, type):
                    order_by(Block.found_at.desc()).limit(100).offset(offset))
         return render_template('account.html', credits=credits, page=page,
                                table="credit_table.html")
+
 
 @main.route("/block/<blockhash>")
 def block_detail(blockhash):
