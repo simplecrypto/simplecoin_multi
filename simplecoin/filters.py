@@ -58,6 +58,8 @@ def hashrate(hashrate, num_fmt="{:,.2f}"):
 
 
 def human_date_utc(*args, **kwargs):
+    if isinstance(args[0], (int, float, str)):
+        args = [datetime.datetime.utcfromtimestamp(float(args[0]))] + list(args[1:])
     delta = (datetime.datetime.utcnow() - args[0])
     delta = delta - datetime.timedelta(microseconds=delta.microseconds)
     return ago.human(delta, *args[1:], **kwargs)
