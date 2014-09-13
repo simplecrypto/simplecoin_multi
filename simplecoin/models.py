@@ -312,8 +312,8 @@ class Credit(base):
     address = db.Column(db.String, nullable=False)
     currency = db.Column(db.String, nullable=False)
     amount = db.Column(db.Numeric, CheckConstraint('amount > 0', 'min_credit_amount'))
-    fee_perc = db.Column(db.SmallInteger)
-    pd_perc = db.Column(db.SmallInteger)
+    fee_perc = db.Column(db.SmallInteger, default=0)
+    pd_perc = db.Column(db.SmallInteger, default=0)
     type = db.Column(db.SmallInteger)
     payable = db.Column(db.Boolean, default=False)
     source = db.Column(db.SmallInteger)
@@ -375,11 +375,11 @@ class Credit(base):
 
     @property
     def hr_fee_perc(self):
-        return round(float(self.fee_perc), 2)
+        return round(float(self.fee_perc or 0), 2)
 
     @property
     def hr_pd_perc(self):
-        return round(float(self.pd_perc), 2)
+        return round(float(self.pd_perc or 0), 2)
 
     @property
     def perc_applied(self):
