@@ -1,7 +1,7 @@
 from simplecoin import db, global_config
 from simplecoin.tests import RedisUnitTest
-from simplecoin.models import ShareSlice
-from simplecoin.scheduler import collect_minutes
+from simplecoin.models import ShareSlice, DeviceSlice
+from simplecoin.scheduler import collect_minutes, collect_ppagent_data
 
 
 class TestCollectMinutes(RedisUnitTest):
@@ -27,3 +27,14 @@ class TestCollectMinutes(RedisUnitTest):
 
         assert sl[1].share_type == "acc"
         assert sl[0].share_type == "acc"
+
+    def test_collect_ppagent(self, **kwargs):
+        self.app.redis.hmset("hashrate_1409899740", dict(test__0="None", test__1="12.5"))
+
+        collect_ppagent_data()
+
+        db.session.rollback()
+        db.session.expunge_all()
+        sl = DeviceSlice.query.all()
+        assert sl[0].user == "test"
+        assert sl[0].value == 12.5 * 1000000

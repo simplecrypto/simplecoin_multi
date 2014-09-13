@@ -737,7 +737,15 @@ def _grab_data(prefix, stat):
         for user, value in redis_conn.hgetall(proc_name).iteritems():
             try:
                 address, worker, did = user.split("_")
-                value = float(value)
+                try:
+                    value = float(value)
+                except ValueError:
+                    if value != "None":
+                        current_app.logger.warn(
+                            "Got bogus value {} from ppagent for stat {}"
+                            .format(value, stat), exc_info=True)
+                    continue
+
                 # Megahashes are was cgminer reports
                 if stat == "hashrate":
                     value *= 1000000
