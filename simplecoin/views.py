@@ -260,7 +260,7 @@ def address_stats(typ):
 @main.errorhandler(Exception)
 def handle_error(error):
     current_app.logger.exception(error)
-    return render_template("500.html")
+    return render_template("500.html", no_header=True)
 
 
 def handle_message(address, curr):

@@ -36,6 +36,7 @@
           </h1>
         </div>
         <div class="col-md-7 no-padding">
+          {% if not no_header %}
           <h5 class="stats">
             {% for algo in g.algos %}
               <div class="col-sm-4">
@@ -50,6 +51,7 @@
               </div>
             {% endfor %}
           </h5>
+          {% endif %}
         </div>
     </div>
     <div class="row">
