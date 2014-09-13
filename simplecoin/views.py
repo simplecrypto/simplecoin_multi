@@ -42,15 +42,18 @@ def news():
 @main.route("/merge_blocks", defaults={"q": Block.merged == True})
 @main.route("/blocks", defaults={"q": Block.merged == False})
 @main.route("/blocks/<currency>")
-def blocks(q, currency=None):
+def blocks(q=None, currency=None):
     page = int(request.args.get('page', 0))
     if page < 0:
         page = 0
     offset = page * 100
-    blocks = (db.session.query(Block).filter(q).
-              order_by(Block.found_at.desc()).offset(offset).limit(100))
+    blocks = Block.query.order_by(Block.found_at.desc())
+    if q:
+        blocks = blocks.filter(q)
     if currency:
         blocks = blocks.filter_by(currency=currency)
+
+    blocks = blocks.offset(offset).limit(100)
     return render_template('blocks.html', blocks=blocks, page=page)
 
 

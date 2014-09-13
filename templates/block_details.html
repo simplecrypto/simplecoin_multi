@@ -17,7 +17,7 @@
                 <th>Found</th><td data-sort-value="{{ block.timestamp }}">{{ block.found_at | human_date_utc }}</td>
               </tr>
               <tr>
-                <th>Currency</th><td>{{ block.currency }}</td>
+                <th>Currency</th><td><a href="/blocks/{{ block.currency }}">{{ block.currency }}</a></td>
               </tr>
               <tr>
                 <th>Algorithm</th><td>{{ block.algo }}</td>
