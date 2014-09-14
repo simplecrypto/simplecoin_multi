@@ -47,7 +47,7 @@ exchanges = LocalProxy(
     lambda: getattr(current_app, 'exchanges', None))
 
 
-def create_app(mode, config='config.yml', log_level=None):
+def create_app(mode, config='config.yml', log_level=None, **kwargs):
 
     # Initialize our flask application
     # =======================================================================
@@ -66,6 +66,7 @@ def create_app(mode, config='config.yml', log_level=None):
     else:
         config_path = os.path.join(root, config)
     config_vars.update(yaml.load(open(config_path)))
+    config_vars.update(**kwargs)
 
     # Objectizes all configurations
     # =======================================================================
@@ -125,6 +126,7 @@ def create_app(mode, config='config.yml', log_level=None):
     cache_config = {'CACHE_TYPE': 'redis'}
     cache_config.update(app.config.get('main_cache', {}))
     cache.init_app(app, config=cache_config)
+    # Redis connection for persisting application information
     app.redis = Redis(**app.config.get('redis_conn', {}))
 
     sentry = False

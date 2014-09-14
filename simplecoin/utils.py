@@ -143,6 +143,11 @@ def last_block_share_id_nocache(algorithm=None, merged=False):
 
 
 @cache.memoize(timeout=60)
+def anon_users():
+    return set([s.user for s in UserSettings.query.filter_by(anon=True)])
+
+
+@cache.memoize(timeout=60)
 def last_block_found(algorithm=None, merged=False):
     last_block = Block.query.filter_by(merged=merged).order_by(Block.height.desc()).first()
     if not last_block:

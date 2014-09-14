@@ -2,11 +2,12 @@ import datetime
 
 from simplecoin import db, cache
 from simplecoin.scheduler import leaderboard
-from simplecoin.tests import RedisUnitTest
+from simplecoin.utils import anon_users
+from simplecoin.tests import RedisUnitTest, UnitTest
 import simplecoin.models as m
 
 
-class TestViews(RedisUnitTest):
+class TestViewsRedis(RedisUnitTest):
     def test_leaderboard_anon(self):
         s = m.UserSettings(user="185cYTmEaTtKmBZc8aSGCr9v2VCDLqQHgR", anon=True)
         db.session.add(s)
@@ -27,3 +28,11 @@ class TestViews(RedisUnitTest):
         self.assertEquals(users[0][1]['scrypt'], 110318.93333333333)
         self.assertEquals(users[1][0], "DAbhwsnEq5TjtBP5j76TinhUqqLTktDAnD")
         self.assertEquals(users[1][1]['scrypt'], 109226.66666666667)
+
+
+class TestViews(UnitTest):
+    def test_cache_(self):
+        s = m.UserSettings(user="185cYTmEaTtKmBZc8aSGCr9v2VCDLqQHgR", anon=True)
+        db.session.add(s)
+        db.session.commit()
+        assert "185cYTmEaTtKmBZc8aSGCr9v2VCDLqQHgR" in anon_users()

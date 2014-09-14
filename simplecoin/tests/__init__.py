@@ -8,8 +8,12 @@ from mockredis.noseplugin import WithRedis
 class UnitTest(unittest.TestCase):
     """ Represents a set of tests that only need the database iniailized, but
     no fixture data """
-    def setUp(self):
-        app = simplecoin.create_app('webserver', config='test.yml')
+    def setUp(self, **kwargs):
+        extra = dict(main_cache=dict(CACHE_TYPE='null'))
+        extra.update(kwargs)
+        app = simplecoin.create_app('webserver',
+                                    config='test.yml',
+                                    **extra)
         with app.app_context():
             self.db = simplecoin.db
             self.setup_db()
@@ -32,6 +36,7 @@ class UnitTest(unittest.TestCase):
 
 class RedisUnitTest(UnitTest):
     def setUp(self):
-        UnitTest.setUp(self)
+        UnitTest.setUp(self,
+                       main_cache=dict(CACHE_TYPE='simple'))
         self.app.redis = WithRedis.Redis()
         self.app.redis.flushdb()

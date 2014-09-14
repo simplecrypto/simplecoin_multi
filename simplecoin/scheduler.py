@@ -17,7 +17,7 @@ from cryptokit.rpc import CoinRPCException
 
 from simplecoin import (db, cache, redis_conn, create_app, currencies,
                         powerpools, algos, global_config)
-from simplecoin.utils import last_block_time
+from simplecoin.utils import last_block_time, anon_users
 from simplecoin.exceptions import RemoteException, InvalidAddressException
 from simplecoin.models import (Block, Credit, UserSettings, TradeRequest,
                                CreditExchange, Payout, ShareSlice, ChainPayout,
@@ -53,8 +53,8 @@ def crontab(func, *args, **kwargs):
                                  exc_info=True)
 
     t = time.time() - t
-    cache.cache._client.hmset('cron_last_run_{}'.format(func.__name__),
-                              dict(runtime=t, time=int(time.time())))
+    cache.set('cron_last_run_{}'.format(func.__name__),
+              dict(runtime=t, time=int(time.time())))
     return res
 
 
@@ -262,8 +262,7 @@ def leaderboard():
 
     # This is really bad.... XXX: Needs rework!
     if users:
-        anon = [s.user for s in UserSettings.query.filter(
-            UserSettings.user.in_(users.keys())).filter_by(anon=True).all()]
+        anon = anon_users()
         for i, (user, data) in enumerate(sorted_users):
             if user in anon:
                 sorted_users[i] = ("Anonymous", data)
