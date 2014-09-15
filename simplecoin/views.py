@@ -273,6 +273,10 @@ def handle_message(address, curr):
             verify_message(address, curr, vals['message'], vals['signature'])
         except CommandException as e:
             result = "Error: {}".format(e)
+            # lets just log all errors people are getting
+            current_app.logger.info(
+                "Command exception in Command validation",
+                exc_info=True)
         except Exception as e:
             current_app.logger.info(
                 "Unhandled exception in Command validation",
