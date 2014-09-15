@@ -191,13 +191,15 @@ def create_trade_req(typ):
     # To create a sell request, we find all the credits with no sell request
     # that are mature
     if typ == "sell":
-        q = q.filter_by(sell_req=None).join(Credit.block, aliased=True)
+        q = (q.filter_by(sell_req=None).
+             join(CreditExchange.block, aliased=True).
+             filter_by(mature=True))
     # To create a buy request, we find all the credits with completed sell
     # requests that are mature
     elif typ == "buy":
         q = (q.filter_by(buy_req=None).
              join(CreditExchange.sell_req, aliased=True).
-             filter_by(_status=6).join(Credit.block, aliased=True).
+             filter_by(_status=6).join(CreditExchange.block, aliased=True).
              filter_by(mature=True))
     for credit in q:
         if typ == "sell":

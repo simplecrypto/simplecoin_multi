@@ -1,12 +1,14 @@
 import time
 import flask
 import unittest
+import datetime
 
 from simplecoin import db, currencies
 from simplecoin.scheduler import _distributor
 from simplecoin.tests import RedisUnitTest, UnitTest
 import simplecoin.models as m
-from simplecoin.scheduler import credit_block, create_payouts, generate_credits
+from simplecoin.scheduler import (credit_block, create_payouts,
+                                  generate_credits, create_trade_req)
 from simplecoin.rpc_views import update_trade_requests
 
 from itsdangerous import TimedSerializer
@@ -62,6 +64,50 @@ class TestDistributor(unittest.TestCase):
                   "other": Decimal('2.78515625')}
 
         _distributor(amount, splits)
+
+
+class TestGenerateTradeRequests(UnitTest):
+    def test_payout_generation(self):
+        blk1 = self.make_block(mature=True)
+        blk2 = self.make_block(mature=False)
+        tr = m.TradeRequest(
+            quantity=sum(xrange(1, 20)),
+            type="sell",
+            currency="LTC"
+        )
+
+        pending = m.CreditExchange(
+            amount="12.2394857987234598723453245",
+            currency="DOGE",
+            block=blk1,
+            address="pending")
+        db.session.add(pending)
+        already_sold = m.CreditExchange(
+            amount="12.2394857987234598723453245",
+            currency="DOGE",
+            block=blk1,
+            sell_req=tr,
+            address="already_sold")
+        db.session.add(pending)
+        immature = m.CreditExchange(
+            amount="12.2394857987234598723453245",
+            currency="DOGE",
+            block=blk2,
+            address="immature")
+        db.session.add(immature)
+        db.session.commit()
+
+        create_trade_req("sell")
+        db.session.rollback()
+
+        trs = m.TradeRequest.query.all()
+
+        assert pending.sell_req is not None
+        assert pending.sell_req != already_sold.sell_req
+        assert immature.sell_req is None
+        assert already_sold.sell_req == tr
+        assert len(trs) == 2
+        assert trs[1].quantity == Decimal("12.2394857987234598723453245")
 
 
 class TestGeneratePayout(UnitTest):

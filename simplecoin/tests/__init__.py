@@ -1,6 +1,10 @@
 import simplecoin
 import unittest
+import datetime
 
+import simplecoin.models as m
+
+from decimal import Decimal
 from simplecoin import db
 from mockredis.noseplugin import WithRedis
 
@@ -32,6 +36,20 @@ class UnitTest(unittest.TestCase):
         self.db.drop_all()
         self.db.create_all()
         db.session.commit()
+
+    def make_block(self, **kwargs):
+        vals = dict(currency="LTC",
+                    height=1,
+                    found_at=datetime.datetime.utcnow(),
+                    time_started=datetime.datetime.utcnow(),
+                    difficulty=12,
+                    merged=False,
+                    algo="scrypt",
+                    total_value=Decimal("50"))
+        vals.update(kwargs)
+        blk = m.Block(**vals)
+        db.session.add(blk)
+        return blk
 
 
 class RedisUnitTest(UnitTest):
