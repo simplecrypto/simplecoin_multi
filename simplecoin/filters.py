@@ -17,6 +17,7 @@ def fader(val, perc1, perc2, perc3, color1, color2, color3):
 
 
 def sig_round(x, sig=2):
+    x = x if x else 0
     try:
         if x == 0:
             return "0"

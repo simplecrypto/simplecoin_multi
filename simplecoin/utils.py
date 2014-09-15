@@ -11,7 +11,7 @@ from decimal import Decimal as dec
 from .exceptions import CommandException, InvalidAddressException
 from . import db, cache, root, redis_conn, currencies, powerpools, algos
 from .models import (ShareSlice, Block, Credit, UserSettings, make_upper_lower,
-                     Payout)
+                     Payout, CreditExchange)
 
 
 class ShareTracker(object):
@@ -358,6 +358,9 @@ def collect_user_stats(user_address):
     f_perc = dec(current_app.config.get('fee_perc', dec('0.02'))) * 100
 
     return dict(workers=workers,
+                exchanges=(CreditExchange.query.filter_by(user=user_address).
+                           join(CreditExchange.block).
+                           order_by(Block.found_at.desc())),
                 credits=credits[:20],
                 payouts=payouts[:20],
                 settings=settings,
