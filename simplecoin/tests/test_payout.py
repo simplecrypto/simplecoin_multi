@@ -2,14 +2,15 @@ import time
 import flask
 import unittest
 
-from itsdangerous import TimedSerializer
-from decimal import Decimal
 from simplecoin import db, currencies
 from simplecoin.scheduler import _distributor
 from simplecoin.tests import RedisUnitTest, UnitTest
 import simplecoin.models as m
 from simplecoin.scheduler import credit_block, create_payouts, generate_credits
 from simplecoin.rpc_views import update_trade_requests
+
+from itsdangerous import TimedSerializer
+from decimal import Decimal
 
 
 class TestDistributor(unittest.TestCase):
@@ -350,11 +351,14 @@ class TestPayouts(RedisUnitTest):
 if __name__ == "__main__":
     import random
     import sys
-    while True:
-        amount = Decimal.from_float(random.uniform(0, 100000))
+    t = time.time()
+    for i in xrange(10000):
+        amount = Decimal(str(random.uniform(1, 100000)))
         splits = {}
         for i in xrange(random.randint(1, 5)):
-            splits[i] = Decimal.from_float(random.uniform(1, 100))
-
+            splits[i] = Decimal(str(random.uniform(1, 100)))
+            round_sz = Decimal((0, (1, ), -1 * random.randint(2, 15)))
+            splits[i] = splits[i].quantize(round_sz)
         sys.stdout.write(".")
         _distributor(amount, splits)
+    print "completed in {}".format(time.time() - t)

@@ -6,6 +6,11 @@ import socket
 import sys
 import setproctitle
 import inspect
+try:
+    import cdecimal
+    sys.modules["decimal"] = cdecimal 
+except ImportError:
+    pass
 
 from apscheduler.threadpool import ThreadPool
 from apscheduler.scheduler import Scheduler

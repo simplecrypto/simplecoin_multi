@@ -431,7 +431,7 @@ def _distributor(amount, splits, scale=None, addtl_prec=0):
 
         total = sum(splits.itervalues())
         # Check that we don't have extra decimal places
-        assert total._exp >= scale
+        assert total.as_tuple().exponent >= scale
         # And it should come out exact!
         if total != amount:
             raise Exception(
