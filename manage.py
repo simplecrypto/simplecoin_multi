@@ -128,7 +128,7 @@ def cleanup(chain, oldest_kept, simulate):
             oldest_kept = cp.solve_slice
             break
 
-    print redis_conn.get("chain_1_slice_index")
+    print "Current slice index {}".format(redis_conn.get("chain_1_slice_index"))
     print "Looking at all slices older than {}".format(oldest_kept)
 
     simulate = bool(int(simulate))

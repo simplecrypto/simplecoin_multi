@@ -9,7 +9,7 @@ from . import db, root, cache, currencies, algos, locations
 from .exceptions import InvalidAddressException
 from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
                     get_alerts, resort_recent_visit, collect_acct_items,
-                    CommandException)
+                    CommandException, anon_users)
 
 
 main = Blueprint('main', __name__)
@@ -127,6 +127,7 @@ def add_pool_stats():
     # Dictionary keyed by algo
     g.miner_count = cache.get('total_miners') or {}
     g.alerts = get_alerts()
+    g.anon_users = anon_users()
 
 
 @main.route("/close/<int:id>")
