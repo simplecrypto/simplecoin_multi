@@ -7,9 +7,10 @@ from flask.ext.migrate import stamp
 from flask.ext.script import Manager, Shell
 from flask.ext.migrate import MigrateCommand
 
-from simplecoin import create_manage_app, db, currencies, powerpools
+from simplecoin import create_manage_app, db, currencies, powerpools, redis_conn
 from simplecoin.scheduler import SchedulerCommand
-from simplecoin.models import Transaction, UserSettings, Credit, ShareSlice, DeviceSlice
+from simplecoin.models import (Transaction, UserSettings, Credit, ShareSlice,
+                               DeviceSlice, Block)
 
 
 manager = Manager(create_manage_app)
@@ -116,6 +117,41 @@ def update_tr(id, exchanged_quantity, fees):
         'update_trade_requests',
         data={'update': True, 'completed_trs': completed_tr}
     )
+
+
+@manager.option('simulate')
+@manager.option('oldest_kept')
+@manager.option('chain', type=int)
+def cleanup(chain, oldest_kept, simulate):
+    for cp in Block.query.filter_by(hash=oldest_kept).one().chain_payouts:
+        if cp.chainid == chain:
+            oldest_kept = cp.solve_slice
+            break
+
+    print redis_conn.get("chain_1_slice_index")
+    print "Looking at all slices older than {}".format(oldest_kept)
+
+    simulate = bool(int(simulate))
+    if not simulate:
+        if raw_input("Are you sure you want to continue? [y/n]") != "y":
+            return
+
+    empty = 0
+    for i in xrange(oldest_kept, 0, -1):
+        if empty >= 20:
+            print "20 empty in a row, exiting"
+            break
+        key = "chain_{}_slice_{}".format(chain, i)
+        if not redis_conn.llen(key):
+            empty += 1
+        else:
+            empty = 0
+
+        if not simulate:
+            print "deleting {}!".format(key)
+            print redis_conn.delete(key)
+        else:
+            print "would delete {}".format(key)
 
 
 def make_context():
