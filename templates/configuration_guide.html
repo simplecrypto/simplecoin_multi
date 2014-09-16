@@ -54,7 +54,7 @@
               <div class="col-sm-12 no-padding">
                 <h4>{{ algo }} ports:</h4>
               </div>
-              {% for stratum in algo_list %}
+              {% for stratum in algo_list if stratum.display != False %}
               <div class="radio">
                 <label>
                   <div class="col-sm-12 no-padding">

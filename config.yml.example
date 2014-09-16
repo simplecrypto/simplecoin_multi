@@ -118,6 +118,8 @@ mining_servers:
         port: 3344
         diff: 8-2048
         chain: 1
+        # Optional. Hides this port from the configuration guide.
+        display: False
 
 algos:
     X11:
