@@ -202,7 +202,7 @@ def get_alerts():
 
 @cache.memoize(timeout=60)
 def last_10_shares(user, algo):
-    lower, upper = make_upper_lower(offset=datetime.timedelta(minutes=1))
+    lower, upper = make_upper_lower(offset=datetime.timedelta(minutes=2))
     minutes = (ShareSlice.query.filter_by(user=user).
                filter(ShareSlice.time > lower, ShareSlice.time < upper))
     if minutes:
@@ -247,7 +247,7 @@ def collect_user_stats(user_address):
         return workers[key]
 
     # Get the lower bound for 10 minutes ago
-    lower_10, upper_10 = make_upper_lower(offset=datetime.timedelta(minutes=1))
+    lower_10, upper_10 = make_upper_lower(offset=datetime.timedelta(minutes=2))
 
     newest = datetime.datetime.fromtimestamp(0)
     # XXX: Needs to only sum the last 24 hours
