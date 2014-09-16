@@ -514,6 +514,10 @@ class Payout(base):
     count = db.Column(db.SmallInteger)
 
     @property
+    def currency_obj(self):
+        return currencies[self.currency]
+
+    @property
     def payout_currency(self):
         return self.currency
 

@@ -314,41 +314,58 @@ def collect_user_stats(user_address):
 
     # Generate payout history and stats for earnings all time
     earning_summary = {}
-    def_earnings = dict(sent=dec('0'), earned=dec('0'), unconverted=dec('0'), immature=dec('0'), currency=None)
+    def_earnings = dict(
+        ready_to_send=dec(0),
+        sent=dec(0),
+        by_currency=None,
+    )
+    currency = dict(
+        immature=dec(0),
+        unconverted=dec(0),
+        payable=dec(0),
+        total_pending=dec(0),
+    )
+
+    def lookup_curr(curr):
+        if curr not in earning_summary:
+            earning_summary[curr] = def_earnings.copy()
+            earning_summary[curr]['by_currency'] = {}
+
+        return earning_summary[curr]
     # Go through already grouped aggregates
     payouts = Payout.query.filter_by(user=user_address).order_by(Payout.created_at.desc()).all()
     for payout in payouts:
-        summary = earning_summary.setdefault(payout.payout_currency, def_earnings.copy())
+        summary = lookup_curr(payout.currency_obj)
         if payout.transaction_id:  # Mark sent if there's a txid attached
             summary['sent'] += payout.amount
         else:
-            summary['earned'] += payout.amount
+            summary['ready_to_send'] += payout.amount
 
     # Loop through all unaggregated credits to find the rest
     credits = collect_user_credits(user_address)
 
     for credit in credits:
-        # Group by their desired currency
-        summary = earning_summary.setdefault(credit.block.currency, def_earnings.copy())
-
-        # For non-traded values run an estimate calculation
+        # By desired currency
+        summary = lookup_curr(credit.currency_obj)
+        # By source currency
+        curr = summary['by_currency'].setdefault(credit.block.currency_obj, currency.copy())
+        curr['convert'] = credit.block.currency != credit.currency
         if credit.type == 1:  # CreditExchange
-            if not credit.block.mature:
-                summary['immature'] += credit.est_value
-            elif credit.block.mature and not credit.payable:
-                summary['unconverted'] += credit.est_value
-            else:
-                summary['earned'] += credit.final_amount
-        else:
-            if not credit.block.mature:
-                summary['immature'] += credit.amount
-            else:
-                summary['earned'] += credit.amount
+            if not credit.payable:
+                curr['unconverted'] += credit.amount
 
-    # Set the currency as a value of the summary dictionary so we can convert
-    # the dictionary of dictionaries into a list of dictionaries for rendering
-    for currency in earning_summary:
-        earning_summary[currency]['currency'] = currency
+        if credit.payable:
+            curr['payable'] += credit.payable_amount
+        if not credit.block.mature and not credit.block.orphan:
+            curr['immature'] += credit.amount
+        if not credit.block.orphan:
+            curr['total_pending'] += credit.amount
+
+    for currency, obj in earning_summary.iteritems():
+        for currency, curr in obj['by_currency'].iteritems():
+            for k, val in curr.iteritems():
+                if isinstance(val, dec):
+                    curr[k] = val.quantize(current_app.SATOSHI)
 
     # Show the user approximate next payout and exchange times
     now = datetime.datetime.now()
@@ -362,8 +379,7 @@ def collect_user_stats(user_address):
                 payouts=payouts[:20],
                 settings=settings,
                 next_payout=next_payout,
-                earning_summary=earning_summary.values(),
-                earning_summary_keys=def_earnings.keys(),
+                earning_summary=earning_summary,
                 hide_hr=hide_hr,
                 next_exchange=next_exchange,
                 f_per=f_perc)
