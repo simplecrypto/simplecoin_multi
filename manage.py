@@ -183,12 +183,6 @@ def cleanup(chain, oldest_kept, simulate):
 
         if not simulate:
             print "deleting {}!".format(key)
-
-            res = raw_input("Are you really, really sure you want to cleanup? [y/n] ")
-            if res != "y":
-                return
-            else:
-                print redis_conn.delete(key)
         else:
             print "would delete {}".format(key)
 
