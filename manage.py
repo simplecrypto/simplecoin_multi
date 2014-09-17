@@ -59,6 +59,47 @@ def reset_payouts(merged_type="all"):
     db.session.commit()
 
 
+@manager.option('stop_id', type=int)
+@manager.option('start_id', type=int)
+def del_payouts(start_id, stop_id):
+    """
+    Deletes payouts between start and stop id and removes their id from the
+    associated Credits.
+
+    Expects a start and stop payout id for payouts to be deleted
+
+    ::Warning:: This can really fuck things up!
+    """
+    from simplecoin.models import Payout
+    payouts = Payout.query.filter(Payout.id >= start_id,
+                                              Payout.id <= stop_id).all()
+
+    pids = [payout.id for payout in payouts]
+
+    credits = Credit.query.filter(Credit.payout_id.in_(pids)).all()
+
+    for credit in credits:
+        credit.payout = None
+
+    db.session.flush()
+
+    for payout in payouts:
+        print "ID: {} ### USER: {} ### CREATED: {} ### AMOUNT: {} ### " \
+              "CREDIT_COUNT: {}".format(payout.id, payout.user,
+                                        payout.created_at, payout.amount,
+                                        payout.count)
+        db.session.delete(payout)
+
+    print "Preparing to delete {} Payouts.".format(len(pids))
+
+    res = raw_input("Are you really sure you want to delete these payouts? [y/n] ")
+    if res != "y":
+        db.session.rollback()
+        return
+
+    db.session.commit()
+
+
 @manager.option('input', type=argparse.FileType('r'))
 def import_shares(input):
     for i, line in enumerate(input):
