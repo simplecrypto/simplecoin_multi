@@ -2,11 +2,13 @@ import logging
 import itertools
 import datetime
 import time
+import json
 import urllib3
 import sqlalchemy
 import decorator
 import argparse
 import decimal
+import bz2
 
 from decimal import Decimal
 from flask import current_app
@@ -16,7 +18,7 @@ from cryptokit.base58 import address_version
 from cryptokit.rpc import CoinRPCException
 
 from simplecoin import (db, cache, redis_conn, create_app, currencies,
-                        powerpools, algos, global_config)
+                        powerpools, algos, global_config, chains)
 from simplecoin.utils import last_block_time, anon_users
 from simplecoin.exceptions import RemoteException, InvalidAddressException
 from simplecoin.models import (Block, Credit, UserSettings, TradeRequest,
@@ -814,6 +816,46 @@ def collect_minutes():
                 slc.value += shares
                 db.session.commit()
         redis_conn.delete("processing_shares")
+
+
+@crontab
+@SchedulerCommand.command
+def compress_slices():
+    for chain in chains.itervalues():
+        # Get the index of the last inserted share slice on this chain
+        t = redis_conn.get("chain_{}_slice_index".format(chain.id))
+        if t is None:
+            # Chain must not be in use....
+            current_app.logger.debug(
+                "No slice index for chain {}".format(chain))
+            continue
+
+        empty = 0
+        # Loop thorugh all possible share slice numbers
+        for slc_idx in xrange(int(t), 0, -1):
+            key = "chain_{}_slice_{}".format(chain.id, slc_idx)
+            key_type = redis_conn.type(key)
+            # Compress if it's a list
+            if key_type == "list":
+                # Reduce empty counter, but don't go negative
+                empty = min(0, empty - 1)
+                # Get the whole list
+                data = [entry.split(":") for entry in redis_conn.lrange(key, 0, -1)]
+                data = json.dumps(data, separators=(',', ':'))
+                data = bz2.compress(data)
+                data = "bz2json:" + data
+                key_compressed = key + "_compressed"
+                redis_conn.set(key_compressed, data)
+                redis_conn.rename(key_compressed, key)
+            # Count an empty entry to identify the end of live slices
+            elif key_type == "none":
+                empty += 1
+
+            # If we've seen a lot of empty, probably nothing else to find!
+            if empty >= 20:
+                current_app.logger.info(
+                    "Ended compression search at {}".format(slc_idx))
+                break
 
 
 @crontab

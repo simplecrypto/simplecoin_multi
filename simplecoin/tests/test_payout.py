@@ -2,13 +2,15 @@ import time
 import flask
 import unittest
 import datetime
+import random
 
 from simplecoin import db, currencies
 from simplecoin.scheduler import _distributor
 from simplecoin.tests import RedisUnitTest, UnitTest
 import simplecoin.models as m
 from simplecoin.scheduler import (credit_block, create_payouts,
-                                  generate_credits, create_trade_req)
+                                  generate_credits, create_trade_req,
+                                  compress_slices)
 from simplecoin.rpc_views import update_trade_requests
 
 from itsdangerous import TimedSerializer
@@ -249,6 +251,47 @@ class TestPayouts(RedisUnitTest):
         "chain_1_solve_index": "17",
         "merged": "0"
     }
+
+    def random_shares(self):
+        addresses = ['DSAEhYmKZmDN9e1vGPRWSvRQEiWGARhiVh',
+                     'DLePZigvzzvSyoWztctVVsPtDuhzBfqEgd',
+                     'LVsJCXPThJzGhenQT2yuAEy82RTDQjQUYy',
+                     'DKcNvReNSfaCV9iCJjBnxt8zJfiTqzv2vk',
+                     'D6xxcZtoQuCajFgVaoPgsq31WNHFst3yce']
+        lst = []
+        for i in xrange(250):
+            lst.append("{}:{}".format(random.choice(addresses),
+                                      random.randint(1, 200)))
+        return lst
+
+    def test_slice_compression(self):
+        shares = self.random_shares()
+
+        def setup():
+            self.app.redis.hmset(
+                "unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f",
+                self.test_block_data)
+            self.app.redis.rpush("chain_1_slice", "DJCgMCyjBKxok3eEGed5SGhbWaGj5QTcxF:1")
+            self.app.redis.set("chain_1_slice_index", 17)
+            self.app.redis.rpush("chain_1_slice_17", *shares)
+
+        setup()
+        credit_block("unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f")
+        payouts = [(p.address, p.amount, p.currency, p.user) for p in
+                   m.Credit.query.order_by(m.Credit.user)]
+
+        # reset everything, and try it compressed
+        self.app.redis.flushdb()
+        self.tearDown()
+        self.setup_db()
+
+        setup()
+        compress_slices()
+        assert self.app.redis.type("chain_1_slice_17") == "string"
+        credit_block("unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f")
+        payouts_compress = [(p.address, p.amount, p.currency, p.user) for p in
+                            m.Credit.query.order_by(m.Credit.user)]
+        self.assertEqual(payouts_compress, payouts)
 
     def test_payout_multichain(self, **kwargs):
         bd = self.test_block_data.copy()

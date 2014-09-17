@@ -1,5 +1,7 @@
 import requests
 import collections
+import json
+import bz2
 
 from flask import current_app
 from cryptokit.rpc import CoinserverRPC
@@ -348,9 +350,17 @@ class Chain(ConfigObject):
         index = 0
         for index in xrange(start_slice, stop_slice, -1):
             slc = "chain_{}_slice_{}".format(self.id, index)
-            entries = redis_conn.lrange(slc, 0, -1)
-            for entry in entries:
-                user, shares = entry.split(":")
+            key_type = redis_conn.type(slc)
+            if key_type == "list":
+                entries = [entry.split(":") for entry in redis_conn.lrange(slc, 0, -1)]
+            elif key_type == "string":
+                fmt, data = redis_conn.get(slc).split(":", 1)
+                if fmt == "bz2json":
+                    data = bz2.decompress(data)
+                    entries = json.loads(data)
+                else:
+                    raise Exception("Invalid slice data format")
+            for user, shares in entries:
                 if user not in users:
                     users[user] = dec(shares)
                 else:
