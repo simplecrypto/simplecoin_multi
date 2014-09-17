@@ -1,2 +1,6 @@
+# If you want to use Raven to do error reporting with Sentry
 git+https://github.com/icook/raven-python.git@0a25979c28368078809233fb5932a30167e149ed#egg=raven
 blinker==1.3
+
+# If you want to use cdecimal. Highly recommended for performance.
+http://www.bytereef.org/software/mpdecimal/releases/cdecimal-2.3.tar.gz#egg=cdecimal

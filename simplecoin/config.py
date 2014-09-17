@@ -1,7 +1,8 @@
 import requests
 import collections
-import json
+import simplejson as json
 import bz2
+import time
 
 from flask import current_app
 from cryptokit.rpc import CoinserverRPC
@@ -13,6 +14,7 @@ from autoex.ex_manager import ExchangeManager
 from . import models as m
 from . import (cache, redis_conn, currencies, exchanges, chains, powerpools,
                locations, algos)
+from .utils import time_format
 from .exceptions import ConfigurationException, RemoteException, InvalidAddressException
 
 
@@ -348,33 +350,66 @@ class Chain(ConfigObject):
         found_shares = 0
         users = {}
         index = 0
+        decoding_time = 0.0
+        retrieval_time = 0.0
+        aggregation_time = 0.0
         for index in xrange(start_slice, stop_slice, -1):
-            slc = "chain_{}_slice_{}".format(self.id, index)
-            key_type = redis_conn.type(slc)
+            slc_key = "chain_{}_slice_{}".format(self.id, index)
+            key_type = redis_conn.type(slc_key)
+
+            # Fetch slice information
+            t = time.time()
             if key_type == "list":
-                entries = [entry.split(":") for entry in redis_conn.lrange(slc, 0, -1)]
-            elif key_type == "string":
-                fmt, data = redis_conn.get(slc).split(":", 1)
-                if fmt == "bz2json":
-                    data = bz2.decompress(data)
-                    entries = json.loads(data)
-                else:
-                    raise Exception("Invalid slice data format")
+                slc = dict(encoding="colon_list", data=redis_conn.lrange(slc_key, 0, -1))
+            elif key_type == "hash":
+                slc = redis_conn.hgetall(slc_key)
+            elif key_type == "none":
+                continue
+            else:
+                raise Exception("Unexpected slice key type {}".format(key_type))
+            retrieval_time += time.time() - t
+
+            # Decode slice information
+            t = time.time()
+            if slc['encoding'] == "bz2json":
+                serialized = bz2.decompress(slc['data'])
+                entries = json.loads(serialized, use_decimal=True)
+            elif slc['encoding'] == "colon_list":
+                # Parse the list into proper python representation
+                entries = []
+                for entry in slc['data']:
+                    user, shares = entry.split(":")
+                    shares = dec(shares)
+                    entries.append((user, shares))
+            else:
+                raise Exception("Unsupported slice data encoding {}"
+                                .format(slc['encoding']))
+            decoding_time += time.time() - t
+
+            entry_count = 0
+            t = time.time()
             for user, shares in entries:
+                assert isinstance(shares, (dec, int))
                 if user not in users:
-                    users[user] = dec(shares)
+                    users[user] = shares
                 else:
-                    users[user] += dec(shares)
-                found_shares += float(shares)
+                    users[user] += shares
+                entry_count += 1
+                found_shares += shares
                 if target_shares and found_shares >= target_shares:
                     break
+            aggregation_time += time.time() - t
 
             if target_shares and found_shares >= target_shares:
                 break
 
         current_app.logger.info(
-            "Collected and counted {:,} shares for {:,} users from slice #{:,} -> #{:,}."
-            .format(found_shares, len(users), start_slice, index))
+            "Aggregated {:,} shares from {:,} entries for {:,} different users "
+            "from slice #{:,} -> #{:,}. retrieval_time: {}; decoding_time: {}"
+            " aggregation_time: {}"
+            .format(found_shares, entry_count, len(users), start_slice, index,
+                    time_format(retrieval_time), time_format(decoding_time),
+                    time_format(aggregation_time)))
 
         return users
 

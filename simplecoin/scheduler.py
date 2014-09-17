@@ -2,7 +2,7 @@ import logging
 import itertools
 import datetime
 import time
-import json
+import simplejson as json
 import urllib3
 import sqlalchemy
 import decorator
@@ -10,20 +10,20 @@ import argparse
 import decimal
 import bz2
 
+from simplecoin import (db, cache, redis_conn, create_app, currencies,
+                        powerpools, algos, global_config, chains)
+from simplecoin.utils import last_block_time, anon_users, time_format
+from simplecoin.exceptions import RemoteException, InvalidAddressException
+from simplecoin.models import (Block, Credit, UserSettings, TradeRequest,
+                               CreditExchange, Payout, ShareSlice, ChainPayout,
+                               DeviceSlice, make_upper_lower)
+
 from decimal import Decimal
 from flask import current_app
 from flask.ext.script import Manager
 from cryptokit import bits_to_difficulty
 from cryptokit.base58 import address_version
 from cryptokit.rpc import CoinRPCException
-
-from simplecoin import (db, cache, redis_conn, create_app, currencies,
-                        powerpools, algos, global_config, chains)
-from simplecoin.utils import last_block_time, anon_users
-from simplecoin.exceptions import RemoteException, InvalidAddressException
-from simplecoin.models import (Block, Credit, UserSettings, TradeRequest,
-                               CreditExchange, Payout, ShareSlice, ChainPayout,
-                               DeviceSlice, make_upper_lower)
 
 SchedulerCommand = Manager(usage='Run timed tasks manually')
 
@@ -823,39 +823,103 @@ def collect_minutes():
 def compress_slices():
     for chain in chains.itervalues():
         # Get the index of the last inserted share slice on this chain
-        t = redis_conn.get("chain_{}_slice_index".format(chain.id))
-        if t is None:
+        last_complete_slice = redis_conn.get("chain_{}_slice_index".format(chain.id))
+        if last_complete_slice is None:
             # Chain must not be in use....
             current_app.logger.debug(
                 "No slice index for chain {}".format(chain))
             continue
+        else:
+            last_complete_slice = int(last_complete_slice)
 
-        empty = 0
         # Loop thorugh all possible share slice numbers
-        for slc_idx in xrange(int(t), 0, -1):
+        empty = 0
+        encoding_time = 0.0
+        retrieval_time = 0.0
+        entry_count = 0
+        encoded_size = 0
+        original_size = 0
+        last_slice = last_complete_slice
+        for slc_idx in xrange(last_complete_slice, 0, -1):
             key = "chain_{}_slice_{}".format(chain.id, slc_idx)
             key_type = redis_conn.type(key)
-            # Compress if it's a list
+
+            # Compress if it's a list. This is raw data from powerpools redis
+            # reporter
             if key_type == "list":
                 # Reduce empty counter, but don't go negative
-                empty = min(0, empty - 1)
-                # Get the whole list
-                data = [entry.split(":") for entry in redis_conn.lrange(key, 0, -1)]
-                data = json.dumps(data, separators=(',', ':'))
+                empty = max(0, empty - 1)
+
+                # Retrieve the enencoded information from redis
+                t = time.time()
+                slice_shares = redis_conn.lrange(key, 0, -1)
+                this_original_size = int(redis_conn.debug_object(key)['serializedlength'])
+                this_retrieval_time = time.time() - t
+
+                # Parse the list into proper python representation
+                data = []
+                total_shares = 0
+                for entry in slice_shares:
+                    user, shares = entry.split(":")
+                    shares = Decimal(shares)
+                    data.append((user, shares))
+                    total_shares += shares
+                this_entry_count = len(data)
+
+                # serialization and compression
+                t = time.time()
+                data = json.dumps(data, separators=(',', ':'), use_decimal=True)
                 data = bz2.compress(data)
-                data = "bz2json:" + data
+                this_encoding_time = time.time() - t
+
+                # Put all the new data into a temporary key, then atomically
+                # replace the old list key. ensures we never loose data, even
+                # on failures (exceptions)
                 key_compressed = key + "_compressed"
-                redis_conn.set(key_compressed, data)
+                redis_conn.hmset(key_compressed,
+                                 dict(
+                                     date=int(time.time()),
+                                     data=data,
+                                     encoding="bz2json",
+                                     total_shares=total_shares)
+                                 )
                 redis_conn.rename(key_compressed, key)
-            # Count an empty entry to identify the end of live slices
+                this_encoded_size = int(redis_conn.debug_object(key)['serializedlength'])
+
+                last_slice = slc_idx
+                # Update all the aggregates
+                encoding_time += this_encoding_time
+                retrieval_time += this_retrieval_time
+                entry_count += this_entry_count
+                encoded_size += this_encoded_size
+                original_size += this_original_size
+                # Print progress
+                current_app.logger.info(
+                    "Encoded slice #{:,} containing {:,} entries."
+                    " retrieval_time: {}; encoding_time: {}; start_size: {:,}; end_size: {:,}; ratio: {}"
+                    .format(slc_idx, this_entry_count,
+                            time_format(this_retrieval_time),
+                            time_format(this_encoding_time),
+                            this_original_size, this_encoded_size,
+                            float(this_original_size) / (this_encoded_size or 1)))
+
+            # Count an empty entry to detect the end of live slices
             elif key_type == "none":
                 empty += 1
 
-            # If we've seen a lot of empty, probably nothing else to find!
+            # If we've seen a lot of empty slices, probably nothing else to find!
             if empty >= 20:
                 current_app.logger.info(
                     "Ended compression search at {}".format(slc_idx))
                 break
+
+        current_app.logger.info(
+            "Encoded from slice #{:,} -> #{:,} containing {:,} entries."
+            " retrieval_time: {}; encoding_time: {}; start_size: {:,}; end_size: {:,}; ratio: {}"
+            .format(last_complete_slice, last_slice, entry_count,
+                    time_format(retrieval_time), time_format(encoding_time),
+                    original_size, encoded_size,
+                    float(original_size) / (encoded_size or 1)))
 
 
 @crontab

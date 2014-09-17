@@ -8,7 +8,7 @@ import setproctitle
 import inspect
 try:
     import cdecimal
-    sys.modules["decimal"] = cdecimal 
+    sys.modules["decimal"] = cdecimal
 except ImportError:
     pass
 

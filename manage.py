@@ -2,15 +2,15 @@ import argparse
 import json
 import datetime
 
-from flask import current_app, _request_ctx_stack
-from flask.ext.migrate import stamp
-from flask.ext.script import Manager, Shell
-from flask.ext.migrate import MigrateCommand
-
 from simplecoin import create_manage_app, db, currencies, powerpools, redis_conn
 from simplecoin.scheduler import SchedulerCommand
 from simplecoin.models import (Transaction, UserSettings, Credit, ShareSlice,
                                DeviceSlice, Block)
+
+from flask import current_app, _request_ctx_stack
+from flask.ext.migrate import stamp
+from flask.ext.script import Manager, Shell
+from flask.ext.migrate import MigrateCommand
 
 
 manager = Manager(create_manage_app)

@@ -3,4 +3,4 @@ nose-progressive
 coverage
 flake8
 pylint
-flask_debugtoolbar
+git+https://github.com/icook/mockredis.git@feature/debug-object#egg=mockredispy

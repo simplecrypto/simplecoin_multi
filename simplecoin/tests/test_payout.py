@@ -287,7 +287,7 @@ class TestPayouts(RedisUnitTest):
 
         setup()
         compress_slices()
-        assert self.app.redis.type("chain_1_slice_17") == "string"
+        assert self.app.redis.type("chain_1_slice_17") == "hash"
         credit_block("unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f")
         payouts_compress = [(p.address, p.amount, p.currency, p.user) for p in
                             m.Credit.query.order_by(m.Credit.user)]
