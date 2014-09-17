@@ -23,10 +23,16 @@ def init_db(emit=False):
     if emit:
         import logging
         logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
-    db.session.commit()
-    db.drop_all()
-    db.create_all()
-    stamp()
+
+    res = raw_input("You shouldn't probably ever do this in production! Are you"
+                    " really, really sure you want to reset the DB? [y/n] ")
+    if res != "y":
+        return
+    else:
+        db.session.commit()
+        db.drop_all()
+        db.create_all()
+        stamp()
 
 
 @manager.command
@@ -44,19 +50,6 @@ def list_donation_perc():
         print("WARNING: A user has set a donation percentage below 0!")
     print "User fee summary"
     print "\n".join(["{0:+3d}% Fee: {1}".format(k, v) for k, v in sorted(summ.items())])
-
-
-@manager.option('-m', '--merged-type')
-def reset_payouts(merged_type="all"):
-    """ A utility that resets all payouts to an unlocked state. Use with care!
-    Can in certain circumstances reset payouts that are already paid when
-    pushes fail. """
-    # regular
-    base_q = Credit.query.filter_by(locked=True)
-    if merged_type != "all":
-        base_q = base_q.filter_by(merged_type=merged_type)
-    base_q.update({Credit.locked: False})
-    db.session.commit()
 
 
 @manager.option('stop_id', type=int)
@@ -190,7 +183,12 @@ def cleanup(chain, oldest_kept, simulate):
 
         if not simulate:
             print "deleting {}!".format(key)
-            print redis_conn.delete(key)
+
+            res = raw_input("Are you really, really sure you want to cleanup? [y/n] ")
+            if res != "y":
+                return
+            else:
+                print redis_conn.delete(key)
         else:
             print "would delete {}".format(key)
 
