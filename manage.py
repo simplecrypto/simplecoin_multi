@@ -183,6 +183,7 @@ def cleanup(chain, oldest_kept, simulate):
 
         if not simulate:
             print "deleting {}!".format(key)
+            print redis_conn.delete(key)
         else:
             print "would delete {}".format(key)
 
