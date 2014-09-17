@@ -387,6 +387,7 @@ def _distributor(amount, splits, scale=None, addtl_prec=0):
     computing share remainders, allowing a higher likelyhood of fair
     distribution of amount remainders among keys. Usually not needed.  """
     scale = int(scale or 28) * -1
+    amount = Decimal(amount)
 
     with decimal.localcontext(decimal.BasicContext) as ctx:
         ctx.rounding = decimal.ROUND_DOWN
@@ -403,7 +404,7 @@ def _distributor(amount, splits, scale=None, addtl_prec=0):
 
         # Round the distribution amount to correct scale. We will distribute
         # exactly this much
-        total_count = sum(splits.itervalues())
+        total_count = Decimal(sum(splits.itervalues()))
         new_amount = amount.quantize(smallest)
         # Check that after rounding the distribution amount is within 0.001% of
         # desired
@@ -416,6 +417,8 @@ def _distributor(amount, splits, scale=None, addtl_prec=0):
         total_distributed = 0
         percent = 0
         for key, value in splits.iteritems():
+            if isinstance(value, int):
+                value = Decimal(value)
             assert isinstance(value, Decimal)
             share = (value / total_count) * amount
             percent += (value / total_count)
