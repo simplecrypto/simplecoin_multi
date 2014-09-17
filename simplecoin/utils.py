@@ -351,7 +351,7 @@ def collect_user_stats(user_address):
         curr = summary['by_currency'].setdefault(credit.block.currency_obj, currency.copy())
         curr['convert'] = credit.block.currency != credit.currency
         if credit.type == 1:  # CreditExchange
-            if not credit.payable:
+            if not credit.payable and not credit.block.orphan:
                 curr['unconverted'] += credit.amount
 
         if credit.payable:
