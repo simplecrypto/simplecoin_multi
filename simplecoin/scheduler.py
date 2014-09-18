@@ -1,6 +1,7 @@
 import logging
 import itertools
 import datetime
+from pprint import pprint
 import time
 import simplejson as json
 import urllib3
@@ -117,6 +118,7 @@ def create_payouts():
     out and database compaction, allowing deletion of regular payout records.
     """
     grouped_credits = {}
+    payout_summary = {}
 
     q = Credit.query.filter_by(payable=True, payout_id=None).all()
     for credit in q:
@@ -162,6 +164,12 @@ def create_payouts():
         current_app.logger.info(
             "Created payout for {} {} with remainder of {}"
             .format(currency, user, extra))
+
+        payout_summary.setdefault(currency, 0)
+        payout_summary[currency] += payout.amount
+
+    current_app.logger.info("############### SUMMARY OF PAYOUTS GENERATED #####################")
+    current_app.logger.info(pprint(payout_summary))
 
     db.session.commit()
 
