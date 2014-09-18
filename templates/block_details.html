@@ -3,67 +3,79 @@
 {% set page_title = "Block Details for " ~ block.currency ~ " blockheight #" ~ block.height %}
 {% block body %}
 
-<div class="row">
-  <div class="panel panel-default">
-    <div class="panel-heading">
-      Block Details for {{ block.currency }} blockheight # {{ block.height }}
+<div class="col-lg-10 col-lg-offset-1">
+  <h2>{{ block.currency_obj.name }} Block #{{ block.height | comma }}</h2>
+  <div class="panel panel-default" style="background:none;">
+    <div class="panel-heading">Network Details</div>
+    <div class="table-responsive">
+      <table class="table big-table table-striped table-hover">
+        <tbody>
+          <tr>
+            <th width="30%">Found</th>
+            <td data-sort-value="{{ block.timestamp }}">{{ block.found_at | human_date_utc }}</td>
+          </tr>
+          <tr>
+            <th>Currency</th>
+            <td>{{ block.currency_obj.name }} (<a href="/blocks/{{ block.currency }}">{{ block.currency }}</a>)</td>
+          </tr>
+          <tr>
+            <th>Algorithm</th>
+            <td>{{ block.algo_obj.display }}</td>
+          </tr>
+          <tr>
+            <th>Coinbase Value</th>
+            <td>{{ block.total_value | comma }} {{ block.currency }} (with {{ block.transaction_fees | comma }} in fees)</td>
+          </tr>
+          <tr>
+            <th>Difficulty</th>
+            <td>{{ block.difficulty | comma }}</td>
+          </tr>
+          <tr>
+            <th>Block Hash</th>
+            <td><samp>{{ block.hash }}</samp></td>
+          </tr>
+          <tr>
+            <th>Blockheight</th>
+            <td>{{ block.height | comma }}</td>
+          </tr>
+          <tr>
+            <th>Status</th>
+            <td>{{ block.status }}</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
-    <div class="panel-body">
-      <div class="col-lg-12">
-        <div class="bs-example table-responsive">
-          <table class="table table-striped table-hover">
-            <tbody>
-              <tr>
-                <th>Found</th><td data-sort-value="{{ block.timestamp }}">{{ block.found_at | human_date_utc }}</td>
-              </tr>
-              <tr>
-                <th>Currency</th><td><a href="/blocks/{{ block.currency }}">{{ block.currency }}</a></td>
-              </tr>
-              <tr>
-                <th>Algorithm</th><td>{{ block.algo }}</td>
-              </tr>
-              <tr>
-                <th>Shares required</th><td>{{ '{:,}'.format(block.hr_shares_to_solve or 1) }}</td>
-              </tr>
-              <tr>
-                <th>Luck</th><td>{{ '{:,}'.format(block.luck or 0) }} %</td>
-              </tr>
-              <tr>
-                <th>Round Duration</th><td data-sort-value="{{ block.duration.total_seconds() }}">{{ block.duration }}</td>
-              </tr>
-              <tr>
-                <th>Coinbase Value</th><td>{{ '{0:,.8f}'.format(block.total_value_float - block.transaction_fees|float) }}</td>
-              </tr>
-              <tr>
-                <th>Transaction fees</th><td>{{ '{0:,.8f}'.format(block.transaction_fees|float|abs) }}</td>
-              </tr>
-
-              <tr>
-                <th>Difficulty</th><td>{{ '{:,}'.format(block.difficulty) }}</td>
-              </tr>
-              <tr>
-                <th>Solved by user</th><td><a href="/stats/{{ block.user }}">{{ block.user }}</a></td>
-              </tr>
-              <tr>
-                <th>Solved by worker</th><td>{{ block.worker }}</td>
-              </tr>
-              <tr>
-                <th>Block Hash</th><td>{{ block.hash }}</td>
-              </tr>
-              <tr>
-                <th>Blockheight</th><td>{{ '{:,}'.format(block.height) }}</td>
-              </tr>
-              <tr>
-                <th>Status</th><td>{{ block.status }}</td>
-              </tr>
-              <tr>
-                <th>Simplecoin ID</th><td>{{ block.id }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
+    <div class="panel-heading">Mining Details</div>
+    <div class="table-responsive">
+      <table class="table big-table table-striped table-hover">
+        <tbody>
+          <tr>
+            <th width="30%">Simplecoin ID</th>
+            <td>{{ block.id | comma }}</td>
+          </tr>
+          <tr>
+            <th>Solved by user</th>
+            <td>{% if block.user in g.anon_users %}
+                  Anonymous
+                {% else %}
+                <a href="/stats/{{ block.user }}">{{ block.user }}</a>.{{ block.worker }}
+                {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <th>Round Duration</th>
+            <td>{{ block.duration }}</td>
+          </tr>
+          <tr>
+            <th>Shares required</th>
+            <td>{{ (block.hr_shares_to_solve or 1) | comma }}</td>
+          </tr>
+          <tr>
+            <th>Luck</th>
+            <td>{{ (block.luck or 0) | comma }} %</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </div>

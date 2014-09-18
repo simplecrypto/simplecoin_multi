@@ -164,6 +164,11 @@ g.axis {
   box-shadow: 2px 2px 1px #888;
 }
 
+.big-table>thead>tr>th, .big-table>tbody>tr>th, .big-table>tfoot>tr>th,
+.big-table>thead>tr>td, .big-table>tbody>tr>td, .big-table>tfoot>tr>td {
+  padding: 10px;
+}
+
 .worker-table th {
     text-align: center;
 }

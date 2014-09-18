@@ -216,7 +216,7 @@ class Block(base):
     algo = db.Column(db.String, nullable=False)
 
     standard_join = ['status', 'merged', 'currency', 'worker', 'explorer_link',
-                     'luck', 'total_value_float', 'difficulty', 'duration',
+                     'luck', 'total_value', 'difficulty', 'duration',
                      'found_at', 'time_started']
 
     def __str__(self):
@@ -234,11 +234,6 @@ class Block(base):
     def contributed(self):
         # Total fees + donations associated with this block
         return sum([(bp.donations + bp.fees) for bp in self.chain_payouts]) or 0
-
-    # @property
-    # def bonus_paid(self):
-    #     # Total fees + donations associated with this block
-    #     return sum([bp.bonus_paid for bp in self.chain_payouts]) or 0
 
     @property
     def shares_to_solve(self):
@@ -270,10 +265,6 @@ class Block(base):
     def luck(self):
         hps = current_app.algos[self.algo].hashes_per_share
         return ((self.difficulty * (2 ** 32)) / ((float(self.hr_shares_to_solve) or 1) * hps)) * 100
-
-    @property
-    def total_value_float(self):
-        return float(self.total_value)
 
     @property
     def timestamp(self):
@@ -332,7 +323,7 @@ class Credit(base):
     }
 
     standard_join = ['status', 'created_at', 'explorer_link',
-                     'text_perc_applied', 'mined', 'amount_float', 'height',
+                     'text_perc_applied', 'mined', 'height',
                      'transaction_id']
 
     @classmethod
@@ -356,10 +347,6 @@ class Credit(base):
     @property
     def currency_obj(self):
         return currencies[self.currency]
-
-    @property
-    def amount_float(self):
-        return float(self.amount)
 
     @property
     def sharechain_title(self):

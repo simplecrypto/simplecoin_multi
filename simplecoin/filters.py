@@ -1,4 +1,5 @@
 from math import log10, floor
+from decimal import Decimal
 
 import datetime
 import ago
@@ -65,5 +66,12 @@ def human_date_utc(*args, **kwargs):
     return ago.human(delta, *args[1:], **kwargs)
 
 
+def comma(value):
+    if isinstance(value, (float, Decimal)):
+        return "{:,.2f}".format(value)
+    else:
+        return "{:,}".format(value)
+
+
 def currency(value):
-    return "{:,.7f}".format(float(value))
+    return "{:,.8f}".format(float(value))
