@@ -139,7 +139,9 @@ def confirm_trans(transaction_id):
 @manager.option('simulate', help="When set to one, just print what would be deleted.")
 @manager.option('oldest_kept', help="The oldest block hash that you want to save shares for")
 @manager.option('chain', type=int, help="The chain on which to cleanup old shares")
-def cleanup(chain, oldest_kept, simulate):
+@manager.option('-e', '--empty', type=int, default=20,
+                help="Number of empty rows enountered before exiting")
+def cleanup(chain, oldest_kept, simulate, empty):
     """ Given the oldest block hash that you desire to hold shares for, delete
     everything older than it. """
     for cp in Block.query.filter_by(hash=oldest_kept).one().chain_payouts:
@@ -157,16 +159,16 @@ def cleanup(chain, oldest_kept, simulate):
         if raw_input("Are you sure you want to continue? [y/n]") != "y":
             return
 
-    empty = 0
+    empty_found = 0
     for i in xrange(oldest_kept, 0, -1):
-        if empty >= 20:
+        if empty_found >= empty:
             current_app.logger.info("20 empty in a row, exiting")
             break
         key = "chain_{}_slice_{}".format(chain, i)
-        if not redis_conn.llen(key):
-            empty += 1
+        if redis_conn.type(key) == 'none':
+            empty_found += 1
         else:
-            empty = 0
+            empty_found = 0
 
         if not simulate:
             current_app.logger.info("deleting {}!".format(key))
