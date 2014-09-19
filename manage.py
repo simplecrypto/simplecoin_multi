@@ -49,7 +49,8 @@ def list_donation_perc():
     if warn:
         print("WARNING: A user has set a donation percentage below 0!")
     print "User fee summary"
-    print "\n".join(["{0:+3d}% Fee: {1}".format(k, v) for k, v in sorted(summ.items())])
+    print "\n".join(["{0:.2f}% donation from {1} users"
+                     .format(k * 100, v) for k, v in sorted(summ.items())])
 
 
 @manager.option('stop_id', type=int)
@@ -135,35 +136,21 @@ def confirm_trans(transaction_id):
     db.session.commit()
 
 
-@manager.option('fees')
-@manager.option('exchanged_quantity')
-@manager.option('id')
-def update_tr(id, exchanged_quantity, fees):
-    """
-    Updates a TR by posting to the RPC view
-    """
-    sc_rpc = RPCClient()
-    completed_tr = {}
-
-    completed_tr[id] = (exchanged_quantity, fees)
-
-    sc_rpc.post(
-        'update_trade_requests',
-        data={'update': True, 'completed_trs': completed_tr}
-    )
-
-
-@manager.option('simulate')
-@manager.option('oldest_kept')
-@manager.option('chain', type=int)
+@manager.option('simulate', help="When set to one, just print what would be deleted.")
+@manager.option('oldest_kept', help="The oldest block hash that you want to save shares for")
+@manager.option('chain', type=int, help="The chain on which to cleanup old shares")
 def cleanup(chain, oldest_kept, simulate):
+    """ Given the oldest block hash that you desire to hold shares for, delete
+    everything older than it. """
     for cp in Block.query.filter_by(hash=oldest_kept).one().chain_payouts:
         if cp.chainid == chain:
             oldest_kept = cp.solve_slice
             break
 
-    print "Current slice index {}".format(redis_conn.get("chain_1_slice_index"))
-    print "Looking at all slices older than {}".format(oldest_kept)
+    current_app.logger.info(
+        "Current slice index {}".format(redis_conn.get("chain_1_slice_index")))
+    current_app.logger.info(
+        "Looking at all slices older than {}".format(oldest_kept))
 
     simulate = bool(int(simulate))
     if not simulate:
@@ -173,7 +160,7 @@ def cleanup(chain, oldest_kept, simulate):
     empty = 0
     for i in xrange(oldest_kept, 0, -1):
         if empty >= 20:
-            print "20 empty in a row, exiting"
+            current_app.logger.info("20 empty in a row, exiting")
             break
         key = "chain_{}_slice_{}".format(chain, i)
         if not redis_conn.llen(key):
@@ -182,28 +169,23 @@ def cleanup(chain, oldest_kept, simulate):
             empty = 0
 
         if not simulate:
-            print "deleting {}!".format(key)
-            print redis_conn.delete(key)
+            current_app.logger.info("deleting {}!".format(key))
+            current_app.logger.info(redis_conn.delete(key))
         else:
-            print "would delete {}".format(key)
+            current_app.logger.info("would delete {}".format(key))
 
 
 def make_context():
     """ Setup a coinserver connection fot the shell context """
     app = _request_ctx_stack.top.app
     import simplecoin.models as m
-    return dict(app=app, currencies=currencies, powerpools=powerpools, m=m)
+    return dict(app=app, currencies=currencies, powerpools=powerpools, m=m, db=db)
 manager.add_command("shell", Shell(make_context=make_context))
 manager.add_command('db', MigrateCommand)
 manager.add_command('scheduler', SchedulerCommand)
 manager.add_option('-c', '--config', default='config.yml')
 manager.add_option('-l', '--log-level',
                    choices=['DEBUG', 'INFO', 'WARN', 'ERROR'], default='INFO')
-
-
-@manager.command
-def runserver():
-    current_app.run(debug=True, host='0.0.0.0')
 
 
 if __name__ == "__main__":
