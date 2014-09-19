@@ -255,10 +255,10 @@ $(document).ready(function() {
           {% for currency, cdata in data['by_currency'].iteritems() %}
           <tr>
             <td>{{ currency }}</td>
-            <td>{{ '{:f}'.format(cdata['total_pending']) }} {{ currency }}</td>
-            <td>{{ '{:f}'.format(cdata['immature']) }} {{ currency }}</td>
-            <td>{% if cdata['convert'] %}{{ '{:f}'.format(cdata['unconverted']) }} {{ currency }}{% else %}N/A{% endif %}</td>
-            <td>{{ '{:f}'.format(cdata['payable']) }} {{ payout_currency }}</td>
+            <td>{{ cdata['total_pending'] | currency }} {{ currency }}</td>
+            <td>{{ cdata['immature'] | currency }} {{ currency }}</td>
+            <td>{% if cdata['convert'] %}{{ cdata['unconverted'] | currency }} {{ currency }}{% else %}N/A{% endif %}</td>
+            <td>{{ cdata['payable'] | currency }} {{ payout_currency }}</td>
           </tr>
           {% endfor %}
         </table>

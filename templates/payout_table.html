@@ -28,7 +28,7 @@
             {% for payout in payouts %}
               <tr>
                 <th data-sort-value="{{ payout.timestamp }}">{{ payout.created_at | human_date_utc }}</th>
-                <th>{{ '{:.8f}'.format(payout.amount) }}</th>
+                <th>{{ payout.amount | currency }}</th>
                 <th>{{ payout.currency }}</th>
                 <th>{% if payout.transaction %}{{ payout.transaction.txid }}{% endif %}</th>
                 <th>{{ payout.status }}</th>
