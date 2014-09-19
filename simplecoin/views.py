@@ -44,17 +44,22 @@ def news():
 @main.route("/blocks/<currency>")
 def blocks(q=None, currency=None):
     page = int(request.args.get('page', 0))
-    if page < 0:
-        page = 0
-    offset = page * 100
+    bid = int(request.args.get('bid', -1))
     blocks = Block.query.order_by(Block.found_at.desc())
     if q:
         blocks = blocks.filter(q)
     if currency:
         blocks = blocks.filter_by(currency=currency)
 
-    blocks = blocks.offset(offset).limit(100)
-    return render_template('blocks.html', blocks=blocks, page=page)
+    if page:
+        if page < 0:
+            page = 0
+        offset = page * 100
+        blocks = blocks.offset(offset).limit(100)
+    elif bid >= 0:
+        page = -1
+        blocks = blocks.filter(Block.id >= bid)
+    return render_template('blocks.html', blocks=blocks, page=page, bid=bid)
 
 
 @main.route("/leaderboard")
