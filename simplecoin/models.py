@@ -291,6 +291,24 @@ class Transaction(base):
 
     standard_join = ['txid', 'confirmed', 'created_at', 'currency', '__dont_mongo']
 
+    @property
+    def url_for(self):
+        return "/transaction/{}".format(self.txid)
+
+    @property
+    def status(self):
+        if self.confirmed:
+            return "Confirmed"
+        return "Pending"
+
+    @property
+    def timestamp(self):
+        return calendar.timegm(self.created_at.utctimetuple())
+
+    @property
+    def currency_obj(self):
+        return currencies[self.currency]
+
 
 class Credit(base):
     """ A credit for currency directly crediting a users balance. These
@@ -399,12 +417,10 @@ class Credit(base):
         if self.payable:
             if self.payout:
                 if self.payout.transaction:
-                    if self.payout.transaction.confirmed is True:
-                        return "Payout Transaction {} Confirmed".\
-                            format(self.payout.transaction.txid)
-                    else:
-                        return "Payout Transaction {} Pending".\
-                            format(self.payout.transaction.txid)
+                    return ('Payout <a href="{}">{}...</a>'
+                            .format(self.payout.transaction.url_for,
+                                    self.payout.transaction.txid[:15],
+                                    self.payout.transaction.status))
                 return "Payout Pending"
             return "Pending batching for payout"
 
@@ -438,25 +454,12 @@ class CreditExchange(Credit):
         if self.payable:
             if self.payout:
                 if self.payout.transaction:
-                    if self.payout.transaction.confirmed is True:
-                        return "Payout Transaction {} Confirmed".\
-                            format(self.payout.transaction.txid)
-                    else:
-                        return "Payout Transaction {} Pending".\
-                            format(self.payout.transaction.txid)
+                    return ('Payout <a href="{}">{}...</a>'
+                            .format(self.payout.transaction.url_for,
+                                    self.payout.transaction.txid[:15],
+                                    self.payout.transaction.status))
                 return "Payout Pending"
             return "Pending batching for payout"
-
-        if self.payout:
-            if self.payout.transaction:
-                if self.payout.transaction.confirmed is True:
-                    return "Payout Transaction {} Confirmed".\
-                        format(self.payout.transaction.txid)
-                else:
-                    return "Payout Transaction {} Pending".\
-                        format(self.payout.transaction.txid)
-            else:
-                return "Pending batching for payout"
 
         # Don't say we're purchasing if we'd be shown as purchasing BTC to
         # avoid confusion

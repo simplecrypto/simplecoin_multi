@@ -37,7 +37,7 @@
                 <td title="{{ credit.mined }}">{{ credit.mined | sig_round(2) }} {{ credit.block.currency }}</td>
                 <td data-sort-value="{{ credit.cut_perc }}">{{ credit.text_perc_applied }} {{ credit.block.currency }} ({{ '{:,}'.format(credit.hr_pd_perc) }}%/{{ '{:,}'.format(credit.hr_fee_perc) }}%)</td>
                 <td title="{{ credit.amount }}">{{ credit.amount | sig_round(2) }} {{ credit.block.currency }}</td>
-                <td>{{ credit.status }}</td>
+                <td>{{ credit.status | safe }}</td>
                 {# <td><a href="/block/{{ credit.block.hash }}"># {{ '{:,}'.format(credit.block.height) }}</a></td> #}
                 <td><a href="/block/{{ credit.block.hash }}">{{ credit.block.currency }}# {{ '{:,}'.format(credit.block.height) }}</a></td>
               </tr>

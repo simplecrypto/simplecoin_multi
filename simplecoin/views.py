@@ -4,7 +4,7 @@ from flask import (current_app, request, render_template, Blueprint, jsonify,
                    g, session, Response)
 
 from .models import (Block, ShareSlice, UserSettings, make_upper_lower, Credit,
-                     Payout, DeviceSlice)
+                     Payout, DeviceSlice, Transaction)
 from . import db, root, cache, currencies, algos, locations
 from .exceptions import InvalidAddressException
 from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
@@ -86,6 +86,12 @@ def account(user_address, type):
                    order_by(Block.found_at.desc()).limit(100).offset(offset))
         return render_template('account.html', credits=credits, page=page,
                                table="credit_table.html")
+
+
+@main.route("/transaction/<txid>")
+def transaction_detail(txid):
+    tx = Transaction.query.filter_by(txid=txid).first()
+    return render_template('transaction_details.html', tx=tx)
 
 
 @main.route("/block/<blockhash>")
