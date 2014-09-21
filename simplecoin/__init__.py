@@ -199,6 +199,8 @@ def create_app(mode, config='config.yml', log_level=None, **kwargs):
         # All these tasks actually change the database, and shouldn't
         # be run by the staging server
         if not app.config.get('stage', False):
+            sched.add_cron_job(sch.compress_slices, minute='0,15,30,45',
+                               second=35)
             # every minute at 55 seconds after the minute
             sched.add_cron_job(sch.generate_credits, second=55)
             sched.add_cron_job(sch.create_trade_req, args=("sell",), minute=1,
