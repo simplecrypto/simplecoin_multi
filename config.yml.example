@@ -40,6 +40,8 @@ pool_payout_currency: BTC
 # The signature that the simplecoin_rpc_client will use fetch payouts and push
 # completed payout information. Needs to be kept secure!
 rpc_signature: "keep_this_very_secret"
+# Whether or not to charge users the fees associated with exchanging
+charge_autoex_fees: False
 
 # Logging
 # -----------------------------------------------------------------------

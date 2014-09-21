@@ -65,6 +65,11 @@ class TradeRequest(base):
         assert self.type in ["buy", "sell"], "Invalid type!"
         assert self.exchanged_quantity > 0
 
+        # Check config to see if we're charging exchange fees or not
+        payable_amount = self.exchanged_quantity
+        if current_app.config.get('charge_autoex_fees', False):
+            payable_amount -= self.fees
+
         credits = self.credits  # Do caching here, avoid multiple lookups
         if not credits:
             current_app.logger.warn("Trade request #{} has no attached credits"
@@ -76,7 +81,7 @@ class TradeRequest(base):
                 portions = {c.id: c.amount for c in credits}
             elif self.type == "buy":
                 portions = {c.id: c.sell_amount for c in credits}
-            amounts = distributor(self.exchanged_quantity, portions)
+            amounts = distributor(payable_amount, portions)
 
             for credit in credits:
                 if self.type == "sell":
