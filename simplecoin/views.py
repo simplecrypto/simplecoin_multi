@@ -63,6 +63,13 @@ def blocks(q=None, currency=None):
     return render_template('blocks.html', blocks=blocks, page=page)
 
 
+@main.route("/networks")
+def networks():
+    """ A page to display current information about each of the networks we are
+    mining on.  """
+    return render_template('networks.html')
+
+
 @main.route("/leaderboard")
 def leaderboard():
     # Holds a dictionary keyed by username

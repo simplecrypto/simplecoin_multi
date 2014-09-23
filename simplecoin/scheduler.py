@@ -283,6 +283,49 @@ def leaderboard():
 
 
 @crontab
+def update_network():
+    """
+    Queries the RPC servers confirmed to update network stats information.
+    """
+    for currency in currencies.itervalues():
+        try:
+            gbt = currency.coinserv.getblocktemplate()
+        except (urllib3.exceptions.HTTPError, CoinRPCException) as e:
+            current_app.logger.error("Unable to communicate with {} RPC server: {}"
+                                     .format(currency, e))
+            continue
+
+        key = "{}_data".format(currency.key),
+        current_data = cache.get(key)
+        if current_data and current_data['height'] == gbt['height']:
+            # Already have information for this block
+            current_app.logger.debug(
+                "Not updating {} net info, height {} already recorded."
+                .format(currency, current_data['height']))
+        else:
+            current_app.logger.info(
+                "Updating {} net info for height {}.".format(currency, gbt['height']))
+
+        # set general information for this network
+        difficulty = bits_to_difficulty(gbt['bits'])
+
+        # keep a configured number of blocks in the cache for getting average difficulty
+        cache.cache._client.lpush(prefix + 'block_cache', gbt['bits'])
+        # Six hours worth of blocks
+        keep = 21600 / currency.block_time
+        cache.cache._client.ltrim(prefix + 'block_cache', 0, current_app.config['difficulty_avg_period'])
+        diff_list = cache.cache._client.lrange(prefix + 'block_cache', 0, current_app.config['difficulty_avg_period'])
+        difficulty_avg = sum([bits_to_difficulty(diff) for diff in diff_list]) / len(diff_list)
+
+        cache.set(
+                  dict(height=gbt['height'],
+                       difficulty=difficulty,
+                       reward=reward,
+                       difficulty_avg=difficulty_avg),
+                  timeout=1200)
+
+
+@crontab
 @SchedulerCommand.command
 def update_block_state():
     """
