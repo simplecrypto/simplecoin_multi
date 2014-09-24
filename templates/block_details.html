@@ -4,6 +4,7 @@
 {% block body %}
 
 <div class="col-lg-10 col-lg-offset-1">
+  {% if block %}
   <h2>{{ block.currency_obj.name }} Block #{{ block.height | comma }}</h2>
   <div class="panel panel-default" style="background:none;">
     <div class="panel-heading">Network Details</div>
@@ -78,6 +79,13 @@
       </table>
     </div>
   </div>
+  {% else %}
+  <br>
+  <br>
+  <center><h3>No block by that identifier could be found in our database!</h3></center>
+  <br>
+  <br>
+  {% endif %}
 </div>
 
 {% endblock %}
