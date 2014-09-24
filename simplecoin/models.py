@@ -55,50 +55,83 @@ class TradeRequest(base):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     type = db.Column(db.Enum("sell", "buy", name="req_type"), nullable=False)
 
-    # These values should only be updated by sctrader
+    # The quantity of the desired currency received by fulfilling this request
     exchanged_quantity = db.Column(db.Numeric, default=None)
     # Fees from fulfilling this tr
     fees = db.Column(db.Numeric, default=None)
     _status = db.Column(db.SmallInteger, default=0)
 
-    def distribute(self):
+    @property
+    def currency_fees(self):
+        return self.fees * self.avg_price
+
+    @property
+    def avg_price(self):
+        return self.exchanged_quantity / self.quantity
+
+    def distribute(self, stuck_quantity):
         assert self.type in ["buy", "sell"], "Invalid type!"
         assert self.exchanged_quantity > 0
-
-        # Check config to see if we're charging exchange fees or not
-        payable_amount = self.exchanged_quantity
-        if current_app.config.get('charge_autoex_fees', False):
-            payable_amount -= self.fees
 
         credits = self.credits  # Do caching here, avoid multiple lookups
         if not credits:
             current_app.logger.warn("Trade request #{} has no attached credits"
                                     .format(self.id))
-        else:
-            # calculate user payouts based on percentage of the total
-            # exchanged value
-            if self.type == "sell":
-                portions = {c.id: c.amount for c in credits}
-            elif self.type == "buy":
-                portions = {c.id: c.sell_amount for c in credits}
-            amounts = distributor(payable_amount, portions)
+            return
 
+        # Check config to see if we're charging exchange fees or not
+        payable_amount = self.exchanged_quantity - stuck_quantity
+
+        # Check config to see if we're charging exchange fees or not
+        if current_app.config.get('charge_autoex_fees', False):
+            payable_amount -= self.fees
+
+        if self.type == "buy":
+            # Remove previously paid amounts from the payable amount
             for credit in credits:
-                if self.type == "sell":
-                    assert credit.sell_amount is None
-                    credit.sell_amount = amounts[credit.id]
-                elif self.type == "buy":
-                    assert credit.buy_amount is None
+                if credit.buy_amount is not None:
+                    payable_amount -= credit.buy_amount
+
+        # calculate user payouts based on percentage of the total
+        # exchanged value
+        if self.type == "sell":
+            portions = {c.id: c.amount for c in credits}
+        elif self.type == "buy":
+            portions = {c.id: c.sell_amount for c in credits}
+        amounts = distributor(payable_amount, portions)
+
+        for credit in credits:
+            if self.type == "sell":
+                assert credit.sell_amount is None
+                credit.sell_amount = amounts[credit.id]
+            elif self.type == "buy":
+                if credit.buy_amount is None:
                     credit.buy_amount = amounts[credit.id]
                     # Mark the credit ready for payout to users
                     credit.payable = True
 
-            current_app.logger.info(
-                "Successfully pushed trade result for request id {:,} and "
-                "amount {:,} to {:,} credits.".
-                format(self.id, self.exchanged_quantity, len(credits)))
+                    if self._status == 5:
+                        assert stuck_quantity > 0
+                        old_credit_amt = credit.buy_amount / self.avg_price
+                        new_credit_amt = credit.amount - old_credit_amt
+                        credit.amount = old_credit_amt
 
-        self._status = 6
+                        # create new credit
+                        cr = Credit.make_credit(
+                            user=credit.user,
+                            block=credit.block,
+                            currency=credit.currency,
+                            source=credit.source,
+                            address=credit.address,
+                            amount=new_credit_amt)
+                        db.session.add(cr)
+                        self.credits.append(cr)
+
+
+        current_app.logger.info(
+            "Successfully pushed trade result for request id {:,} and "
+            "amount {:,} to {:,} credits.".
+            format(self.id, self.exchanged_quantity, len(credits)))
 
     @property
     def credits(self):

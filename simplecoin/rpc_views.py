@@ -65,7 +65,8 @@ def update_trade_requests():
             assert isinstance(tr, dict)
             assert 'status' in tr
             g.signed['trs'][tr_id]['status'] = int(tr['status'])
-            if tr['status'] == 6:
+            if tr['status'] == 5 or tr['status'] == 6:
+                assert 'stuck_quantity' in tr
                 assert 'quantity' in tr
                 assert 'fees' in tr
     except (AssertionError, TypeError):
@@ -76,14 +77,17 @@ def update_trade_requests():
     updated = []
     for tr_id, tr_dict in g.signed['trs'].iteritems():
         try:
+            status = tr_dict['status']
             tr = (TradeRequest.query.filter_by(id=int(tr_id)).
                   with_lockmode('update').one())
-            tr._status = tr_dict['status']
+            tr._status = status
 
-            if tr_dict['status'] == 6:
+            if status == 5 or status == 6:
                 tr.exchanged_quantity = Decimal(tr_dict['quantity'])
                 tr.fees = Decimal(tr_dict['fees'])
-                tr.distribute()
+                stuck_quantity = Decimal(tr_dict['stuck_quantity'])
+                tr.distribute(stuck_quantity)
+
         except Exception:
             db.session.rollback()
             current_app.logger.error("Unable to update trade request {}"
