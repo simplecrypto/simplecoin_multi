@@ -33,6 +33,12 @@ def configuration_guide():
                            locations=locations)
 
 
+@main.route("/faq")
+def faq():
+    faq = yaml.load(open(root + '/static/yaml/faq.yaml'))
+    return render_template('faq.html', faq=faq)
+
+
 @main.route("/news")
 def news():
     news = yaml.load(open(root + '/static/yaml/news.yaml'))

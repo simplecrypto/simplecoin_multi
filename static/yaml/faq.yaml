@@ -1,0 +1,17 @@
+"How do I pick which currency I want to be paid out in?":
+    | 
+    Your desired payout currency is automatically determined by the type of
+    address you're mining with. So if you mine with a Bitcoin address as your
+    username, then by default everything you mine will exchanged to Bitcoin and
+    paid out to that address. This can be done since most (almost all) altcoins
+    have a unique address "prefix", which is technically known as the address
+    version. For instance, a Vertcoin address will always start with a "V", 
+    while most Bitcoin addresses start with a "1".
+"What if I want to keep X currency, and not have it Auto-Exchanged?":
+    | 
+    Your user settings page allows you to specify a payout address for any
+    currency that you <i>don't</i> want to exchange to the currency of your
+    mining addresses. Also note that some currencies <b>cannot</b> be exchanged
+    for your mining currency and to recieve these currencies you <b>must</b>
+    specify a payout address. These currencies are separated out on your
+    settings page under "Unexchangeable Currencies".
