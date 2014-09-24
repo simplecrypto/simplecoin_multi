@@ -150,7 +150,8 @@ def cleanup(chain, oldest_kept, simulate, empty):
             break
 
     current_app.logger.info(
-        "Current slice index {}".format(redis_conn.get("chain_1_slice_index")))
+        "Current slice index {}".format(redis_conn.get("chain_{}_slice_index"
+                                                       .format(chain))))
     current_app.logger.info(
         "Looking at all slices older than {}".format(oldest_kept))
 
