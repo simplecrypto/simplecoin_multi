@@ -12,8 +12,8 @@ from urlparse import urljoin
 from autoex.ex_manager import ExchangeManager
 
 from . import models as m
-from . import (cache, redis_conn, currencies, exchanges, chains, powerpools,
-               locations, algos)
+from . import (cache, redis_conn, currencies, chains, powerpools, locations,
+               algos)
 from .utils import time_format
 from .exceptions import ConfigurationException, RemoteException, InvalidAddressException
 
@@ -72,7 +72,6 @@ class ConfigChecker(ConfigObject):
         app.locations = LocationKeeper(cfg.pop('locations'))
         app.currencies = CurrencyKeeper(cfg.pop('currencies'))
         app.powerpools = PowerPoolKeeper(cfg.pop('mining_servers'))
-        app.exchanges = ExchangeManager(cfg.pop('exchange_manager'))
         app.algos = AlgoKeeper(cfg.pop('algos'))
         app.chains = ChainKeeper(cfg.pop('chains'))
 
@@ -160,30 +159,6 @@ class Currency(ConfigObject):
             raise ConfigurationException(
                 "Unexchangeable currencies require a pool payout addr."
                 "No valid address found for {}".format(self.key))
-
-    @property
-    @cache.memoize(timeout=3600)
-    def btc_value(self):
-        # """ Caches and returns estimated currency value in BTC """
-        # if self.key == "BTC":
-        #     return dec('1')
-        #
-        # # XXX: Needs better number here!
-        # err, dat, _ = exchanges.optimal_sell(self.key, dec('1000'), exchanges._get_current_object().exchanges)
-        # try:
-        #     current_app.logger.info("Got new average price of {} for {}"
-        #                             .format(dat['avg_price'], self))
-        #     return dat['avg_price']
-        # except (KeyError, TypeError):
-        #     current_app.logger.warning("Unable to grab price for currency {}, got {} from autoex!"
-        #                                .format(self.key, dict(err=err, dat=dat)))
-        return dec('0')
-
-    def est_value(self, other_currency, amount):
-        val = self.btc_value
-        if val:
-            return amount * val / other_currency.btc_value
-        return dec('0')
 
     def __repr__(self):
         return self.key

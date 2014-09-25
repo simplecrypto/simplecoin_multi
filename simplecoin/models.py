@@ -481,13 +481,6 @@ class CreditExchange(Credit):
         return "Pending sale on exchange"
 
     @property
-    def est_value(self):
-        for version, currency_obj in current_app.currencies.iteritems():
-            if self.currency == currency_obj.key:
-                currency_ver = version
-        return current_app.currencies[currency_ver].est_value(self.currency_obj, self.amount)
-
-    @property
     def final_amount(self):
         return self.buy_amount
 

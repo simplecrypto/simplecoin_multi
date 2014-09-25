@@ -48,8 +48,6 @@ chains = LocalProxy(
 
 redis_conn = LocalProxy(
     lambda: getattr(current_app, 'redis', None))
-exchanges = LocalProxy(
-    lambda: getattr(current_app, 'exchanges', None))
 
 
 def create_app(mode, config='config.yml', log_level=None, **kwargs):
@@ -256,6 +254,6 @@ def create_manage_app(**kwargs):
     return app
 
 
-from .config import CurrencyKeeper, PowerPoolKeeper, AlgoKeeper, ChainKeeper, LocationKeeper, \
-    ConfigChecker
+from .config import (CurrencyKeeper, PowerPoolKeeper, AlgoKeeper, ChainKeeper,
+                     LocationKeeper, ConfigChecker)
 import simplecoin.scheduler as sch
