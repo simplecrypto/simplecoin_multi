@@ -9,7 +9,6 @@ from cryptokit.rpc import CoinserverRPC
 from cryptokit.base58 import address_version
 from decimal import Decimal as dec
 from urlparse import urljoin
-from autoex.ex_manager import ExchangeManager
 
 from . import models as m
 from . import (cache, redis_conn, currencies, chains, powerpools, locations,
