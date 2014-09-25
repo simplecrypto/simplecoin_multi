@@ -166,7 +166,7 @@ def last_blockheight(merged=False):
 def get_pool_hashrate(algo):
     """ Retrieves the pools hashrate average for the last 10 minutes. """
     lower, upper = make_upper_lower(offset=datetime.timedelta(minutes=2))
-    ten_min = (ShareSlice.query.filter_by(user='pool', algo=algo)
+    ten_min = (ShareSlice.query.filter_by(user='pool', algo=algo, share_type="acc")
                .filter(ShareSlice.time >= lower, ShareSlice.time <= upper))
     ten_min = sum([min.value for min in ten_min])
     # shares times hashes per n1 share divided by 600 seconds and 1000 to get

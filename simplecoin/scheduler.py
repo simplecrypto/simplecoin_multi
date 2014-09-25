@@ -247,8 +247,8 @@ def create_trade_req(typ):
 @SchedulerCommand.command
 def leaderboard():
     users = {}
-    lower_10, upper_10 = make_upper_lower(offset=datetime.timedelta(minutes=1))
-    for slc in ShareSlice.get_span(ret_query=True, lower=lower_10, upper=upper_10):
+    lower_10, upper_10 = make_upper_lower(offset=datetime.timedelta(minutes=2))
+    for slc in ShareSlice.get_span(share_type=("acc", ), ret_query=True, lower=lower_10, upper=upper_10):
         try:
             address_version(slc.user)
         except Exception:
