@@ -122,15 +122,27 @@ def create_app(mode, config='config.yml', log_level=None, **kwargs):
         sys.stdout = LoggerWriter(app.logger, logging.DEBUG)
         sys.stderr = LoggerWriter(app.logger, logging.DEBUG)
 
-    # Register the DB + Cache
+    # Register the powerpool datastore + Cache
     # =======================================================================
     db.init_app(app)
-    # Redis connection configuration
-    cache_config = {'CACHE_TYPE': 'redis'}
-    cache_config.update(app.config.get('main_cache', {}))
-    cache.init_app(app, config=cache_config)
-    # Redis connection for persisting application information
-    app.redis = Redis(**app.config.get('redis_conn', {}))
+
+    def configure_redis(config):
+        typ = config.pop('type')
+        if typ == "mock":
+            from mockredis import mock_strict_redis_client
+            return mock_strict_redis_client()
+        return Redis(**config)
+
+    cache_config = app.config.get('main_cache', dict(type='live'))
+    cache_redis = configure_redis(cache_config)
+
+    ds_config = app.config.get('redis_conn', dict(type='live'))
+    ds_redis = configure_redis(ds_config)
+
+    # Take advantage of the fact that werkzeug lets the host kwargs be a Redis
+    # compatible object
+    cache.init_app(app, config=dict(CACHE_TYPE='redis', REDIS_HOST=cache_redis))
+    app.redis = ds_redis
 
     sentry = False
     if app.config.get('sentry'):

@@ -198,9 +198,9 @@ currencies:
 # ========================================================================
 # The cache database that redis will use
 redis_conn:
-    port: 6381
+    type: mock
 main_cache:
-    port: 6381
+    type: mock
 
 # Payout configurations
 # ========================================================================
