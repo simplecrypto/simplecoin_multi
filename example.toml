@@ -1,0 +1,43 @@
+mode = "testing"
+pool_payout_currency = "BTC"
+SECRET_KEY = "somethting_really_secret"
+SQLALCHEMY_DATABASE_URI = "sqlite:///database.sqlite3"
+DEBUG = true
+
+[chains.1]
+title = "Vertcoin"
+algo = "scryptn"
+type = "pplns"
+last_n = 2
+fee_perc = "0.01"
+
+[locations.CA]
+location_acronym = "CA"
+location = "Beauharnois, Canada"
+country_flag = "/img/ca.svg"
+
+[currencies.BTC]
+exchangeable = true
+pool_payout_addr = "1LmZN5ifbHdQy5jW9wNqyTuke3odY2Zos8"
+[currencies.BTC.coinserv]
+port = 10060
+address = "127.0.0.1"
+username = "bitcoinrpc"
+password = "admin1"
+
+[currencies.VTC]
+exchangeable = true
+mineable = true
+[currencies.VTC.coinserv]
+port = 10070
+address = "127.0.0.1"
+username = "vertcoinrpc"
+password = "admin1"
+
+[mining_servers.1]
+address = "localhost"
+monitor_address = "http://localhost:3855/stratum"
+port = 3333
+location = "CA"
+diff = 512
+chain = "1"

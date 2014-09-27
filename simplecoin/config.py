@@ -3,6 +3,8 @@ import collections
 import simplejson as json
 import bz2
 import time
+import toml
+import copy
 
 from flask import current_app
 from cryptokit.rpc import CoinserverRPC
@@ -175,8 +177,13 @@ class CurrencyKeeper(dict):
         # If no mining currency is specified explicitly for username, then
         # we will use this map to lookup
         self.version_map = {}
+        defaults = currency_dictionary.pop('default', {})
         for key, config in currency_dictionary.iteritems():
+            config = toml.toml_merge_dict(copy.deepcopy(defaults), config)
             config['key'] = key
+            if not config['mineable'] and not config['exchangeable']:
+                continue
+
             obj = Currency(config)
             if key in self:
                 raise ConfigurationException("Duplicate currency keys {}"
@@ -258,7 +265,7 @@ class CurrencyKeeper(dict):
 
 
 class Chain(ConfigObject):
-    requires = ['type', 'valid_address_versions', 'fee_perc', '_algo']
+    requires = ['type', 'fee_perc', '_algo']
     defaults = dict(block_bonus="0")
     max_indexes = 1000
     min_index = 0
@@ -273,16 +280,6 @@ class Chain(ConfigObject):
         assert isinstance(self.block_bonus, basestring)
         self.fee_perc = dec(self.fee_perc)
         self.hr_fee_perc = round(self.fee_perc * 100, 2)
-
-    def valid_address(self, address):
-        """ Is the given address valid for this payout chain? """
-        try:
-            if currencies.lookup_address(address) not in self.valid_address_versions:
-                return False
-        except AttributeError:
-            return False
-
-        return True
 
     def __hash__(self):
         return self.id

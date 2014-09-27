@@ -1,7 +1,7 @@
 import subprocess
 import logging
 import os
-import yaml
+import toml
 import socket
 import sys
 import setproctitle
@@ -50,7 +50,7 @@ redis_conn = LocalProxy(
     lambda: getattr(current_app, 'redis', None))
 
 
-def create_app(mode, config='config.yml', log_level=None, **kwargs):
+def create_app(mode, configs, log_level=None, **kwargs):
 
     # Initialize our flask application
     # =======================================================================
@@ -59,17 +59,19 @@ def create_app(mode, config='config.yml', log_level=None, **kwargs):
     # Set our template path and configs
     # =======================================================================
     app.jinja_loader = FileSystemLoader(os.path.join(root, 'templates'))
-    config_vars = dict(manage_log_file="manage.log",
-                       webserver_log_file="webserver.log",
-                       scheduler_log_file=None,
-                       log_level='INFO',
-                       worker_hashrate_fold=86400)
-    if os.path.isabs(config):
-        config_path = config
-    else:
-        config_path = os.path.join(root, config)
-    config_vars.update(yaml.load(open(config_path)))
-    config_vars.update(**kwargs)
+
+    config_vars = {}
+    configs.insert(0, 'defaults.toml')
+    for config in configs:
+        if isinstance(config, basestring):
+            if os.path.isabs(config):
+                config_path = config
+            else:
+                config_path = os.path.join(root, config)
+            config = open(config_path)
+
+        updates = toml.loads(config.read())
+        toml.toml_merge_dict(config_vars, updates)
 
     # Objectizes all configurations
     # =======================================================================
@@ -128,7 +130,7 @@ def create_app(mode, config='config.yml', log_level=None, **kwargs):
 
     def configure_redis(config):
         typ = config.pop('type')
-        if typ == "mock":
+        if typ == "mock_redis":
             from mockredis import mock_strict_redis_client
             return mock_strict_redis_client()
         return Redis(**config)
@@ -159,6 +161,11 @@ def create_app(mode, config='config.yml', log_level=None, **kwargs):
 
     # Configure app for running manage.py functions
     # =======================================================================
+    if mode == "manage" or mode == "webserver":
+        # Dynamically add all the filters in the filters.py file
+        for name, func in inspect.getmembers(filters, inspect.isfunction):
+            app.jinja_env.filters[name] = func
+
     if mode == "manage":
         # Initialize the migration settings
         Migrate(app, db)
@@ -179,10 +186,6 @@ def create_app(mode, config='config.yml', log_level=None, **kwargs):
         except Exception:
             app.config['hash'] = ''
             app.config['revdate'] = ''
-
-        # Dynamically add all the filters in the filters.py file
-        for name, func in inspect.getmembers(filters, inspect.isfunction):
-            app.jinja_env.filters[name] = func
 
         app.logger.info("Starting up SimpleCoin!\n{}".format("=" * 100))
 

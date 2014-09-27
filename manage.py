@@ -9,7 +9,7 @@ from simplecoin.models import (Transaction, UserSettings, Credit, ShareSlice,
 
 from flask import current_app, _request_ctx_stack
 from flask.ext.migrate import stamp
-from flask.ext.script import Manager, Shell
+from flask.ext.script import Manager, Shell, Server
 from flask.ext.migrate import MigrateCommand
 
 
@@ -25,7 +25,8 @@ def init_db(emit=False):
         logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
     res = raw_input("You shouldn't probably ever do this in production! Are you"
-                    " really, really sure you want to reset the DB? [y/n] ")
+                    " really, really sure you want to reset the DB {}? [y/n] "
+                    .format(db.engine))
     if res != "y":
         return
     else:
@@ -128,6 +129,12 @@ def import_device_slices(input):
             print("{} inserted!".format(i))
 
 
+@manager.command
+def dump_effective_config():
+    import pprint
+    pprint.pprint(dict(current_app.config))
+
+
 @manager.option('-t', '--txid', dest='transaction_id')
 def confirm_trans(transaction_id):
     """ Manually confirms a transaction. Shouldn't be needed in normal use. """
@@ -184,9 +191,13 @@ def make_context():
     import simplecoin.models as m
     return dict(app=app, currencies=currencies, powerpools=powerpools, m=m, db=db)
 manager.add_command("shell", Shell(make_context=make_context))
+
+
+manager.add_command("runserver", Server())
 manager.add_command('db', MigrateCommand)
 manager.add_command('scheduler', SchedulerCommand)
-manager.add_option('-c', '--config', default='config.yml')
+manager.add_option('-c', '--config', dest='configs', action='append',
+                   type=argparse.FileType('r'))
 manager.add_option('-l', '--log-level',
                    choices=['DEBUG', 'INFO', 'WARN', 'ERROR'], default='INFO')
 

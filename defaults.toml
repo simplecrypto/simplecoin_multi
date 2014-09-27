@@ -1,0 +1,170 @@
+log_file = "webserver.log"
+manage_log_file = "manage.log"
+scheduler_log_file = ""
+log_level = "INFO"
+worker_hashrate_fold = 86400
+
+#[branding]
+site_title = "SimpleMulti"
+# the FQDN
+site_url = "http://www.simplemulti.com"
+coin_name = "Multi"
+# host for static assets e.g. {assets_address}/css/main.css
+assets_address = "/static"
+# logo img
+logo = "/img/logo.png"
+site_meta_desc = "A custom mining pool with automatic exchanging between currencies, no registration, and a focus on developing new tools for miners"
+# Default values for new miner config
+default_stratum_url = "stratum+tcp://stratum.simplemulti.com"
+default_stratum_port = "3363"
+
+
+[cache]
+type = "redis"
+
+[datastore_redis]
+type = "redis"
+
+#[payout]
+charge_autoex_fees = false
+
+[currencies.default]
+exchangeable = false
+mineable = false
+trans_confirmations = 6
+block_mature_confirms = 120
+
+[currencies.BTC]
+name = "Bitcoin"
+algo = "sha256"
+address_version = [0, 5]
+block_time = 120
+
+[currencies.DRK]
+name = "Darkcoin"
+algo = "x11"
+address_version = [76]
+block_time = 120
+
+[currencies.URO]
+name = "Urocoin"
+algo = "x11"
+address_version = [68]
+block_time = 120
+
+[currencies.DOGE]
+name = "Dogecoin"
+algo = "scrypt"
+address_version = [30]
+block_time = 60
+
+[currencies.SYS]
+name = "Syscoin"
+algo = "scrypt"
+address_version = [63]
+block_time = 60
+
+[currencies.PTC]
+name = "Pesetacoin"
+algo = "scrypt"
+address_version = [47]
+block_time = 60
+
+[currencies.TCO]
+name = "Tacocoin"
+algo = "scrypt"
+address_version = [48]
+block_time = 60
+
+[currencies.ULTC]
+name = "Umbrella-LTC"
+algo = "scrypt"
+address_version = [68]
+block_time = 600
+
+[currencies.LTC]
+name = "Litecoin"
+algo = "scrypt"
+address_version = [48]
+block_time = 600
+
+[currencies.VTC]
+name = "Vertcoin"
+algo = "scryptn"
+address_version = [71]
+block_time = 150
+
+[algos.x11]
+hashes_per_share = 4294967296
+normalize_mult = 0.181818182
+display = "X11"
+
+[algos.scryptn]
+hashes_per_share = 65536
+normalize_mult = 2.127659574
+display = "Scrypt-N"
+
+[algos.scrypt]
+hashes_per_share = 65536
+normalize_mult = 1
+display = "Scrypt"
+
+[[navbar.left_nav]]
+title = "Home"
+icon = "home"
+link = "/"
+active_key = "home"
+
+[[navbar.left_nav]]
+title = "Getting Started"
+icon = "cog"
+link = "/configuration_guide"
+active_key = "config"
+
+[[navbar.left_nav]]
+title = "Pool Stats"
+icon = "life-ring"
+link = "/pool_stats"
+active_key = "pool_stats"
+
+[[navbar.left_nav]]
+title = "Leaderboard"
+icon = "bar-chart-o"
+link = "/leaderboard"
+active_key = "leaderboard"
+
+[[navbar.left_nav]]
+title = "Extras"
+icon = "star"
+link = "#"
+active_key = ""
+[[navbar.left_nav.dropdown]]
+title = "Simple Crypto Website"
+icon = "globe"
+link = "http://www.simplecryptogroup.com"
+[[navbar.left_nav.dropdown]]
+title = "Source Code"
+icon = "github"
+link = "http://www.github.com/simplecrypto/simplecoin_multi"
+
+[[navbar.right_nav]]
+title = "Contact Us"
+icon = "bullhorn"
+link = "#"
+active_key = ""
+[[navbar.right_nav.dropdown]]
+title = "Email"
+icon = "envelope"
+link = "mailto:simplecryptogroup@gmail.com"
+[[navbar.right_nav.dropdown]]
+title = "IRC"
+icon = "comments"
+link = "https://kiwiirc.com/client/irc.freenode.net/#simplecrypto"
+[[navbar.right_nav.dropdown]]
+title = "Reddit"
+icon = "reddit"
+link = "http://www.reddit.com/r/simplecrypto"
+[[navbar.right_nav.dropdown]]
+title = "Github"
+icon = "github"
+link = "http://www.github.com/simplecrypto/"
