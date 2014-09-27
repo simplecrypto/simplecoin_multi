@@ -1,0 +1,296 @@
+# General
+# =======================================================================
+# The postgresql database connection configuration
+SQLALCHEMY_DATABASE_URI: sqlite://
+#SQLALCHEMY_DATABASE_URI: postgresql://simplecoin:testing@localhost:5432/simplecoin_testing
+# the session encryption key
+SECRET_KEY: 'secret'
+log_level: DEBUG
+# Use debug settings
+DEBUG: true
+# email server authentication
+email:
+    enabled: False
+    send_address: 'simpledogepool@gmail.com'
+    username:
+    password:
+    ehlo: simpledoge.com
+    timeout: 10
+    server: email-smtp.us-east-1.amazonaws.com
+    port: 587
+    debug: True
+    tls: True
+
+# Default values for new miner config
+default_stratum_url: stratum+tcp://stratum.simplemulti.com
+default_stratum_port: 3373
+
+# Sharechain Configuration
+# =======================================================================
+chains:
+    defaults:
+        valid_address_versions: [71]
+    1:
+        title: Vertcoin
+        algo: scryptn
+        type: pplns
+        last_n: 2
+        fee_perc: "0.01"
+    2:
+        title: Vertcoin
+        algo: scryptn
+        type: prop
+        fee_perc: "0.01"
+
+# Stratum + Powerpool Config
+# =======================================================================
+mining_servers:
+    1:
+        address: vert.simplemulti.com
+        monitor_address: http://vert_pp_hidiff.simplevert.com/hidiff
+        port: 3345
+        location: CA
+        diff: 512
+        chain: 1
+    2:
+        address: vert.simplemulti.com
+        monitor_address: http://vert_pp_vardiff.simplevert.com/vardiff
+        location: CA
+        port: 3344
+        diff: 8-2048
+        chain: 1
+
+locations:
+    CA:
+        location_acronym: CA
+        location: Beauharnois, Canada
+        country_flag: "/img/ca.svg"
+
+algos:
+    X11:
+        hashes_per_share: 4294967296
+        normalize_mult: 0.181818182
+        display: X11
+    scryptn:
+        hashes_per_share: 65536
+        normalize_mult: 2.127659574
+        display: Scrypt-N
+    scrypt:
+        hashes_per_share: 65536
+        normalize_mult: 1
+        display: Scrypt
+
+currencies: 
+    BTC:
+        algo: sha256
+        name: Bitcoin
+        coinserv:
+            port: 10060
+            address: 127.0.0.1
+            username: bitcoinrpc
+            password: 
+        address_version: [0, 5]
+        block_time: 600
+        block_mature_confirms: 120
+        exchangeable: True
+        trans_confirmations: 6
+        pool_payout_addr: 1LmZN5ifbHdQy5jW9wNqyTuke3odY2Zos8
+    DOGE:
+        algo: scrypt
+        name: Dogecoin
+        coinserv:
+            port: 10051
+            address: localhost
+            username: dogecoinrpc
+            password: 
+        address_version: [30]
+        block_time: 60
+        block_mature_confirms: 120
+        exchangeable: True
+        trans_confirmations: 6
+    SYS:
+        algo: scrypt
+        name: Syscoin
+        minimum_payout: "0.05"
+        coinserv:
+            port: 10020
+            address: localhost
+            username: syscoinrpc
+            password: 
+        address_version: [63]
+        block_time: 60
+        block_mature_confirms: 120
+        exchangeable: True
+        trans_confirmations: 6
+    PTC:
+        algo: scrypt
+        name: Pesetacoin
+        coinserv:
+            port: 10030
+            address: localhost
+            username: pesetacoinrpc
+            password: 
+        address_version: [47]
+        block_time: 60
+        block_mature_confirms: 120
+        exchangeable: True
+        trans_confirmations: 6
+    TCO:
+        algo: scrypt
+        name: Tacocoin
+        coinserv:
+            port: 10010
+            address: localhost
+            username: tacocoinrpc
+            password: 
+        address_version: [48]
+        block_time: 60
+        block_mature_confirms: 120
+        exchangeable: False
+        trans_confirmations: 6
+        pool_payout_addr: LUMPrhhWnoTfNXnDNWyqGG355fjTUVzFYX
+    ULTC:
+        algo: scrypt
+        name: Umbrella-LTC
+        coinserv:
+            port: 10040
+            address: localhost
+            username: umbrella-ltcrpc
+            password: 
+        address_version: [68]
+        block_time: 600
+        block_mature_confirms: 120
+        exchangeable: True
+        trans_confirmations: 6
+    FRAC:
+        algo: x11
+        name: Fractalcoin 
+        coinserv:
+            port: 10070
+            address: localhost
+            username: fractalcoinrpc
+            password: 
+        address_version: [36]
+        block_time: 600
+        block_mature_confirms: 360
+        exchangeable: True
+        trans_confirmations: 6
+    LTC:
+        algo: scrypt
+        name: Litecoin
+        coinserv:
+            port: 10080
+            address: localhost
+            username: litecoinrpc
+            password: 
+        address_version: [48]
+        block_time: 600
+        block_mature_confirms: 120
+        exchangeable: True
+        trans_confirmations: 6
+
+# set this to true and celery will only run scheduled tasks to refresh cache
+# objects. This allows you to run a staging version on the same database,
+# but with separate caches
+#stage: False
+
+# Cache configuration
+# ========================================================================
+# The cache database that redis will use
+redis_conn:
+    port: 6381
+main_cache:
+    port: 6381
+
+# Payout configurations
+# ========================================================================
+# Controls how payout database entries are calculated
+#
+# default donation percentage applied to payouts if no custom is
+# defined
+default_donate_perc: '0'
+# address where all donated percents (or fees) will go. ATM, this address MUST
+# be exchangeable + configured
+pool_payout_currency: BTC
+# block find reward. set to zero or comment out to not use. in satoshi
+block_bonus: 0
+
+# Coin/Branding
+# =======================================================================
+# the colloquial name of the coin
+site_title: SimpleMulti
+# the FQDN
+site_url: http://www.simplemulti.com
+coin_name: Multi
+# host for static assets e.g. {assets_address}/css/main.css
+assets_address: /static
+# logo img
+logo: 
+# xs leader img
+leader-xs: "/img/doge-miner-xs.jpg"
+# sm leader img
+leader-sm: "/img/doge-miner-sm.jpg"
+# fullsize leader img
+leader: "/img/doge-miner.jpg"
+rpc_signature: test
+
+# Main Nav Links
+# =======================================================================
+navbar:
+    left_nav:
+        - title: Home
+          icon: home
+          link: /
+          active_key: home
+        - title: Getting Started
+          icon: cog
+          link: /configuration_guide
+          active_key: config
+        - title: User Stats
+          icon: user
+          link: /stats
+          active_key: stats
+        - title: Pool Stats
+          icon: life-ring
+          link: /pool_stats
+          active_key: pool_stats
+        - title: Leaderboard
+          icon: bar-chart-o
+          link: /leaderboard
+          active_key: leaderboard
+        - title: Extras
+          icon: star
+          link: \#
+          active_key: ''
+          dropdown:
+            - title: Simple Crypto Website
+              icon: globe
+              link: http://www.simplecryptogroup.com
+            - title: Source Code
+              icon: github
+              link: http://www.github.com/simplecrypto/simplecoin
+    right_nav:
+        - title: Contact Us
+          icon: bullhorn
+          link: \#
+          active_key: ''
+          dropdown:
+            - title: Email
+              icon: envelope
+              link: mailto:simplecryptogroup@gmail.com
+            - title: IRC
+              icon: comments
+              link: https://kiwiirc.com/client/irc.freenode.net/#simplecrypto
+            - title: Reddit
+              icon: reddit
+              link: http://www.reddit.com/r/simplecrypto
+            - title: Github
+              icon: github
+              link: http://www.github.com/simplecrypto/
+
+# Logging
+# =======================================================================
+# where all webserver exceptions and logging messages will get put
+#log_file = webserver.log
+# all management commands will be logged here
+#manage_log_file = manage.log
