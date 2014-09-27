@@ -1,6 +1,8 @@
 SimpleCoin Multi
 ================
 
+[![Build Status](https://travis-ci.org/simplecrypto/simplecoin_multi.svg?branch=master)](https://travis-ci.org/simplecrypto/simplecoin_multi)
+
 A multipool version of simplecoin.
 
 Semi-Functional at the moment!
