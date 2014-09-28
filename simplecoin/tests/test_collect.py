@@ -19,14 +19,13 @@ class TestCollectMinutes(RedisUnitTest):
 
         db.session.rollback()
         db.session.expunge_all()
-        sl = ShareSlice.query.all()
-        assert sl[0].user == "pool"
-        assert sl[0].value == 2.4
-        assert sl[1].user == global_config.pool_payout_currency.pool_payout_addr
-        assert sl[1].value == 2.4
-
-        assert sl[1].share_type == "acc"
-        assert sl[0].share_type == "acc"
+        sl_pool = ShareSlice.query.filter_by(user="pool").one()
+        sl_donate = ShareSlice.query.filter_by(
+            user=global_config.pool_payout_currency.pool_payout_addr).one()
+        assert sl_pool.value == 2.4
+        assert sl_pool.share_type == "acc"
+        assert sl_donate.value == 2.4
+        assert sl_donate.share_type == "acc"
 
     def test_collect_ppagent(self, **kwargs):
         self.app.redis.hmset("hashrate_1409899740", dict(test__0="None", test__1="12.5"))

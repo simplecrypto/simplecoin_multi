@@ -5,6 +5,7 @@ Flask-Cache==0.12
 Flask-Migrate==1.2.0
 Flask-SQLAlchemy==1.0
 Flask-Script==0.6.6
+toml==0.8.2
 PyYAML==3.10
 gunicorn==18.0
 lever==0.2.6
