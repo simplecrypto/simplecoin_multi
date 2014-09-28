@@ -131,8 +131,8 @@ def create_app(mode, configs, log_level=None, **kwargs):
     def configure_redis(config):
         typ = config.pop('type')
         if typ == "mock_redis":
-            from mockredis import mock_strict_redis_client
-            return mock_strict_redis_client()
+            from mockredis import mock_redis_client
+            return mock_redis_client()
         return Redis(**config)
 
     cache_config = app.config.get('main_cache', dict(type='live'))
@@ -143,7 +143,7 @@ def create_app(mode, configs, log_level=None, **kwargs):
 
     # Take advantage of the fact that werkzeug lets the host kwargs be a Redis
     # compatible object
-    cache.init_app(app, config=dict(CACHE_TYPE='redis', REDIS_HOST=cache_redis))
+    cache.init_app(app, config=dict(CACHE_TYPE='redis', CACHE_REDIS_HOST=cache_redis))
     app.redis = ds_redis
 
     sentry = False
