@@ -1,4 +1,4 @@
-log_file = "webserver.log"
+webserver_log_file = "webserver.log"
 manage_log_file = "manage.log"
 scheduler_log_file = ""
 log_level = "INFO"

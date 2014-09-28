@@ -1,9 +1,15 @@
 mode = "testing"
 pool_payout_currency = "BTC"
 SECRET_KEY = "somethting_really_secret"
-SQLALCHEMY_DATABASE_URI = "sqlite:///database.sqlite3"
+SQLALCHEMY_DATABASE_URI = "sqlite://"
 DEBUG = true
 rpc_signature = "test"
+
+[redis_conn]
+type = "mock_redis"
+
+[main_cache]
+type = "mock_redis"
 
 [chains.1]
 title = "Vertcoin"
@@ -26,13 +32,13 @@ address = "127.0.0.1"
 username = "bitcoinrpc"
 password = "admin1"
 
-[currencies.VTC]
+[currencies.DOGE]
 exchangeable = true
 mineable = true
-[currencies.VTC.coinserv]
+[currencies.DOGE.coinserv]
 port = 10070
 address = "127.0.0.1"
-username = "vertcoinrpc"
+username = "dogecoinrpc"
 password = "admin1"
 
 [mining_servers.1]

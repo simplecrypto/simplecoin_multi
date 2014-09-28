@@ -19,12 +19,13 @@ from .utils import time_format
 from .exceptions import ConfigurationException, RemoteException, InvalidAddressException
 
 
-class ConfigObject(object):
-    __getitem__ = lambda self, a: getattr(self, a)
+class ConfigObject(dict):
+    __getattr__ = dict.__getitem__
     requires = []
     defaults = dict()
 
     def __init__(self, bootstrap):
+        super(ConfigObject, self).__init__()
         for req in self.requires:
             if req not in bootstrap:
                 raise ConfigurationException(
@@ -37,10 +38,25 @@ class ConfigObject(object):
         return str(self.key)
 
     def __repr__(self):
-        return str("{} {}".format(self.__class__.__name__, self.key))
+        return "<{} {}>".format(self.__class__.__name__, self.key)
 
     def __hash__(self):
         return hash(self.key)
+
+
+class Keeper(dict):
+    def __init__(self, configs):
+        super(Keeper, self).__init__()
+        defaults = configs.pop('default', {})
+        for key, cfg in configs.iteritems():
+            cfg = toml.toml_merge_dict(copy.deepcopy(defaults), cfg)
+            cfg['key'] = key
+            typ = cfg.get('type', 'default')
+            obj = self.type_map[typ](cfg)
+            if key in self:
+                # XXX: Make more descriptive
+                raise ConfigurationException("Duplicate keys {}".format(key))
+            self[key] = obj
 
 
 class ConfigChecker(ConfigObject):
@@ -62,7 +78,7 @@ class ConfigChecker(ConfigObject):
         # Set main configuration object
         app.config_obj = self
         # Update values
-        self.__dict__.update(cfg)
+        self.update(cfg)
 
         # Check the 'currencies' key
         currencies = self.lookup_key('currencies')
@@ -124,21 +140,23 @@ class ConfigChecker(ConfigObject):
 
 
 class Currency(ConfigObject):
-    requires = ['algo', 'name', 'coinserv', 'address_version',
-                'trans_confirmations', 'block_time', 'block_mature_confirms']
+    requires = ['algo', 'name', 'address_version', 'trans_confirmations',
+                'block_time', 'block_mature_confirms']
     defaults = dict(exchangeable=False,
                     minimum_payout='0.00000001',
+                    coinserv={},
                     pool_payout_addr=None)
 
     def __init__(self, bootstrap):
         ConfigObject.__init__(self, bootstrap)
-        self.coinserv = CoinserverRPC(
-            "http://{0}:{1}@{2}:{3}/"
-            .format(bootstrap['coinserv']['username'],
-                    bootstrap['coinserv']['password'],
-                    bootstrap['coinserv']['address'],
-                    bootstrap['coinserv']['port'],
-                    pool_kwargs=dict(maxsize=bootstrap.get('maxsize', 10))))
+        if self.coinserv:
+            self.coinserv = CoinserverRPC(
+                "http://{0}:{1}@{2}:{3}/"
+                .format(self.coinserv['username'],
+                        self.coinserv['password'],
+                        self.coinserv['address'],
+                        self.coinserv['port'],
+                        pool_kwargs=dict(maxsize=bootstrap.get('maxsize', 10))))
         self.exchangeable = bool(self.exchangeable)
         self.minimum_payout = dec(self.minimum_payout)
 
@@ -156,48 +174,33 @@ class Currency(ConfigObject):
 
         # Check to make sure there is a configured pool address for
         # unexchangeable currencies
-        if self.exchangeable is False and self.pool_payout_addr is None:
+        if self.exchangeable is False and self.pool_payout_addr is None and self.mineable:
             raise ConfigurationException(
                 "Unexchangeable currencies require a pool payout addr."
                 "No valid address found for {}".format(self.key))
 
-    def __repr__(self):
-        return self.key
-    __str__ = __repr__
 
-    def __hash__(self):
-        return self.key.__hash__()
+class CurrencyKeeper(Keeper):
+    type_map = dict(default=Currency)
 
+    def __init__(self, configs):
+        super(CurrencyKeeper, self).__init__(configs)
 
-class CurrencyKeeper(dict):
-    __getattr__ = dict.__getitem__
-
-    def __init__(self, currency_dictionary):
-        super(CurrencyKeeper, self).__init__()
         # If no mining currency is specified explicitly for username, then
-        # we will use this map to lookup
+        # we will use this map to lookup. It needs to be unique so there's no
+        # currency ambiguity
         self.version_map = {}
-        defaults = currency_dictionary.pop('default', {})
-        for key, config in currency_dictionary.iteritems():
-            config = toml.toml_merge_dict(copy.deepcopy(defaults), config)
-            config['key'] = key
-            if not config['mineable'] and not config['exchangeable']:
+        for obj in self.itervalues():
+            if not obj.exchangeable:
                 continue
 
-            obj = Currency(config)
-            if key in self:
-                raise ConfigurationException("Duplicate currency keys {}"
-                                             .format(key))
-
-            if obj.exchangeable:
-                for version in obj.address_version:
-                    if version in self.version_map:
-                        raise ConfigurationException(
-                            "Cannot have overlappting exchangeable address_versions."
-                            "Tried to add {} for {}, but already has {}"
-                            .format(version, obj, self.version_map[version]))
-                    self.version_map[version] = obj
-            self[obj.key] = obj
+            for version in obj.address_version:
+                if version in self.version_map:
+                    raise ConfigurationException(
+                        "Cannot have overlappting exchangeable address_versions."
+                        "Tried to add {} for {}, but already has {}"
+                        .format(version, obj, self.version_map[version]))
+                self.version_map[version] = obj
 
     @property
     def exchangeable_currencies(self):
@@ -280,9 +283,6 @@ class Chain(ConfigObject):
         assert isinstance(self.block_bonus, basestring)
         self.fee_perc = dec(self.fee_perc)
         self.hr_fee_perc = round(self.fee_perc * 100, 2)
-
-    def __hash__(self):
-        return self.id
 
     @property
     def algo(self):
@@ -418,19 +418,7 @@ class PropChain(Chain):
 
 
 class ChainKeeper(dict):
-    type_map = {"pplns": PPLNSChain,
-                "prop": PropChain}
-
-    def __init__(self, configs):
-        super(ChainKeeper, self).__init__()
-        defaults = configs.pop('defaults', {})
-        for id, cfg in configs.iteritems():
-            pass_cfg = defaults.copy()
-            pass_cfg['key'] = id
-            pass_cfg['id'] = id
-            pass_cfg.update(cfg)
-            serv = self.type_map[cfg['type']](pass_cfg)
-            self[id] = serv
+    type_map = {"pplns": PPLNSChain, "prop": PropChain}
 
 
 class Location(ConfigObject):
@@ -446,25 +434,15 @@ class Location(ConfigObject):
 
 
 class LocationKeeper(dict):
-    def __init__(self, configs):
-        super(LocationKeeper, self).__init__()
-        for key, cfg in configs.iteritems():
-            cfg['key'] = key
-            loc = Location(cfg)
-            self[key] = loc
+    type_map = dict(default=Location)
 
 
 class Algo(ConfigObject):
     defaults = dict(enabled=True)
 
 
-class AlgoKeeper(dict):
-    def __init__(self, configs):
-        super(AlgoKeeper, self).__init__()
-        for algo, cfg in configs.iteritems():
-            cfg['key'] = algo
-            serv = Algo(cfg)
-            self[algo] = serv
+class AlgoKeeper(Keeper):
+    type_map = dict(default=Algo)
 
     def active_algos(self):
         return [a for a in self.itervalues() if a.enabled]
@@ -472,8 +450,7 @@ class AlgoKeeper(dict):
 
 class PowerPool(ConfigObject):
     timeout = 10
-    requires = ['_chain', 'port', 'address', 'monitor_address', 'unique_id',
-                '_location']
+    requires = ['_chain', 'port', 'address', 'monitor_address', '_location']
 
     def __init__(self, bootstrap):
         bootstrap['_chain'] = bootstrap.pop('chain')
@@ -520,17 +497,5 @@ class PowerPool(ConfigObject):
         return chains[self._chain]
 
 
-class PowerPoolKeeper(dict):
-    def __init__(self, mining_servers):
-        super(PowerPoolKeeper, self).__init__()
-        self.stratums = []
-        for id, cfg in mining_servers.iteritems():
-            cfg['unique_id'] = id
-            serv = PowerPool(cfg)
-
-            # Setup all the child stratum objects
-            serv.stratums = []
-            if serv.unique_id in self:
-                raise ConfigurationException("You cannot specify two servers "
-                                             "with the same unique_id")
-            self[serv.unique_id] = serv
+class PowerPoolKeeper(Keeper):
+    type_map = dict(default=PowerPool)

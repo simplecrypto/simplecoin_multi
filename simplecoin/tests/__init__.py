@@ -14,9 +14,7 @@ class UnitTest(unittest.TestCase):
     def setUp(self, **kwargs):
         extra = dict()
         extra.update(kwargs)
-        app = simplecoin.create_app('webserver',
-                                    config='test.yml',
-                                    **extra)
+        app = simplecoin.create_app('webserver', configs=['test.toml'], **extra)
         with app.app_context():
             self.db = simplecoin.db
             self.setup_db()

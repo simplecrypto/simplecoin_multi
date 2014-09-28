@@ -500,7 +500,7 @@ def credit_block(redis_key, simulate=False):
     for key, value in data.iteritems():
         if key.startswith("chain_"):
             _, chain_id, key = key.split("_", 2)
-            chain_id = int(chain_id)
+            chain_id = chain_id
             chain = chain_data.setdefault(chain_id, chain_default.copy())
             chain['id'] = chain_id
             if key == "shares":
