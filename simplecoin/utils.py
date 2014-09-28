@@ -288,8 +288,9 @@ def collect_user_stats(user_address):
                 worker['total_hashrate'] = -1
 
             try:
+                algo_hps = algos[worker['algo']].hashes_per_share
                 worker['wu'] = sum(
-                    [(gpu['Difficulty Accepted'] / gpu['Device Elapsed']) * 60
+                    [((gpu['Difficulty Accepted'] * algo_hps / 2**16) / gpu['Device Elapsed']) * 60
                      for gpu in worker['status']['gpus']])
             except KeyError:
                 worker['wu'] = 0
