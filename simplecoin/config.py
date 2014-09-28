@@ -56,7 +56,7 @@ class Keeper(dict):
             if key in self:
                 # XXX: Make more descriptive
                 raise ConfigurationException("Duplicate keys {}".format(key))
-            self[key] = obj
+            self[obj.key] = obj
 
 
 class ConfigChecker(ConfigObject):
@@ -275,9 +275,11 @@ class Chain(ConfigObject):
 
     def __init__(self, bootstrap):
         bootstrap['_algo'] = bootstrap.pop('algo')
+        bootstrap['key'] = int(bootstrap['key'])
         ConfigObject.__init__(self, bootstrap)
         # Check all our valid versions and ensure we have configuration
         # information on them
+        self.id = self.key
 
         assert isinstance(self.fee_perc, basestring)
         assert isinstance(self.block_bonus, basestring)
@@ -417,7 +419,7 @@ class PropChain(Chain):
         return self._calc_shares(block_payout.solve_slice, stop_slice=stop_slice)
 
 
-class ChainKeeper(dict):
+class ChainKeeper(Keeper):
     type_map = {"pplns": PPLNSChain, "prop": PropChain}
 
 

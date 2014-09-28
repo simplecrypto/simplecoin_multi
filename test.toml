@@ -11,6 +11,13 @@ type = "mock_redis"
 [main_cache]
 type = "mock_redis"
 
+[chains.2]
+title = "Vertcoin"
+algo = "scryptn"
+type = "prop"
+last_n = 2
+fee_perc = "0.01"
+
 [chains.1]
 title = "Vertcoin"
 algo = "scryptn"
