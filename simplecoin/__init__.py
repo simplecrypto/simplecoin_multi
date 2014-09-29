@@ -50,18 +50,22 @@ redis_conn = LocalProxy(
     lambda: getattr(current_app, 'redis', None))
 
 
-def create_app(mode, configs, log_level=None, **kwargs):
+def create_app(mode, configs=None, log_level=None, **kwargs):
+    # Allow configuration information to be specified with enviroment vars
+    env_configs = {}
+    for key in os.environ:
+        if key.startswith('SIMPLECOIN_CONFIG'):
+            env_configs[key] = os.environ[key]
 
-    # Initialize our flask application
-    # =======================================================================
-    app = Flask(__name__, static_folder='../static', static_url_path='/static')
+    env_configs = [env_configs[value] for value in sorted(env_configs)]
 
-    # Set our template path and configs
-    # =======================================================================
-    app.jinja_loader = FileSystemLoader(os.path.join(root, 'templates'))
+    configs = ['defaults.toml'] + (env_configs or []) + (configs or [])
+    if len(configs) == 1:
+        print("Unable to start with only the default config values! {}"
+              .format(configs))
+        exit(2)
 
     config_vars = {}
-    configs.insert(0, 'defaults.toml')
     for config in configs:
         if isinstance(config, basestring):
             if os.path.isabs(config):
@@ -72,6 +76,11 @@ def create_app(mode, configs, log_level=None, **kwargs):
 
         updates = toml.loads(config.read())
         toml.toml_merge_dict(config_vars, updates)
+
+    # Initialize our flask application
+    # =======================================================================
+    app = Flask(__name__, static_folder='../static', static_url_path='/static')
+    app.jinja_loader = FileSystemLoader(os.path.join(root, 'templates'))
 
     # Objectizes all configurations
     # =======================================================================

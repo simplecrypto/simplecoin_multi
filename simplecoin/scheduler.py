@@ -982,7 +982,8 @@ def server_status():
 
 def main():
     parser = argparse.ArgumentParser(prog='simplecoin task scheduler')
-    parser.add_argument('config', type=argparse.FileType('r'), nargs='+')
+    parser.add_argument('-c', '--config', dest='configs', action='append',
+                        type=argparse.FileType('r'))
     parser.add_argument('-l', '--log-level',
                         choices=['DEBUG', 'INFO', 'WARN', 'ERROR'],
                         default='INFO')
