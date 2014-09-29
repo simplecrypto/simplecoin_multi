@@ -436,7 +436,7 @@ class Location(ConfigObject):
         return by_algo
 
 
-class LocationKeeper(dict):
+class LocationKeeper(Keeper):
     type_map = dict(default=Location)
 
 
