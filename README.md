@@ -5,6 +5,26 @@ SimpleCoin Multi
 
 A multipool version of simplecoin.
 
+Running the dev enviroment
+-----------------------------
+
+```` bash
+mkvirtualenv scm
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+pip install -e .
+env SIMPLECOIN_CONFIG=example.toml supervisord -c supervisor.conf
+```
+
+Running the tests
+-----------------------------
+
+```` bash
+workon scm
+pip install -r requirements-test.txt
+nosetests
+```
+
 Semi-Functional at the moment!
 -----------------------------
 
