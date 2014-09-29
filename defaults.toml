@@ -26,6 +26,9 @@ type = "redis"
 [redis_conn]
 type = "redis"
 
+[mining_servers.default]
+display = true
+
 [currencies.default]
 exchangeable = false
 mineable = false

@@ -280,8 +280,6 @@ class Chain(ConfigObject):
         bootstrap['_algo'] = bootstrap.pop('algo')
         bootstrap['key'] = int(bootstrap['key'])
         ConfigObject.__init__(self, bootstrap)
-        # Check all our valid versions and ensure we have configuration
-        # information on them
         self.id = self.key
 
         assert isinstance(self.fee_perc, basestring)
@@ -427,7 +425,7 @@ class ChainKeeper(Keeper):
 
 
 class Location(ConfigObject):
-    required = ['location_acronym', 'location', 'country_flag']
+    required = ['location_acronym', 'location', 'country_flag', 'address']
 
     def stratums_by_algo(self):
         by_algo = {}
@@ -460,7 +458,9 @@ class PowerPool(ConfigObject):
     def __init__(self, bootstrap):
         bootstrap['_chain'] = bootstrap.pop('chain')
         bootstrap['_location'] = bootstrap.pop('location')
+        bootstrap['key'] = int(bootstrap['key'])
         ConfigObject.__init__(self, bootstrap)
+        self.id = self.key
 
     @property
     def stratum_address(self):
