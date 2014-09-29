@@ -38,6 +38,13 @@ algo = "sha256"
 address_version = [0, 5]
 block_time = 120
 
+[currencies.BTM]
+name = "Bitmark"
+algo = "scrypt"
+address_version = [85]
+block_time = 120
+block_mature_confirms = 720
+
 [currencies.DRK]
 name = "Darkcoin"
 algo = "x11"
@@ -91,6 +98,18 @@ name = "Vertcoin"
 algo = "scryptn"
 address_version = [71]
 block_time = 150
+
+[currencies.MON]
+name = "Monocle"
+algo = "scryptn"
+address_version = [50]
+block_time = 120
+
+[currencies.FRAC]
+name = "Fractalcoin"
+algo = "x11"
+address_version = [36]
+block_time = 60
 
 [algos.x11]
 hashes_per_share = 4294967296
