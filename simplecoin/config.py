@@ -26,13 +26,14 @@ class ConfigObject(dict):
 
     def __init__(self, bootstrap):
         super(ConfigObject, self).__init__()
-        for req in self.requires:
-            if req not in bootstrap:
-                raise ConfigurationException(
-                    "{} item requires {}".format(self.__class__.__name__, req))
         # Default settings
         self.__dict__.update(self.defaults)
         self.__dict__.update(bootstrap)
+        for req in self.requires:
+            if not hasattr(self, req):
+                raise ConfigurationException(
+                    "{} item '{}' with key {} requires {}"
+                    .format(self.__class__.__name__, self, self.key, req))
 
     def __str__(self):
         return str(self.key)
