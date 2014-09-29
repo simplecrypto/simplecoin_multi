@@ -1,4 +1,3 @@
-mode = "testing"
 pool_payout_currency = "BTC"
 SECRET_KEY = "somethting_really_secret"
 SQLALCHEMY_DATABASE_URI = "sqlite://"

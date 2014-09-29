@@ -3,8 +3,8 @@ manage_log_file = "manage.log"
 scheduler_log_file = ""
 log_level = "INFO"
 worker_hashrate_fold = 86400
+stage = false
 
-#[branding]
 site_title = "SimpleMulti"
 # the FQDN
 site_url = "http://www.simplemulti.com"
@@ -17,16 +17,14 @@ site_meta_desc = "A custom mining pool with automatic exchanging between currenc
 # Default values for new miner config
 default_stratum_url = "stratum+tcp://stratum.simplemulti.com"
 default_stratum_port = "3363"
-
-
-[cache]
-type = "redis"
-
-[datastore_redis]
-type = "redis"
-
-#[payout]
 charge_autoex_fees = false
+
+
+[main_cache]
+type = "redis"
+
+[redis_conn]
+type = "redis"
 
 [currencies.default]
 exchangeable = false
