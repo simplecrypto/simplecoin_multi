@@ -471,7 +471,7 @@ class PowerPool(ConfigObject):
     __str__ = lambda self: self.monitor_address
 
     def __hash__(self):
-        return self.unique_id
+        return self.key
 
     def request(self, url, method='GET', max_age=None, signed=True, **kwargs):
         url = urljoin(self.monitor_address, url)
@@ -490,7 +490,7 @@ class PowerPool(ConfigObject):
 
     def full_info(self):
         return ("<id {}; chain {}; location {}; monitor_address {}>"
-                .format(self.unique_id, self.chain, self.location,
+                .format(self.key, self.chain, self.location,
                         self.monitor_address))
 
     @property
