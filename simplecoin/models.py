@@ -875,7 +875,7 @@ class UserSettings(base):
 
 class PayoutAddress(base):
     address = db.Column(db.String, primary_key=True)
-    user = db.Column(db.String, db.ForeignKey('user_settings.user'))
+    user = db.Column(db.String, db.ForeignKey('user_settings.user'), primary_key=True)
     # Abbreviated currency name. EG 'LTC'
     currency = db.Column(db.String)
 
