@@ -811,7 +811,7 @@ def collect_minutes():
                 except InvalidAddressException:
                     curr = None
 
-                if not curr:
+                if curr is None:
                     address = global_config.pool_payout_currency.pool_payout_addr
 
             try:
