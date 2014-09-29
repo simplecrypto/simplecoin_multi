@@ -8,6 +8,7 @@ from simplecoin.scheduler import SchedulerCommand
 from simplecoin.models import (Transaction, UserSettings, Credit, ShareSlice,
                                DeviceSlice, Block)
 
+from urlparse import urlparse
 from flask import current_app, _request_ctx_stack
 from flask.ext.migrate import stamp
 from flask.ext.script import Manager, Shell, Server
@@ -146,6 +147,13 @@ def forward_coinservs(host):
             continue
         args.append("-L {0}:127.0.0.1:{0}"
                     .format(currency.coinserv.config['port']))
+
+    for pp in powerpools.itervalues():
+        parts = urlparse(pp.monitor_address)
+        if parts.hostname not in ['localhost', '127.0.0.1']:
+            continue
+
+        args.append("-L {0}:127.0.0.1:{0}".format(parts.port))
 
     current_app.logger.info(("/usr/bin/ssh", "/usr/bin/ssh", args))
     os.execl("/usr/bin/ssh", "/usr/bin/ssh", *args)
