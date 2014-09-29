@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import datetime
 
 from simplecoin import create_manage_app, db, currencies, powerpools, redis_conn
@@ -133,6 +134,21 @@ def import_device_slices(input):
 def dump_effective_config():
     import pprint
     pprint.pprint(dict(current_app.config))
+
+
+@manager.option('host')
+def forward_coinservs(host):
+    """ Given a hostname, connects to a remote and tunnels all coinserver ports
+    to local ports. Useful for development testing. """
+    args = [host, "-N"]
+    for currency in currencies.itervalues():
+        if not currency.coinserv:
+            continue
+        args.append("-L {0}:127.0.0.1:{0}"
+                    .format(currency.coinserv.config['port']))
+
+    current_app.logger.info(("/usr/bin/ssh", "/usr/bin/ssh", args))
+    os.execl("/usr/bin/ssh", "/usr/bin/ssh", *args)
 
 
 @manager.option('-t', '--txid', dest='transaction_id')

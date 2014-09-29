@@ -151,13 +151,15 @@ class Currency(ConfigObject):
     def __init__(self, bootstrap):
         ConfigObject.__init__(self, bootstrap)
         if self.coinserv:
+            cfg = self.coinserv
             self.coinserv = CoinserverRPC(
                 "http://{0}:{1}@{2}:{3}/"
-                .format(self.coinserv['username'],
-                        self.coinserv['password'],
-                        self.coinserv['address'],
-                        self.coinserv['port'],
+                .format(cfg['username'],
+                        cfg['password'],
+                        cfg['address'],
+                        cfg['port'],
                         pool_kwargs=dict(maxsize=bootstrap.get('maxsize', 10))))
+            self.coinserv.config = cfg
         self.exchangeable = bool(self.exchangeable)
         self.minimum_payout = dec(self.minimum_payout)
 

@@ -1,5 +1,7 @@
-*.yml.*
+!defaults.toml
+!example.toml
 *.yml
+*.toml
 *.log
 *.json
 *.sql
