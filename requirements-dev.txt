@@ -1,6 +1,5 @@
-nose
-nose-progressive
+nose==1.3.3
 coverage
 flake8
-pylint
-git+https://github.com/icook/mockredis.git@feature/debug-object#egg=mockredispy
+supervisor==3.1.2
+git+git@github.com:icook/supervisor-stdout.git@220544858e5a7a06dd39768533cad4cd43279e2a#egg=supervisor_stdout
