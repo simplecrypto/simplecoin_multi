@@ -5,7 +5,7 @@ from flask import (current_app, request, render_template, Blueprint, jsonify,
 
 from .models import (Block, ShareSlice, UserSettings, make_upper_lower, Credit,
                      Payout, DeviceSlice, Transaction)
-from . import db, root, cache, currencies, algos, locations
+from . import db, root, cache, currencies, algos, locations, powerpools
 from .exceptions import InvalidAddressException
 from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
                     get_alerts, resort_recent_visit, collect_acct_items,
@@ -129,7 +129,8 @@ def pool_stats():
                            blocks=blocks,
                            merge_blocks=merge_blocks,
                            current_block=current_block,
-                           server_status=server_status)
+                           server_status=server_status,
+                           powerpools=powerpools)
 
 
 @main.before_request

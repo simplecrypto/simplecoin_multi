@@ -968,10 +968,10 @@ def server_status():
             continue
         else:
             raw_servers[powerpool.stratum_address] = data
-            servers[powerpool] = dict(workers=data['client_count_authed'],
-                                      miners=data['address_count'],
-                                      hashrate=data['hps'],
-                                      name=powerpool.stratum_address)
+            servers[powerpool.key] = dict(workers=data['client_count_authed'],
+                                          miners=data['address_count'],
+                                          hashrate=data['hps'],
+                                          name=powerpool.stratum_address)
             algo_miners.setdefault(powerpool.chain.algo.key, 0)
             algo_miners[powerpool.chain.algo.key] += data['address_count']
 

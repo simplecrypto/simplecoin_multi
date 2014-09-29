@@ -66,6 +66,7 @@ $(document).ready(function() {
         </thead>
         <tbody>
         {% for pp, data in server_status.iteritems() %}
+        {% set pp = powerpools[pp] %}
         <tr>
           <th>{{ pp.stratum_address }} (diff {{pp.diff}})</th>
           <td>{{ pp.chain.algo.display }}</td>
