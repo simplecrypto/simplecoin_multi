@@ -156,7 +156,7 @@ class TestGeneratePayout(UnitTest):
 
 
 class TestTradeRequest(UnitTest):
-    def test_push_tr_buy(self):
+    def test_complete_tr_buy(self):
         credits = []
         tr = m.TradeRequest(
             quantity=sum(xrange(1, 20)),
@@ -176,7 +176,8 @@ class TestTradeRequest(UnitTest):
             db.session.add(c)
 
         db.session.commit()
-        push_data = {'trs': {tr.id: {"status": 6, "quantity": "1000", "fees": "1"}}}
+        push_data = {'trs': {tr.id: {"status": 6, "quantity": "1000",
+                                     "fees": "1", "stuck_quantity": "0"}}}
         db.session.expunge_all()
 
         with self.app.test_request_context('/?name=Peter'):
@@ -195,7 +196,7 @@ class TestTradeRequest(UnitTest):
 
         assert m.TradeRequest.query.first()._status == 6
 
-    def test_push_tr(self):
+    def test_complete_tr_sell(self):
         credits = []
         tr = m.TradeRequest(
             quantity=sum(xrange(1, 20)),
@@ -213,7 +214,8 @@ class TestTradeRequest(UnitTest):
             db.session.add(c)
 
         db.session.commit()
-        push_data = {'trs': {tr.id: {"status": 6, "quantity": "1000", "fees": "1"}}}
+        push_data = {'trs': {tr.id: {"status": 6, "quantity": "1000",
+                                     "fees": "1", "stuck_quantity": "0"}}}
         db.session.expunge_all()
 
         with self.app.test_request_context('/?name=Peter'):
@@ -231,6 +233,71 @@ class TestTradeRequest(UnitTest):
             previous = credit.sell_amount
 
         assert m.TradeRequest.query.first()._status == 6
+
+    def test_update_tr_buy(self):
+        blk1 = self.make_block(mature=True)
+
+        credits = []
+        tr = m.TradeRequest(
+            quantity=sum(xrange(1, 20)) / 2,
+            type="buy",
+            currency="TEST"
+        )
+        db.session.add(tr)
+        for i in xrange(1, 20):
+            amount = float(i) / 2
+            c = m.CreditExchange(
+                amount=amount,
+                sell_amount=i,
+                sell_req=None,
+                buy_req=tr,
+                currency="TEST",
+                address="test{}".format(i),
+                block=blk1)
+            credits.append(c)
+            db.session.add(c)
+
+        # raise TypeError([credit.__dict__ for credit in credits])
+
+        db.session.commit()
+        push_data = {'trs': {tr.id: {"status": 5, "quantity": "150",
+                                     "fees": "1", "stuck_quantity": "40"}}}
+        db.session.expunge_all()
+
+        with self.app.test_request_context('/?name=Peter'):
+            flask.g.signer = TimedSerializer(self.app.config['rpc_signature'])
+            flask.g.signed = push_data
+            update_trade_requests()
+
+        db.session.rollback()
+        db.session.expunge_all()
+
+        tr2 = m.TradeRequest.query.first()
+        credits2 = m.CreditExchange.query.all()
+
+        # Assert that the total hasn't changed
+        credit_amt = sum([credit.amount for credit in credits2])
+        # print credit_amt
+        # print tr.quantity
+        # assert credit_amt == 0
+        assert credit_amt == tr.quantity
+
+        # Assert that the payable amount is 150
+        payable_amt = sum([credit.buy_amount for credit in credits2 if credit.payable is True])
+        print payable_amt
+        # assert payable_amt == 0
+        assert payable_amt == 150
+
+        # Assert that the stuck amount is 40
+        stuck_amt = sum([credit.buy_amount for credit in credits2 if credit.payable is False])
+        # for credit in credits2:
+        #     print "{}, {}".format(credit.id, credit.amount)
+        print stuck_amt
+        # assert stuck_amt == 0
+        assert stuck_amt == 40
+
+        # Assert that the status is 5, partially completed
+        assert tr2._status == 5
 
 
 class TestPayouts(RedisUnitTest):

@@ -83,7 +83,7 @@ def update_trade_requests():
             tr._status = status
 
             if status == 5 or status == 6:
-                tr.exchanged_quantity = Decimal(tr_dict['quantity'])
+                tr.exchanged_quantity = Decimal(tr_dict['quantity']) + Decimal(tr_dict['stuck_quantity'])
                 tr.fees = Decimal(tr_dict['fees'])
                 stuck_quantity = Decimal(tr_dict['stuck_quantity'])
                 tr.distribute(stuck_quantity)

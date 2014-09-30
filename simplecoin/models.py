@@ -67,7 +67,10 @@ class TradeRequest(base):
 
     @property
     def avg_price(self):
-        return self.exchanged_quantity / self.quantity
+        if self.type == "buy":
+            return self.quantity / self.exchanged_quantity
+        elif self.type == "sell":
+            return self.exchanged_quantity / self.quantity
 
     def distribute(self, stuck_quantity):
         assert self.type in ["buy", "sell"], "Invalid type!"
@@ -98,8 +101,19 @@ class TradeRequest(base):
             portions = {c.id: c.amount for c in credits}
         elif self.type == "buy":
             portions = {c.id: c.sell_amount for c in credits}
+
+        from pprint import pformat
+        print pformat(portions)
+
         amounts = distributor(payable_amount, portions)
 
+        # print "{}, {}".format(type(payable_amount), payable_amount)
+        # for amount in amounts.itervalues():
+        #     print "{}, {}".format(type(amount), amount)
+        # print pformat(sum([amount for amount in amounts.itervalues()]))
+        # assert 1 == 0
+
+        credit_amts = {}
         for credit in credits:
             if self.type == "sell":
                 assert credit.sell_amount is None
@@ -112,26 +126,45 @@ class TradeRequest(base):
 
                     if self._status == 5:
                         assert stuck_quantity > 0
-                        old_credit_amt = credit.buy_amount / self.avg_price
-                        new_credit_amt = credit.amount - old_credit_amt
-                        credit.amount = old_credit_amt
+                        credit_amts[credit.id] = credit.amount
 
-                        # create new credit
-                        cr = Credit.make_credit(
-                            user=credit.user,
-                            block=credit.block,
-                            currency=credit.currency,
-                            source=credit.source,
-                            address=credit.address,
-                            amount=new_credit_amt)
-                        db.session.add(cr)
-                        self.credits.append(cr)
+        distrib = distributor(self.quantity, credit_amts)
 
+        i = 0
+        orig_len = len(credits)
+        while i < orig_len:
+            credit = credits[i]
 
-        current_app.logger.info(
-            "Successfully pushed trade result for request id {:,} and "
-            "amount {:,} to {:,} credits.".
-            format(self.id, self.exchanged_quantity, len(credits)))
+            # subtract the credits cut from the old credit's amount
+            credit.amount -= distrib[credit.id]
+            # Create a new credit for the remaining cut
+            new_credit_amt = distrib[credit.id]
+
+            cr = CreditExchange(
+                user=credit.user,
+                amount=new_credit_amt,
+                sell_amount=new_credit_amt,
+                sell_req=None,
+                buy_req=self,
+                currency=credit.currency,
+                address=credit.address,
+                block=credit.block)
+
+            db.session.add(cr)
+            i += 1
+
+        db.session.flush()
+
+        if self._status == 6:
+            current_app.logger.info(
+                "Successfully pushed trade result for request id {:,} and "
+                "amount {:,} to {:,} credits.".
+                format(self.id, self.exchanged_quantity, len(credits)))
+        elif self._status == 5:
+            current_app.logger.info(
+                "Successfully updated trade request {:,} making "
+                "amount {:,} payable and {:,} stuck.".
+                format(self.id, payable_amount, stuck_quantity))
 
     @property
     def credits(self):
