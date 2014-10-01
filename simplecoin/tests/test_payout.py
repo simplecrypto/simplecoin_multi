@@ -260,7 +260,7 @@ class TestTradeRequest(UnitTest):
 
         db.session.commit()
 
-        posted_payable_amt = 150
+        posted_payable_amt = 149
         posted_stuck_amt = 40
         posted_fees = 1
         push_data = {'trs': {tr.id: {"status": 5,
@@ -282,8 +282,12 @@ class TestTradeRequest(UnitTest):
 
         # Assert that the payable amount is 150
         with decimal.localcontext(decimal.BasicContext) as ctx:
-            ctx.traps[decimal.Inexact] = True
+            # ctx.traps[decimal.Inexact] = True
             ctx.prec = 100
+
+            # Check config to see if we're charging exchange fees or not
+            if self.app.config.get('cover_autoex_fees', False):
+                posted_payable_amt += posted_fees
 
             # Assert that the the new payable amount is 150
             payable_amt = sum([credit.buy_amount for credit in credits2 if credit.payable is True])
@@ -299,15 +303,24 @@ class TestTradeRequest(UnitTest):
 
             # Check that the old credits BTC amounts look sane
             old_btc_quant = sum([credit.amount for credit in credits2 if credit.payable is True])
-            assert old_btc_quant / tr2.avg_price == posted_payable_amt
+            assert (old_btc_quant / tr2.avg_price) - posted_fees == posted_payable_amt
 
             # Check that the new credits BTC amounts look sane
             new_btc_quant = sum([credit.amount for credit in credits2 if credit.payable is False])
             assert new_btc_quant / tr2.avg_price == posted_stuck_amt
 
-            # Check that fee calculations
-
             # Check that new credit attrs are the same as old (fees, etc)
+            for credit in credits2:
+                if credit.payable is False:
+                    assert credits2[credit.id - 20].fee_perc == credit.fee_perc
+                    assert credits2[credit.id - 20].pd_perc == credit.pd_perc
+                    assert credits2[credit.id - 20].block == credit.block
+                    assert credits2[credit.id - 20].user == credit.user
+                    assert credits2[credit.id - 20].sharechain_id == credit.sharechain_id
+                    assert credits2[credit.id - 20].address == credit.address
+                    assert credits2[credit.id - 20].currency == credit.currency
+                    assert credits2[credit.id - 20].type == credit.type
+                    assert credits2[credit.id - 20].payout == credit.payout
 
         # Assert that the status is 5, partially completed
         assert tr2._status == 5

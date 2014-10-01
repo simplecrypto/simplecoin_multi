@@ -58,7 +58,7 @@ class TradeRequest(base):
 
     # The quantity of the desired currency received by fulfilling this request
     exchanged_quantity = db.Column(db.Numeric, default=None)
-    # Fees from fulfilling this tr
+    # Fees from fulfilling this tr (represented in Currency, not BTC)
     fees = db.Column(db.Numeric, default=None)
     _status = db.Column(db.SmallInteger, default=0)
 
@@ -69,9 +69,9 @@ class TradeRequest(base):
     @property
     def avg_price(self):
         if self.type == "buy":
-            return self.quantity / self.exchanged_quantity
+            return self.quantity / (self.exchanged_quantity + self.fees)
         elif self.type == "sell":
-            return self.exchanged_quantity / self.quantity
+            return (self.exchanged_quantity + self.fees) / self.quantity
 
     def distribute(self, stuck_quantity):
         assert self.type in ["buy", "sell"], "Invalid type!"
@@ -86,9 +86,9 @@ class TradeRequest(base):
         # Check config to see if we're charging exchange fees or not
         payable_amount = self.exchanged_quantity - stuck_quantity
 
-        # Check config to see if we're charging exchange fees or not
-        if current_app.config.get('charge_autoex_fees', False):
-            payable_amount -= self.fees
+        # If we're covering the exchange fees we'll need to add them in
+        if current_app.config.get('cover_autoex_fees', False):
+            payable_amount += self.fees
 
         # Remove previously paid amounts from the payable amount
         if self.type == "buy":
@@ -123,14 +123,21 @@ class TradeRequest(base):
             credit_amts = {credit.id: credit.amount for credit in credits}
 
             # Get the distribution for the stuck amount
-            curr_distrib = distributor(stuck_quantity, credit_amts)
+            amts_copy = credit_amts.copy()
+            curr_distrib = distributor(stuck_quantity, amts_copy)
+
+            # Calculate the BTC going to the old credits and new credits
+            amts = {'old': payable_amount + self.fees, 'new': stuck_quantity}
+            amts_copy = amts.copy()
+            btc_distrib = distributor(self.quantity, amts_copy)
+
+            # Calculate the BTC distribution, based on the stuck currency amounts
+            amts_copy = credit_amts.copy()
+            new_btc_distrib = distributor(btc_distrib['new'], amts_copy)
 
             with decimal.localcontext(decimal.BasicContext) as ctx:
                 ctx.traps[decimal.Inexact] = True
                 ctx.prec = 100
-
-                # Calculate the BTC distribution, based on the stuck currency amounts
-                btc_distrib = {k: v * self.avg_price for k, v in curr_distrib.iteritems()}
 
                 i = 0
                 orig_len = len(credits)
@@ -139,12 +146,13 @@ class TradeRequest(base):
                     credit = credits[i]
 
                     # subtract the credits cut from the old credit's amount
-                    credit.amount -= btc_distrib[credit.id]
+                    credit.amount -= new_btc_distrib[credit.id]
                     # Create a new credit for the remaining cut
-                    new_credit_amt = btc_distrib[credit.id]
+                    new_credit_amt = new_btc_distrib[credit.id]
 
                     cr = CreditExchange(
                         user=credit.user,
+                        sharechain_id=credit.sharechain_id,
                         amount=new_credit_amt,
                         sell_amount=new_credit_amt,
                         buy_amount=curr_distrib[credit.id],
