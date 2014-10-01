@@ -63,10 +63,6 @@ class TradeRequest(base):
     _status = db.Column(db.SmallInteger, default=0)
 
     @property
-    def currency_fees(self):
-        return self.fees * self.avg_price
-
-    @property
     def avg_price(self):
         if self.type == "buy":
             return self.quantity / (self.exchanged_quantity + self.fees)

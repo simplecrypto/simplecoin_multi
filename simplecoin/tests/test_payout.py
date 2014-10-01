@@ -280,9 +280,8 @@ class TestTradeRequest(UnitTest):
         tr2 = m.TradeRequest.query.first()
         credits2 = m.CreditExchange.query.all()
 
-        # Assert that the payable amount is 150
         with decimal.localcontext(decimal.BasicContext) as ctx:
-            # ctx.traps[decimal.Inexact] = True
+            ctx.traps[decimal.Inexact] = True
             ctx.prec = 100
 
             # Check config to see if we're charging exchange fees or not
