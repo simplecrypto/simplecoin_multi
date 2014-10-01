@@ -73,7 +73,7 @@ class TradeRequest(base):
         elif self.type == "sell":
             return (self.exchanged_quantity + self.fees) / self.quantity
 
-    def distribute(self, stuck_quantity):
+    def distribute(self, stuck_quantity, applied_fees):
         assert self.type in ["buy", "sell"], "Invalid type!"
         assert self.exchanged_quantity > 0
 
@@ -88,29 +88,32 @@ class TradeRequest(base):
 
         # If we're covering the exchange fees we'll need to add them in
         if current_app.config.get('cover_autoex_fees', False):
-            payable_amount += self.fees
+            payable_amount += applied_fees
 
         # Remove previously paid amounts from the payable amount
         if self.type == "buy":
-            for credit in credits:
-                if credit.buy_amount is not None:
-                    payable_amount -= credit.buy_amount
+            with decimal.localcontext(decimal.BasicContext) as ctx:
+                ctx.traps[decimal.Inexact] = True
+                ctx.prec = 100
+
+                payable_amount -= sum([credit.buy_amount for credit in credits if credit.payable is True])
 
         # calculate user payouts based on percentage of the total
         # exchanged value
         if self.type == "sell":
             portions = {c.id: c.amount for c in credits}
         elif self.type == "buy":
-            portions = {c.id: c.sell_amount for c in credits}
+            portions = {c.id: c.sell_amount for c in credits if c.payable is False}
 
-        amounts = distributor(payable_amount, portions)
+        amts_copy = portions.copy()
+        amounts = distributor(payable_amount, amts_copy, scale=50)
 
         for credit in credits:
             if self.type == "sell":
                 assert credit.sell_amount is None
                 credit.sell_amount = amounts[credit.id]
             elif self.type == "buy":
-                if credit.buy_amount is None:
+                if credit.payable is False:
                     credit.buy_amount = amounts[credit.id]
                     # Mark the credit ready for payout to users
                     credit.payable = True
@@ -137,7 +140,7 @@ class TradeRequest(base):
 
             with decimal.localcontext(decimal.BasicContext) as ctx:
                 ctx.traps[decimal.Inexact] = True
-                ctx.prec = 100
+                ctx.prec = 50
 
                 i = 0
                 orig_len = len(credits)
@@ -147,6 +150,7 @@ class TradeRequest(base):
 
                     # subtract the credits cut from the old credit's amount
                     credit.amount -= new_btc_distrib[credit.id]
+                    credit.sell_amount -= new_btc_distrib[credit.id]
                     # Create a new credit for the remaining cut
                     new_credit_amt = new_btc_distrib[credit.id]
 
@@ -156,6 +160,7 @@ class TradeRequest(base):
                         amount=new_credit_amt,
                         sell_amount=new_credit_amt,
                         buy_amount=curr_distrib[credit.id],
+                        # buy_amount=None,
                         sell_req=None,
                         buy_req=self,
                         currency=credit.currency,
@@ -175,6 +180,7 @@ class TradeRequest(base):
         db.session.flush()
 
         if self._status == 6:
+            assert stuck_quantity == 0
             current_app.logger.info(
                 "Successfully pushed trade result for request id {:,} and "
                 "amount {:,} to {:,} credits.".

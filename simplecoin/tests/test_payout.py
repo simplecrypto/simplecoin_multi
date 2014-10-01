@@ -325,6 +325,60 @@ class TestTradeRequest(UnitTest):
         # Assert that the status is 5, partially completed
         assert tr2._status == 5
 
+    def test_close_after_update_tr_buy(self):
+
+        self.test_update_tr_buy()
+
+        tr = m.TradeRequest.query.first()
+
+        # Check that another update can be pushed.
+        posted_payable_amt = 188.5
+        posted_stuck_amt = 0
+        posted_fees = 1.5
+        push_data = {'trs': {tr.id: {"status": 6,
+                                     "quantity": str(posted_payable_amt),
+                                     "fees": str(posted_fees),
+                                     "stuck_quantity": str(posted_stuck_amt)}}}
+        db.session.expunge_all()
+
+        with self.app.test_request_context('/?name=Peter'):
+            flask.g.signer = TimedSerializer(self.app.config['rpc_signature'])
+            flask.g.signed = push_data
+            update_trade_requests()
+
+        db.session.rollback()
+        db.session.expunge_all()
+
+        tr2 = m.TradeRequest.query.first()
+        credits2 = m.CreditExchange.query.all()
+
+        # Assert that the payable amount is 150
+        with decimal.localcontext(decimal.BasicContext) as ctx:
+            # ctx.traps[decimal.Inexact] = True
+            ctx.prec = 100
+
+            # Check config to see if we're charging exchange fees or not
+            if self.app.config.get('cover_autoex_fees', False):
+                posted_payable_amt += posted_fees
+
+            # Assert that the the total payable amount is what we posted
+            payable_amt = sum([credit.buy_amount for credit in credits2 if credit.payable is True])
+            assert payable_amt == posted_payable_amt
+            total_curr_quant = sum([credit.buy_amount for credit in credits2])
+            assert total_curr_quant + Decimal(posted_fees) == 190
+
+            # Check that the total BTC quantity equals out
+            btc_quant = sum([credit.amount for credit in credits2])
+            assert btc_quant == tr2.quantity
+
+            # Check that the BTC amounts look sane
+            btc_quant = sum([credit.amount for credit in credits2 if credit.payable is True])
+            assert (btc_quant / tr2.avg_price) - Decimal(posted_fees) == posted_payable_amt
+
+            # Check that there is nothing marked unpayable
+            not_payable = sum([credit.amount for credit in credits2 if credit.payable is False])
+            assert not not_payable
+
 
 class TestPayouts(RedisUnitTest):
     test_block_data = {

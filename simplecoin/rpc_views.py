@@ -66,10 +66,10 @@ def update_trade_requests():
             assert 'status' in tr
             g.signed['trs'][tr_id]['status'] = int(tr['status'])
             if tr['status'] == 5 or tr['status'] == 6:
-                assert 'stuck_quantity' in tr
-                assert 'quantity' in tr
-                assert 'fees' in tr
-    except (AssertionError, TypeError):
+                tr['stuck_quantity'] = Decimal(tr['stuck_quantity'])
+                tr['quantity'] = Decimal(tr['quantity'])
+                tr['fees'] = Decimal(tr['fees'])
+    except (AssertionError, TypeError, KeyError):
         current_app.logger.warn("Invalid data passed to update_sell_requests",
                                 exc_info=True)
         abort(400)
@@ -83,10 +83,14 @@ def update_trade_requests():
             tr._status = status
 
             if status == 5 or status == 6:
-                tr.exchanged_quantity = Decimal(tr_dict['quantity']) + Decimal(tr_dict['stuck_quantity'])
-                tr.fees = Decimal(tr_dict['fees'])
-                stuck_quantity = Decimal(tr_dict['stuck_quantity'])
-                tr.distribute(stuck_quantity)
+                tr.exchanged_quantity = tr_dict['quantity'] + tr_dict['stuck_quantity']
+                if tr.fees:
+                    applied_fees = tr_dict['fees'] - tr.fees
+                else:
+                    applied_fees = tr_dict['fees']
+                tr.fees = tr_dict['fees']
+                stuck_quantity = tr_dict['stuck_quantity']
+                tr.distribute(stuck_quantity, applied_fees)
 
         except Exception:
             db.session.rollback()
