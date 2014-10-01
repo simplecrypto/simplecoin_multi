@@ -142,6 +142,12 @@ link = "/configuration_guide"
 active_key = "config"
 
 [[navbar.left_nav]]
+title = "User Stats"
+icon = "user"
+link = "/stats"
+active_key = "stats"
+
+[[navbar.left_nav]]
 title = "Pool Stats"
 icon = "life-ring"
 link = "/pool_stats"
