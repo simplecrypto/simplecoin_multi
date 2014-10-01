@@ -1,4 +1,5 @@
 import calendar
+import decimal
 from decimal import Decimal
 import logging
 
@@ -89,8 +90,8 @@ class TradeRequest(base):
         if current_app.config.get('charge_autoex_fees', False):
             payable_amount -= self.fees
 
+        # Remove previously paid amounts from the payable amount
         if self.type == "buy":
-            # Remove previously paid amounts from the payable amount
             for credit in credits:
                 if credit.buy_amount is not None:
                     payable_amount -= credit.buy_amount
@@ -102,18 +103,8 @@ class TradeRequest(base):
         elif self.type == "buy":
             portions = {c.id: c.sell_amount for c in credits}
 
-        from pprint import pformat
-        print pformat(portions)
-
         amounts = distributor(payable_amount, portions)
 
-        # print "{}, {}".format(type(payable_amount), payable_amount)
-        # for amount in amounts.itervalues():
-        #     print "{}, {}".format(type(amount), amount)
-        # print pformat(sum([amount for amount in amounts.itervalues()]))
-        # assert 1 == 0
-
-        credit_amts = {}
         for credit in credits:
             if self.type == "sell":
                 assert credit.sell_amount is None
@@ -124,34 +115,54 @@ class TradeRequest(base):
                     # Mark the credit ready for payout to users
                     credit.payable = True
 
-                    if self._status == 5:
-                        assert stuck_quantity > 0
-                        credit_amts[credit.id] = credit.amount
+        # If its an update redistribute + create new credits
+        if self._status == 5:
+            assert stuck_quantity > 0
 
-        distrib = distributor(self.quantity, credit_amts)
+            # Build a dict containing each credit id + amount
+            credit_amts = {credit.id: credit.amount for credit in credits}
 
-        i = 0
-        orig_len = len(credits)
-        while i < orig_len:
-            credit = credits[i]
+            # Get the distribution for the stuck amount
+            curr_distrib = distributor(stuck_quantity, credit_amts)
 
-            # subtract the credits cut from the old credit's amount
-            credit.amount -= distrib[credit.id]
-            # Create a new credit for the remaining cut
-            new_credit_amt = distrib[credit.id]
+            with decimal.localcontext(decimal.BasicContext) as ctx:
+                ctx.traps[decimal.Inexact] = True
+                ctx.prec = 100
 
-            cr = CreditExchange(
-                user=credit.user,
-                amount=new_credit_amt,
-                sell_amount=new_credit_amt,
-                sell_req=None,
-                buy_req=self,
-                currency=credit.currency,
-                address=credit.address,
-                block=credit.block)
+                # Calculate the BTC distribution, based on the stuck currency amounts
+                btc_distrib = {k: v * self.avg_price for k, v in curr_distrib.iteritems()}
 
-            db.session.add(cr)
-            i += 1
+                i = 0
+                orig_len = len(credits)
+                # Loop + add a new credit for each old credit
+                while i < orig_len:
+                    credit = credits[i]
+
+                    # subtract the credits cut from the old credit's amount
+                    credit.amount -= btc_distrib[credit.id]
+                    # Create a new credit for the remaining cut
+                    new_credit_amt = btc_distrib[credit.id]
+
+                    cr = CreditExchange(
+                        user=credit.user,
+                        amount=new_credit_amt,
+                        sell_amount=new_credit_amt,
+                        buy_amount=curr_distrib[credit.id],
+                        sell_req=None,
+                        buy_req=self,
+                        currency=credit.currency,
+                        address=credit.address,
+                        fee_perc=credit.fee_perc,
+                        pd_perc=credit.pd_perc,
+                        block=credit.block)
+
+                    db.session.add(cr)
+                    i += 1
+
+            current_app.logger.info(
+                "Successfully updated trade request {:,} making "
+                "amount {:,} payable and {:,} stuck.".
+                format(self.id, payable_amount, stuck_quantity))
 
         db.session.flush()
 
@@ -160,11 +171,7 @@ class TradeRequest(base):
                 "Successfully pushed trade result for request id {:,} and "
                 "amount {:,} to {:,} credits.".
                 format(self.id, self.exchanged_quantity, len(credits)))
-        elif self._status == 5:
-            current_app.logger.info(
-                "Successfully updated trade request {:,} making "
-                "amount {:,} payable and {:,} stuck.".
-                format(self.id, payable_amount, stuck_quantity))
+
 
     @property
     def credits(self):

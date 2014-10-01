@@ -2,6 +2,7 @@ import time
 import flask
 import unittest
 import random
+import decimal
 
 from simplecoin import db, currencies
 from simplecoin.scheduler import _distributor
@@ -257,11 +258,15 @@ class TestTradeRequest(UnitTest):
             credits.append(c)
             db.session.add(c)
 
-        # raise TypeError([credit.__dict__ for credit in credits])
-
         db.session.commit()
-        push_data = {'trs': {tr.id: {"status": 5, "quantity": "150",
-                                     "fees": "1", "stuck_quantity": "40"}}}
+
+        posted_payable_amt = 150
+        posted_stuck_amt = 40
+        posted_fees = 1
+        push_data = {'trs': {tr.id: {"status": 5,
+                                     "quantity": str(posted_payable_amt),
+                                     "fees": str(posted_fees),
+                                     "stuck_quantity": str(posted_stuck_amt)}}}
         db.session.expunge_all()
 
         with self.app.test_request_context('/?name=Peter'):
@@ -275,26 +280,34 @@ class TestTradeRequest(UnitTest):
         tr2 = m.TradeRequest.query.first()
         credits2 = m.CreditExchange.query.all()
 
-        # Assert that the total hasn't changed
-        credit_amt = sum([credit.amount for credit in credits2])
-        # print credit_amt
-        # print tr.quantity
-        # assert credit_amt == 0
-        assert credit_amt == tr.quantity
-
         # Assert that the payable amount is 150
-        payable_amt = sum([credit.buy_amount for credit in credits2 if credit.payable is True])
-        print payable_amt
-        # assert payable_amt == 0
-        assert payable_amt == 150
+        with decimal.localcontext(decimal.BasicContext) as ctx:
+            ctx.traps[decimal.Inexact] = True
+            ctx.prec = 100
 
-        # Assert that the stuck amount is 40
-        stuck_amt = sum([credit.buy_amount for credit in credits2 if credit.payable is False])
-        # for credit in credits2:
-        #     print "{}, {}".format(credit.id, credit.amount)
-        print stuck_amt
-        # assert stuck_amt == 0
-        assert stuck_amt == 40
+            # Assert that the the new payable amount is 150
+            payable_amt = sum([credit.buy_amount for credit in credits2 if credit.payable is True])
+            assert payable_amt == posted_payable_amt
+
+            # Assert that the stuck amount is 40
+            stuck_amt = sum([credit.buy_amount for credit in credits2 if credit.payable is False])
+            assert stuck_amt == posted_stuck_amt
+
+            # Check that the total BTC quantity represented hasn't changed
+            btc_quant = sum([credit.amount for credit in credits2])
+            assert btc_quant == tr2.quantity
+
+            # Check that the old credits BTC amounts look sane
+            old_btc_quant = sum([credit.amount for credit in credits2 if credit.payable is True])
+            assert old_btc_quant / tr2.avg_price == posted_payable_amt
+
+            # Check that the new credits BTC amounts look sane
+            new_btc_quant = sum([credit.amount for credit in credits2 if credit.payable is False])
+            assert new_btc_quant / tr2.avg_price == posted_stuck_amt
+
+            # Check that fee calculations
+
+            # Check that new credit attrs are the same as old (fees, etc)
 
         # Assert that the status is 5, partially completed
         assert tr2._status == 5
