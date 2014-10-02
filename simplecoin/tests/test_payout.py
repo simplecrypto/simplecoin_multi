@@ -1,7 +1,6 @@
 import time
 import flask
 import unittest
-import datetime
 import random
 
 from simplecoin import db, currencies
@@ -253,6 +252,8 @@ class TestPayouts(RedisUnitTest):
     }
 
     def random_shares(self):
+        """ Generate some random shares. Somewhat bad practice for unit tests.
+        Perhaps we set a static randomness seed in the future """
         addresses = ['DSAEhYmKZmDN9e1vGPRWSvRQEiWGARhiVh',
                      'DLePZigvzzvSyoWztctVVsPtDuhzBfqEgd',
                      'LVsJCXPThJzGhenQT2yuAEy82RTDQjQUYy',
@@ -265,6 +266,8 @@ class TestPayouts(RedisUnitTest):
         return lst
 
     def test_slice_compression(self):
+        """ Make sure that uncompressed and compressed slices behave the same
+        for paying out users """
         shares = self.random_shares()
 
         def setup():
@@ -294,6 +297,7 @@ class TestPayouts(RedisUnitTest):
         self.assertEqual(payouts_compress, payouts)
 
     def test_payout_multichain(self, **kwargs):
+        """ Try paying out users from multiple chains """
         bd = self.test_block_data.copy()
         bd.update(dict(chain_2_solve_index="1", chain_2_shares="18"))
         bd.update(**kwargs)
@@ -326,6 +330,7 @@ class TestPayouts(RedisUnitTest):
         assert m.Credit.query.filter_by(source=1).one().amount == Decimal("0.250")
 
     def test_payout(self, **kwargs):
+        """ A regular, basic payout to one chain, with one user """
         bd = self.test_block_data.copy()
         bd.update(**kwargs)
         self.app.redis.hmset(
@@ -356,6 +361,7 @@ class TestPayouts(RedisUnitTest):
         assert m.Credit.query.filter_by(source=1).one().amount == Decimal("0.50")
 
     def test_payout_donation(self):
+        """ Make sure users setting donation percentages work properly """
         s = m.UserSettings(user="DJCgMCyjBKxok3eEGed5SGhbWaGj5QTcxF",
                            pdonation_perc=Decimal("0.05"))
         db.session.add(s)
@@ -374,6 +380,7 @@ class TestPayouts(RedisUnitTest):
         assert donation.amount < 3
 
     def test_payout_special_split(self):
+        """ Make sure that special payout splits work as expected """
         s = m.UserSettings(user="DJCgMCyjBKxok3eEGed5SGhbWaGj5QTcxF",
                            spayout_perc=Decimal("0.05"),
                            spayout_addr="DAbhwsnEq5TjtBP5j76TinhUqqLTktDAnD",
@@ -383,25 +390,33 @@ class TestPayouts(RedisUnitTest):
             "unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f",
             self.test_block_data.copy())
 
-        self.app.redis.rpush("chain_1_slice_17", *["DJCgMCyjBKxok3eEGed5SGhbWaGj5QTcxF:1"] * 30)
+        self.app.redis.rpush(
+            "chain_1_slice_17", *["DJCgMCyjBKxok3eEGed5SGhbWaGj5QTcxF:1"] * 30)
         credit_block("unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f")
 
         db.session.rollback()
         db.session.expunge_all()
 
-        assert m.Credit.query.filter_by(user="DJCgMCyjBKxok3eEGed5SGhbWaGj5QTcxF").count() == 2
-        split = m.Credit.query.filter_by(address="DAbhwsnEq5TjtBP5j76TinhUqqLTktDAnD").one()
+        assert m.Credit.query.filter_by(
+            user="DJCgMCyjBKxok3eEGed5SGhbWaGj5QTcxF").count() == 2
+        split = m.Credit.query.filter_by(
+            address="DAbhwsnEq5TjtBP5j76TinhUqqLTktDAnD").one()
         assert split.amount < 3
 
     def test_payout_merged(self):
+        """ Make sure that paying out merged block works properly """
         self.test_payout(merged="1")
         assert m.Block.query.first().merged
 
     def test_payout_multichain_merged(self):
+        """ Make sure that paying out multiple chains still sets merged
+        properly """
         self.test_payout_multichain(merged="1")
         assert m.Block.query.first().merged
 
     def test_generate_zero(self):
+        """ When a user sets a 100% split payout address there original credit
+        gets created with 0 output. Make sure that this still works. """
         chain_shares = {1: {'D5nYTCs9aNg5QAcw35KZj45ZA9iFbN6ZU7': Decimal('381120')}}
         self.app.redis.rpush(
             "chain_1_slice_25",
@@ -438,7 +453,6 @@ class TestPayouts(RedisUnitTest):
 
 
 if __name__ == "__main__":
-    import random
     import sys
     t = time.time()
     for i in xrange(10000):
