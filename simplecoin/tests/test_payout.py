@@ -296,6 +296,36 @@ class TestPayouts(RedisUnitTest):
                             m.Credit.query.order_by(m.Credit.user)]
         self.assertEqual(payouts_compress, payouts)
 
+    def test_payout_unexchangeable(self):
+        """ Payout an unexchangeable currency """
+        bd = self.test_block_data.copy()
+        bd.update(dict(currency="TCO"))
+        self.app.redis.hmset(
+            "unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f",
+            bd)
+
+        self.app.redis.rpush("chain_1_slice_17", *["DJCgMCyjBKxok3eEGed5SGhbWaGj5QTcxF:1"] * 30)
+        self.app.redis.rpush("chain_1_slice_17", *["DLePZigvzzvSyoWztctVVsPtDuhzBfqEgd:1"] * 30)
+        user_set = m.UserSettings(user="DLePZigvzzvSyoWztctVVsPtDuhzBfqEgd")
+        addr = m.PayoutAddress(user='DLePZigvzzvSyoWztctVVsPtDuhzBfqEgd',
+                               address='LbfSCZE1p9A3Yj2JK1n57kxyD2H1ZSXtNG',
+                               currency='TCO')
+        db.session.add(user_set)
+        db.session.add(addr)
+        db.session.commit()
+
+        credit_block("unproc_block_01c5da46e845868a7ead5eb97d07c4299b6370e65fd4313416772e181c0c756f")
+
+        db.session.rollback()
+        db.session.expunge_all()
+        payouts = m.Credit.query.all()
+        for p in payouts:
+            print((p.id, p.user, p.address, p.block, p.currency, p.block.currency, p.source))
+        pool_payouts = m.Credit.query.filter_by(address=currencies['TCO'].pool_payout_addr).all()
+        m.Credit.query.filter_by(address='LbfSCZE1p9A3Yj2JK1n57kxyD2H1ZSXtNG').one()
+        self.assertEqual(len(payouts), 3)
+        self.assertEqual(len(pool_payouts), 2)
+
     def test_payout_multichain(self, **kwargs):
         """ Try paying out users from multiple chains """
         bd = self.test_block_data.copy()

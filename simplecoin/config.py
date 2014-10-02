@@ -13,8 +13,7 @@ from decimal import Decimal as dec
 from urlparse import urljoin
 
 from . import models as m
-from . import (cache, redis_conn, currencies, chains, powerpools, locations,
-               algos)
+from . import redis_conn, chains, powerpools, locations, algos
 from .utils import time_format
 from .exceptions import ConfigurationException, RemoteException, InvalidAddressException
 
@@ -40,6 +39,24 @@ class ConfigObject(dict):
 
     def __repr__(self):
         return "<{} {}>".format(self.__class__.__name__, self.key)
+
+    def __gt__(self, other):
+        return self.key.__gt__(other.key)
+
+    def __ge__(self, other):
+        return self.key.__ge__(other.key)
+
+    def __le__(self, other):
+        return self.key.__le__(other.key)
+
+    def __lt__(self, other):
+        return self.key.__lt__(other.key)
+
+    def __ne__(self, other):
+        return self.key.__ne__(other.key)
+
+    def __eq__(self, other):
+        return self.key.__eq__(other.key)
 
     def __hash__(self):
         return hash(self.key)

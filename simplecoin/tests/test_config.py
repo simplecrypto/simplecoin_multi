@@ -4,6 +4,12 @@ from simplecoin.tests import UnitTest
 
 
 class TestConfig(UnitTest):
+    def test_config_eq(self):
+        self.assertNotEqual(currencies['TCO'], currencies['DOGE'])
+        self.assertEqual(currencies['TCO'], currencies['TCO'])
+        assert currencies['TCO'] > currencies['DOGE']
+        assert currencies['DOGE'] < currencies['TCO']
+
     def test_lookup_payable(self):
         currencies.lookup_payable_addr("185cYTmEaTtKmBZc8aSGCr9v2VCDLqQHgR")
         currencies.lookup_payable_addr("DAbhwsnEq5TjtBP5j76TinhUqqLTktDAnD")
