@@ -87,6 +87,7 @@ generate_graph = function(selector, params, chart_type, controls, typ) {
         if (cls != "month")
             selector.find(".month").removeClass("active");
         selector.find("." + cls).addClass("active");
+        selector.find('img').show();
         generate_data(cls);
     }
     selector.find('.hour').click(function () { set_active("hour"); });
