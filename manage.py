@@ -6,7 +6,7 @@ import datetime
 from simplecoin import create_manage_app, db, currencies, powerpools, redis_conn
 from simplecoin.scheduler import SchedulerCommand
 from simplecoin.models import (Transaction, UserSettings, Credit, ShareSlice,
-                               DeviceSlice, Block)
+                               DeviceSlice, Block, CreditExchange)
 
 from urlparse import urlparse
 from flask import current_app, _request_ctx_stack
@@ -157,6 +157,66 @@ def forward_coinservs(host):
 
     current_app.logger.info(("/usr/bin/ssh", "/usr/bin/ssh", args))
     os.execl("/usr/bin/ssh", "/usr/bin/ssh", *args)
+
+
+@manager.option('-ds', '--dont-simulate', default=False,
+                action="store_true")
+def convert_unexchangeable(dont_simulate):
+    """ Converts Credit exchanges for unexchangeable currencies to payout the
+    pool """
+    unexchangeable = []
+    for currency in currencies.itervalues():
+        # Skip unused currencies
+        if not currency.coinserv:
+            continue
+
+        if not currency.exchangeable:
+            unexchangeable.append((currency.key, currency.pool_payout))
+
+    current_app.logger.info("Looking for CreditExchange's for currencies {}"
+                            .format(unexchangeable))
+
+    for key, pool_payout in unexchangeable:
+        blocks = {}
+        hashes = set()
+        for ce in (CreditExchange.query.join(CreditExchange.block, aliased=True).
+                   filter_by(currency=key)):
+            blocks.setdefault(ce.block, [0, []])
+            hashes.add(ce.block.hash)
+            blocks[ce.block][0] += ce.amount
+            blocks[ce.block][1].append(ce)
+            db.session.delete(ce)
+
+        # Sanity check, make sure block objs as keys is valid
+        assert len(hashes) == len(blocks)
+
+        for block, (amount, credits) in blocks.iteritems():
+            # Create a new credit for the pool to displace the deleted
+            # CreditExchanges. It will always be a credit since the currency is
+            # unexchangeable
+            pool_block = Credit(
+                source=0,
+                address=pool_payout['address'],
+                user=pool_payout['user'],
+                currency=pool_payout['currency'].key,
+                amount=amount,
+                block_id=block.id,
+                payable=block.mature)
+            db.session.add(pool_block)
+
+            current_app.logger.info(
+                "Block {} status {} value {} removed {} CreditExchanges of {} total amount"
+                .format(block, block.status, block.total_value, len(credits), amount))
+
+        current_app.logger.info("For currency {}, updated {} blocks"
+                                .format(key, len(blocks)))
+
+    if dont_simulate is True:
+        current_app.logger.info("Committing transaction!")
+        db.session.commit()
+    else:
+        current_app.logger.info("Rolling back!")
+        db.session.rollback()
 
 
 @manager.option('-t', '--txid', dest='transaction_id')

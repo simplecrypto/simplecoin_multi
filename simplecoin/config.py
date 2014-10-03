@@ -13,7 +13,7 @@ from decimal import Decimal as dec
 from urlparse import urljoin
 
 from . import models as m
-from . import redis_conn, chains, powerpools, locations, algos
+from . import redis_conn, chains, powerpools, locations, algos, global_config
 from .utils import time_format
 from .exceptions import ConfigurationException, RemoteException, InvalidAddressException
 
@@ -198,6 +198,23 @@ class Currency(ConfigObject):
             raise ConfigurationException(
                 "Unexchangeable currencies require a pool payout addr."
                 "No valid address found for {}".format(self.key))
+
+    @property
+    def pool_payout(self):
+        # Get the pools payout information for this block
+        global_curr = global_config.pool_payout_currency
+        pool_payout = dict(address=self.pool_payout_addr,
+                           currency=self,
+                           user=global_curr.pool_payout_addr)
+        # If this currency has no payout address, switch to global default
+        if pool_payout['address'] is None:
+            pool_payout['address'] = global_curr.pool_payout_addr
+            pool_payout['currency'] = global_curr
+            assert self.exchangeable is True, "Block is un-exchangeable"
+
+        # Double check valid. Paranoid
+        address_version(pool_payout['address'])
+        return pool_payout
 
 
 class CurrencyKeeper(Keeper):

@@ -567,19 +567,7 @@ def credit_block(redis_key, simulate=False):
     if block.currency_obj.exchangeable is True:
         valid_currencies.extend(currencies.exchangeable_currencies)
 
-    # Get the pools payout information for this block
-    global_curr = global_config.pool_payout_currency
-    pool_payout = dict(address=block.currency_obj.pool_payout_addr,
-                       currency=block.currency_obj,
-                       user=global_curr.pool_payout_addr)
-    # If this currency has no payout address, switch to global default
-    if pool_payout['address'] is None:
-        pool_payout['address'] = global_curr.pool_payout_addr
-        pool_payout['currency'] = global_curr
-        assert block.currency_obj.exchangeable, "Block is un-exchangeable"
-
-    # Double check valid. Paranoid
-    address_version(pool_payout['address'])
+    pool_payout = block.currency_obj.pool_payout
 
     def filter_valid(user, address, currency):
         try:
