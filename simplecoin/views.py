@@ -54,7 +54,7 @@ def blocks(q=None, currency=None):
         page = 0
     offset = page * 100
     blocks = Block.query.order_by(Block.found_at.desc())
-    if q:
+    if q is not None:
         blocks = blocks.filter(q)
     if currency:
         blocks = blocks.filter_by(currency=currency)
