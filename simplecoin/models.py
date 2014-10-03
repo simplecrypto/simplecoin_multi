@@ -92,14 +92,16 @@ class TradeRequest(base):
                 ctx.traps[decimal.Inexact] = True
                 ctx.prec = 100
 
-                payable_amount -= sum([credit.buy_amount for credit in credits if credit.payable is True])
+                payable_amount -= sum([credit.buy_amount for credit in credits
+                                       if credit.payable is True])
 
         # calculate user payouts based on percentage of the total
         # exchanged value
         if self.type == "sell":
             portions = {c.id: c.amount for c in credits}
         elif self.type == "buy":
-            portions = {c.id: c.sell_amount for c in credits if c.payable is False}
+            portions = {c.id: c.sell_amount for c in credits
+                        if c.payable is False}
 
         amts_copy = portions.copy()
         amounts = distributor(payable_amount, amts_copy, scale=50)
@@ -156,7 +158,6 @@ class TradeRequest(base):
                         amount=new_credit_amt,
                         sell_amount=new_credit_amt,
                         buy_amount=curr_distrib[credit.id],
-                        # buy_amount=None,
                         sell_req=None,
                         buy_req=self,
                         currency=credit.currency,
