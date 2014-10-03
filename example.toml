@@ -16,6 +16,7 @@ fee_perc = "0.01"
 location_acronym = "CA"
 location = "Beauharnois, Canada"
 country_flag = "/img/ca.svg"
+address = "http://ca.simplemulti.com"
 
 [currencies.BTC]
 exchangeable = true
@@ -41,4 +42,4 @@ monitor_address = "http://localhost:3855/stratum"
 port = 3333
 location = "CA"
 diff = 512
-chain = "1"
+chain = 1

@@ -1,3 +1,4 @@
+*.sqlite*
 !defaults.toml
 !example.toml
 *.yml
