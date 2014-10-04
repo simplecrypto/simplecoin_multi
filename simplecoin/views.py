@@ -373,6 +373,7 @@ def api_user_stats(address):
         worker.pop('last_10_shares')
     user_stats['payouts'] = get_joined(user_stats['payouts'])
     user_stats['settings'] = get_joined(user_stats['settings'])
+    user_stats.pop('earning_summary')
 
     return jsonify(**user_stats)
 
