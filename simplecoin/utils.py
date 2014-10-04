@@ -226,6 +226,28 @@ def collect_user_credits(address):
     return credits
 
 
+def collect_pool_stats():
+    """ Accumulates all aggregate pool data for serving via API or rendering
+    into main user stats page """
+
+    blocks_show = current_app.config.get('blocks_stats_page', 25)
+    current_block = {'reward': cache.get('reward') or 0,
+                     'difficulty': cache.get('difficulty') or 0,
+                     'height': cache.get('blockheight') or 0}
+    server_status = cache.get('server_status') or {}
+
+    blocks = (db.session.query(Block).filter_by(merged=False).
+              order_by(Block.found_at.desc()).limit(blocks_show))
+
+    merge_blocks = (db.session.query(Block).filter_by(merged=True).
+                    order_by(Block.found_at.desc()).limit(blocks_show))
+
+    return dict(current_block=current_block,
+                server_status=server_status,
+                blocks=blocks,
+                merge_blocks=merge_blocks)
+
+
 def collect_user_stats(user_address):
     """ Accumulates all aggregate user data for serving via API or rendering
     into main user stats page """
