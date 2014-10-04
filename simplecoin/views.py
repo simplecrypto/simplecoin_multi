@@ -1,3 +1,4 @@
+from __future__ import division
 import yaml
 
 from flask import (current_app, request, render_template, Blueprint, jsonify,
@@ -67,7 +68,12 @@ def blocks(q=None, currency=None):
 def networks():
     """ A page to display current information about each of the networks we are
     mining on.  """
-    return render_template('networks.html')
+    network_data = {}
+    for currency in currencies.itervalues():
+        data = cache.get("{}_data".format(currency.key))
+        if data:
+            network_data[currency] = data
+    return render_template('networks.html', network_data=network_data)
 
 
 @main.route("/leaderboard")

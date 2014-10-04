@@ -324,7 +324,7 @@ def update_network():
         cache.set(key,
                   dict(height=gbt['height'],
                        difficulty=difficulty,
-                       reward=gbt['coinbasevalue'],
+                       reward=gbt['coinbasevalue'] * current_app.SATOSHI,
                        difficulty_avg=difficulty_avg),
                   timeout=1200)
 
