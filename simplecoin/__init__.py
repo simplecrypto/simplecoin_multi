@@ -251,6 +251,7 @@ def create_app(mode, configs=None, log_level=None, **kwargs):
                            second=30)
         sched.add_cron_job(sch.cache_user_donation, minute='0,15,30,45',
                            second=15)
+        sched.add_cron_job(sch.update_network, second=20)
         sched.add_cron_job(sch.server_status, second=15)
         # every 15 minutes 2 seconds after the minute
         sched.add_cron_job(sch.leaderboard,

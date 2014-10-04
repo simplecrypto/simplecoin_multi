@@ -282,12 +282,16 @@ def leaderboard():
     cache.set("leaderboard", sorted_users, timeout=15 * 60)
 
 
+@SchedulerCommand.command
 @crontab
 def update_network():
     """
     Queries the RPC servers confirmed to update network stats information.
     """
     for currency in currencies.itervalues():
+        if not currency.coinserv:
+            continue
+
         try:
             gbt = currency.coinserv.getblocktemplate()
         except (urllib3.exceptions.HTTPError, CoinRPCException) as e:
@@ -295,7 +299,9 @@ def update_network():
                                      .format(currency, e))
             continue
 
-        key = "{}_data".format(currency.key),
+        key = "{}_data".format(currency.key)
+        block_cache_key = "{}_block_cache".format(currency.key)
+
         current_data = cache.get(key)
         if current_data and current_data['height'] == gbt['height']:
             # Already have information for this block
@@ -306,21 +312,19 @@ def update_network():
             current_app.logger.info(
                 "Updating {} net info for height {}.".format(currency, gbt['height']))
 
-        # set general information for this network
+        # Six hours worth of blocks. how many we'll keep in the cache
+        keep_count = 21600 / currency.block_time
+
         difficulty = bits_to_difficulty(gbt['bits'])
+        cache.cache._client.lpush(block_cache_key, difficulty)
+        cache.cache._client.ltrim(block_cache_key, 0, keep_count)
+        diff_list = cache.cache._client.lrange(block_cache_key, 0, -1)
+        difficulty_avg = sum(map(float, diff_list)) / len(diff_list)
 
-        # keep a configured number of blocks in the cache for getting average difficulty
-        cache.cache._client.lpush(prefix + 'block_cache', gbt['bits'])
-        # Six hours worth of blocks
-        keep = 21600 / currency.block_time
-        cache.cache._client.ltrim(prefix + 'block_cache', 0, current_app.config['difficulty_avg_period'])
-        diff_list = cache.cache._client.lrange(prefix + 'block_cache', 0, current_app.config['difficulty_avg_period'])
-        difficulty_avg = sum([bits_to_difficulty(diff) for diff in diff_list]) / len(diff_list)
-
-        cache.set(
+        cache.set(key,
                   dict(height=gbt['height'],
                        difficulty=difficulty,
-                       reward=reward,
+                       reward=gbt['coinbasevalue'],
                        difficulty_avg=difficulty_avg),
                   timeout=1200)
 
