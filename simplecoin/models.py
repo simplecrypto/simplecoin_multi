@@ -345,9 +345,7 @@ class Credit(base):
         'polymorphic_on': type
     }
 
-    standard_join = ['status', 'created_at', 'explorer_link',
-                     'text_perc_applied', 'mined', 'height',
-                     'transaction_id']
+    standard_join = ['status', 'text_perc_applied', 'mined', 'height']
 
     @classmethod
     def make_credit(self, currency, block, **kwargs):
@@ -759,6 +757,10 @@ class UserSettings(base):
     anon = db.Column(db.Boolean, default=False)
     addresses = db.relationship("PayoutAddress")
 
+    standard_join = ['anon', 'pdonation_perc', 'spayout_perc', 'spayout_addr',
+                     'spayout_curr',
+                     {'obj': 'addresses', 'join_prof': 'standard_join'}]
+
     def apply(self, shares, user_currency, block_currency, valid_currencies):
         """ Given a share amount, a currency we're paying out, and the valid
         exchangeable currencies we return a new distribution of shares among
@@ -878,6 +880,8 @@ class PayoutAddress(base):
     user = db.Column(db.String, db.ForeignKey('user_settings.user'), primary_key=True)
     # Abbreviated currency name. EG 'LTC'
     currency = db.Column(db.String)
+
+    standard_join = ['address', 'currency']
 
     @classmethod
     def create(cls, address, currency):

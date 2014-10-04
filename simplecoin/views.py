@@ -357,6 +357,26 @@ def crontabs():
     return render_template("crontabs.html", stats=stats)
 
 
+@main.route("/api/user_stats/<address>")
+def api_user_stats(address):
+    # Do some checking to make sure the address is valid + payable
+    try:
+        curr = currencies.lookup_payable_addr(address)
+    except Exception:
+        return jsonify({'Error': 'Invalid address'})
+
+    user_stats = collect_user_stats(address)
+    user_stats['credits'] = get_joined(user_stats['credits'])
+    for worker in user_stats['workers']:
+        worker['10_min_hashrate'] = worker['last_10_shares'].hashrate()
+        worker['total_shares'] = worker['total_shares'].total
+        worker.pop('last_10_shares')
+    user_stats['payouts'] = get_joined(user_stats['payouts'])
+    user_stats['settings'] = get_joined(user_stats['settings'])
+
+    return jsonify(**user_stats)
+
+
 @main.route("/api/pool_stats")
 def api_pool_stats():
 

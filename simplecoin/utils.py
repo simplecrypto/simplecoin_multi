@@ -397,15 +397,19 @@ def collect_user_stats(user_address):
 
     f_perc = dec(current_app.config.get('fee_perc', dec('0.02'))) * 100
 
+    import pprint
+    pprint.pprint(earning_summary)
+
     return dict(workers=workers,
                 credits=credits[:20],
                 payouts=payouts[:20],
                 settings=settings,
-                next_payout=next_payout,
-                earning_summary=earning_summary,
-                hide_hr=hide_hr,
-                next_exchange=next_exchange,
-                f_per=f_perc)
+                next_payout=next_payout
+                # earning_summary=earning_summary
+                # hide_hr=hide_hr,
+                # next_exchange=next_exchange,
+                # f_per=f_perc
+                )
 
 
 def get_pool_eff(timedelta=None):
