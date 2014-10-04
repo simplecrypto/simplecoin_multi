@@ -108,6 +108,12 @@ algo = "scryptn"
 address_version = [50]
 block_time = 120
 
+[currencies.GRE]
+name = "Greencoin"
+algo = "scrypt"
+address_version = [38]
+block_time = 60
+
 [currencies.FRAC]
 name = "Fractalcoin"
 algo = "x11"
