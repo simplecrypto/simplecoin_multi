@@ -33,14 +33,29 @@ address = "http://ca.simplemulti.com"
 [currencies.BTC]
 exchangeable = true
 pool_payout_addr = "1LmZN5ifbHdQy5jW9wNqyTuke3odY2Zos8"
+[currencies.BTC.coinserv]
+username = ""
+password = ""
+port = 1
+address = ""
 
 [currencies.TCO]
 mineable = true
 pool_payout_addr = "LUMPrhhWnoTfNXnDNWyqGG355fjTUVzFYX"
+[currencies.TCO.coinserv]
+username = ""
+password = ""
+port = 1
+address = ""
 
 [currencies.DOGE]
 exchangeable = true
 mineable = true
+[currencies.DOGE.coinserv]
+username = ""
+password = ""
+port = 1
+address = ""
 
 [mining_servers.1]
 address = "localhost"

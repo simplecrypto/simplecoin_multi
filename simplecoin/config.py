@@ -177,6 +177,10 @@ class Currency(ConfigObject):
                         cfg['port'],
                         pool_kwargs=dict(maxsize=bootstrap.get('maxsize', 10))))
             self.coinserv.config = cfg
+        elif self.exchangeable or self.mineable:
+            raise ConfigurationException(
+                "Coinserver must be configured for {}!".format(self.key))
+
         self.exchangeable = bool(self.exchangeable)
         self.minimum_payout = dec(self.minimum_payout)
 
@@ -227,7 +231,11 @@ class CurrencyKeeper(Keeper):
         # we will use this map to lookup. It needs to be unique so there's no
         # currency ambiguity
         self.version_map = {}
-        for obj in self.itervalues():
+        for obj in self.values():
+            # Ignore currency objects that aren't setup
+            if not obj.exchangeable and not obj.mineable:
+                self.pop(obj.key)
+
             if not obj.exchangeable:
                 continue
 
