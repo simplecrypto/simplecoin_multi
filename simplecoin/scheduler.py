@@ -523,6 +523,9 @@ def credit_block(redis_key, simulate=False):
     else:
         time_started = last_block_time(data['algo'], merged=merged)
 
+    if data['fees'] == "None":
+        data['fees'] = 0
+
     block = Block(
         user=data.get('address'),
         height=data['height'],
