@@ -41,21 +41,33 @@ class ConfigObject(dict):
         return "<{} {}>".format(self.__class__.__name__, self.key)
 
     def __gt__(self, other):
+        if type(other) != type(self):
+            return False
         return self.key.__gt__(other.key)
 
     def __ge__(self, other):
+        if type(other) != type(self):
+            return False
         return self.key.__ge__(other.key)
 
     def __le__(self, other):
+        if type(other) != type(self):
+            return False
         return self.key.__le__(other.key)
 
     def __lt__(self, other):
+        if type(other) != type(self):
+            return False
         return self.key.__lt__(other.key)
 
     def __ne__(self, other):
+        if type(other) != type(self):
+            return False
         return self.key.__ne__(other.key)
 
     def __eq__(self, other):
+        if type(other) != type(self):
+            return False
         return self.key.__eq__(other.key)
 
     def __hash__(self):

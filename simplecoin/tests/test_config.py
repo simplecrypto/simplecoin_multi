@@ -9,6 +9,7 @@ class TestConfig(UnitTest):
         self.assertEqual(currencies['TCO'], currencies['TCO'])
         assert currencies['TCO'] > currencies['DOGE']
         assert currencies['DOGE'] < currencies['TCO']
+        assert None not in currencies.values()
 
     def test_lookup_payable(self):
         currencies.lookup_payable_addr("185cYTmEaTtKmBZc8aSGCr9v2VCDLqQHgR")
