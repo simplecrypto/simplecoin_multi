@@ -2,7 +2,7 @@ $(document).ready(function() {
   // Remember when we close an alert
   $('.alert').bind('closed.bs.alert', function () {
       var id = $(this).attr('data-alert-id');
-      $.get('close/' + id);
+      $.get('/close/' + id);
   });
 
   function numberWithCommas(x) {
