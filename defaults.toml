@@ -120,6 +120,18 @@ algo = "x11"
 address_version = [36]
 block_time = 60
 
+[currencies.START]
+name = "Startcoin V2"
+algo = "x11"
+address_version = [125]
+block_time = 60
+
+[currencies.CANN]
+name = "Cannabiscoin"
+algo = "x11"
+address_version = [28]
+block_time = 42
+
 [algos.x11]
 hashes_per_share = 4294967296
 normalize_mult = 0.181818182
