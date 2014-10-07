@@ -289,7 +289,7 @@ def update_network():
     Queries the RPC servers confirmed to update network stats information.
     """
     for currency in currencies.itervalues():
-        if not currency.coinserv:
+        if not currency.mineable:
             continue
 
         try:
