@@ -170,7 +170,7 @@ class ConfigChecker(ConfigObject):
 
 
 class Currency(ConfigObject):
-    requires = ['algo', 'name', 'address_version', 'trans_confirmations',
+    requires = ['_algo', 'name', 'address_version', 'trans_confirmations',
                 'block_time', 'block_mature_confirms']
     defaults = dict(exchangeable=False,
                     minimum_payout='0.00000001',
@@ -178,6 +178,7 @@ class Currency(ConfigObject):
                     pool_payout_addr=None)
 
     def __init__(self, bootstrap):
+        bootstrap['_algo'] = bootstrap.pop('algo')
         ConfigObject.__init__(self, bootstrap)
         if self.coinserv:
             cfg = self.coinserv
@@ -214,6 +215,10 @@ class Currency(ConfigObject):
             raise ConfigurationException(
                 "Unexchangeable currencies require a pool payout addr."
                 "No valid address found for {}".format(self.key))
+
+    @property
+    def algo(self):
+        return algos[self._algo]
 
     @property
     def pool_payout(self):

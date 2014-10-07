@@ -126,22 +126,27 @@ def worker_detail(address, worker):
 
 @main.route("/pool_stats")
 def pool_stats():
-    blocks_show = current_app.config.get('blocks_stats_page', 25)
-    current_block = {'reward': cache.get('reward') or 0,
-                     'difficulty': cache.get('difficulty') or 0,
-                     'height': cache.get('blockheight') or 0}
+    network_data = {}
+    for currency in currencies.itervalues():
+        if not currency.mineable:
+            continue
+
+        data = cache.get("{}_data".format(currency.key))
+        if data:
+            network_data.setdefault(currency, {})
+            network_data[currency].update(data)
+
+        blocks = (Block.query.filter_by(currency=currency.key).
+                  order_by(Block.found_at.desc()).limit(5)).all()
+        if blocks:
+            network_data.setdefault(currency, {})
+            network_data[currency]['blocks'] = blocks
+
     server_status = cache.get('server_status') or {}
-
-    blocks = (db.session.query(Block).filter_by(merged=False).
-              order_by(Block.found_at.desc()).limit(blocks_show))
-
-    merge_blocks = (db.session.query(Block).filter_by(merged=True).
-                    order_by(Block.found_at.desc()).limit(blocks_show))
 
     return render_template('pool_stats.html',
                            blocks=blocks,
-                           merge_blocks=merge_blocks,
-                           current_block=current_block,
+                           network_data=network_data,
                            server_status=server_status,
                            powerpools=powerpools)
 

@@ -85,12 +85,25 @@ $(document).ready(function() {
 
 <br />
 <h2>Recently Mined Blocks</h2>
-{% include "block_table.html" %}
-<a href="/blocks">View all blocks</a>
-
-<br />
-<h2>Recently Merge Mined Blocks</h2>
-{% set blocks = merge_blocks %}
-{% include "block_table.html" %}
-<a href="/merge_blocks">View all merge blocks</a>
+{% for currency, data in network_data.iteritems() %}
+  <h4>{{ currency.name }}  &nbsp;&nbsp;&nbsp;<small><a href="/blocks/{{ currency }}">[view all blocks]</a></small></h4>
+  <dl class="dl-horizontal">
+    <dt>Code</dt>
+    <dd>{{ currency.key }}</dd>
+    <dt>Algorithm</dt>
+    <dd>{{ currency.algo.display }}</dd>
+  {% if 'difficulty' in data %}
+    <dt>Difficulty</dt>
+    <dd>{{ data['difficulty'] | comma }}</dd>
+    <dt>Block Reward</dt>
+    <dd>{{ data['reward'] | comma }} {{ currency }}</dd>
+    <dt>Height</dt>
+    <dd>{{ data['height'] | comma }}</dd>
+  {% endif %}
+  </dl>
+  {% if data['blocks'] %}
+    {% set blocks = data['blocks'] %}
+    {% include "block_table.html" %}
+  {% endif %}
+{% endfor %}
 {% endblock %}
