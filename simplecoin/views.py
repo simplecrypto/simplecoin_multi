@@ -1,12 +1,13 @@
 from __future__ import division
 import yaml
+import decimal
 
 from flask import (current_app, request, render_template, Blueprint, jsonify,
                    g, session, Response)
 
 from .models import (Block, ShareSlice, UserSettings, make_upper_lower, Credit,
                      Payout, DeviceSlice, Transaction)
-from . import db, root, cache, currencies, algos, locations, powerpools
+from . import db, root, cache, currencies, algos, locations, powerpools, redis_conn
 from .exceptions import InvalidAddressException
 from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
                     get_alerts, resort_recent_visit, collect_acct_items,
@@ -135,6 +136,20 @@ def pool_stats():
         if data:
             network_data.setdefault(currency, {})
             network_data[currency].update(data)
+
+        round_data = redis_conn.hgetall('current_block_{}_{}'
+                                        .format(currency, currency.algo))
+        if data:
+            chain_shares = [k for k in round_data.keys()
+                            if k.startswith("chain_") and k.endswith("shares")]
+            round_data['shares'] = 0
+            if 'start_time' in round_data:
+                round_data['start_time'] = int(float(round_data['start_time']))
+            for key in chain_shares:
+                round_data[key] = decimal.Decimal(round_data[key])
+                round_data['shares'] += round_data[key]
+            network_data.setdefault(currency, {})
+            network_data[currency]['round'] = round_data
 
         blocks = (Block.query.filter_by(currency=currency.key).
                   order_by(Block.found_at.desc()).limit(5)).all()

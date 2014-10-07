@@ -174,27 +174,6 @@ def get_pool_hashrate(algo):
     return float(ten_min) / 600 * algos[algo].hashes_per_share
 
 
-@cache.memoize(timeout=30)
-def get_round_shares(algo=None, merged=False):
-    """ Retrieves the total shares that have been submitted since the last
-    round rollover. """
-    suffix = algo if algo else merged
-    return sum(redis_conn.hvals('current_block_' + suffix)), datetime.datetime.utcnow()
-
-
-def get_adj_round_shares(khashrate):
-    """ Since round shares are cached we still want them to update on every
-    page reload, so we extrapolate a new value based on computed average
-    shares per second for the round, then add that for the time since we
-    computed the real value. """
-    round_shares, dt = get_round_shares()
-    # # compute average shares/second
-    now = datetime.datetime.utcnow()
-    sps = float(khashrate * 1000)
-    round_shares += int(round((now - dt).total_seconds() * sps))
-    return round_shares, sps
-
-
 @cache.cached(timeout=60, key_prefix='alerts')
 def get_alerts():
     return yaml.load(open(root + '/static/yaml/alerts.yaml'))
@@ -400,10 +379,6 @@ def get_pool_eff(timedelta=None):
         return 100
     else:
         return (float(acc) / (acc + rej)) * 100
-
-
-def shares_to_hashes(shares):
-    return float(current_app.config.get('hashes_per_share', 65536)) * shares
 
 
 def resort_recent_visit(recent):

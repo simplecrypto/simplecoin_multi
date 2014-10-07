@@ -84,26 +84,46 @@ $(document).ready(function() {
 {% endif %}
 
 <br />
+<div class="row page-header">
 <h2>Recently Mined Blocks</h2>
 {% for currency, data in network_data.iteritems() %}
   <h4>{{ currency.name }}  &nbsp;&nbsp;&nbsp;<small><a href="/blocks/{{ currency }}">[view all blocks]</a></small></h4>
-  <dl class="dl-horizontal">
-    <dt>Code</dt>
-    <dd>{{ currency.key }}</dd>
-    <dt>Algorithm</dt>
-    <dd>{{ currency.algo.display }}</dd>
-  {% if 'difficulty' in data %}
-    <dt>Difficulty</dt>
-    <dd>{{ data['difficulty'] | comma }}</dd>
-    <dt>Block Reward</dt>
-    <dd>{{ data['reward'] | comma }} {{ currency }}</dd>
-    <dt>Height</dt>
-    <dd>{{ data['height'] | comma }}</dd>
-  {% endif %}
-  </dl>
-  {% if data['blocks'] %}
-    {% set blocks = data['blocks'] %}
-    {% include "block_table.html" %}
-  {% endif %}
+  <div class="row">
+    <div class="col-lg-6">
+      <dl class="dl-horizontal">
+        <dt>Code</dt>
+        <dd>{{ currency.key }}</dd>
+        <dt>Algorithm</dt>
+        <dd>{{ currency.algo.display }}</dd>
+      {% if 'difficulty' in data %}
+        <dt>Difficulty</dt>
+        <dd>{{ data['difficulty'] | comma }}</dd>
+        <dt>Block Reward</dt>
+        <dd>{{ data['reward'] | comma }} {{ currency }}</dd>
+        <dt>Height</dt>
+        <dd>{{ data['height'] | comma }}</dd>
+      {% endif %}
+      </dl>
+    </div>
+    <div class="col-lg-6">
+      <dl class="dl-horizontal">
+      {% if 'round' in data %}
+        <dt>Round Shares</dt>
+        <dd>{{ data['round']['shares'] | comma }}</dd>
+        {% if 'start_time' in data['round'] %}
+        <dt>Laste Solve</dt>
+        <dd>{{ data['round']['start_time'] | human_date_utc }}</dd>
+        {% endif %}
+      {% endif %}
+      </dl>
+    </div>
+  </div>
+  <div class="row">
+    {% if data['blocks'] %}
+      {% set blocks = data['blocks'] %}
+      {% include "block_table.html" %}
+    {% endif %}
+  </div>
 {% endfor %}
+</div>
 {% endblock %}
