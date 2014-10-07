@@ -120,15 +120,19 @@ $(document).ready(function() {
             {% endif %}
             {% if worker['status_stale'] == True %}
               {# if stale then show a warning #}
+              {#
               <small colspan="3" style="font-size:14px;color:#EEA236;"> <i>Updated {{ worker['status_time'] | human_date_utc }}</i></small>
               <div class="btn btn-default btn-sm collapse-button" data-toggle="collapse" data-target="#worker-{{ worker['name'] }}">
                 [ + ]
               </div>
+              #}
             {% else %}
               {# Not stale - show last updated time #}
+              {#
               <small colspan="3" style=" font-size:14px;font-weight:300;">
                 <i>Updated {{ worker['status_time'] | human_date_utc }}</i>
               </small>
+              #}
               <div class="btn btn-default btn-sm collapse-button"
                    data-toggle="collapse" data-target="#worker-{{ worker['name'] }}">
                 [ - ]
