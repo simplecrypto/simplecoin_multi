@@ -248,10 +248,15 @@ def collect_user_stats(user_address):
 
     # Get the lower bound for 10 minutes ago
     lower_10, upper_10 = make_upper_lower(offset=datetime.timedelta(minutes=2))
+    lower_day, upper_day = make_upper_lower(span=datetime.timedelta(days=1),
+                                            clip=datetime.timedelta(minutes=2))
 
     newest = datetime.datetime.fromtimestamp(0)
     # XXX: Needs to only sum the last 24 hours
-    for slc in ShareSlice.get_span(ret_query=True, user=(user_address, )):
+    for slc in ShareSlice.get_span(ret_query=True,
+                                   upper=upper_day,
+                                   lower=lower_day,
+                                   user=(user_address, )):
         if slc.time > newest:
             newest = slc.time
 
