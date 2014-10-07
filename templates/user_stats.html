@@ -76,7 +76,7 @@ $(document).ready(function() {
             <i class="fa fa-circle" style="color:{% if worker['online'] %}#5BCE00{% else %}#B12627{% endif %}"
                data-toggle="tooltip" data-placement="right"
                title="{% if worker['online'] %}Online{% else %}Offline{% endif %}"></i>&nbsp;
-            {{ worker['name'] }}
+             {{ worker['name'] }} <small>({{ worker['algo'] }})</small>
             {% for server, connections in worker['servers'].iteritems() %}
               &nbsp;&nbsp;<small style="font-size:8pt;">{{ server.display_text }} ({{ connections }} connections)</small>
             {% endfor %}
