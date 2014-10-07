@@ -273,7 +273,9 @@ def collect_user_stats(user_address):
             try:
                 powerpool = powerpools[ppid]
             except KeyError:
-                # XXX: Needs a warning here!
+                current_app.logger.warn(
+                    "Cache said to look for powerpool {} which doesn't exist!"
+                    .format(ppid))
                 continue
 
             worker = check_new(user_address, worker_name, powerpool.chain.algo.key)
