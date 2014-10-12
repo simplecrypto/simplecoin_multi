@@ -269,7 +269,7 @@ class TestTradeRequest(UnitTest):
                                      "stuck_quantity": str(posted_stuck_amt)}}}
         db.session.expunge_all()
 
-        with self.app.test_request_context('/?name=Peter'):
+        with self.app.test_request_context():
             flask.g.signer = TimedSerializer(self.app.config['rpc_signature'])
             flask.g.signed = push_data
             update_trade_requests()
@@ -311,15 +311,16 @@ class TestTradeRequest(UnitTest):
             # Check that new credit attrs are the same as old (fees, etc)
             for credit in credits2:
                 if credit.payable is False:
-                    assert credits2[credit.id - 20].fee_perc == credit.fee_perc
-                    assert credits2[credit.id - 20].pd_perc == credit.pd_perc
-                    assert credits2[credit.id - 20].block == credit.block
-                    assert credits2[credit.id - 20].user == credit.user
-                    assert credits2[credit.id - 20].sharechain_id == credit.sharechain_id
-                    assert credits2[credit.id - 20].address == credit.address
-                    assert credits2[credit.id - 20].currency == credit.currency
-                    assert credits2[credit.id - 20].type == credit.type
-                    assert credits2[credit.id - 20].payout == credit.payout
+                    c2 = credits2[credit.id - 20]
+                    assert c2.fee_perc == credit.fee_perc
+                    assert c2.pd_perc == credit.pd_perc
+                    assert c2.block == credit.block
+                    assert c2.user == credit.user
+                    assert c2.sharechain_id == credit.sharechain_id
+                    assert c2.address == credit.address
+                    assert c2.currency == credit.currency
+                    assert c2.type == credit.type
+                    assert c2.payout == credit.payout
 
         # Assert that the status is 5, partially completed
         assert tr2._status == 5

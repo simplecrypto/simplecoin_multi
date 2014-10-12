@@ -66,7 +66,7 @@ def update_trade_requests():
             assert 'status' in tr
             g.signed['trs'][tr_id]['status'] = int(tr['status'])
             if tr['status'] == 5 or tr['status'] == 6:
-                tr['stuck_quantity'] = Decimal(tr['stuck_quantity'])
+                tr['source_quantity'] = Decimal(tr['source_quantity'])
                 tr['quantity'] = Decimal(tr['quantity'])
                 tr['fees'] = Decimal(tr['fees'])
     except (AssertionError, TypeError, KeyError):
@@ -84,13 +84,11 @@ def update_trade_requests():
 
             if status == 5 or status == 6:
                 tr.exchanged_quantity = tr_dict['quantity'] + tr_dict['stuck_quantity']
-                if tr.fees:
-                    applied_fees = tr_dict['fees'] - tr.fees
-                else:
-                    applied_fees = tr_dict['fees']
                 tr.fees = tr_dict['fees']
-                stuck_quantity = tr_dict['stuck_quantity']
-                tr.distribute(stuck_quantity, applied_fees)
+                # Get the amount of fees that we incurred during this trade
+                # update
+                applied_fees = tr_dict['fees'] - (tr.fees or 0)
+                tr.distribute(tr_dict['stuck_quantity'], applied_fees)
 
         except Exception:
             db.session.rollback()
