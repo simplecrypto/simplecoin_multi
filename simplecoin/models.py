@@ -58,28 +58,6 @@ class TradeResult(base):
     req = db.relationship('TradeRequest', foreign_keys=[req_id],
                           backref='results')
 
-    def distribute(self, payable_amount):
-        # calculate user payouts based on percentage of the total
-        # exchanged value
-        if self.type == "sell":
-            portions = {c.id: c.amount for c in credits}
-        elif self.type == "buy":
-            portions = {c.id: c.sell_amount for c in credits
-                        if c.payable is False}
-
-        amts_copy = portions.copy()
-        amounts = distributor(payable_amount, amts_copy, scale=50)
-
-        for credit in credits:
-            if self.type == "sell":
-                assert credit.sell_amount is None
-                credit.sell_amount = amounts[credit.id]
-            elif self.type == "buy":
-                if credit.payable is False:
-                    credit.buy_amount = amounts[credit.id]
-                    # Mark the credit ready for payout to users
-                    credit.payable = True
-
 
 class TradeRequest(base):
     """
@@ -141,81 +119,87 @@ class TradeRequest(base):
                 "Nothing to update, quantity and source_quantity have not changed")
             return
 
-        new_tr = TradeResult(quantity=source_quantity - source_total,
-                             exchanged_quantity=quantity - destination_total,
-                             fees=fees - fee_total)
-        db.session.add(new_tr)
+        new_result = TradeResult(quantity=source_quantity - source_total,
+                                 exchanged_quantity=quantity - destination_total,
+                                 fees=fees - fee_total)
+        db.session.add(new_result)
 
-        distribute_amount = new_tr.exchanged_quantity
+        distribute_amount = new_result.exchanged_quantity
         # If we're not covering exchange fees, remove them from the amount
         # we distribute
         if not current_app.config.get('cover_autoex_fees', False):
-            distribute_amount -= new_tr.fees
+            distribute_amount -= new_result.fees
 
         # If the upaid credits sum up to more than the amount of the
         # TradeResult then we're going to have to split the credit objects so
         # we can perform a partial credit
-        if total_unpaid > new_tr.exchanged_quantity:
-            credit_amts = {credit.id: credit.amount for credit in unpaid_credits}
-            # Distributing the amount that we'll be paying
-            curr_distrib = distributor(distribute_amount, credit_amts)
-            amount_distrib = distributor(new_tr.quantity, credit_amts)
+        if total_unpaid > distribute_amount:
+            ratio = {'traded': total_unpaid - distribute_amount, 'remaining': distribute_amount}
 
-            # Split a few values evenly based on the ratio between stuck amount
-            # and payable amount
-            amts = {'traded': payable_amount + self.fees,
-                    'remaining': stuck_quantity}
-            if self.type == "sell":
-                btc_distrib = distributor(self.quantity, amts.copy())
+            payable_credits = []
+            for credit in unpaid_credits:
+                # Copy the original credit's metadata
+                split_credit = CreditExchange(
+                    user=credit.user,
+                    sharechain_id=credit.sharechain_id,
+                    sell_req=credit.sell_req,
+                    buy_req=credit.sell_req,
+                    currency=credit.currency,
+                    address=credit.address,
+                    fee_perc=credit.fee_perc,
+                    pd_perc=credit.pd_perc,
+                    block=credit.block)
 
-            # Calculate the BTC distribution, based on the stuck currency
-            # amounts
-            new_btc_distrib = distributor(btc_distrib['new'], amts.copy())
+                # Calculate the new CreditExchange's amount, and sell amount if
+                # this is a buy trade request
+                new_amounts = distributor(credit.amount, ratio)
+                if self.type == "buy":
+                    new_sell_amounts = distributor(credit.sell_amount, ratio)
+                split_credit.amount = new_amounts['traded']
+                split_credit.sell_amount = new_sell_amounts['traded']
+                credit.amount = new_amounts['remaining']
+                credit.sell_amount = new_sell_amounts['remaining']
 
-            with decimal.localcontext(decimal.BasicContext) as ctx:
-                # A sufficiently large number that we don't cause rounding
-                # error
-                ctx.prec = 50
+                db.session.add(split_credit)
+                payable_credits.append(split_credit)
 
-                i = 0
-                # Loop + add a new credit for each old credit
-                while i < len(credits):
-                    credit = credits[i]
-
-                    # subtract the credits cut from the old credit's amount
-                    credit.amount -= new_btc_distrib[credit.id]
-                    credit.sell_amount -= new_btc_distrib[credit.id]
-                    # Create a new credit for the remaining cut
-                    new_credit_amt = new_btc_distrib[credit.id]
-
-                    cr = CreditExchange(
-                        user=credit.user,
-                        sharechain_id=credit.sharechain_id,
-                        amount=new_credit_amt,
-                        sell_amount=new_credit_amt,
-                        buy_amount=curr_distrib[credit.id],
-                        sell_req=None,
-                        buy_req=self,
-                        currency=credit.currency,
-                        address=credit.address,
-                        fee_perc=credit.fee_perc,
-                        pd_perc=credit.pd_perc,
-                        block=credit.block)
-
-                    db.session.add(cr)
-                    i += 1
-
-            current_app.logger.info(
-                "Successfully updated trade request {:,} making "
-                "amount {:,} payable and {:,} stuck.".
-                format(self.id, payable_amount, stuck_quantity))
-
-        if source_quantity == self.quantity:
-            self._status = 6
-        else:
+            # Populate the id values of the new credits
+            db.session.flush()
+            current_app.logger.info("Successfully split {:,} credits."
+                                    .format(len(unpaid_credits)))
             self._status = 5
+        elif total_unpaid == distribute_amount:
+            self._status = 6
+            payable_credits = unpaid_credits
+        else:
+            raise ValueError("We have been told that more currency was "
+                             "traded then what we requested!")
 
-        db.session.flush()
+        # Set the trade result object
+        for credit in payable_credits:
+            if self.type == "buy":
+                credit.buy_result = new_result
+                credit.payable = True
+            else:
+                credit.sell_result = new_result
+
+        # calculate user payouts based on percentage of the total
+        # exchanged value
+        if self.type == "sell":
+            portions = {c.id: c.amount for c in payable_credits}
+        elif self.type == "buy":
+            portions = {c.id: c.sell_amount for c in payable_credits}
+        amounts = distributor(new_result.exchanged_quantity, portions)
+
+        for credit in credits:
+            if self.type == "sell":
+                assert credit.sell_amount is None
+                credit.sell_amount = amounts[credit.id]
+            elif self.type == "buy":
+                if credit.payable is False:
+                    credit.buy_amount = amounts[credit.id]
+                    # Mark the credit ready for payout to users
+                    credit.payable = True
 
         current_app.logger.info(
             "Successfully pushed trade result for request id {:,} and "
@@ -559,16 +543,16 @@ class CreditExchange(Credit):
     sell_req_id = db.Column(db.Integer, db.ForeignKey('trade_request.id'))
     sell_req = db.relationship('TradeRequest', foreign_keys=[sell_req_id],
                                backref='sell_credits')
-    sell_res_id = db.Column(db.Integer, db.ForeignKey('trade_result.id'))
-    sell_res = db.relationship('TradeResult', foreign_keys=[buy_req_id],
-                              backref='sell_credits')
+    #sell_res_id = db.Column(db.Integer, db.ForeignKey('trade_result.id'))
+    #sell_res = db.relationship('TradeResult', foreign_keys=[buy_req_id],
+    #                           backref='sell_credits')
     sell_amount = db.Column(db.Numeric)
     buy_req_id = db.Column(db.Integer, db.ForeignKey('trade_request.id'))
     buy_req = db.relationship('TradeRequest', foreign_keys=[buy_req_id],
+    #buy_res_id = db.Column(db.Integer, db.ForeignKey('trade_result.id'))
                               backref='buy_credits')
-    buy_res_id = db.Column(db.Integer, db.ForeignKey('trade_result.id'))
-    buy_res = db.relationship('TradeResult', foreign_keys=[buy_req_id],
-                              backref='buy_credits')
+    #buy_res = db.relationship('TradeResult', foreign_keys=[buy_req_id],
+    #                          backref='buy_credits')
     buy_amount = db.Column(db.Numeric)
 
     @property
