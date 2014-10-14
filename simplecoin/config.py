@@ -533,7 +533,7 @@ class PowerPool(ConfigObject):
         return self.key
 
     def request(self, url, method='GET', max_age=None, signed=True, **kwargs):
-        url = urljoin(self.monitor_address, url)
+        url = "{}/{}".format(self.monitor_address.rstrip('/'), url.lstrip('/'))
         ret = requests.request(method, url, timeout=self.timeout, **kwargs)
         if ret.status_code != 200:
             raise RemoteException("Non 200 from endpoint {}: {}"

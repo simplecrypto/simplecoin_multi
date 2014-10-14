@@ -78,7 +78,7 @@ def update_online_workers():
     users = {}
     for ppid, powerpool in powerpools.iteritems():
         try:
-            data = powerpool.request('clients')
+            data = powerpool.request('clients/')
         except RemoteException:
             current_app.logger.warn("Unable to connect to PP {} to gather worker summary."
                                     .format(powerpool.full_info()), exc_info=True)
@@ -847,7 +847,7 @@ def collect_minutes():
                 worker = ''
             address = parts[0]
 
-            if address != "pool":
+            if not address.startswith("pool"):
                 try:
                     curr = currencies.lookup_payable_addr(address)
                 except InvalidAddressException:

@@ -1,13 +1,12 @@
-mode = "testing"
-pool_payout_currency = "BTC"
+pool_payout_currency = "LTC"
 SECRET_KEY = "somethting_really_secret"
 SQLALCHEMY_DATABASE_URI = "sqlite:///database.sqlite3"
 DEBUG = true
 rpc_signature = "test"
 
 [chains.1]
-title = "Vertcoin"
-algo = "scryptn"
+title = "Litecoin + SYS MM"
+algo = "scrypt"
 type = "pplns"
 last_n = 2
 fee_perc = "0.01"
@@ -16,30 +15,31 @@ fee_perc = "0.01"
 location_acronym = "CA"
 location = "Beauharnois, Canada"
 country_flag = "/img/ca.svg"
-address = "http://ca.simplemulti.com"
+address = "http://localhost"
 
-[currencies.BTC]
-exchangeable = true
-pool_payout_addr = "1LmZN5ifbHdQy5jW9wNqyTuke3odY2Zos8"
-[currencies.BTC.coinserv]
-port = 10060
-address = "127.0.0.1"
-username = "bitcoinrpc"
-password = "admin1"
-
-[currencies.VTC]
+[currencies.LTC]
 exchangeable = true
 mineable = true
-[currencies.VTC.coinserv]
-port = 10070
+pool_payout_addr = "LbfSCZE1p9A3Yj2JK1n57kxyD2H1ZSXtNG"
+[currencies.LTC.coinserv]
+port = 20001
 address = "127.0.0.1"
-username = "vertcoinrpc"
-password = "admin1"
+username = "admin1"
+password = "123"
+
+[currencies.SYS]
+mineable = true
+pool_payout_addr = "SdzKyvhD2Y3xJvGVSfx96NXszq6x9BZX34"
+[currencies.SYS.coinserv]
+port = 19001
+address = "127.0.0.1"
+username = "admin1"
+password = "123"
 
 [mining_servers.1]
 address = "localhost"
 monitor_address = "http://localhost:3855/stratum"
 port = 3333
 location = "CA"
-diff = 512
+diff = 1
 chain = 1
