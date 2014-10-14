@@ -86,7 +86,11 @@ def update_online_workers():
 
         for address, connections in data['clients'].iteritems():
             user = users.setdefault('addr_online_' + address, {})
+            if isinstance(connections, dict):
+                connections = connections.itervalues()
             for connection in connections:
+                if isinstance(connection, basestring):
+                    continue
                 worker = user.setdefault(connection['worker'], {})
                 worker.setdefault(ppid, 0)
                 worker[ppid] += 1
