@@ -145,6 +145,66 @@ $(document).ready(function() {
   // Setup collapse button for currencies
   flip('#payout-currencies', '#pool-details', '[+]', '[-]');
 
+  function n(n){
+      return n > 9 || n < -9 ? "" + n: "0" + n;
+  }
+
+  // Loop through each current round
+  $('tr.current_round').each(function() {
+    // Mark blank values for deletion - otherwise attempt to validate
+    var base, shares, round_start, seconds, page_view_seconds, shares_per_sec,
+      luck, avg_shares_to_solve;
+
+    page_view_seconds = 0;
+
+    base = $(this).children('td');
+
+    // Grab some current round values out of HTML
+    shares = base.children('span.blockshares').html();
+    shares_per_sec = parseInt(base.children('span.shares_per_second').html());
+    avg_shares_to_solve = parseInt(base.children('span.avg_shares_to_solve').html());
+    round_start = parseInt(base.children('span.starttime').html());
+
+    if (isNaN(round_start)) {
+      seconds = 0
+    } else{
+      seconds = parseInt(new Date().getTime()) - round_start;
+    }
+
+    update_content = function(base){
+      var y, minutes, hours, running_sharecount;
+
+      seconds += 1;
+      page_view_seconds += 1;
+      running_sharecount = shares + (shares_per_sec * page_view_seconds);
+
+      y = seconds%60;
+      minutes = n(Math.floor(seconds/60)%60);
+      hours = n(Math.floor(seconds/3600));
+
+      luck = ((avg_shares_to_solve) / running_sharecount) * 1000;
+      if (luck > 99999) {
+        luck = 99999;
+      }
+
+      // update round shares
+      base.children('span.blockshares').text(numberWithCommas(Math.round(running_sharecount)));
+      // Update round time
+      base.children('span.minutes').text(minutes);
+      base.children('span.seconds').text(n(y));
+      base.children('span.hours').text(hours);
+      // Update round luck
+      base.children('span.blockluck').text(numberWithCommas(Math.round(luck) / 10));
+
+    };
+
+    // update things immediately
+    update_content(base);
+    // Update ever second afterwards
+    setInterval(function() { update_content(base); }, 1000);
+
+  });
+
 
 ////////////////////////////////////////////
 // JS for user stats page

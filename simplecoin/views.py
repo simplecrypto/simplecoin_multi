@@ -132,14 +132,20 @@ def pool_stats():
         if not currency.mineable:
             continue
 
+        algo = algos[str(currency.algo)].display
+        hashes_per_share = algos[str(currency.algo)].hashes_per_share
+
+        network_data.setdefault(algo, {})
+        network_data[algo].setdefault(currency, {})
+
         data = cache.get("{}_data".format(currency.key))
         if data:
-            network_data.setdefault(currency, {})
-            network_data[currency].update(data)
+            network_data[algo][currency].update(data)
 
         round_data = redis_conn.hgetall('current_block_{}_{}'
                                         .format(currency, currency.algo))
         if data:
+            round_data.update(data)
             chain_shares = [k for k in round_data.keys()
                             if k.startswith("chain_") and k.endswith("shares")]
             round_data['shares'] = 0
@@ -148,14 +154,18 @@ def pool_stats():
             for key in chain_shares:
                 round_data[key] = decimal.Decimal(round_data[key])
                 round_data['shares'] += round_data[key]
-            network_data.setdefault(currency, {})
-            network_data[currency]['round'] = round_data
+
+            difficulty_avg = round_data.get('difficulty_avg', 1)
+            avg_hashes_to_solve = difficulty_avg * (2 ** 32)
+            round_data['avg_shares_to_solve'] = avg_hashes_to_solve / hashes_per_share
+            round_data['shares_per_sec'] = float(currency.hashrate) / hashes_per_share
+
+            network_data[algo][currency]['round'] = round_data
 
         blocks = (Block.query.filter_by(currency=currency.key).
                   order_by(Block.found_at.desc()).limit(5)).all()
         if blocks:
-            network_data.setdefault(currency, {})
-            network_data[currency]['blocks'] = blocks
+            network_data[algo][currency]['blocks'] = blocks
 
     server_status = cache.get('server_status') or {}
 

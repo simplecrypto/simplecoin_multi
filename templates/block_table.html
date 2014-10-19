@@ -19,7 +19,7 @@ $(document).ready(function() {
         <th>Shares</th>
         <th>Luck</th>
         <th>Round Duration</th>
-        <th>Payout</th>
+        <th>Reward</th>
         <th>Difficulty</th>
         <th>Solved by</th>
         <th>Block Hash</th>
@@ -28,13 +28,41 @@ $(document).ready(function() {
       </tr>
     </thead>
     <tbody>
+    {% if current_block %}
+    <tr class="active current_round">
+      <td data-sort-value="100000000000">In Progress</td>
+      <td>
+        <span class="shares_per_second" style="display:none;">
+          {{ current_block['shares_per_second'] }}
+        </span>
+        <span class="avg_shares_to_solve" style="display:none;">
+          {{ current_block['avg_shares_to_solve'] }}
+        </span>
+        <span class="shares_per_sec" style="display:none;">
+          {{ current_block['shares_per_sec'] }}
+        </span>
+        <span class="starttime" style="display:none;">
+          {{ current_block['start_time'] }}
+        </span>
+        <span class="blockshares">0</span>
+      </td>
+      <td><span class="blockluck">???</span>%</td>
+      <td><span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span></td>
+      <td>{{ '{:,.8f}'.format(current_block['reward']) }}</td>
+      <td>{{ current_block['difficulty'] | round(4) }}</td>
+      <td>...</td>
+      <td>...</td>
+      <td>{{ '{:,}'.format((current_block['height']) | int) }}</td>
+      <td>In progress</td>
+    </tr>
+    {% endif %}
     {% for block in blocks %}
     <tr>
       <td data-sort-value="{{ block.timestamp }}">{{ block.found_at | human_date_utc }}</td>
       <td>{{ '{:,}'.format(block.hr_shares_to_solve or 1) }}</td>
       <td>{{ '{:,}'.format((block.luck or 0) | round(2)) }} %</td>
       <td data-sort-value="{{ block.duration.total_seconds() }}">{{ block.duration }}</td>
-      <td>{{ '{:,}'.format(block.total_value | round(2)) }}</td>
+      <td>{{ '{:,.8f}'.format(block.total_value) }}</td>
       <td>{{ '{:,}'.format(block.difficulty | round(4)) }}</td>
       <td>{% if block.user in g.anon_users %}
             Anonymous

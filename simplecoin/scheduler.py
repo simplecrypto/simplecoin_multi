@@ -995,9 +995,15 @@ def compress_five_minute():
 @SchedulerCommand.command
 def server_status():
     """
-    Periodicly poll the backend to get number of workers and other general
+    Periodically poll the backend to get number of workers and other general
     status information.
     """
+    # Reset the hashrate for each currency
+    for currency in currencies.itervalues():
+        if not currency.mineable:
+            continue
+        currency.hashrate = 0
+
     algo_miners = {}
     servers = {}
     raw_servers = {}
@@ -1016,6 +1022,14 @@ def server_status():
                                           name=powerpool.stratum_address)
             algo_miners.setdefault(powerpool.chain.algo.key, 0)
             algo_miners[powerpool.chain.algo.key] += data['address_count']
+
+            if 'currency' in data:
+                currencies[data['currency']].hashrate += data['hps']
+                # Add hashrate to the merged networks too
+                if ('last_flush_job' in data and
+                            'merged_networks' in data['last_flush_job']):
+                    for currency in data['last_flush_job']['merged_networks']:
+                        currencies[currency].hashrate += data['hps']
 
     cache.set('raw_server_status', raw_servers, timeout=1200)
     cache.set('server_status', servers, timeout=1200)
