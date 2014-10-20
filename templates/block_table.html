@@ -29,19 +29,19 @@ $(document).ready(function() {
     </thead>
     <tbody>
     {% if current_block %}
-    <tr class="active current_round">
-      <td data-sort-value="100000000000">In Progress</td>
+    <tr class="active current_round" data-currency="{{ current_block['currency'] }}">
+      <td data-sort-value="100000000000">...</td>
       <td>
-        <span class="shares_per_second_{{ index }}" style="display:none;">
+        <span class="shares_per_second_{{ current_block['currency'] }}" style="display:none;">
           {{ '{:,.16f}'.format(current_block['shares_per_sec']) }}
         </span>
-        <span class="avg_shares_to_solve_{{ index }}" style="display:none;">
+        <span class="avg_shares_to_solve_{{ current_block['currency'] }}" style="display:none;">
           {{ '{:,.16f}'.format(current_block['avg_shares_to_solve']) }}
         </span>
-        <span class="blockshares_{{ index }}" style="display:none;">
+        <span class="blockshares_{{ current_block['currency'] }}" style="display:none;">
           {{ '{:,.8f}'.format(current_block['shares']) }}
         </span>
-        <span class="starttime_{{ index }}" style="display:none;">
+        <span class="starttime_{{ current_block['currency'] }}" style="display:none;">
           {{ current_block['start_time'] }}
         </span>
         <span class="blockshares">{{ current_block['shares']| round(4) }}</span>
@@ -53,7 +53,9 @@ $(document).ready(function() {
       <td>...</td>
       <td>...</td>
       <td>{{ '{:,}'.format((current_block['height']) | int) }}</td>
-      <td>In progress</td>
+      <td>
+        {% if current_block['hashrate'] > 0 %}In progress{% else %}Idle{% endif %}
+      </td>
     </tr>
     {% endif %}
     {% for block in blocks %}

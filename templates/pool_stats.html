@@ -78,9 +78,6 @@ $(document).ready(function() {
 
   {% for algo, currencies in network_data.iteritems() %}
 
-  {# Pass the outer loop index into the blocks_table.html #}
-  {% set index = loop.index0 %}
-
   <div class="row algo {{ algo }}">
     <div class="col-lg-12 no-padding">
 

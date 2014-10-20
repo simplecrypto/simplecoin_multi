@@ -134,15 +134,13 @@ def pool_stats():
 
         algo = algos[str(currency.algo)].display
         hashes_per_share = algos[str(currency.algo)].hashes_per_share
-        cached_hash = cache.get("hashrate_{}".format(currency.key)) or 0
-        currency_hashrate = float(cached_hash)
 
         network_data.setdefault(algo, {})
         network_data[algo].setdefault(currency, {})
 
-        data = cache.get("{}_data".format(currency.key))
-        data['hashrate'] = currency_hashrate
+        data = cache.get("{}_data".format(currency.key)) or {}
         if data:
+            data['hashrate'] = float(cache.get("hashrate_{}".format(currency.key)) or 0)
             network_data[algo][currency].update(data)
 
         round_data = redis_conn.hgetall('current_block_{}_{}'
@@ -162,7 +160,7 @@ def pool_stats():
             avg_hashes_to_solve = difficulty_avg * (2 ** 32)
 
             round_data['avg_shares_to_solve'] = avg_hashes_to_solve / hashes_per_share
-            round_data['shares_per_sec'] = currency_hashrate / hashes_per_share
+            round_data['shares_per_sec'] = round_data['hashrate'] / hashes_per_share
             round_data['currency'] = currency.key
 
             network_data[algo][currency]['round'] = round_data
@@ -171,6 +169,10 @@ def pool_stats():
                   order_by(Block.found_at.desc()).limit(6)).all()
         if blocks:
             network_data[algo][currency]['blocks'] = blocks
+
+            # if no cache was grabbed use the most recent block as the start
+            if data and not 'start_time' in round_data:
+                round_data['start_time'] = blocks[0].timestamp
 
     server_status = cache.get('server_status') or {}
 

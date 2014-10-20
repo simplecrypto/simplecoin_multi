@@ -167,18 +167,16 @@ $(document).ready(function() {
   $('tr.current_round').each(function(index) {
     var shares, shares_per_sec, avg_shares_to_solve, round_seconds;
 
+    var currency = $(this).data('currency');
     var selector = $(this).children('td');
 
     // Grab some current round values out of HTML
-    shares = parseFloat(selector.children('span.blockshares_' + index).html());
+    shares = parseFloat(selector.children('span.blockshares_' + currency).html());
     if (isNaN(shares)) { shares = 0 }
-    shares_per_sec = parseFloat(selector.children('span.shares_per_second_' + index).html());
+    shares_per_sec = parseFloat(selector.children('span.shares_per_second_' + currency).html());
     if (isNaN(shares_per_sec)) { shares_per_sec = 0 }
-    avg_shares_to_solve = parseFloat(selector.children('span.avg_shares_to_solve_' + index).html());
-
-    // Grab some current round values out of HTML
-    shares = parseFloat(selector.children('span.blockshares_' + index).html());
-    round_seconds = parseInt(selector.children('span.starttime_' + index).html());
+    avg_shares_to_solve = parseFloat(selector.children('span.avg_shares_to_solve_' + currency).html());
+    round_seconds = parseInt(selector.children('span.starttime_' + currency).html());
 
     if (isNaN(round_seconds)) {
       round_seconds = 0

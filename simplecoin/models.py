@@ -273,7 +273,7 @@ class Block(base):
 
     @property
     def timestamp(self):
-        return calendar.timegm(self.block.found_at.utctimetuple())
+        return calendar.timegm(self.found_at.utctimetuple())
 
     @property
     def duration(self):
