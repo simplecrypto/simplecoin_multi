@@ -48,11 +48,11 @@ $(document).ready(function() {
       </td>
       <td><span class="blockluck">???</span>%</td>
       <td><span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span></td>
-      <td>{{ '{:,.8f}'.format(current_block['reward']) }}</td>
-      <td>{{ current_block['difficulty'] | round(4) }}</td>
+      <td>{{ current_block['reward'] | comma }}</td>
+      <td>{{ current_block['difficulty'] | comma }}</td>
       <td>...</td>
       <td>...</td>
-      <td>{{ '{:,}'.format((current_block['height']) | int) }}</td>
+      <td>{{ current_block['height'] | comma }}</td>
       <td>
         {% if current_block['hashrate'] > 0 %}In progress{% else %}Idle{% endif %}
       </td>

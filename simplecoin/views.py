@@ -132,20 +132,27 @@ def pool_stats():
         if not currency.mineable:
             continue
 
-        algo = algos[str(currency.algo)].display
-        hashes_per_share = algos[str(currency.algo)].hashes_per_share
+        cached_hash = cache.get("hashrate_{}".format(currency.key)) or 0
+        currency_hashrate = float(cached_hash)
 
-        network_data.setdefault(algo, {})
-        network_data[algo].setdefault(currency, {})
+        network_data.setdefault(currency.algo, {})
+        network_data[currency.algo].setdefault(currency, {})
 
+        data = dict(difficulty=None,
+                    hashrate=0,
+                    height=None)
         data = cache.get("{}_data".format(currency.key)) or {}
         if data:
             data['hashrate'] = float(cache.get("hashrate_{}".format(currency.key)) or 0)
-            network_data[algo][currency].update(data)
+            network_data[currency.algo][currency].update(data)
 
-        round_data = redis_conn.hgetall('current_block_{}_{}'
-                                        .format(currency, currency.algo))
-        if data:
+        round_data = redis_conn.hgetall(
+            'current_block_{}_{}' .format(currency, currency.algo)) or {}
+
+        if data is not None:
+            data['hashrate'] = currency_hashrate
+            network_data[currency.algo][currency].update(data)
+
             round_data.update(data)
             chain_shares = [k for k in round_data.keys()
                             if k.startswith("chain_") and k.endswith("shares")]
@@ -159,19 +166,20 @@ def pool_stats():
             difficulty_avg = round_data.get('difficulty_avg', 1)
             avg_hashes_to_solve = difficulty_avg * (2 ** 32)
 
-            round_data['avg_shares_to_solve'] = avg_hashes_to_solve / hashes_per_share
-            round_data['shares_per_sec'] = round_data['hashrate'] / hashes_per_share
+            hps = currency.algo.hashes_per_share
+            round_data['avg_shares_to_solve'] = avg_hashes_to_solve / hps
+            round_data['shares_per_sec'] = round_data['hashrate'] / hps
             round_data['currency'] = currency.key
 
-            network_data[algo][currency]['round'] = round_data
+            network_data[currency.algo][currency]['round'] = round_data
 
         blocks = (Block.query.filter_by(currency=currency.key).
                   order_by(Block.found_at.desc()).limit(6)).all()
         if blocks:
-            network_data[algo][currency]['blocks'] = blocks
+            network_data[currency.algo][currency]['blocks'] = blocks
 
             # if no cache was grabbed use the most recent block as the start
-            if data and not 'start_time' in round_data:
+            if data and 'start_time' not in round_data:
                 round_data['start_time'] = blocks[0].timestamp
 
     server_status = cache.get('server_status') or {}

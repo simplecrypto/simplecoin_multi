@@ -999,11 +999,7 @@ def server_status():
     status information.
     """
     # Reset the hashrate for each currency
-    for currency in currencies.itervalues():
-        if not currency.mineable:
-            continue
-        currency.hashrate = 0
-
+    currency_hashrates = {}
     algo_miners = {}
     servers = {}
     raw_servers = {}
@@ -1029,7 +1025,8 @@ def server_status():
                 # Add hashrate to the merged networks too
                 if 'merged_networks' in data['last_flush_job']:
                     for currency in data['last_flush_job']['merged_networks']:
-                        currencies[currency].hashrate += data['hps']
+                        currency_hashrates.setdefault(currencies[currency], 0)
+                        currency_hashrates[currencies[currency]] += data['hps']
 
     for currency in currencies.itervalues():
         if not currency.mineable:
