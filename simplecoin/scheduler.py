@@ -1023,13 +1023,18 @@ def server_status():
             algo_miners.setdefault(powerpool.chain.algo.key, 0)
             algo_miners[powerpool.chain.algo.key] += data['address_count']
 
-            if 'currency' in data:
-                currencies[data['currency']].hashrate += data['hps']
+            if 'last_flush_job' in data and 'currency' in data['last_flush_job']:
+                curr = data['last_flush_job']['currency']
+                currencies[curr].hashrate += data['hps']
                 # Add hashrate to the merged networks too
-                if ('last_flush_job' in data and
-                            'merged_networks' in data['last_flush_job']):
+                if 'merged_networks' in data['last_flush_job']:
                     for currency in data['last_flush_job']['merged_networks']:
                         currencies[currency].hashrate += data['hps']
+
+    for currency in currencies.itervalues():
+        if not currency.mineable:
+            continue
+        cache.set('hashrate_' + currency.key, currency.hashrate, timeout=120)
 
     cache.set('raw_server_status', raw_servers, timeout=1200)
     cache.set('server_status', servers, timeout=1200)

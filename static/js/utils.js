@@ -145,63 +145,95 @@ $(document).ready(function() {
   // Setup collapse button for currencies
   flip('#payout-currencies', '#pool-details', '[+]', '[-]');
 
+  $(".algo-tabs > li").click(function() {
+    event.preventDefault();
+
+    $(this).siblings().removeClass("active");
+    $(this).addClass("active");
+
+    var selector = $(this).data('algo');
+    $("." + selector).show();
+    $("." + selector).siblings().hide();
+
+    if (selector == 'all') { $(".algo").show(); }
+  });
+
   function n(n){
       return n > 9 || n < -9 ? "" + n: "0" + n;
   }
 
-  // Loop through each current round
-  $('tr.current_round').each(function() {
-    // Mark blank values for deletion - otherwise attempt to validate
-    var base, shares, round_start, seconds, page_view_seconds, shares_per_sec,
-      luck, avg_shares_to_solve;
+  var currencies = {};
+  // Loop through each current round + build an object for it
+  $('tr.current_round').each(function(index) {
+    var shares, shares_per_sec, avg_shares_to_solve, round_seconds;
 
-    page_view_seconds = 0;
-
-    base = $(this).children('td');
+    var selector = $(this).children('td');
 
     // Grab some current round values out of HTML
-    shares = base.children('span.blockshares').html();
-    shares_per_sec = parseInt(base.children('span.shares_per_second').html());
-    avg_shares_to_solve = parseInt(base.children('span.avg_shares_to_solve').html());
-    round_start = parseInt(base.children('span.starttime').html());
+    shares = parseFloat(selector.children('span.blockshares_' + index).html());
+    if (isNaN(shares)) { shares = 0 }
+    shares_per_sec = parseFloat(selector.children('span.shares_per_second_' + index).html());
+    if (isNaN(shares_per_sec)) { shares_per_sec = 0 }
+    avg_shares_to_solve = parseFloat(selector.children('span.avg_shares_to_solve_' + index).html());
 
-    if (isNaN(round_start)) {
-      seconds = 0
+    // Grab some current round values out of HTML
+    shares = parseFloat(selector.children('span.blockshares_' + index).html());
+    round_seconds = parseInt(selector.children('span.starttime_' + index).html());
+
+    if (isNaN(round_seconds)) {
+      round_seconds = 0
     } else{
-      seconds = parseInt(new Date().getTime()) - round_start;
+      round_seconds = parseInt(new Date().getTime() / 1000) - round_seconds;
     }
 
-    update_content = function(base){
-      var y, minutes, hours, running_sharecount;
+    currencies[index] = {
+      selector: selector,
+      shares: shares,
+      round_seconds: round_seconds,
+      avg_shares_to_solve: avg_shares_to_solve,
+      shares_per_sec: shares_per_sec
+    };
 
-      seconds += 1;
-      page_view_seconds += 1;
-      running_sharecount = shares + (shares_per_sec * page_view_seconds);
+  });
 
-      y = seconds%60;
-      minutes = n(Math.floor(seconds/60)%60);
-      hours = n(Math.floor(seconds/3600));
+  // Loop through each current round + set an interval function
+  $('tr.current_round').each(function(index) {
 
-      luck = ((avg_shares_to_solve) / running_sharecount) * 1000;
-      if (luck > 99999) {
-        luck = 99999;
+    update_content = function(currency){
+
+      // Update the currency object for the newest second
+      currency.round_seconds += 1;
+      currency.shares += currency.shares_per_sec;
+
+      var y = currency.round_seconds%60;
+      var minutes = n(Math.floor(currency.round_seconds/60)%60);
+      var hours = n(Math.floor(currency.round_seconds/3600));
+
+      var luck = ((currency.avg_shares_to_solve) / currency.shares) * 100;
+      if (isNaN(luck)) { luck = 0 }
+      if (luck > 9999) {
+        luck = 9999;
       }
 
+      // Workaround JS's rounding
+      var rounded_shares = currency.shares * 10000;
+
+      var selector = currency.selector;
       // update round shares
-      base.children('span.blockshares').text(numberWithCommas(Math.round(running_sharecount)));
+      selector.children('span.blockshares').text(numberWithCommas(Math.round(rounded_shares) / 10000));
       // Update round time
-      base.children('span.minutes').text(minutes);
-      base.children('span.seconds').text(n(y));
-      base.children('span.hours').text(hours);
+      selector.children('span.minutes').text(minutes);
+      selector.children('span.seconds').text(n(y));
+      selector.children('span.hours').text(hours);
       // Update round luck
-      base.children('span.blockluck').text(numberWithCommas(Math.round(luck) / 10));
+      selector.children('span.blockluck').text(numberWithCommas(Math.round(luck)));
 
     };
 
-    // update things immediately
-    update_content(base);
+    // Set the values asap
+    update_content(currencies[index]);
     // Update ever second afterwards
-    setInterval(function() { update_content(base); }, 1000);
+    setInterval(function() { update_content(currencies[index]); }, 1000);
 
   });
 

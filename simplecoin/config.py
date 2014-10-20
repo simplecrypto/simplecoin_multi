@@ -175,8 +175,7 @@ class Currency(ConfigObject):
     defaults = dict(exchangeable=False,
                     minimum_payout='0.00000001',
                     coinserv={},
-                    pool_payout_addr=None,
-                    hashrate=0)
+                    pool_payout_addr=None)
 
     def __init__(self, bootstrap):
         bootstrap['_algo'] = bootstrap.pop('algo')

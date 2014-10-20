@@ -134,11 +134,14 @@ def pool_stats():
 
         algo = algos[str(currency.algo)].display
         hashes_per_share = algos[str(currency.algo)].hashes_per_share
+        cached_hash = cache.get("hashrate_{}".format(currency.key)) or 0
+        currency_hashrate = float(cached_hash)
 
         network_data.setdefault(algo, {})
         network_data[algo].setdefault(currency, {})
 
         data = cache.get("{}_data".format(currency.key))
+        data['hashrate'] = currency_hashrate
         if data:
             network_data[algo][currency].update(data)
 
@@ -157,13 +160,15 @@ def pool_stats():
 
             difficulty_avg = round_data.get('difficulty_avg', 1)
             avg_hashes_to_solve = difficulty_avg * (2 ** 32)
+
             round_data['avg_shares_to_solve'] = avg_hashes_to_solve / hashes_per_share
-            round_data['shares_per_sec'] = float(currency.hashrate) / hashes_per_share
+            round_data['shares_per_sec'] = currency_hashrate / hashes_per_share
+            round_data['currency'] = currency.key
 
             network_data[algo][currency]['round'] = round_data
 
         blocks = (Block.query.filter_by(currency=currency.key).
-                  order_by(Block.found_at.desc()).limit(5)).all()
+                  order_by(Block.found_at.desc()).limit(6)).all()
         if blocks:
             network_data[algo][currency]['blocks'] = blocks
 
