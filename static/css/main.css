@@ -36,6 +36,21 @@ h3 {
   font-size:18px;
 }
 
+ul.nav-tabs {
+  padding-top:20px;
+}
+
+ul.nav-tabs > li.tab.active {
+  position:relative;
+  bottom:-2px;
+  z-index: 100;
+}
+
+ul.nav-tabs + * {
+  padding-top: 20px;
+  border-top:1px solid #4e5d6c;
+}
+
 
 /*************
 Helpers CSS

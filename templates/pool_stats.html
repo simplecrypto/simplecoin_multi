@@ -6,40 +6,20 @@
 $(document).ready(function() {
   {# Initial graph generation #}
   generate_graph($('#chart'), {address: 'pool'});
-  var stats;
-  $("#toggleHidden").click(function (){
-    console.log("clicked");
-    if ($("#detailedStats").html()) {
-      $("#detailedStats").html('');
-      $(".collapse-button").html('[ + ]');
-    } else {
-      if (stats == undefined) {
-        $("#detailedStats").html("<img src='{{ config['assets_address'] | safe }}/img/712.GIF' style='margin-left: auto; margin-right:auto; display:block; padding:35px;'>");
-        $.ajax({
-          url: "/extra_pool_stats",
-        }).done(function(data) {
-          stats = data;
-          $(".collapse-button").html('[ - ]');
-          $("#detailedStats").html(stats);
-        });
-      } else {
-        $(".collapse-button").html('[ - ]');
-        $("#detailedStats").html(stats);
-      }
-    }
-  });
 });
 </script>
 
 <div class="row row-header">
   <div class="col-lg-12">
-    <h2>Pool Hashrate</h2>
+    <h2>Pool Hashrate
+    <div class="btn btn-default btn-sm collapse-button" data-toggle="collapse" data-target="#chart" id="hashrate-collapse">{% if hide_hr %}[+]{% else %}[-]{% endif %}</div>
+    </h2>
     <div class="col-lg-12" id="chart">
-        <ul class="nav nav-tabs">
-          <li class="tab hour"><a>Hour</a></li>
-          <li class="tab day"><a>Day</a></li>
-          <li class="tab month"><a>Month</a></li>
-        </ul>
+      <ul class="nav nav-tabs">
+        <li class="tab hour"><a>Hour</a></li>
+        <li class="tab day"><a>Day</a></li>
+        <li class="tab month"><a>Month</a></li>
+      </ul>
       <div style="height:400px;">
         <img src="{{ config['assets_address'] | safe }}/img/712.GIF" style="position:absolute;padding-top:150px;padding-left:400px;"><svg></svg>
       </div>
@@ -84,46 +64,68 @@ $(document).ready(function() {
 {% endif %}
 
 <br />
-<div class="row page-header">
-<h2>Recently Mined Blocks</h2>
-{% for currency, data in network_data.iteritems() %}
-  <h4>{{ currency.name }}  &nbsp;&nbsp;&nbsp;<small><a href="/blocks/{{ currency }}">[view all blocks]</a></small></h4>
-  <div class="row">
-    <div class="col-lg-6">
-      <dl class="dl-horizontal">
-        <dt>Code</dt>
-        <dd>{{ currency.key }}</dd>
-        <dt>Algorithm</dt>
-        <dd>{{ currency.algo.display }}</dd>
-      {% if 'difficulty' in data %}
-        <dt>Difficulty</dt>
-        <dd>{{ data['difficulty'] | comma }}</dd>
-        <dt>Block Reward</dt>
-        <dd>{{ data['reward'] | comma }} {{ currency }}</dd>
-        <dt>Height</dt>
-        <dd>{{ data['height'] | comma }}</dd>
-      {% endif %}
-      </dl>
-    </div>
-    <div class="col-lg-6">
-      <dl class="dl-horizontal">
-      {% if 'round' in data %}
-        <dt>Round Shares</dt>
-        <dd>{{ data['round']['shares'] | comma }}</dd>
-        {% if 'start_time' in data['round'] %}
-        <dt>Laste Solve</dt>
-        <dd>{{ data['round']['start_time'] | human_date_utc }}</dd>
-        {% endif %}
-      {% endif %}
-      </dl>
-    </div>
-  </div>
-  <div class="row">
-    {% if data['blocks'] %}
-      {% set blocks = data['blocks'] %}
+<div class="row row-header">
+  <h2>Recently Mined Blocks</h2>
+  <ul class="nav nav-tabs algo-tabs">
+    <li class="tab active" data-algo="all">
+      <a href="#">All Algos</a></li>
+  {% for algo, currencies in network_data.iteritems() %}
+    <li class="tab" data-algo="{{ algo }}"><a href="#">{{ algo }}</a></li>
+  {% endfor %}
+  </ul>
+
+  <div class="col-lg-12 collapse {% if not hide_hr %}in{% endif %}" id="chart" style="border-top:1px solid #4e5d6c;">
+
+  {% for algo, currencies in network_data.iteritems() %}
+
+  <div class="row algo {{ algo }}">
+    <div class="col-lg-12 no-padding">
+
+      {% for currency, round_data in currencies.iteritems() %}
+      <div class="row" style="margin-top:25px;padding-left:15px;padding-right:15px;">
+        <div class="col-lg-2">
+          <h3>{{ round_data['currency_data']['name'] }}</h3>
+        </div>
+        <div class="col-lg-5">
+          <dl class="dl-horizontal">
+            <dt>Code</dt>
+            <dd>{{ round_data['currency_data']['code'] }}</dd>
+            <dt>Algorithm</dt>
+            <dd>{{ algo }}</dd>
+          {% if 'avg_difficulty' in data %}
+            <dt>Average Difficulty</dt>
+            <dd>{{ round_data['currency_data']['avg_difficulty'] | comma }}</dd>
+          {% endif %}
+          </dl>
+        </div>
+        <div class="col-lg-5">
+          <dl class="dl-horizontal">
+            <dt>Current Hashrate</dt>
+            <dd>{{ round_data['currency_data']['hashrate'] | hashrate }}</dd>
+            {% if round_data['start_time'] %}
+            <dt>Last Solve</dt>
+            <dd>{{ round_data['start_time'] | human_date_utc }}</dd>
+            {% endif %}
+          </dl>
+        </div>
+      </div>
+      <div class="row">
+      {% set blocks = round_data['currency_data']['blocks'] %}
+      {% set current_block = round_data %}
       {% include "block_table.html" %}
-    {% endif %}
+      </div>
+      {% if round_data['currency_data']['blocks'] %}
+      <div class="well well-sm" style="text-align:center;background-color:#212F3D;margin-top:-21px;margin-bottom:0px;">
+        <h4><small><a href="/blocks/{{ round_data['currency_data']['code'] }}">
+          View more {{ round_data['currency_data']['name'] }} blocks
+        </a></small></h4>
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
   </div>
-{% endfor %}
+    {% endfor %}
+
+  </div>
 </div>
 {% endblock %}

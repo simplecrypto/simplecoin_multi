@@ -205,6 +205,104 @@ def collect_user_credits(address):
     return credits
 
 
+def collect_pool_stats():
+    """
+    Collects the necessary data to render the /pool_stats view or the API
+    """
+    network_data = {}
+    for currency in currencies.itervalues():
+        if not currency.mineable:
+            continue
+
+        # Set currency defaults
+        currency_data = dict(code=currency.key,
+                             name=currency.name,
+                             difficulty=None,
+                             hashrate=0,
+                             height=None,
+                             difficulty_avg=0,
+                             reward=0,
+                             hps=currency.algo.hashes_per_share,
+                             blocks=[])
+
+        # Set round data defaults
+        round_data = dict(start_time=None,
+                          shares=0,
+                          avg_shares_to_solve=None,
+                          shares_per_sec=None,
+                          status="Idle",
+                          currency_data=currency_data)
+
+        # Set nested dictionary defaults
+        network_data.setdefault(currency.algo.display, {})
+        network_data[currency.algo.display].setdefault(currency.key, round_data)
+
+        # Grab some blocks for this currency
+        blocks = (Block.query.filter_by(currency=currency.key).
+                  order_by(Block.found_at.desc()).limit(4).all())
+
+        # Update the dicts if we found any blocks
+        if blocks:
+            # Update the currency_dict's blocks
+            currency_data['blocks'] = blocks
+            # Use the most recent block as the start_time
+            round_data['start_time'] = blocks[0].timestamp
+
+        # Check the cache for the currency's network data
+        currency_data.update(cache.get("{}_data".format(currency.key)) or {})
+
+        # Check the cache for the currency's hashrate data
+        hashrate = cache.get("hashrate_{}".format(currency.key)) or 0
+        currency_data['hashrate'] = float(hashrate)
+
+        # Calculate the shares/second at this hashrate
+        shares_per_sec = currency_data['hashrate'] / currency_data['hps']
+        round_data['shares_per_sec'] = shares_per_sec
+
+        # Set the status
+        if round_data['shares_per_sec'] > 0:
+            round_data['status'] = "In Progress"
+
+        # Set the difficulty average
+        difficulty_avg = currency_data.get('difficulty_avg', 0)
+        if difficulty_avg != 0:
+            currency_data['difficulty_avg'] = difficulty_avg
+        else:
+            currency_data['difficulty_avg'] = currency_data['difficulty']
+
+        # Calculate the share solve average
+        avg_hashes_to_solve = difficulty_avg * (2 ** 32)
+        avg_shares_to_solve = avg_hashes_to_solve / currency_data['hps']
+        round_data['avg_shares_to_solve'] = avg_shares_to_solve
+
+        # Check the cache for the currency's current round data
+        key = 'current_block_{}_{}'.format(currency, currency.algo)
+        cached_round_data = redis_conn.hgetall(key) or {}
+
+        # Parse out some values from the cached round data
+        if cached_round_data is not {}:
+            chain_shares = [k for k in cached_round_data.keys()
+                            if k.startswith("chain_") and k.endswith("shares")]
+
+            # Prefer the start time in the cache over the block, if available
+            if 'start_time' in cached_round_data:
+                round_data['start_time'] = int(float(cached_round_data['start_time']))
+            # Increment the round shares
+            for key in chain_shares:
+                round_data[key] = float(cached_round_data[key])
+                round_data['shares'] += round_data[key]
+
+        # Update our dicts
+        round_data['currency_data'].update(currency_data)
+        network_data[currency.algo.display][currency.key].update(round_data)
+
+    server_status = cache.get('server_status') or {}
+
+    return dict(network_data=network_data,
+                server_status=server_status,
+                powerpools=powerpools)
+
+
 def collect_user_stats(user_address):
     """ Accumulates all aggregate user data for serving via API or rendering
     into main user stats page """

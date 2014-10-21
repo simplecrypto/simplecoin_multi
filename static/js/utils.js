@@ -145,6 +145,108 @@ $(document).ready(function() {
   // Setup collapse button for currencies
   flip('#payout-currencies', '#pool-details', '[+]', '[-]');
 
+  $(".algo-tabs > li").click(function() {
+    event.preventDefault();
+
+    $(this).siblings().removeClass("active");
+    $(this).addClass("active");
+
+    var selector = $(this).data('algo');
+    $("." + selector).show();
+    $("." + selector).siblings().hide();
+
+    if (selector == 'all') { $(".algo").show(); }
+  });
+
+  function n(n){
+      return n > 9 || n < -9 ? "" + n: "0" + n;
+  }
+
+  var currencies = {};
+  // Loop through each current round + build an object for it
+  $('tr.current_round').each(function(index) {
+    var shares, shares_per_sec, avg_shares_to_solve, round_seconds;
+
+    var currency = $(this).data('currency');
+    var selector = $(this).children('td');
+
+    // Grab some current round values out of HTML
+    shares = parseFloat(selector.children('span.blockshares_' + currency).html());
+    if (isNaN(shares)) { shares = 0 }
+    shares_per_sec = parseFloat(selector.children('span.shares_per_second_' + currency).html());
+    if (isNaN(shares_per_sec)) { shares_per_sec = 0 }
+    avg_shares_to_solve = parseFloat(selector.children('span.avg_shares_to_solve_' + currency).html());
+    round_seconds = parseInt(selector.children('span.starttime_' + currency).html());
+
+    if (isNaN(round_seconds)) {
+      round_seconds = 0
+    } else{
+      round_seconds = parseInt(new Date().getTime() / 1000) - round_seconds;
+    }
+
+    currencies[index] = {
+      selector: selector,
+      shares: shares,
+      round_seconds: round_seconds,
+      avg_shares_to_solve: avg_shares_to_solve,
+      shares_per_sec: shares_per_sec
+    };
+
+  });
+
+  // Loop through each current round + set an interval function
+  $('tr.current_round').each(function(index) {
+
+    update_content = function(currency){
+
+      // Update the currency object for the newest second
+      currency.round_seconds += 1;
+      currency.shares += currency.shares_per_sec;
+
+      // Don't increment round duration if we aren't mining this currency
+      if (currency.shares == 0) {
+        currency.round_seconds = 0;
+      }
+
+      var y = currency.round_seconds%60;
+      var minutes = n(Math.floor(currency.round_seconds/60)%60);
+      var hours = n(Math.floor(currency.round_seconds/3600));
+
+      var luck = ((currency.avg_shares_to_solve) / currency.shares) * 100;
+      if (isNaN(luck)) { luck = 0 }
+
+      // Don't show a massive luck number
+      if (luck > 9999) {
+        luck = 9999;
+      }
+
+      // Workaround JS's rounding
+      var rounded_shares;
+      if (currency.shares > 9999) {
+        rounded_shares = Math.round(currency.shares);
+      } else {
+        rounded_shares = Math.round(currency.shares * 1000) / 1000;
+      }
+
+      var selector = currency.selector;
+      // update round shares
+      selector.children('span.blockshares').text(numberWithCommas(rounded_shares));
+      // Update round time
+      selector.children('span.minutes').text(minutes);
+      selector.children('span.seconds').text(n(y));
+      selector.children('span.hours').text(hours);
+      // Update round luck
+      selector.children('span.blockluck').text(numberWithCommas(Math.round(luck)));
+
+    };
+
+    // Set the values asap
+    update_content(currencies[index]);
+    // Update ever second afterwards
+    setInterval(function() { update_content(currencies[index]); }, 1000);
+
+  });
+
 
 ////////////////////////////////////////////
 // JS for user stats page

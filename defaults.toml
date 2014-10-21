@@ -132,6 +132,30 @@ algo = "x11"
 address_version = [28]
 block_time = 42
 
+[currencies.VIA]
+name = "Viacoin"
+algo = "scrypt"
+address_version = [71]
+block_time = 24
+
+[currencies.FTC]
+name = "Feathercoin"
+algo = "scrypt"
+address_version = [14]
+block_time = 60
+
+[currencies.WDC]
+name = "Worldcoin"
+algo = "scrypt"
+address_version = [73]
+block_time = 30
+
+[currencies.ANC]
+name = "Anoncoin"
+algo = "scrypt"
+address_version = [23]
+block_time = 205
+
 [algos.x11]
 hashes_per_share = 4294967296
 normalize_mult = 0.181818182

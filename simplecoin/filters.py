@@ -69,8 +69,10 @@ def human_date_utc(*args, **kwargs):
 def comma(value):
     if isinstance(value, (float, Decimal)):
         return "{:,.2f}".format(value)
-    else:
+    elif isinstance(value, int):
         return "{:,}".format(value)
+    else:
+        return "NaN"
 
 
 def currency(value):

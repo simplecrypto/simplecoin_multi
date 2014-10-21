@@ -11,7 +11,7 @@ from . import db, root, cache, currencies, algos, locations, powerpools, redis_c
 from .exceptions import InvalidAddressException
 from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
                     get_alerts, resort_recent_visit, collect_acct_items,
-                    CommandException, anon_users)
+                    CommandException, anon_users, collect_pool_stats)
 
 
 main = Blueprint('main', __name__)
@@ -127,43 +127,8 @@ def worker_detail(address, worker):
 
 @main.route("/pool_stats")
 def pool_stats():
-    network_data = {}
-    for currency in currencies.itervalues():
-        if not currency.mineable:
-            continue
-
-        data = cache.get("{}_data".format(currency.key))
-        if data:
-            network_data.setdefault(currency, {})
-            network_data[currency].update(data)
-
-        round_data = redis_conn.hgetall('current_block_{}_{}'
-                                        .format(currency, currency.algo))
-        if data:
-            chain_shares = [k for k in round_data.keys()
-                            if k.startswith("chain_") and k.endswith("shares")]
-            round_data['shares'] = 0
-            if 'start_time' in round_data:
-                round_data['start_time'] = int(float(round_data['start_time']))
-            for key in chain_shares:
-                round_data[key] = decimal.Decimal(round_data[key])
-                round_data['shares'] += round_data[key]
-            network_data.setdefault(currency, {})
-            network_data[currency]['round'] = round_data
-
-        blocks = (Block.query.filter_by(currency=currency.key).
-                  order_by(Block.found_at.desc()).limit(5)).all()
-        if blocks:
-            network_data.setdefault(currency, {})
-            network_data[currency]['blocks'] = blocks
-
-    server_status = cache.get('server_status') or {}
-
-    return render_template('pool_stats.html',
-                           blocks=blocks,
-                           network_data=network_data,
-                           server_status=server_status,
-                           powerpools=powerpools)
+    pool_stats = collect_pool_stats()
+    return render_template('pool_stats.html', **pool_stats)
 
 
 @main.before_request
