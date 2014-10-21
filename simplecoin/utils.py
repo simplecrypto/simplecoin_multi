@@ -230,6 +230,7 @@ def collect_pool_stats():
                           shares=0,
                           avg_shares_to_solve=None,
                           shares_per_sec=None,
+                          status="Idle",
                           currency_data=currency_data)
 
         # Set nested dictionary defaults
@@ -258,6 +259,10 @@ def collect_pool_stats():
         shares_per_sec = currency_data['hashrate'] / currency_data['hps']
         round_data['shares_per_sec'] = shares_per_sec
 
+        # Set the status
+        if round_data['shares_per_sec'] > 0:
+            round_data['status'] = "In Progress"
+
         # Set the difficulty average
         difficulty_avg = currency_data.get('difficulty_avg', 0)
         if difficulty_avg != 0:
@@ -281,7 +286,7 @@ def collect_pool_stats():
 
             # Prefer the start time in the cache over the block, if available
             if 'start_time' in cached_round_data:
-                round_data['start_time'] = int(float(round_data['start_time']))
+                round_data['start_time'] = int(float(cached_round_data['start_time']))
             # Increment the round shares
             for key in chain_shares:
                 round_data[key] = float(cached_round_data[key])

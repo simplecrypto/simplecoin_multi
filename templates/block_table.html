@@ -60,7 +60,7 @@ $(document).ready(function() {
       <td>...</td>
       <td>{{ current_block['currency_data']['height'] | comma }}</td>
       <td>
-        {% if current_block['shares_per_sec'] > 0 %}In progress{% else %}Idle{% endif %}
+        {{ current_block['status'] }}
       </td>
     </tr>
     {% endif %}

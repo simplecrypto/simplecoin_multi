@@ -110,17 +110,17 @@ $(document).ready(function() {
         </div>
       </div>
       <div class="row">
-        {% if round_data['currency_data']['blocks'] %}
-          {% set blocks = round_data['currency_data']['blocks'] %}
-          {% set current_block = round_data %}
-          {% include "block_table.html" %}
-        {% endif %}
+      {% set blocks = round_data['currency_data']['blocks'] %}
+      {% set current_block = round_data %}
+      {% include "block_table.html" %}
       </div>
+      {% if round_data['currency_data']['blocks'] %}
       <div class="well well-sm" style="text-align:center;background-color:#212F3D;margin-top:-21px;margin-bottom:0px;">
         <h4><small><a href="/blocks/{{ round_data['currency_data']['code'] }}">
           View more {{ round_data['currency_data']['name'] }} blocks
         </a></small></h4>
       </div>
+      {% endif %}
       {% endfor %}
     </div>
   </div>

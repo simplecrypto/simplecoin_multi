@@ -203,12 +203,19 @@ $(document).ready(function() {
       currency.round_seconds += 1;
       currency.shares += currency.shares_per_sec;
 
+      // Don't increment round duration if we aren't mining this currency
+      if (currency.shares == 0) {
+        currency.round_seconds = 0;
+      }
+
       var y = currency.round_seconds%60;
       var minutes = n(Math.floor(currency.round_seconds/60)%60);
       var hours = n(Math.floor(currency.round_seconds/3600));
 
       var luck = ((currency.avg_shares_to_solve) / currency.shares) * 100;
       if (isNaN(luck)) { luck = 0 }
+
+      // Don't show a massive luck number
       if (luck > 9999) {
         luck = 9999;
       }
