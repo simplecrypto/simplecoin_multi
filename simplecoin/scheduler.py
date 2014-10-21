@@ -1021,17 +1021,16 @@ def server_status():
 
             if 'last_flush_job' in data and 'currency' in data['last_flush_job']:
                 curr = data['last_flush_job']['currency']
-                currencies[curr].hashrate += data['hps']
+                currency_hashrates.setdefault(currencies[curr], 0)
+                currency_hashrates[currencies[curr]] += data['hps']
                 # Add hashrate to the merged networks too
                 if 'merged_networks' in data['last_flush_job']:
                     for currency in data['last_flush_job']['merged_networks']:
                         currency_hashrates.setdefault(currencies[currency], 0)
                         currency_hashrates[currencies[currency]] += data['hps']
 
-    for currency in currencies.itervalues():
-        if not currency.mineable:
-            continue
-        cache.set('hashrate_' + currency.key, currency.hashrate, timeout=120)
+    for currency, hashrate in currency_hashrates.iteritems():
+        cache.set('hashrate_' + currency.key, hashrate, timeout=120)
 
     cache.set('raw_server_status', raw_servers, timeout=1200)
     cache.set('server_status', servers, timeout=1200)
