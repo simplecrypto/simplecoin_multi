@@ -1,6 +1,7 @@
 import simplecoin
 import unittest
 import datetime
+import random
 
 import simplecoin.models as m
 
@@ -12,6 +13,9 @@ class UnitTest(unittest.TestCase):
     """ Represents a set of tests that only need the database iniailized, but
     no fixture data """
     def setUp(self, **kwargs):
+        # Set the random seed to a fixed number, causing all use of random
+        # to actually repeat exactly the same every time
+        random.seed(0)
         extra = dict()
         extra.update(kwargs)
         app = simplecoin.create_app('webserver', configs=['test.toml'], **extra)
