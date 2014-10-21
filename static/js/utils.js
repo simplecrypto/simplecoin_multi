@@ -214,7 +214,12 @@ $(document).ready(function() {
       }
 
       // Workaround JS's rounding
-      var rounded_shares = Math.round(currency.shares * 10000) / 10000;
+      var rounded_shares;
+      if (currency.shares > 9999) {
+        rounded_shares = Math.round(currency.shares);
+      } else {
+        rounded_shares = Math.round(currency.shares * 1000) / 1000;
+      }
 
       var selector = currency.selector;
       // update round shares
