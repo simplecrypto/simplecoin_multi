@@ -253,9 +253,22 @@ def collect_pool_stats():
         # Check the cache for the currency's hashrate data
         hashrate = cache.get("hashrate_{}".format(currency.key)) or 0
         currency_data['hashrate'] = float(hashrate)
+
         # Calculate the shares/second at this hashrate
         shares_per_sec = currency_data['hashrate'] / currency_data['hps']
         round_data['shares_per_sec'] = shares_per_sec
+
+        # Set the difficulty average
+        difficulty_avg = currency_data.get('difficulty_avg', 0)
+        if difficulty_avg != 0:
+            currency_data['difficulty_avg'] = difficulty_avg
+        else:
+            currency_data['difficulty_avg'] = currency_data['difficulty']
+
+        # Calculate the share solve average
+        avg_hashes_to_solve = difficulty_avg * (2 ** 32)
+        avg_shares_to_solve = avg_hashes_to_solve / currency_data['hps']
+        round_data['avg_shares_to_solve'] = avg_shares_to_solve
 
         # Check the cache for the currency's current round data
         key = 'current_block_{}_{}'.format(currency, currency.algo)
@@ -273,15 +286,6 @@ def collect_pool_stats():
             for key in chain_shares:
                 round_data[key] = float(cached_round_data[key])
                 round_data['shares'] += round_data[key]
-            # Update the difficulty average, if available
-            difficulty_avg = cached_round_data.get('difficulty_avg', 0)
-            if difficulty_avg != 0:
-                currency_data['difficulty_avg'] = difficulty_avg
-
-                # Update the share solve average
-                avg_hashes_to_solve = difficulty_avg * (2 ** 32)
-                avg_shares_to_solve = avg_hashes_to_solve / currency_data['hps']
-                round_data['avg_shares_to_solve'] = avg_shares_to_solve
 
         # Update our dicts
         round_data['currency_data'].update(currency_data)
