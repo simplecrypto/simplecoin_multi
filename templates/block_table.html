@@ -34,17 +34,17 @@ $(document).ready(function() {
       <td>
         <span class="shares_per_second_{{ current_block['currency_data']['code'] }}" style="display:none;">
           {% if current_block['shares_per_sec'] %}
-          {{ '{:,.16f}'.format(current_block['shares_per_sec']) }}
+          {{ '{:.16f}'.format(current_block['shares_per_sec']) }}
           {% endif %}
         </span>
         <span class="avg_shares_to_solve_{{ current_block['currency_data']['code'] }}" style="display:none;">
           {% if current_block['avg_shares_to_solve'] %}
-          {{ '{:,.16f}'.format(current_block['avg_shares_to_solve']) }}
+          {{ '{:.16f}'.format(current_block['avg_shares_to_solve']) }}
           {% endif %}
         </span>
         <span class="blockshares_{{ current_block['currency_data']['code'] }}" style="display:none;">
           {% if current_block['shares'] %}
-          {{ '{:,.8f}'.format(current_block['shares']) }}
+          {{ '{:.8f}'.format(current_block['shares']) }}
           {% endif %}
         </span>
         <span class="starttime_{{ current_block['currency_data']['code'] }}" style="display:none;">
