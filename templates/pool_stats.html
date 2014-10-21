@@ -81,44 +81,44 @@ $(document).ready(function() {
   <div class="row algo {{ algo }}">
     <div class="col-lg-12 no-padding">
 
-      {% for currency, data in currencies.iteritems() %}
+      {% for currency, round_data in currencies.iteritems() %}
       <div class="row" style="margin-top:25px;padding-left:15px;padding-right:15px;">
         <div class="col-lg-2">
-          <h3>{{ currency.name }}</h3>
+          <h3>{{ round_data['currency_data']['name'] }}</h3>
         </div>
         <div class="col-lg-5">
           <dl class="dl-horizontal">
             <dt>Code</dt>
-            <dd>{{ currency.key }}</dd>
+            <dd>{{ round_data['currency_data']['code'] }}</dd>
             <dt>Algorithm</dt>
             <dd>{{ algo }}</dd>
           {% if 'avg_difficulty' in data %}
             <dt>Average Difficulty</dt>
-            <dd>{{ data['avg_difficulty'] | comma }}</dd>
+            <dd>{{ round_data['currency_data']['avg_difficulty'] | comma }}</dd>
           {% endif %}
           </dl>
         </div>
         <div class="col-lg-5">
           <dl class="dl-horizontal">
             <dt>Current Hashrate</dt>
-            <dd>{{ data['hashrate'] | hashrate }}</dd>
-            {% if 'start_time' in data['round'] %}
+            <dd>{{ round_data['currency_data']['hashrate'] | hashrate }}</dd>
+            {% if round_data['start_time'] %}
             <dt>Last Solve</dt>
-            <dd>{{ data['round']['start_time'] | human_date_utc }}</dd>
+            <dd>{{ round_data['start_time'] | human_date_utc }}</dd>
             {% endif %}
           </dl>
         </div>
       </div>
       <div class="row">
-        {% if data['blocks'] %}
-          {% set blocks = data['blocks'] %}
-          {% set current_block = data['round'] %}
+        {% if round_data['currency_data']['blocks'] %}
+          {% set blocks = round_data['currency_data']['blocks'] %}
+          {% set current_block = round_data %}
           {% include "block_table.html" %}
         {% endif %}
       </div>
       <div class="well well-sm" style="text-align:center;background-color:#212F3D;margin-top:-21px;margin-bottom:0px;">
-        <h4><small><a href="/blocks/{{ currency }}">
-          View more {{ currency.name }} blocks
+        <h4><small><a href="/blocks/{{ round_data['currency_data']['code'] }}">
+          View more {{ round_data['currency_data']['name'] }} blocks
         </a></small></h4>
       </div>
       {% endfor %}

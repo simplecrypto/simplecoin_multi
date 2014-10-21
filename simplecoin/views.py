@@ -11,7 +11,7 @@ from . import db, root, cache, currencies, algos, locations, powerpools, redis_c
 from .exceptions import InvalidAddressException
 from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
                     get_alerts, resort_recent_visit, collect_acct_items,
-                    CommandException, anon_users)
+                    CommandException, anon_users, collect_pool_stats)
 
 
 main = Blueprint('main', __name__)
@@ -127,61 +127,8 @@ def worker_detail(address, worker):
 
 @main.route("/pool_stats")
 def pool_stats():
-    network_data = {}
-    for currency in currencies.itervalues():
-        if not currency.mineable:
-            continue
-
-        network_data.setdefault(currency.algo, {})
-        network_data[currency.algo].setdefault(currency, {})
-
-        data = dict(difficulty=None,
-                    hashrate=0,
-                    height=None)
-        data.update(cache.get("{}_data".format(currency.key)) or {})
-        data['hashrate'] = float(cache.get("hashrate_{}".format(currency.key)) or 0)
-        network_data[currency.algo][currency].update(data)
-
-        round_data = redis_conn.hgetall(
-            'current_block_{}_{}' .format(currency, currency.algo)) or {}
-
-        network_data[currency.algo][currency].update(data)
-        round_data.update(data)
-        chain_shares = [k for k in round_data.keys()
-                        if k.startswith("chain_") and k.endswith("shares")]
-        round_data['shares'] = 0
-        if 'start_time' in round_data:
-            round_data['start_time'] = int(float(round_data['start_time']))
-        for key in chain_shares:
-            round_data[key] = decimal.Decimal(round_data[key])
-            round_data['shares'] += round_data[key]
-
-        difficulty_avg = round_data.get('difficulty_avg', 1)
-        avg_hashes_to_solve = difficulty_avg * (2 ** 32)
-
-        hps = currency.algo.hashes_per_share
-        round_data['avg_shares_to_solve'] = avg_hashes_to_solve / hps
-        round_data['shares_per_sec'] = round_data['hashrate'] / hps
-        round_data['currency'] = currency.key
-
-        network_data[currency.algo][currency]['round'] = round_data
-
-        blocks = (Block.query.filter_by(currency=currency.key).
-                  order_by(Block.found_at.desc()).limit(6)).all()
-        if blocks:
-            network_data[currency.algo][currency]['blocks'] = blocks
-
-            # if no cache was grabbed use the most recent block as the start
-            if data and 'start_time' not in round_data:
-                round_data['start_time'] = blocks[0].timestamp
-
-    server_status = cache.get('server_status') or {}
-
-    return render_template('pool_stats.html',
-                           blocks=blocks,
-                           network_data=network_data,
-                           server_status=server_status,
-                           powerpools=powerpools)
+    pool_stats = collect_pool_stats()
+    return render_template('pool_stats.html', **pool_stats)
 
 
 @main.before_request

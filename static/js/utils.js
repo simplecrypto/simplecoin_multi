@@ -214,11 +214,11 @@ $(document).ready(function() {
       }
 
       // Workaround JS's rounding
-      var rounded_shares = currency.shares * 10000;
+      var rounded_shares = Math.round(currency.shares * 10000) / 10000;
 
       var selector = currency.selector;
       // update round shares
-      selector.children('span.blockshares').text(numberWithCommas(Math.round(rounded_shares) / 10000));
+      selector.children('span.blockshares').text(numberWithCommas(rounded_shares));
       // Update round time
       selector.children('span.minutes').text(minutes);
       selector.children('span.seconds').text(n(y));

@@ -29,32 +29,38 @@ $(document).ready(function() {
     </thead>
     <tbody>
     {% if current_block %}
-    <tr class="active current_round" data-currency="{{ current_block['currency'] }}">
+    <tr class="active current_round" data-currency="{{ current_block['currency_data']['code'] }}">
       <td data-sort-value="100000000000">...</td>
       <td>
-        <span class="shares_per_second_{{ current_block['currency'] }}" style="display:none;">
+        <span class="shares_per_second_{{ current_block['currency_data']['code'] }}" style="display:none;">
+          {% if current_block['shares_per_sec'] %}
           {{ '{:,.16f}'.format(current_block['shares_per_sec']) }}
+          {% endif %}
         </span>
-        <span class="avg_shares_to_solve_{{ current_block['currency'] }}" style="display:none;">
+        <span class="avg_shares_to_solve_{{ current_block['currency_data']['code'] }}" style="display:none;">
+          {% if current_block['avg_shares_to_solve'] %}
           {{ '{:,.16f}'.format(current_block['avg_shares_to_solve']) }}
+          {% endif %}
         </span>
-        <span class="blockshares_{{ current_block['currency'] }}" style="display:none;">
+        <span class="blockshares_{{ current_block['currency_data']['code'] }}" style="display:none;">
+          {% if current_block['shares'] %}
           {{ '{:,.8f}'.format(current_block['shares']) }}
+          {% endif %}
         </span>
-        <span class="starttime_{{ current_block['currency'] }}" style="display:none;">
+        <span class="starttime_{{ current_block['currency_data']['code'] }}" style="display:none;">
           {{ current_block['start_time'] }}
         </span>
         <span class="blockshares">{{ current_block['shares']| round(4) }}</span>
       </td>
       <td><span class="blockluck">???</span>%</td>
       <td><span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span></td>
-      <td>{{ current_block['reward'] | comma }}</td>
-      <td>{{ current_block['difficulty'] | comma }}</td>
+      <td>{{ current_block['currency_data']['reward'] | comma }}</td>
+      <td>{{ current_block['currency_data']['difficulty'] | comma }}</td>
       <td>...</td>
       <td>...</td>
-      <td>{{ current_block['height'] | comma }}</td>
+      <td>{{ current_block['currency_data']['height'] | comma }}</td>
       <td>
-        {% if current_block['hashrate'] > 0 %}In progress{% else %}Idle{% endif %}
+        {% if current_block['shares_per_sec'] > 0 %}In progress{% else %}Idle{% endif %}
       </td>
     </tr>
     {% endif %}
