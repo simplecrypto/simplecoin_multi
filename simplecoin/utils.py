@@ -248,7 +248,7 @@ def collect_pool_stats():
             round_data['start_time'] = blocks[0].timestamp
 
         # Check the cache for the currency's network data
-        currency_data.update(cache.get("{}_data".format(currency.key)))
+        currency_data.update(cache.get("{}_data".format(currency.key)) or {})
 
         # Check the cache for the currency's hashrate data
         hashrate = cache.get("hashrate_{}".format(currency.key)) or 0
