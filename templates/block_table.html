@@ -66,7 +66,7 @@ $(document).ready(function() {
     {% endif %}
     {% for block in blocks %}
     <tr>
-      <td style="max-width:125px;" data-sort-value="{{ block.timestamp }}">{{ block.found_at | human_date_utc }}</td>
+      <td style="max-width:135px;" data-sort-value="{{ block.timestamp }}">{{ block.found_at | human_date_utc }}</td>
       <td>{{ '{:,}'.format(block.hr_shares_to_solve | round(4) or 1).rstrip('0').rstrip('.') }}</td>
       <td>{{ '{:,}'.format((block.luck or 0) | round(2)) }} %</td>
       <td data-sort-value="{{ block.duration.total_seconds() }}">{{ block.duration }}</td>

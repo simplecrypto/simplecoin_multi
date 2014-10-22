@@ -145,7 +145,7 @@ $(document).ready(function() {
   // Setup collapse button for currencies
   flip('#payout-currencies', '#pool-details', '[+]', '[-]');
 
-  $(".algo-tabs > li").click(function() {
+  $(".algo-tabs > li").click(function(event) {
     event.preventDefault();
 
     $(this).siblings().removeClass("active");
@@ -334,7 +334,7 @@ $(document).ready(function() {
 
   var interval = null;
 
-  $("#generate").click(function() {
+  $("#generate").click(function(event) {
     event.preventDefault();
     clearInterval(interval);
     $("#message-notif").css('color', '#58CF58');
