@@ -25,7 +25,8 @@ $(document).ready(function() {
   {# We only want to display user level alerts here #}
   {% if alert['notify'] == username %}
   <div data-alert-id={{ alert['key'] }} class="alert alert-dismissable alert-{{ alert['severity'] }}">
-    <h4>{{ alert['title'] | safe }} -
+    <h4{% if not alert['body'] %} style="margin-bottom:0px;"{% endif %}>
+      {{ alert['title']|safe }} -
       <span class="text-muted small" style="color:#fff;">
         {{ alert['date'] }}
       </span>

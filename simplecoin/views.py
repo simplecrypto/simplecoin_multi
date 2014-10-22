@@ -19,10 +19,8 @@ main = Blueprint('main', __name__)
 
 @main.route("/")
 def home():
-    news = yaml.load(open(root + '/static/yaml/news.yaml'))
     payout_currencies = currencies.exchangeable_currencies
     return render_template('home.html',
-                           news=news,
                            payout_currencies=payout_currencies,
                            locations=locations)
 
