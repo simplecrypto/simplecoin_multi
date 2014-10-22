@@ -356,8 +356,9 @@ class Chain(ConfigObject):
         raise NotImplementedError
 
     def _calc_shares(self, start_slice, target_shares=None, stop_slice=None):
-        if target_shares == 0:
-            raise ValueError("Taget shares must be positive")
+        if target_shares is not None and target_shares <= 0:
+            raise ValueError("Taget shares ({}) must be positive"
+                             .format(target_shares))
         if target_shares is None and stop_slice is None:
             raise ValueError("Must define either a stop slice or oldest valid slice.")
 
@@ -458,7 +459,7 @@ class PPLNSChain(Chain):
     def calc_shares(self, block_payout):
         assert block_payout.chainid == self.id
         n = (block_payout.block.difficulty * (2 ** 32)) / self.algo.hashes_per_share
-        target_shares = int(round(n * self.last_n))
+        target_shares = n * self.last_n
         return self._calc_shares(block_payout.solve_slice, target_shares=target_shares)
 
 
