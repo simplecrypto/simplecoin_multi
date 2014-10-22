@@ -417,6 +417,7 @@ def collect_user_stats(user_address):
             earning_summary[curr]['by_currency'] = {}
 
         return earning_summary[curr]
+
     # Go through already grouped aggregates
     payouts = Payout.query.filter_by(user=user_address).order_by(Payout.created_at.desc()).all()
     for payout in payouts:
@@ -427,7 +428,15 @@ def collect_user_stats(user_address):
             summary['ready_to_send'] += payout.amount
 
     # Loop through all unaggregated credits to find the rest
-    credits = collect_user_credits(user_address)
+    credits = (Credit.query.filter_by(user=user_address, payout_id=None).
+               filter(Credit.block != None).
+               options(db.joinedload('payout'),
+                       db.joinedload('block')).
+               join(Credit.block).
+               filter(
+                   ((Block.orphan == True) & (Block.found_at >= lower_day))
+                   | (Block.orphan != True)).
+               order_by(Credit.id.desc())).limit(20).all()
 
     for credit in credits:
         # By desired currency
