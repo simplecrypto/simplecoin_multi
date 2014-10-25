@@ -1,13 +1,12 @@
 from __future__ import division
 import yaml
-import decimal
 
 from flask import (current_app, request, render_template, Blueprint, jsonify,
                    g, session, Response)
 
 from .models import (Block, ShareSlice, UserSettings, make_upper_lower, Credit,
                      Payout, DeviceSlice, Transaction)
-from . import db, root, cache, currencies, algos, locations, powerpools, redis_conn
+from . import db, root, cache, currencies, algos, locations
 from .exceptions import InvalidAddressException
 from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
                     get_alerts, resort_recent_visit, collect_acct_items,
@@ -19,7 +18,7 @@ main = Blueprint('main', __name__)
 
 @main.route("/")
 def home():
-    payout_currencies = currencies.exchangeable_currencies
+    payout_currencies = currencies.buyable_currencies
     return render_template('home.html',
                            payout_currencies=payout_currencies,
                            locations=locations)
@@ -27,7 +26,7 @@ def home():
 
 @main.route("/configuration_guide")
 def configuration_guide():
-    payout_currencies = currencies.exchangeable_currencies
+    payout_currencies = currencies.buyable_currencies
     return render_template('config_guide_wrapper.html',
                            payout_currencies=payout_currencies,
                            locations=locations)
@@ -165,8 +164,9 @@ def user_dashboard(user_address):
     try:
         currencies.lookup_payable_addr(user_address)
     except Exception:
-        return render_template('invalid_address.html',
-                                allowed_currencies=currencies.exchangeable_currencies)
+        return render_template(
+            'invalid_address.html',
+            allowed_currencies=currencies.buyable_currencies)
 
     stats = collect_user_stats(user_address)
 
@@ -339,7 +339,7 @@ def settings(user_address):
     except Exception:
         return render_template(
             'invalid_address.html',
-            allowed_currencies=currencies.exchangeable_currencies)
+            allowed_currencies=currencies.buyable_currencies)
 
     result, alert_cls = handle_message(user_address, curr)
     user = UserSettings.query.filter_by(user=user_address).first()
@@ -350,8 +350,8 @@ def settings(user_address):
                            user_currency=curr.name,
                            user_currency_name=curr.key,
                            user=user,
-                           ex_currencies=currencies.exchangeable_currencies,
-                           unex_currencies=currencies.unexchangeable_currencies)
+                           ex_currencies=currencies.sellable_currencies,
+                           unex_currencies=currencies.unsellable_currencies)
 
 
 @main.route("/crontabs")

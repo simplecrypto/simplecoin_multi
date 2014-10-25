@@ -31,7 +31,7 @@ country_flag = "/img/ca.svg"
 address = "http://ca.simplemulti.com"
 
 [currencies.BTC]
-exchangeable = true
+buyable = true
 pool_payout_addr = "1LmZN5ifbHdQy5jW9wNqyTuke3odY2Zos8"
 [currencies.BTC.coinserv]
 username = ""
@@ -49,7 +49,8 @@ port = 1
 address = ""
 
 [currencies.DOGE]
-exchangeable = true
+sellable = true
+buyable = true
 mineable = true
 [currencies.DOGE.coinserv]
 username = ""
