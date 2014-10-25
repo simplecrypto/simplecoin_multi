@@ -359,8 +359,9 @@ def settings(user_address):
                            user_currency=curr.name,
                            user_currency_name=curr.key,
                            user=user,
-                           ex_currencies=currencies.sellable_currencies,
-                           unex_currencies=currencies.unsellable_currencies)
+                           buyable_currencies=currencies.buyable_currencies,
+                           sellable_currencies=currencies.sellable_currencies,
+                           unsellable_currencies=currencies.unsellable_currencies)
 
 
 @main.route("/crontabs")

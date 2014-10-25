@@ -160,7 +160,7 @@
                     </div>
                     <div class="col-sm-3">
                       <select class="form-control" id="sPayoutCurr" name="sPayoutCurr" style="padding:8px 8px;">
-                        {% for curr in ex_currencies %}
+                        {% for curr in buyable_currencies %}
                           <option value="{{ curr }}" id="spay-{{ curr }}"{% if curr.key == user.spayout_curr %} selected{% endif %}>{{ curr }}</option>
                         {% endfor %}
                       </select>
@@ -192,13 +192,13 @@
                 </div>
               </div>
 
-              {% if ex_currencies %}
+              {% if sellable_currencies %}
               <p class="col-sm-10 col-sm-offset-1 horz-form-heading">
                 <b>Exchangeable Currencies</b>
                   <span class="help-block">Set an address to disable
                     {{ user_currency }} conversion for that currency</span>
               </p>
-              {% for curr_obj in ex_currencies if not user_currency_name == curr_obj.key %}
+              {% for curr_obj in sellable_currencies if not user_currency_name == curr_obj.key %}
               <div class="form-group">
                 <label for="{{ curr_obj.key }}" class="col-sm-3 control-label">
                   {{ curr_obj.key }}:</label>
@@ -224,13 +224,13 @@
               {% endfor %}
               {% endif %}
 
-              {% if unex_currencies %}
+              {% if unsellable_currencies %}
               <p class="col-sm-10 col-sm-offset-1 horz-form-heading">
                 <b>Unexchangeable Currencies</b>
                   <span class="help-block">To receive any these currencies it
                     is required that you set an address</span>
               </p>
-              {% for curr_obj in unex_currencies %}
+              {% for curr_obj in unsellable_currencies %}
               <div class="form-group">
                 <label for="{{ curr_obj.key }}" class="col-sm-3 control-label">
                   {{ curr_obj.key }}:</label>
