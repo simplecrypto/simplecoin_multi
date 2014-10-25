@@ -204,7 +204,7 @@
               {% for curr_obj in sellable_currencies if not user_currency_name == curr_obj.key %}
               <div class="form-group">
                 <label for="{{ curr_obj.key }}" class="col-sm-3 control-label">
-                  {{ curr_obj.key }}:</label>
+                  {{ curr_obj.key }} ({{ curr_obj.algo }}):</label>
                 <div class="col-sm-6">
                   <input type="text" class="form-control sellable-address-field"
                          name="{{ curr_obj.key }}" id="{{ curr_obj.key }}"
@@ -239,7 +239,7 @@
               {% for curr_obj in unsellable_currencies %}
               <div class="form-group">
                 <label for="{{ curr_obj.key }}" class="col-sm-3 control-label">
-                  {{ curr_obj.key }}:</label>
+                  {{ curr_obj.key }} ({{ curr_obj.algo }}):</label>
                 <div class="col-sm-6">
                   <input type="text" class="form-control unsellable-address-field"
                          name="{{ curr_obj.key }}" id="{{ curr_obj.key }}"
