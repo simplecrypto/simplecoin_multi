@@ -2,7 +2,7 @@ from __future__ import division
 import yaml
 
 from flask import (current_app, request, render_template, Blueprint, jsonify,
-                   g, session, Response)
+                   g, session, Response, abort)
 
 from .models import (Block, ShareSlice, UserSettings, make_upper_lower, Credit,
                      Payout, DeviceSlice, Transaction)
@@ -298,37 +298,46 @@ def handle_message(address, curr):
     return result, alert_cls
 
 
-@main.route("/validate_address", methods=['POST', 'GET'])
+@main.route("/validate_address", methods=['POST'])
 def validate_address():
-    if request.method == "POST":
-        addr = request.json
-        currency = addr[0]
-        address = addr[1]
-        try:
-            curr = currencies.lookup_payable_addr(address)
-        except InvalidAddressException:
-            return jsonify({currency: False})
+    """ An endpoint that allows us to validate that addresses meet different
+    types of requirements.
 
-        if currency == 'Any' or currency == curr.key:
-            return jsonify({currency: True})
-        else:
-            return jsonify({currency: False})
+    Input is a json dictionary with:
+        currency: the three letter code, or the string 'Any'
+        address: the address string
+        type: the type of address it must be
 
-@main.route("/validate_address_unex", methods=['POST', 'GET'])
-def validate_address_unex():
-    if request.method == "POST":
-        addr = request.json
-        currency = addr[0]
-        address = addr[1]
+    Return value is like {'LTC': True} where LTC is currency provided
+    """
+    def validate(address, typ, currency):
         try:
             ver = currencies.validate_bc_address(address)
         except InvalidAddressException:
-            return jsonify({currency: False})
+            return False
 
-        if ver in currencies[currency].address_version:
-            return jsonify({currency: True})
+        if typ == 'buyable':
+            lst = currencies.buyable_currencies
+        elif typ == 'sellable':
+            lst = currencies.sellable_currencies
+        elif typ == 'unsellable':
+            lst = currencies.unsellable_currencies
+        elif typ == 'unbuyable':
+            lst = currencies.unbuyable_currencies
         else:
-            return jsonify({currency: False})
+            abort(400)
+
+        for curr in lst:
+            if ver in curr.address_version:
+                if curr.key == currency or currency == 'Any':
+                    return True
+        return False
+
+    data = request.json
+    if validate(data['address'], data['type'], data['currency']):
+        return jsonify({data['currency']: True})
+    else:
+        return jsonify({data['currency']: False})
 
 
 @main.route("/settings/<user_address>", methods=['POST', 'GET'])

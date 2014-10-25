@@ -67,7 +67,7 @@ $(document).ready(function() {
   };
 
   // Runs an ajax request to the server to validate a BC address
-  var validate_address = function (watch, success_callback, url) {
+  var validate_address = function (watch, success_callback, type) {
     $(watch).on("blur", function () {
       var _that = $(this);
       var currency = _that.attr("name");
@@ -85,7 +85,11 @@ $(document).ready(function() {
 
       checking.siblings('span').hide();
       checking.css('display', 'block');
-      var json = JSON.stringify([currency, addr]);
+      var json = JSON.stringify({
+          currency: currency,
+          address: addr,
+          type: type
+      });
 
       var fail = function () {
         invalid.siblings('span').hide();
@@ -109,7 +113,7 @@ $(document).ready(function() {
         type: "POST",
         dataType: "json",
         contentType: "application/json; charset=utf-8",
-        url: url,
+        url: '/validate_address',
         data: json
       }).done(function(data) {
         for (var property in data) {
@@ -265,7 +269,7 @@ $(document).ready(function() {
     $('span.mining-username').html(valid_address);
     wrap_link('#stats-link', valid_address);
     wrap_link('#settings-link', valid_address);
-  }, '/validate_address');
+  }, 'buyable');
 
   // config guide - set username + curr
   $('#availCurr').change(function() {
@@ -291,9 +295,9 @@ $(document).ready(function() {
 // JS for user settings
 ////////////////////////////////////////////
 
-  new validate_address('.address-field', function () {}, '/validate_address');
-
-  new validate_address('.address-field-unex', function () {}, '/validate_address_unex');
+  new validate_address('.buyable-address-field', function () {}, 'buyable');
+  new validate_address('.sellable-address-field', function () {}, 'sellable');
+  new validate_address('.unsellable-address-field', function () {}, 'unsellable');
 
   var interval = null;
 

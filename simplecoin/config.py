@@ -10,12 +10,12 @@ from flask import current_app
 from cryptokit.rpc import CoinserverRPC
 from cryptokit.base58 import address_version
 from decimal import Decimal as dec
-from urlparse import urljoin
 
 from . import models as m
 from . import redis_conn, chains, powerpools, locations, algos, global_config
 from .utils import time_format
-from .exceptions import ConfigurationException, RemoteException, InvalidAddressException
+from .exceptions import (ConfigurationException, RemoteException,
+                         InvalidAddressException)
 
 
 class ConfigObject(dict):
@@ -179,7 +179,7 @@ class Currency(ConfigObject):
                     pool_payout_addr=None)
 
     def __init__(self, bootstrap):
-        bootstrap['_algo'] = bootstrap.pop('algo')
+        bootstrap['_algo'] = bootstrap.pop('algo', None)
         ConfigObject.__init__(self, bootstrap)
         if self.coinserv:
             cfg = self.coinserv
