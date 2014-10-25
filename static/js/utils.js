@@ -81,6 +81,7 @@ $(document).ready(function() {
       }
       var checking = _that.siblings('span.checking-address');
       var invalid = _that.siblings('span.invalid-address');
+      var error = _that.siblings('span.error');
       var valid = _that.siblings('span.valid-address');
 
       checking.siblings('span').hide();
@@ -94,6 +95,11 @@ $(document).ready(function() {
       var fail = function () {
         invalid.siblings('span').hide();
         invalid.css('display', 'block');
+      }
+
+      var error_fail = function () {
+        error.siblings('span').hide();
+        error.css('display', 'block');
       }
 
       var success = function () {
@@ -115,7 +121,8 @@ $(document).ready(function() {
         contentType: "application/json; charset=utf-8",
         url: '/validate_address',
         data: json
-      }).done(function(data) {
+      })
+      .done(function(data) {
         for (var property in data) {
           if (data.hasOwnProperty(property)) {
               if (property != 'Any') {
@@ -124,6 +131,9 @@ $(document).ready(function() {
               if (data[property] == true) { success(); } else { fail(); }
           }
         }
+      })
+      .fail(function() {
+        error_fail();
       });
 
     });
@@ -314,7 +324,7 @@ $(document).ready(function() {
   $("select#sPayoutCurr").change(function () {
     var val = $(this).val();
     $("#sPayoutAddr").attr("name", val);
-    $('.address-field').blur()
+    $("#sPayoutAddr").blur()
   })
   .change();
 

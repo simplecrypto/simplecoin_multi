@@ -245,6 +245,9 @@ Form CSS
 .help-block.invalid-address {
     color:#ff8859;
 }
+.help-block.error {
+    color:#ff8859;
+}
 .help-block.valid-address {
     color:#5cb85c;
 }
