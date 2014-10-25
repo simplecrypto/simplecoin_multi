@@ -42,6 +42,12 @@ algo = "sha256"
 address_version = [0, 5]
 block_time = 120
 
+[currencies.RBY]
+name = "Rubycoin"
+algo = "scrypt"
+address_version = [61]
+block_time = 150
+
 [currencies.BTM]
 name = "Bitmark"
 algo = "scrypt"
