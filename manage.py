@@ -163,7 +163,9 @@ def forward_coinservs(host):
                 action="store_true")
 def convert_unexchangeable(dont_simulate):
     """ Converts Credit exchanges for unexchangeable currencies to payout the
-    pool """
+    pool.
+
+    XXX: Now broken due to config refactor """
     unexchangeable = []
     for currency in currencies.itervalues():
         # Skip unused currencies

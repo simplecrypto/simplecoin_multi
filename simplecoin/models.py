@@ -888,7 +888,7 @@ class PayoutAddress(base):
 
     @property
     def exchangeable(self):
-        return currencies[self.currency].exchangeable
+        return currencies[self.currency].sellable
 
 
 from .scheduler import distributor
