@@ -352,6 +352,10 @@ def settings(user_address):
 
     result, alert_cls = handle_message(user_address, curr)
     user = UserSettings.query.filter_by(user=user_address).first()
+
+    unsellable_mineable = [c for c in currencies.unsellable_currencies
+                           if not c in currencies.unmineable_currencies]
+
     return render_template("user_settings.html",
                            username=user_address,
                            result=result,
@@ -361,7 +365,7 @@ def settings(user_address):
                            user=user,
                            buyable_currencies=currencies.buyable_currencies,
                            sellable_currencies=currencies.sellable_currencies,
-                           unsellable_currencies=currencies.unsellable_currencies)
+                           unsellable_currencies=unsellable_mineable)
 
 
 @main.route("/crontabs")

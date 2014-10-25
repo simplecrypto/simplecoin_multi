@@ -285,6 +285,10 @@ class CurrencyKeeper(Keeper):
         return [c for c in self.itervalues() if c.sellable is False]
 
     @property
+    def unmineable_currencies(self):
+        return [c for c in self.itervalues() if c.mineable is False]
+
+    @property
     def available_versions(self):
         versions = {}
         for v in self.itervalues():
