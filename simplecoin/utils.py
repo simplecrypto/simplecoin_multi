@@ -610,7 +610,7 @@ def validate_message_vals(address, **kwargs):
     # Make sure we have both an arb donate addr + an arb donate % or neither
     if not del_spayout_addr:
         if not spayout_perc >= 0 or spayout_addr is False:
-            raise CommandException("Split payout requires both an address"
+            raise CommandException("Split payout requires both an address "
                                    "and a percentage, or to remove it both "
                                    "must be removed.")
     elif del_spayout_addr:

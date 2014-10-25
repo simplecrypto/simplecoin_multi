@@ -369,13 +369,22 @@ $(document).ready(function() {
     };
 
     // Loop through the currency inputs on the page
-    $('input.address-field').each(function(index) {
+    $('input.sellable-address-field').each(function(index) {
+      // Mark blank values for deletion - otherwise attempt to validate
+      if ($( this ).val() == '') {
+        msg_str += 'DEL_ADDR ' + $( this ).attr("name") + '\t';
+        return true
+      } else {
+        validate_address($(this), invalid_address, valid_address);
+      }
+    });
+
+    // Loop through the currency inputs on the page
+    $('input.buyable-address-field').each(function(index) {
       // Mark blank values for deletion - otherwise attempt to validate
       if ($( this ).val() == '') {
         if ($(this).attr("id") == 'sPayoutAddr') {
           msg_str += 'DEL_SPAYOUT_ADDR True\t';
-        } else {
-          msg_str += 'DEL_ADDR ' + $( this ).attr("name") + '\t';
         }
         return true
       } else {
@@ -384,14 +393,10 @@ $(document).ready(function() {
     });
 
     // Loop through the currency inputs on the page
-    $('input.address-field-unex').each(function(index) {
+    $('input.unsellable-address-field').each(function(index) {
       // Mark blank values for deletion - otherwise attempt to validate
       if ($( this ).val() == '') {
-        if ($(this).attr("id") == 'sPayoutAddr') {
-          msg_str += 'DEL_SPAYOUT_ADDR True\t';
-        } else {
-          msg_str += 'DEL_ADDR ' + $( this ).attr("name") + '\t';
-        }
+        msg_str += 'DEL_ADDR ' + $( this ).attr("name") + '\t';
         return true
       } else {
         validate_address($(this), invalid_address, valid_address);
