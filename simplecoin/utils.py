@@ -436,7 +436,7 @@ def collect_user_stats(user_address):
                filter(
                    ((Block.orphan == True) & (Block.found_at >= lower_day))
                    | (Block.orphan != True)).
-               order_by(Credit.id.desc())).limit(20).all()
+               order_by(Credit.id.desc())).all()
 
     for credit in credits:
         # By desired currency
