@@ -615,11 +615,11 @@ def credit_block(redis_key, simulate=False):
     # currency obj hashability
 
     # The currencies that are valid to pay out in from this block. Basically,
-    # this block currency + all exchangeable currencies if this block's
-    # currency is also exchangeable
+    # this block currency + all buyable currencies if this block's currency is
+    # sellable
     valid_currencies = [block.currency_obj]
-    if block.currency_obj.exchangeable is True:
-        valid_currencies.extend(currencies.exchangeable_currencies)
+    if block.currency_obj.sellable is True:
+        valid_currencies.extend(currencies.buyable_currencies)
 
     pool_payout = block.currency_obj.pool_payout
 

@@ -10,12 +10,12 @@ from flask import current_app
 from cryptokit.rpc import CoinserverRPC
 from cryptokit.base58 import address_version
 from decimal import Decimal as dec
-from urlparse import urljoin
 
 from . import models as m
 from . import redis_conn, chains, powerpools, locations, algos, global_config
 from .utils import time_format
-from .exceptions import ConfigurationException, RemoteException, InvalidAddressException
+from .exceptions import (ConfigurationException, RemoteException,
+                         InvalidAddressException)
 
 
 class ConfigObject(dict):
@@ -126,8 +126,8 @@ class ConfigChecker(ConfigObject):
         pool_curr = cfg['pool_payout_currency']
         if pool_curr not in app.currencies:
             raise ConfigurationException("Invalid pool payout currency!")
-        if app.currencies[pool_curr].exchangeable is not True:
-            raise ConfigurationException("Pool payout currency must be exchangeable!")
+        if app.currencies[pool_curr].buyable is not True:
+            raise ConfigurationException("Pool payout currency must be buyable!")
         if app.currencies[pool_curr].pool_payout_addr is None:
             raise ConfigurationException("Pool payout currency must define a pool_payout_addr!")
         self.pool_payout_currency = app.currencies[pool_curr]
@@ -172,13 +172,14 @@ class ConfigChecker(ConfigObject):
 class Currency(ConfigObject):
     requires = ['_algo', 'name', 'address_version', 'trans_confirmations',
                 'block_time', 'block_mature_confirms']
-    defaults = dict(exchangeable=False,
+    defaults = dict(sellable=False,
+                    buyable=False,
                     minimum_payout='0.00000001',
                     coinserv={},
                     pool_payout_addr=None)
 
     def __init__(self, bootstrap):
-        bootstrap['_algo'] = bootstrap.pop('algo')
+        bootstrap['_algo'] = bootstrap.pop('algo', None)
         ConfigObject.__init__(self, bootstrap)
         if self.coinserv:
             cfg = self.coinserv
@@ -190,11 +191,12 @@ class Currency(ConfigObject):
                         cfg['port'],
                         pool_kwargs=dict(maxsize=bootstrap.get('maxsize', 10))))
             self.coinserv.config = cfg
-        elif self.exchangeable or self.mineable:
+        elif self.sellable or self.mineable or self.buyable:
             raise ConfigurationException(
                 "Coinserver must be configured for {}!".format(self.key))
 
-        self.exchangeable = bool(self.exchangeable)
+        self.sellable = bool(self.sellable)
+        self.buyable = bool(self.buyable)
         self.minimum_payout = dec(self.minimum_payout)
 
         # If a pool payout addr is specified, make sure it matches the
@@ -210,10 +212,10 @@ class Currency(ConfigObject):
                     .format(self.pool_payout_addr, self.key, self.address_version, ver))
 
         # Check to make sure there is a configured pool address for
-        # unexchangeable currencies
-        if self.exchangeable is False and self.pool_payout_addr is None and self.mineable:
+        # unsellable currencies
+        if self.sellable is False and self.pool_payout_addr is None and self.mineable:
             raise ConfigurationException(
-                "Unexchangeable currencies require a pool payout addr."
+                "Unsellable currencies require a pool payout addr."
                 "No valid address found for {}".format(self.key))
 
     @property
@@ -231,7 +233,8 @@ class Currency(ConfigObject):
         if pool_payout['address'] is None:
             pool_payout['address'] = global_curr.pool_payout_addr
             pool_payout['currency'] = global_curr
-            assert self.exchangeable is True, "Block is un-exchangeable"
+            # Double check
+            assert self.sellable is True, "Block is un-sellable"
 
         # Double check valid. Paranoid
         address_version(pool_payout['address'])
@@ -250,27 +253,40 @@ class CurrencyKeeper(Keeper):
         self.version_map = {}
         for obj in self.values():
             # Ignore currency objects that aren't setup
-            if not obj.exchangeable and not obj.mineable:
+            if not obj.sellable and not obj.mineable and not obj.buyable:
                 self.pop(obj.key)
 
-            if not obj.exchangeable:
+            # Don't add to the version map if not buyable
+            if not obj.buyable:
                 continue
 
             for version in obj.address_version:
                 if version in self.version_map:
                     raise ConfigurationException(
-                        "Cannot have overlappting exchangeable address_versions."
+                        "Cannot have overlappting buyable address_versions."
                         "Tried to add {} for {}, but already has {}"
                         .format(version, obj, self.version_map[version]))
                 self.version_map[version] = obj
 
     @property
-    def exchangeable_currencies(self):
-        return [c for c in self.itervalues() if c.exchangeable is True]
+    def buyable_currencies(self):
+        return [c for c in self.itervalues() if c.buyable is True]
 
     @property
-    def unexchangeable_currencies(self):
-        return [c for c in self.itervalues() if c.exchangeable is False]
+    def unbuyable_currencies(self):
+        return [c for c in self.itervalues() if c.buyable is False]
+
+    @property
+    def sellable_currencies(self):
+        return [c for c in self.itervalues() if c.sellable is True]
+
+    @property
+    def unsellable_currencies(self):
+        return [c for c in self.itervalues() if c.sellable is False]
+
+    @property
+    def unmineable_currencies(self):
+        return [c for c in self.itervalues() if c.mineable is False]
 
     @property
     def available_versions(self):
@@ -283,7 +299,7 @@ class CurrencyKeeper(Keeper):
 
     def lookup_payable_addr(self, address):
         """
-        Checks an address to determine if its a valid and payable(exchangeable)
+        Checks an address to determine if its a valid and payable(buyable)
         address. Typically used to validate a username address.
         Returns the payable currency object for that version.
 
@@ -291,7 +307,7 @@ class CurrencyKeeper(Keeper):
         raised.
 
         !!! This function assumes that a currency will not be configured as
-        exchangeable if there is a version conflict with another currency.
+        buyable if there is a version conflict with another currency.
 
         Although it makes this assumption - it should return a consistent
         Currency obj even if configuration is incorrect
@@ -302,8 +318,8 @@ class CurrencyKeeper(Keeper):
             return self.version_map[ver]
         except KeyError:
             raise InvalidAddressException(
-                "Address '{}' version {} is not an exchangeable currency. Options are {}"
-                .format(address, ver, self.exchangeable_currencies))
+                "Address '{}' version {} is not an buyable currency. Options are {}"
+                .format(address, ver, self.buyable_currencies))
 
     def validate_bc_address(self, bc_address_str):
         """

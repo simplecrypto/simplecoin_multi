@@ -30,7 +30,8 @@ type = "redis"
 display = true
 
 [currencies.default]
-exchangeable = false
+buyable = false
+sellable = false
 mineable = false
 trans_confirmations = 6
 block_mature_confirms = 120
@@ -40,6 +41,12 @@ name = "Bitcoin"
 algo = "sha256"
 address_version = [0, 5]
 block_time = 120
+
+[currencies.RBY]
+name = "Rubycoin"
+algo = "scrypt"
+address_version = [61]
+block_time = 150
 
 [currencies.BTM]
 name = "Bitmark"

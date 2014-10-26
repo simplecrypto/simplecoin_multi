@@ -160,14 +160,14 @@
                     </div>
                     <div class="col-sm-3">
                       <select class="form-control" id="sPayoutCurr" name="sPayoutCurr" style="padding:8px 8px;">
-                        {% for curr in ex_currencies %}
+                        {% for curr in buyable_currencies %}
                           <option value="{{ curr }}" id="spay-{{ curr }}"{% if curr.key == user.spayout_curr %} selected{% endif %}>{{ curr }}</option>
                         {% endfor %}
                       </select>
                     </div>
 
                     <div class="col-sm-7 no-padding">
-                      <input type="text" class="form-control address-field"
+                      <input type="text" class="form-control buyable-address-field"
                              id="sPayoutAddr"
                              name="{{ user.spayout_curr or 'Any' }}" value="{{ user.spayout_addr or '' }}">
                       <span class="help-block help-text">Input a valid
@@ -179,6 +179,9 @@
                         <i class='fa fa-exclamation-triangle'></i> Invalid
                         <span class="address-currency"></span>
                         address</span>
+                      <span class="help-block error default-hide">
+                        <i class='fa fa-exclamation-triangle'></i> The server
+                      had an error attempting to validate!</span>
                       <span class="help-block valid-address default-hide">
                         <i class='fa fa-check'></i> Valid
                         <span class="address-currency"></span> address</span>
@@ -192,18 +195,18 @@
                 </div>
               </div>
 
-              {% if ex_currencies %}
+              {% if sellable_currencies %}
               <p class="col-sm-10 col-sm-offset-1 horz-form-heading">
                 <b>Exchangeable Currencies</b>
                   <span class="help-block">Set an address to disable
                     {{ user_currency }} conversion for that currency</span>
               </p>
-              {% for curr_obj in ex_currencies if not user_currency_name == curr_obj.key %}
+              {% for curr_obj in sellable_currencies if not user_currency_name == curr_obj.key %}
               <div class="form-group">
                 <label for="{{ curr_obj.key }}" class="col-sm-3 control-label">
-                  {{ curr_obj.key }}:</label>
+                  {{ curr_obj.key }} ({{ curr_obj.algo }}):</label>
                 <div class="col-sm-6">
-                  <input type="text" class="form-control address-field"
+                  <input type="text" class="form-control sellable-address-field"
                          name="{{ curr_obj.key }}" id="{{ curr_obj.key }}"
                          {% if curr_obj.key in user.exchangeable_addresses %}
                          value="{{ user.exchangeable_addresses[curr_obj.key] }}"
@@ -216,6 +219,9 @@
                   <span class="help-block invalid-address default-hide">
                     <i class='fa fa-exclamation-triangle'></i> Invalid
                     <span class="address-currency"></span> address</span>
+                  <span class="help-block error default-hide">
+                    <i class='fa fa-exclamation-triangle'></i> The server
+                  had an error attempting to validate!</span>
                   <span class="help-block valid-address default-hide">
                     <i class='fa fa-check'></i> Valid
                     <span class="address-currency"></span> address</span>
@@ -224,18 +230,18 @@
               {% endfor %}
               {% endif %}
 
-              {% if unex_currencies %}
+              {% if unsellable_currencies %}
               <p class="col-sm-10 col-sm-offset-1 horz-form-heading">
                 <b>Unexchangeable Currencies</b>
                   <span class="help-block">To receive any these currencies it
                     is required that you set an address</span>
               </p>
-              {% for curr_obj in unex_currencies %}
+              {% for curr_obj in unsellable_currencies %}
               <div class="form-group">
                 <label for="{{ curr_obj.key }}" class="col-sm-3 control-label">
-                  {{ curr_obj.key }}:</label>
+                  {{ curr_obj.key }} ({{ curr_obj.algo }}):</label>
                 <div class="col-sm-6">
-                  <input type="text" class="form-control address-field-unex"
+                  <input type="text" class="form-control unsellable-address-field"
                          name="{{ curr_obj.key }}" id="{{ curr_obj.key }}"
                          {% if curr_obj.key in user.unexchangeable_addresses %}
                          value="{{ user.unexchangeable_addresses[curr_obj.key] }}"
@@ -247,6 +253,9 @@
                   <span class="help-block invalid-address default-hide">
                     <i class='fa fa-exclamation-triangle'></i> Invalid
                     <span class="address-currency"></span> address</span>
+                  <span class="help-block error default-hide">
+                    <i class='fa fa-exclamation-triangle'></i> The server
+                  had an error attempting to validate!</span>
                   <span class="help-block valid-address default-hide">
                     <i class='fa fa-check'></i> Valid
                     <span class="address-currency"></span> address</span>

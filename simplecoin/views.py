@@ -1,13 +1,12 @@
 from __future__ import division
 import yaml
-import decimal
 
 from flask import (current_app, request, render_template, Blueprint, jsonify,
-                   g, session, Response)
+                   g, session, Response, abort)
 
 from .models import (Block, ShareSlice, UserSettings, make_upper_lower, Credit,
                      Payout, DeviceSlice, Transaction)
-from . import db, root, cache, currencies, algos, locations, powerpools, redis_conn
+from . import db, root, cache, currencies, algos, locations
 from .exceptions import InvalidAddressException
 from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
                     get_alerts, resort_recent_visit, collect_acct_items,
@@ -19,7 +18,7 @@ main = Blueprint('main', __name__)
 
 @main.route("/")
 def home():
-    payout_currencies = currencies.exchangeable_currencies
+    payout_currencies = currencies.buyable_currencies
     return render_template('home.html',
                            payout_currencies=payout_currencies,
                            locations=locations)
@@ -27,7 +26,7 @@ def home():
 
 @main.route("/configuration_guide")
 def configuration_guide():
-    payout_currencies = currencies.exchangeable_currencies
+    payout_currencies = currencies.buyable_currencies
     return render_template('config_guide_wrapper.html',
                            payout_currencies=payout_currencies,
                            locations=locations)
@@ -165,8 +164,9 @@ def user_dashboard(user_address):
     try:
         currencies.lookup_payable_addr(user_address)
     except Exception:
-        return render_template('invalid_address.html',
-                                allowed_currencies=currencies.exchangeable_currencies)
+        return render_template(
+            'invalid_address.html',
+            allowed_currencies=currencies.buyable_currencies)
 
     stats = collect_user_stats(user_address)
 
@@ -298,37 +298,46 @@ def handle_message(address, curr):
     return result, alert_cls
 
 
-@main.route("/validate_address", methods=['POST', 'GET'])
+@main.route("/validate_address", methods=['POST'])
 def validate_address():
-    if request.method == "POST":
-        addr = request.json
-        currency = addr[0]
-        address = addr[1]
-        try:
-            curr = currencies.lookup_payable_addr(address)
-        except InvalidAddressException:
-            return jsonify({currency: False})
+    """ An endpoint that allows us to validate that addresses meet different
+    types of requirements.
 
-        if currency == 'Any' or currency == curr.key:
-            return jsonify({currency: True})
-        else:
-            return jsonify({currency: False})
+    Input is a json dictionary with:
+        currency: the three letter code, or the string 'Any'
+        address: the address string
+        type: the type of address it must be
 
-@main.route("/validate_address_unex", methods=['POST', 'GET'])
-def validate_address_unex():
-    if request.method == "POST":
-        addr = request.json
-        currency = addr[0]
-        address = addr[1]
+    Return value is like {'LTC': True} where LTC is currency provided
+    """
+    def validate(address, typ, currency):
         try:
             ver = currencies.validate_bc_address(address)
         except InvalidAddressException:
-            return jsonify({currency: False})
+            return False
 
-        if ver in currencies[currency].address_version:
-            return jsonify({currency: True})
+        if typ == 'buyable':
+            lst = currencies.buyable_currencies
+        elif typ == 'sellable':
+            lst = currencies.sellable_currencies
+        elif typ == 'unsellable':
+            lst = currencies.unsellable_currencies
+        elif typ == 'unbuyable':
+            lst = currencies.unbuyable_currencies
         else:
-            return jsonify({currency: False})
+            abort(400)
+
+        for curr in lst:
+            if ver in curr.address_version:
+                if curr.key == currency or currency == 'Any':
+                    return True
+        return False
+
+    data = request.json
+    if validate(data['address'], data['type'], data['currency']):
+        return jsonify({data['currency']: True})
+    else:
+        return jsonify({data['currency']: False})
 
 
 @main.route("/settings/<user_address>", methods=['POST', 'GET'])
@@ -339,10 +348,14 @@ def settings(user_address):
     except Exception:
         return render_template(
             'invalid_address.html',
-            allowed_currencies=currencies.exchangeable_currencies)
+            allowed_currencies=currencies.buyable_currencies)
 
     result, alert_cls = handle_message(user_address, curr)
     user = UserSettings.query.filter_by(user=user_address).first()
+
+    unsellable_mineable = [c for c in currencies.unsellable_currencies
+                           if not c in currencies.unmineable_currencies]
+
     return render_template("user_settings.html",
                            username=user_address,
                            result=result,
@@ -350,8 +363,9 @@ def settings(user_address):
                            user_currency=curr.name,
                            user_currency_name=curr.key,
                            user=user,
-                           ex_currencies=currencies.exchangeable_currencies,
-                           unex_currencies=currencies.unexchangeable_currencies)
+                           buyable_currencies=currencies.buyable_currencies,
+                           sellable_currencies=currencies.sellable_currencies,
+                           unsellable_currencies=unsellable_mineable)
 
 
 @main.route("/crontabs")
