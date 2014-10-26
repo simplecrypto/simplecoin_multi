@@ -407,6 +407,8 @@ def collect_user_stats(user_address):
     currency = dict(
         immature=dec(0),
         unconverted=dec(0),
+        sold=dec(0),
+        btc_converted=dec(0),
         payable=dec(0),
         total_pending=dec(0),
     )
@@ -446,7 +448,11 @@ def collect_user_stats(user_address):
         curr['convert'] = credit.block.currency != credit.currency
         if credit.type == 1:  # CreditExchange
             if not credit.payable and not credit.block.orphan:
-                curr['unconverted'] += credit.amount
+                if credit.sell_amount is not None:
+                    curr['sold'] += credit.amount
+                    curr['btc_converted'] += credit.sell_amount
+                else:
+                    curr['unconverted'] += credit.amount
 
         if credit.payable:
             curr['payable'] += credit.payable_amount

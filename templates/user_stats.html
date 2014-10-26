@@ -255,6 +255,7 @@ $(document).ready(function() {
             <th>Total Pending</th>
             <th>Immature</th>
             <th>Unconverted</th>
+            <th>Partially Converted (BTC amount)</th>
             <th>Payable</th>
           </tr>
           {% for currency, cdata in data['by_currency'].iteritems() %}
@@ -263,6 +264,7 @@ $(document).ready(function() {
             <td>{{ cdata['total_pending'] | currency }} {{ currency }}</td>
             <td>{{ cdata['immature'] | currency }} {{ currency }}</td>
             <td>{% if cdata['convert'] %}{{ cdata['unconverted'] | currency }} {{ currency }}{% else %}N/A{% endif %}</td>
+            <td>{% if cdata['convert'] %}{{ cdata['sold'] | currency }} {{ currency }} ({{ cdata['btc_converted'] | currency }} BTC){% else %}N/A{% endif %}</td>
             <td>{{ cdata['payable'] | currency }} {{ payout_currency }}</td>
           </tr>
           {% endfor %}
