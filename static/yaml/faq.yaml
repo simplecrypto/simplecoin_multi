@@ -1,12 +1,26 @@
 "How do I pick which currency I want to be paid out in?":
     | 
-    Your desired payout currency is automatically determined by the type of
+    <p>Your desired payout currency is automatically determined by the type of
     address you're mining with. So if you mine with a Bitcoin address as your
     username, then by default everything you mine will exchanged to Bitcoin and
     paid out to that address. This can be done since most (almost all) altcoins
     have a unique address "prefix", which is technically known as the address
     version. For instance, a Vertcoin address will always start with a "V", 
-    while most Bitcoin addresses start with a "1".
+    while most Bitcoin addresses start with a "1".</p>
+
+    <br><p>However, some of the coins versions overlap - such as Urocoin and
+    ULTC, Viacoin and Vertcoin, etc. This means our system can't <i>always</i>
+    automatically determine which you intended. In the future we'll be adding a
+    method to explicitly specify which you want, but for now when there is a
+    conflict we have picked one for the default. So for example: if you mine
+    with a ULTC address all of your earnings will actually be converted to
+    Urocoin. If this isn't what you intended, its not a complete loss, your
+    ULTC address is actually also a valid URO address.
+    </p>
+
+    <br><p>A complete list of the coin addresses you can mine with may be found
+    on the <a href="http://www.simplemulti.com/">front page</a>
+
 "What if I want to keep X currency, and not have it Auto-Exchanged?":
     | 
     Your user settings page allows you to specify a payout address for any
@@ -15,3 +29,15 @@
     for your mining currency and to recieve these currencies you <b>must</b>
     specify a payout address. These currencies are separated out on your
     settings page under "Unexchangeable Currencies".
+
+"I have a payout marked 'payout pending' that hasn't been paid out in days. Whats the deal?":
+    |
+    <p>Some currencies have payout minimums. For example, Syscoin requires that a
+    transaction output be no smaller than .05, which means we are completely
+    unable to payout a balance smaller than that.</p>
+
+    <br><p>The only other currencies (at the moment) which have minimums are
+    BTC (0.0001 minimum), and LTC (0.001 minimum). At some point we'll get
+    these all listed out somewhere so it is easier to navigate.</p>
+
+    <br><p>Once your balance exceeds the minimum you'll get paid out normally.</p>
