@@ -418,11 +418,18 @@ def generate_credits(dont_simulate=True):
     attempts to process them """
     simulate = not dont_simulate
     unproc_blocks = redis_conn.keys("unproc_block*")
+    datas = []
     for key in unproc_blocks:
-        hash = key[13:]
+        data = redis_conn.hgetall(key)
+        data['redis_key'] = key
+        datas.append(data)
+    datas = sorted(datas, key=itemgetter('solve_time'))
+
+    for data in datas:
+        hash = data['hash']
         current_app.logger.info("==== Attempting to process block hash {}".format(hash))
         try:
-            credit_block(key, simulate=simulate)
+            credit_block(data, simulate=simulate)
         except Exception:
             db.session.rollback()
             current_app.logger.error("Unable to payout block {}".format(hash), exc_info=True)
@@ -506,7 +513,7 @@ def _distributor(amount, splits, scale=None, addtl_prec=0):
         return splits
 
 
-def credit_block(redis_key, simulate=False):
+def credit_block(data, simulate=False):
     """
     Calculates credits for users from share records for the latest found block.
     """
@@ -517,7 +524,7 @@ def credit_block(redis_key, simulate=False):
         current_app.logger.warn("Running in simulate mode, no commit will be performed")
         current_app.logger.setLevel(logging.DEBUG)
 
-    data = redis_conn.hgetall(redis_key)
+    redis_key = data['redis_key']
     current_app.logger.debug("Processing block with details {}".format(data))
     merged = bool(int(data.get('merged', False)))
     # If start_time isn't listed explicitly do our best to derive from
