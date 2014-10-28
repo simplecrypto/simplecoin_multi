@@ -46,8 +46,12 @@ ul.nav-tabs > li.tab.active {
   z-index: 100;
 }
 
+ul.nav-tabs > li.tab.active > a {
+  background-color: #485563;
+}
+
+
 ul.nav-tabs + * {
-  padding-top: 20px;
   border-top:1px solid #4e5d6c;
 }
 
@@ -207,6 +211,15 @@ g.axis {
     min-height:20px;
     padding:15px;
     width:100%;
+}
+
+.psuedo-panel > div {
+    padding: 9px;
+    border-radius: 0;
+    text-align:center;
+    background-color:#485563;
+    margin-bottom:0px;
+    min-height: 55px;
 }
 
 /*************

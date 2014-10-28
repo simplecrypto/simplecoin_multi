@@ -261,15 +261,19 @@ $(document).ready(function() {
 
   });
 
-
 ////////////////////////////////////////////
-// JS for user stats page
+// JS for pool stats page
 ////////////////////////////////////////////
-
 
   // Setup collapse button for currencies
   flip('#chart', '#hashrate-collapse', '[+]', '[-]');
 
+  // Setup collapse button for configuration guide
+  $('div.collapse-currency').each(function(index) {
+    var id = "#" + $(this).attr("id");
+    var watch = $(this).parents('h3').data('target');
+    new flip(watch, id, '[+]', '[-]');
+  });
 
 ////////////////////////////////////////////
 // JS for configuration guide

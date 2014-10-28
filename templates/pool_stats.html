@@ -82,45 +82,52 @@ $(document).ready(function() {
     <div class="col-lg-12 no-padding">
 
       {% for currency, round_data in currencies.iteritems() %}
-      <div class="row" style="margin-top:25px;padding-left:15px;padding-right:15px;">
+      <div class="row psuedo-panel" style="padding-left:15px;padding-right:15px;">
         <div class="col-lg-2">
-          <h3>{{ round_data['currency_data']['name'] }}</h3>
+          <h4><small>
+            {{ round_data['currency_data']['name'] }} ({{ algo }})
+          </small></h4>
         </div>
-        <div class="col-lg-5">
-          <dl class="dl-horizontal">
-            <dt>Code</dt>
-            <dd>{{ round_data['currency_data']['code'] }}</dd>
-            <dt>Algorithm</dt>
-            <dd>{{ algo }}</dd>
-          {% if 'avg_difficulty' in data %}
-            <dt>Average Difficulty</dt>
-            <dd>{{ round_data['currency_data']['avg_difficulty'] | comma }}</dd>
+        <div class="col-lg-3">
+          <h4><small>
+            Current Hashrate: {{ round_data['currency_data']['hashrate'] | hashrate }}
+          </small></h4>
+        </div>
+        <div class="col-lg-3" style="">
+          {% if round_data['start_time'] %}
+          <h4><small>
+            Last Solve: {{ round_data['start_time'] | human_date_utc }}
+          </small></h4>
           {% endif %}
-          </dl>
         </div>
-        <div class="col-lg-5">
-          <dl class="dl-horizontal">
-            <dt>Current Hashrate</dt>
-            <dd>{{ round_data['currency_data']['hashrate'] | hashrate }}</dd>
-            {% if round_data['start_time'] %}
-            <dt>Last Solve</dt>
-            <dd>{{ round_data['start_time'] | human_date_utc }}</dd>
-            {% endif %}
-          </dl>
+        <div class="col-lg-4" style="background-color:#485563;">
+          {% if round_data['status'] == 'Idle' %}
+            <h3 data-toggle="collapse" data-target="#{{ round_data['currency_data']['name'] }}-details">
+              <div id="{{ round_data['currency_data']['name'] }}-expander"
+                   class="btn btn-default pull-right btn-sm collapse-button collapse-currency">
+                {% if round_data['status'] == 'Idle' %}[+]{% else %}[-]{% endif %}
+              </div>
+            </h3>
+          {% else %}
+            {{ round_data['status'] }}
+          {% endif %}
         </div>
       </div>
+      <div class="collapse {% if round_data['status'] != 'Idle' %}in{% endif %}"
+           id="{{ round_data['currency_data']['name'] }}-details">
       <div class="row">
       {% set blocks = round_data['currency_data']['blocks'] %}
       {% set current_block = round_data %}
       {% include "block_table.html" %}
       </div>
       {% if round_data['currency_data']['blocks'] %}
-      <div class="well well-sm" style="text-align:center;background-color:#212F3D;margin-top:-21px;margin-bottom:0px;">
+      <div class="well well-sm" style="text-align:center;background-color:#212F3D;margin-top:-21px;margin-bottom:21px;">
         <h4><small><a href="/blocks/{{ round_data['currency_data']['code'] }}">
           View more {{ round_data['currency_data']['name'] }} blocks
         </a></small></h4>
       </div>
       {% endif %}
+</div>
       {% endfor %}
     </div>
   </div>
