@@ -101,20 +101,16 @@ $(document).ready(function() {
           {% endif %}
         </div>
         <div class="col-lg-4" style="background-color:#485563;">
-          {% if round_data['status'] == 'Idle' %}
-            <h3 data-toggle="collapse" data-target="#{{ round_data['currency_data']['name'] }}-details">
-              <div id="{{ round_data['currency_data']['name'] }}-expander"
-                   class="btn btn-default pull-right btn-sm collapse-button collapse-currency">
-                {% if round_data['status'] == 'Idle' %}[+]{% else %}[-]{% endif %}
-              </div>
-            </h3>
-          {% else %}
-            {{ round_data['status'] }}
-          {% endif %}
+          <h3 data-toggle="collapse" data-target="#{{ round_data['currency_data']['code'] }}-details">
+            <div id="{{ round_data['currency_data']['code'] }}-expander"
+                 class="btn btn-default pull-right btn-sm collapse-button collapse-currency">
+              {% if round_data['status'] == 'Idle' %}[+]{% else %}[-]{% endif %}
+            </div>
+          </h3>
         </div>
       </div>
       <div class="collapse {% if round_data['status'] != 'Idle' %}in{% endif %}"
-           id="{{ round_data['currency_data']['name'] }}-details">
+           id="{{ round_data['currency_data']['code'] }}-details">
       <div class="row">
       {% set blocks = round_data['currency_data']['blocks'] %}
       {% set current_block = round_data %}
