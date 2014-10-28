@@ -41,3 +41,40 @@
     these all listed out somewhere so it is easier to navigate.</p>
 
     <br><p>Once your balance exceeds the minimum you'll get paid out normally.</p>
+
+"Why does vardiff put my workers at a very high/very low difficulty?":
+    |
+    <p>We run a custom <b>user based</b> vardiff instead of the more traditional
+    <b>worker based</b> vardiff. Most pools run worker based vardiff and
+    target ~20 share submissions per minute from each worker,
+    whereas we target ~35 share submission per minute from each user.
+    </p>
+
+    <p>So if you have only one worker you'll probably notice a lot more
+    share submissions than on other pools, and vardiff will adjust your
+    difficulty down a lot. But if you have many workers you'll notice the
+    opposite.
+    </p>
+
+    <p>
+    This setup is designed to be extremely performant for miners and also reduce
+    the load on our servers, even if mining with a very large mining farm.
+    Since <b>user based</b> vardiff is not the norm, we often have miners who
+    want to set a specific difficulty which works better for their miner
+    (frequently the case with ASICS). If you'd like to do that, read the
+    section on setting a fixed difficulty.
+    </p>
+
+"How do I set a specific difficulty for my miner?":
+    |
+    <p>Configure your miner to use "--diff XXX" as the password</p>
+
+    <p>Most ports have a minimum allowed setting for this value, and if you
+    try something below that value it'll just set it to the minimum.</p>
+
+    <p>Note: this functions as a 'starting difficulty', so on vardiff
+    ports the difficulty will still get adjusted! If you want it to stay fixed
+    you'll need to mine on a fixed diff port. We're working on
+    <a href="https://github.com/simplecrypto/powerpool/issues/76">more powerful
+    configuration options</a> for vardiff, but at the moment they're not available.
+    </p>
