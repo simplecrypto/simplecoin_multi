@@ -488,11 +488,12 @@ class PropChain(Chain):
                                               currency=curr_block.currency).
                       filter(m.Block.hash != curr_block.hash).
                       order_by(m.Block.found_at.desc())).first()
+        stop_slice = 0
         if last_block:
-            last_block_payout = [bp for bp in last_block.chain_payouts if bp.chainid == self.id][0]
-            stop_slice = last_block_payout.solve_slice
-        else:
-            stop_slice = 0
+            bps = [bp for bp in last_block.chain_payouts if bp.chainid == self.id]
+            if len(bps) > 0:
+                last_block_payout = bps[0]
+                stop_slice = last_block_payout.solve_slice
         return self._calc_shares(block_payout.solve_slice, stop_slice=stop_slice)
 
 
