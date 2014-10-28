@@ -297,10 +297,12 @@ def collect_pool_stats():
         network_data[currency.algo.display][currency.key].update(round_data)
 
     server_status = cache.get('server_status') or {}
+    block_stats_tab = session.get('block_stats_tab', 'all')
 
     return dict(network_data=network_data,
                 server_status=server_status,
-                powerpools=powerpools)
+                powerpools=powerpools,
+                block_stats_tab=block_stats_tab)
 
 
 def collect_user_stats(user_address):

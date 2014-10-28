@@ -67,10 +67,10 @@ $(document).ready(function() {
 <div class="row row-header">
   <h2>Recently Mined Blocks</h2>
   <ul class="nav nav-tabs algo-tabs">
-    <li class="tab active" data-algo="all">
+    <li class="tab block-stats{% if block_stats_tab == 'all' %} active{% endif %}" data-algo="all">
       <a href="#">All Algos</a></li>
   {% for algo, currencies in network_data.iteritems() %}
-    <li class="tab" data-algo="{{ algo }}"><a href="#">{{ algo }}</a></li>
+    <li class="tab block-stats{% if block_stats_tab == algo %} active{% endif %}" data-algo="{{ algo }}"><a href="#">{{ algo }}</a></li>
   {% endfor %}
   </ul>
 

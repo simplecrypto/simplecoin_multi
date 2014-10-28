@@ -128,6 +128,12 @@ def pool_stats():
     return render_template('pool_stats.html', **pool_stats)
 
 
+@main.route("/pool_stats/block_tabs/<string:algo>")
+def block_stats_tab(algo):
+    session['block_stats_tab'] = algo
+    return Response('success')
+
+
 @main.before_request
 def add_pool_stats():
     g.algos = {k: v for k, v in algos.iteritems() if v.enabled is True}

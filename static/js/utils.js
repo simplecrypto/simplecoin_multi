@@ -170,6 +170,10 @@ $(document).ready(function() {
     $("." + selector).siblings().hide();
 
     if (selector == 'all') { $(".algo").show(); }
+
+    // Remember when we switch block stats tabs
+    $.get('/pool_stats/block_tabs/' + selector);
+
   });
 
   function n(n){
