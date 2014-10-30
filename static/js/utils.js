@@ -159,21 +159,27 @@ $(document).ready(function() {
   // Setup collapse button for currencies
   flip('#payout-currencies', '#pool-details', '[+]', '[-]');
 
+  var switch_tab = function(algo) {
+    $("." + algo).show();
+    $("." + algo).siblings().hide();
+
+    if (algo == 'all') { $(".algo").show(); }
+
+    // Remember when we switch block stats tabs
+    $.get('/pool_stats/block_tabs/' + algo);
+  };
+
+  var algo = $(".tab.block-stats.active").data('algo');
+  switch_tab(algo);
+
   $(".algo-tabs > li").click(function(event) {
     event.preventDefault();
 
     $(this).siblings().removeClass("active");
     $(this).addClass("active");
 
-    var selector = $(this).data('algo');
-    $("." + selector).show();
-    $("." + selector).siblings().hide();
-
-    if (selector == 'all') { $(".algo").show(); }
-
-    // Remember when we switch block stats tabs
-    $.get('/pool_stats/block_tabs/' + selector);
-
+    var algo = $(this).data('algo');
+    switch_tab(algo);
   });
 
   function n(n){
