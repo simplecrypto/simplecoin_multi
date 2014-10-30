@@ -163,6 +163,19 @@ algo = "scrypt"
 address_version = [23]
 block_time = 205
 
+[currencies.MEC]
+name = "Megacoin"
+algo = "scrypt"
+address_version = [50]
+block_time = 150
+
+[currencies.EMC2]
+name = "Einsteiniumcoin"
+algo = "scrypt"
+address_version = [33]
+block_time = 60
+
+
 [algos.x11]
 hashes_per_share = 4294967296
 normalize_mult = 0.181818182
