@@ -155,6 +155,7 @@ def add_pool_stats():
     g.miner_count = cache.get('total_miners') or {}
     g.alerts = get_alerts()
     g.anon_users = anon_users()
+    session.permanent = True
 
 
 @main.route("/close/<int:id>")

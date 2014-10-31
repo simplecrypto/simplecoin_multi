@@ -297,7 +297,11 @@ def collect_pool_stats():
         network_data[currency.algo.display][currency.key].update(round_data)
 
     server_status = cache.get('server_status') or {}
-    block_stats_tab = session.get('block_stats_tab', 'all')
+    block_stats_tab = session.get('block_stats_tab', "all")
+
+    # Session key may have expired but be returned as undefined
+    if block_stats_tab == "undefined":
+        block_stats_tab = session['block_stats_tab'] = "all"
 
     return dict(network_data=network_data,
                 server_status=server_status,
