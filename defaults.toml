@@ -43,6 +43,7 @@ display = true
 buyable = false
 sellable = false
 mineable = false
+merged = false
 trans_confirmations = 6
 block_mature_confirms = 120
 
@@ -81,30 +82,35 @@ block_time = 120
 name = "Dogecoin"
 algo = "scrypt"
 address_version = [30]
+merged = true
 block_time = 60
 
 [currencies.SYS]
 name = "Syscoin"
 algo = "scrypt"
 address_version = [63]
+merged = true
 block_time = 60
 
 [currencies.PTC]
 name = "Pesetacoin"
 algo = "scrypt"
 address_version = [47]
+merged = true
 block_time = 60
 
 [currencies.TCO]
 name = "Tacocoin"
 algo = "scrypt"
 address_version = [48]
+merged = true
 block_time = 60
 
 [currencies.ULTC]
 name = "Umbrella-LTC"
 algo = "scrypt"
 address_version = [68]
+merged = true
 block_time = 600
 
 [currencies.LTC]
@@ -123,12 +129,14 @@ block_time = 150
 name = "Monocle"
 algo = "scryptn"
 address_version = [50]
+merged = true
 block_time = 120
 
 [currencies.GRE]
 name = "Greencoin"
 algo = "scrypt"
 address_version = [38]
+merged = true
 block_time = 60
 
 [currencies.FRAC]

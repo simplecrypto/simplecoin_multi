@@ -94,7 +94,9 @@ def cache_profitability():
         for block in blocks:
             btc, mhashes, btc_per_mhash = block.profitability()
             btc_total += btc
-            sold_mhashes += mhashes
+            # Only include the mhashes if it isn't a merge mined coin
+            if currency.merged is False:
+                sold_mhashes += mhashes
 
             for chain in block.chain_payouts:
 
@@ -105,7 +107,9 @@ def cache_profitability():
                     continue
 
                 chain_profit[chain.chainid]['btc'] += chain.profitability()
-                chain_profit[chain.chainid]['mhashes'] += chain.mhashes
+                # Only include the mhashes if it isn't a merge mined coin
+                if currency.merged is False:
+                    chain_profit[chain.chainid]['mhashes'] += chain.mhashes
 
         # Determine BTC/mhash for the whole currency
         try:
