@@ -482,19 +482,7 @@ class PPLNSChain(Chain):
 class PropChain(Chain):
     def calc_shares(self, block_payout):
         assert block_payout.chainid == self.id
-        curr_block = block_payout.block
-        last_block = (m.Block.query.filter_by(algo=curr_block.algo,
-                                              merged=curr_block.merged,
-                                              currency=curr_block.currency).
-                      filter(m.Block.hash != curr_block.hash).
-                      order_by(m.Block.found_at.desc())).first()
-        stop_slice = 0
-        if last_block:
-            bps = [bp for bp in last_block.chain_payouts if bp.chainid == self.id]
-            if len(bps) > 0:
-                last_block_payout = bps[0]
-                stop_slice = last_block_payout.solve_slice
-        return self._calc_shares(block_payout.solve_slice, stop_slice=stop_slice)
+        return self._calc_shares(block_payout.solve_slice, stop_slice=block_payout.start_slice)
 
 
 class ChainKeeper(Keeper):
