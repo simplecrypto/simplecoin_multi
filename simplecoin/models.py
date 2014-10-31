@@ -1,5 +1,6 @@
 import calendar
 from decimal import Decimal
+import decimal
 import logging
 
 from collections import namedtuple
@@ -290,6 +291,44 @@ class Block(base):
                     data['height'])
         return None
 
+    @cache.memoize(timeout=7200)
+    def _profitibility(self):
+        hps = current_app.algos[self.algo].hashes_per_share
+
+        # Get a some credit totals
+        btc_total = 0
+        amount_total = 0
+        amount_sold = 0
+        for credit in self.credits:
+            amount_total += credit.amount
+
+            if credit.type == 1 and credit.sell_amount > 0:
+                amount_sold += credit.amount
+                btc_total += credit.sell_amount
+
+        # We're gonna need to be pretty precise here
+        with decimal.localcontext(decimal.BasicContext) as ctx:
+            ctx.rounding = decimal.ROUND_DOWN
+            ctx.prec = 100
+
+            # determine what percent was sold
+            sold_perc = amount_sold / amount_total
+
+            # Get a mhashes total
+            mhash_total = (self.shares_to_solve * hps) / 1000000
+
+            # Determine mhashes sold
+            sold_mhashes = mhash_total * sold_perc
+
+            # Determine BTC/mhash
+            try:
+                btc_per_mhash = btc_total / sold_mhashes
+            except (ZeroDivisionError, decimal.InvalidOperation):
+                return 0
+
+            btc_per_mhash_per_day = btc_per_mhash * 86400
+
+        return sold_perc, btc_total, sold_mhashes, btc_per_mhash_per_day
 
 class Transaction(base):
     id = db.Column(db.Integer, primary_key=True)
