@@ -1,3 +1,39 @@
+"What is the payout schedule?":
+    |
+    <p>Payouts are daily at around 6pm GMT</p>
+
+"What are the pool fees?":
+    |
+    <p>Fees are done on a per-port basis</p>
+
+    <p>Our PPLNS ports are generally 1% for a dedicated currency, and 2% for
+    profit switching.</p>
+
+"What are the pool fees?":
+    |
+    <ul>
+    <li>Fees are done on a per-port basis</li>
+    <li>PPLNS ports are generally 1% for a dedicated currency</li>
+    <li>PPLNS ports are generally 2% for profit switching.</li>
+    <li>Miners keep any transaction fees mined into blocks</li>
+    <li>We cover payout transaction fees</li>
+    <li>We pass along all fees incurred from currency exchange, including
+    deposit/withdrawal transaction fees to/from exchanges</li>
+    </ul>
+
+"Do you merge mine Doge/what currencies do you merge mine?":
+    |
+    <p><b>Scrypt coins</b>: Dogecoin (DOGE), Syscoin (SYS), Umbrella LTC (ULTC),
+    Pesetacoin (PTC), Greencoin (GRE), Tacocoin (TCO)
+    </p>
+
+    <p><b>Scrypt-N coins</b>: ZeroVertcoin (ZER/ZVTC), <s>Monoclecoin (MON)</s>
+    (currently disabled) in favor of ZVTC
+    </p>
+
+    <p><b>X11 coins</b>: N/A
+    </p>
+
 "How do I pick which currency I want to be paid out in?":
     | 
     <p>Your desired payout currency is automatically determined by the type of
@@ -8,7 +44,7 @@
     version. For instance, a Vertcoin address will always start with a "V", 
     while most Bitcoin addresses start with a "1".</p>
 
-    <br><p>However, some of the coins versions overlap - such as Urocoin and
+    <p>However, some of the coins versions overlap - such as Urocoin and
     ULTC, Viacoin and Vertcoin, etc. This means our system can't <i>always</i>
     automatically determine which you intended. In the future we'll be adding a
     method to explicitly specify which you want, but for now when there is a
@@ -18,7 +54,7 @@
     ULTC address is actually also a valid URO address.
     </p>
 
-    <br><p>A complete list of the coin addresses you can mine with may be found
+    <p>A complete list of the coin addresses you can mine with may be found
     on the <a href="http://www.simplemulti.com/">front page</a>
 
 "What if I want to keep X currency, and not have it Auto-Exchanged?":
@@ -36,11 +72,11 @@
     transaction output be no smaller than .05, which means we are completely
     unable to payout a balance smaller than that.</p>
 
-    <br><p>The only other currencies (at the moment) which have minimums are
+    <p>The only other currencies (at the moment) which have minimums are
     BTC (0.0001 minimum), and LTC (0.001 minimum). At some point we'll get
     these all listed out somewhere so it is easier to navigate.</p>
 
-    <br><p>Once your balance exceeds the minimum you'll get paid out normally.</p>
+    <p>Once your balance exceeds the minimum you'll get paid out normally.</p>
 
 "Why does vardiff put my workers at a very high/very low difficulty?":
     |
