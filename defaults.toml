@@ -144,6 +144,7 @@ name = "Viacoin"
 algo = "scrypt"
 address_version = [71]
 block_time = 24
+block_mature_confirms = 3600
 
 [currencies.FTC]
 name = "Feathercoin"
