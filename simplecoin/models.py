@@ -135,6 +135,7 @@ class ChainPayout(base):
     chainid = db.Column(db.Integer, primary_key=True)
     block_id = db.Column(db.Integer, db.ForeignKey('block.id'), primary_key=True)
     block = db.relationship('Block', foreign_keys=[block_id], backref='chain_payouts')
+    start_slice = db.Column(db.Integer)
     # Placeholder for the point at which the block was solved in this share chain.
     solve_slice = db.Column(db.Integer)
     # Shares on this chain. Used to get portion of total block
