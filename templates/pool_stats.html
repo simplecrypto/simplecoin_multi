@@ -88,9 +88,14 @@ $(document).ready(function() {
             {{ round_data['currency_data']['name'] }} ({{ algo }})
           </small></h4>
         </div>
-        <div class="col-lg-3">
+        <div class="col-lg-2">
           <h4><small>
             {{ _("Current Hashrate:") }} {{ round_data['currency_data']['hashrate'] | hashrate }}
+          </small></h4>
+        </div>
+        <div class="col-lg-3">
+          <h4><small>
+            Current Profitability: {{ round_data['currency_data']['profitability'] }}
           </small></h4>
         </div>
         <div class="col-lg-3" style="">
@@ -100,7 +105,7 @@ $(document).ready(function() {
           </small></h4>
           {% endif %}
         </div>
-        <div class="col-lg-4" style="background-color:#485563;">
+        <div class="col-lg-2" style="background-color:#485563;">
           <h3 data-toggle="collapse" data-target="#{{ round_data['currency_data']['code'] }}-details">
             <div id="{{ round_data['currency_data']['code'] }}-expander"
                  class="btn btn-default pull-right btn-sm collapse-button collapse-currency">

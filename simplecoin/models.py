@@ -153,6 +153,19 @@ class ChainPayout(base):
     def config_obj(self):
         return chains[self.chainid]
 
+    @property
+    def hashes(self):
+        hps = current_app.algos[self.block.algo].hashes_per_share
+        return hps * self.chain_shares
+
+    @property
+    def mhashes(self):
+        return self.hashes / 1000000
+
+    def profitability(self):
+        btc_earned, sold_mhashes, btc_per_mhash = self.block.profitability()
+        return btc_per_mhash * self.mhashes
+
     def make_credit_obj(self, user, address, currency, shares):
         """ Makes the appropriate credit object given a few details. Payout
         amount too be calculated. """
@@ -291,8 +304,7 @@ class Block(base):
                     data['height'])
         return None
 
-    @cache.memoize(timeout=7200)
-    def _profitibility(self):
+    def profitability(self):
         hps = current_app.algos[self.algo].hashes_per_share
 
         # Get a some credit totals
@@ -324,11 +336,9 @@ class Block(base):
             try:
                 btc_per_mhash = btc_total / sold_mhashes
             except (ZeroDivisionError, decimal.InvalidOperation):
-                return 0
+                return 0, 0, 0
 
-            btc_per_mhash_per_day = btc_per_mhash * 86400
-
-        return sold_perc, btc_total, sold_mhashes, btc_per_mhash_per_day
+        return btc_total, sold_mhashes, btc_per_mhash
 
 class Transaction(base):
     id = db.Column(db.Integer, primary_key=True)

@@ -251,6 +251,11 @@ def collect_pool_stats():
         # Check the cache for the currency's network data
         currency_data.update(cache.get("{}_data".format(currency.key)) or {})
 
+        # Check the cache for the currency's profit data
+        profit = {'profitability': cache.get("{}_profitability"
+                                             .format(currency.key)) or 0}
+        currency_data.update(profit)
+
         # Check the cache for the currency's hashrate data
         hashrate = cache.get("hashrate_{}".format(currency.key)) or 0
         currency_data['hashrate'] = float(hashrate)
