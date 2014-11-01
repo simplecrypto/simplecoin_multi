@@ -6,7 +6,7 @@ import json
 from flask import current_app, session
 from sqlalchemy.exc import SQLAlchemyError
 from cryptokit.rpc import CoinRPCException
-from decimal import Decimal as dec
+from decimal import Decimal as dec, Decimal
 
 from .exceptions import CommandException, InvalidAddressException
 from . import db, cache, root, redis_conn, currencies, powerpools, algos
@@ -252,8 +252,10 @@ def collect_pool_stats():
         currency_data.update(cache.get("{}_data".format(currency.key)) or {})
 
         # Check the cache for the currency's profit data
-        profit = {'profitability': cache.get("{}_profitability"
-                                             .format(currency.key)) or 0}
+        profit =  cache.get("{}_profitability".format(currency.key)) or '???'
+        if profit is not '???':
+            profit = profit.quantize(Decimal('0.00000001'))
+        profit = {'profitability': profit}
         currency_data.update(profit)
 
         # Check the cache for the currency's hashrate data

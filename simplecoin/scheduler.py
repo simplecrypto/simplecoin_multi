@@ -81,6 +81,8 @@ def cache_profitability():
     for currency in currencies.itervalues():
         if currency.mineable is False:
             continue
+        if currency.sellable is False:
+            continue
 
         twenty_four_h_ago = datetime.datetime.utcnow() - datetime.timedelta(hours=48)
 
@@ -92,11 +94,9 @@ def cache_profitability():
         btc_total = 0
         sold_mhashes = 0
         for block in blocks:
-            btc, mhashes, btc_per_mhash = block.profitability()
+            btc, mhashes = block.profitability()
             btc_total += btc
-            # Only include the mhashes if it isn't a merge mined coin
-            if currency.merged is False:
-                sold_mhashes += mhashes
+            sold_mhashes += mhashes
 
             for chain in block.chain_payouts:
 
@@ -107,15 +107,21 @@ def cache_profitability():
                     continue
 
                 chain_profit[chain.chainid]['btc'] += chain.profitability()
-                # Only include the mhashes if it isn't a merge mined coin
+                # If its a merged coin, track the mhashes separately
                 if currency.merged is False:
                     chain_profit[chain.chainid]['mhashes'] += chain.mhashes
+                else:
+                    chain_profit[chain.chainid].setdefault('merged_chains', [])
+                    if currency.key not in chain_profit[chain.chainid]['merged_chains']:
+                        chain_profit[chain.chainid]['merged_chains'].append(currency.key)
+                    chain_profit[chain.chainid].setdefault('merged_mhash', 0)
+                    chain_profit[chain.chainid]['merged_mhash'] += chain.mhashes
 
         # Determine BTC/mhash for the whole currency
         try:
             btc_per_mhash = btc_total / sold_mhashes
         except (ZeroDivisionError, decimal.InvalidOperation):
-            btc_per_mhash = 0
+            btc_per_mhash = Decimal('0')
 
         btc_per_mhash_per_day = btc_per_mhash * 86400
 
@@ -127,10 +133,22 @@ def cache_profitability():
 
     # Determine BTC/mhash for each chain
     for chain_id, profit_data in chain_profit.iteritems():
+
+        # Calculate average merge mined mhashes
+        merged_mhash = 0
+        if 'merged_chains' in profit_data:
+            merged_mhash = profit_data['merged_mhash'] / len(profit_data['merged_chains'])
+
         try:
             btc_per_mhash = profit_data['btc'] / profit_data['mhashes']
         except (ZeroDivisionError, decimal.InvalidOperation):
-            btc_per_mhash = 0
+
+            # If there are no mainnet blocks, use the mhashes from merged nets
+            if merged_mhash > 0:
+                try:
+                    btc_per_mhash = profit_data['btc'] / merged_mhash
+                except (ZeroDivisionError, decimal.InvalidOperation):
+                    btc_per_mhash = Decimal('0')
 
         btc_per_mhash_per_day = btc_per_mhash * 86400
 

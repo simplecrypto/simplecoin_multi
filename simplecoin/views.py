@@ -1,4 +1,5 @@
 from __future__ import division
+from decimal import Decimal
 import yaml
 
 from flask import (current_app, request, render_template, Blueprint, jsonify,
@@ -7,7 +8,7 @@ from flask.ext.babel import gettext
 
 from .models import (Block, ShareSlice, UserSettings, make_upper_lower, Credit,
                      Payout, DeviceSlice, Transaction)
-from . import db, root, cache, currencies, algos, locations, babel
+from . import db, root, cache, currencies, algos, locations, chains, babel
 from .exceptions import InvalidAddressException
 from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
                     get_alerts, resort_recent_visit, collect_acct_items,
@@ -28,9 +29,17 @@ def home():
 @main.route("/configuration_guide")
 def configuration_guide():
     payout_currencies = currencies.buyable_currencies
+
+    past_chain_profit = {}
+    for chain in chains:
+        chain_profit = (cache.get("chain_{}_profitability".format(chain))
+                        .quantize(Decimal('0.00000001')) or '???')
+        past_chain_profit[chain] = chain_profit
+
     return render_template('config_guide_wrapper.html',
                            payout_currencies=payout_currencies,
-                           locations=locations)
+                           locations=locations,
+                           past_chain_profit=past_chain_profit)
 
 
 @main.route("/faq")

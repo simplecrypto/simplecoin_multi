@@ -163,7 +163,14 @@ class ChainPayout(base):
         return self.hashes / 1000000
 
     def profitability(self):
-        btc_earned, sold_mhashes, btc_per_mhash = self.block.profitability()
+        btc_earned, sold_mhashes = self.block.profitability()
+
+        # Determine BTC/mhash
+        try:
+            btc_per_mhash = btc_earned / sold_mhashes
+        except (ZeroDivisionError, decimal.InvalidOperation):
+            return 0
+
         return btc_per_mhash * self.mhashes
 
     def make_credit_obj(self, user, address, currency, shares):
@@ -332,13 +339,7 @@ class Block(base):
             # Determine mhashes sold
             sold_mhashes = mhash_total * sold_perc
 
-            # Determine BTC/mhash
-            try:
-                btc_per_mhash = btc_total / sold_mhashes
-            except (ZeroDivisionError, decimal.InvalidOperation):
-                return 0, 0, 0
-
-        return btc_total, sold_mhashes, btc_per_mhash
+        return btc_total, sold_mhashes
 
 class Transaction(base):
     id = db.Column(db.Integer, primary_key=True)
