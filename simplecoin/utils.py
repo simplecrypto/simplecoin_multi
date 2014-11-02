@@ -423,13 +423,7 @@ def collect_user_stats(user_address):
         return earning_summary[curr]
 
     # Go through already grouped aggregates
-    payouts = Payout.query.filter_by(user=user_address).order_by(Payout.created_at.desc()).all()
-    for payout in payouts:
-        summary = lookup_curr(payout.currency_obj)
-        if payout.transaction_id:  # Mark sent if there's a txid attached
-            summary['sent'] += payout.amount
-        else:
-            summary['ready_to_send'] += payout.amount
+    payouts = Payout.query.filter_by(user=user_address).order_by(Payout.created_at.desc()).limit(20)
 
     # Loop through all unaggregated credits to find the rest
     credits = (Credit.query.filter_by(user=user_address, payout_id=None).
