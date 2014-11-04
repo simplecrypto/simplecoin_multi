@@ -65,10 +65,11 @@ def update_trade_requests():
             assert isinstance(tr, dict)
             assert 'status' in tr
             g.signed['trs'][tr_id]['status'] = int(tr['status'])
-            if tr['status'] == 6:
-                assert 'quantity' in tr
-                assert 'fees' in tr
-    except (AssertionError, TypeError):
+            if tr['status'] == 5 or tr['status'] == 6:
+                tr['source_quantity'] = Decimal(tr['source_quantity'])
+                tr['quantity'] = Decimal(tr['quantity'])
+                tr['fees'] = Decimal(tr['fees'])
+    except (AssertionError, TypeError, KeyError):
         current_app.logger.warn("Invalid data passed to update_sell_requests",
                                 exc_info=True)
         abort(400)
@@ -76,14 +77,19 @@ def update_trade_requests():
     updated = []
     for tr_id, tr_dict in g.signed['trs'].iteritems():
         try:
+            status = tr_dict['status']
             tr = (TradeRequest.query.filter_by(id=int(tr_id)).
                   with_lockmode('update').one())
-            tr._status = tr_dict['status']
+            tr._status = status
 
-            if tr_dict['status'] == 6:
-                tr.exchanged_quantity = Decimal(tr_dict['quantity'])
-                tr.fees = Decimal(tr_dict['fees'])
-                tr.distribute()
+            if status == 5 or status == 6:
+                tr.exchanged_quantity = tr_dict['quantity'] + tr_dict['stuck_quantity']
+                tr.fees = tr_dict['fees']
+                # Get the amount of fees that we incurred during this trade
+                # update
+                applied_fees = tr_dict['fees'] - (tr.fees or 0)
+                tr.distribute(tr_dict['stuck_quantity'], applied_fees)
+
         except Exception:
             db.session.rollback()
             current_app.logger.error("Unable to update trade request {}"

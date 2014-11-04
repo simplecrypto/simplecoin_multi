@@ -1,7 +1,7 @@
 import logging
 import itertools
 import datetime
-from pprint import pprint
+from pprint import pformat
 import time
 import simplejson as json
 import urllib3
@@ -173,7 +173,7 @@ def create_payouts():
         payout_summary[currency] += payout.amount
 
     current_app.logger.info("############### SUMMARY OF PAYOUTS GENERATED #####################")
-    current_app.logger.info(pprint(payout_summary))
+    current_app.logger.info(pformat(payout_summary))
 
     db.session.commit()
 
@@ -445,6 +445,7 @@ def _distributor(amount, splits, scale=None, addtl_prec=0):
     fashion. `addtl_prec` allows you to specify additional precision for
     computing share remainders, allowing a higher likelyhood of fair
     distribution of amount remainders among keys. Usually not needed.  """
+
     scale = int(scale or 28) * -1
     amount = Decimal(amount)
 

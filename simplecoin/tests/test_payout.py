@@ -2,6 +2,7 @@ import time
 import flask
 import unittest
 import random
+import decimal
 
 from simplecoin import db, currencies
 from simplecoin.scheduler import _distributor
@@ -156,7 +157,7 @@ class TestGeneratePayout(UnitTest):
 
 
 class TestTradeRequest(UnitTest):
-    def test_push_tr_buy(self):
+    def test_complete_tr_buy(self):
         credits = []
         tr = m.TradeRequest(
             quantity=sum(xrange(1, 20)),
@@ -176,7 +177,8 @@ class TestTradeRequest(UnitTest):
             db.session.add(c)
 
         db.session.commit()
-        push_data = {'trs': {tr.id: {"status": 6, "quantity": "1000", "fees": "1"}}}
+        push_data = {'trs': {tr.id: {"status": 6, "quantity": "1000",
+                                     "fees": "1", "stuck_quantity": "0"}}}
         db.session.expunge_all()
 
         with self.app.test_request_context('/?name=Peter'):
@@ -195,7 +197,7 @@ class TestTradeRequest(UnitTest):
 
         assert m.TradeRequest.query.first()._status == 6
 
-    def test_push_tr(self):
+    def test_complete_tr_sell(self):
         credits = []
         tr = m.TradeRequest(
             quantity=sum(xrange(1, 20)),
@@ -213,7 +215,8 @@ class TestTradeRequest(UnitTest):
             db.session.add(c)
 
         db.session.commit()
-        push_data = {'trs': {tr.id: {"status": 6, "quantity": "1000", "fees": "1"}}}
+        push_data = {'trs': {tr.id: {"status": 6, "quantity": "1000",
+                                     "fees": "1", "stuck_quantity": "0"}}}
         db.session.expunge_all()
 
         with self.app.test_request_context('/?name=Peter'):
@@ -231,6 +234,150 @@ class TestTradeRequest(UnitTest):
             previous = credit.sell_amount
 
         assert m.TradeRequest.query.first()._status == 6
+
+    def test_update_tr_buy(self):
+        blk1 = self.make_block(mature=True)
+
+        credits = []
+        tr = m.TradeRequest(
+            quantity=sum(xrange(1, 20)) / 2,
+            type="buy",
+            currency="TEST"
+        )
+        db.session.add(tr)
+        for i in xrange(1, 20):
+            amount = float(i) / 2
+            c = m.CreditExchange(
+                amount=amount,
+                sell_amount=i,
+                sell_req=None,
+                buy_req=tr,
+                currency="TEST",
+                address="test{}".format(i),
+                block=blk1)
+            credits.append(c)
+            db.session.add(c)
+
+        db.session.commit()
+
+        posted_payable_amt = 149
+        posted_stuck_amt = 40
+        posted_fees = 1
+        push_data = {'trs': {tr.id: {"status": 5,
+                                     "quantity": str(posted_payable_amt),
+                                     "fees": str(posted_fees),
+                                     "stuck_quantity": str(posted_stuck_amt)}}}
+        db.session.expunge_all()
+
+        with self.app.test_request_context():
+            flask.g.signer = TimedSerializer(self.app.config['rpc_signature'])
+            flask.g.signed = push_data
+            update_trade_requests()
+
+        db.session.rollback()
+        db.session.expunge_all()
+
+        tr2 = m.TradeRequest.query.first()
+        credits2 = m.CreditExchange.query.all()
+
+        with decimal.localcontext(decimal.BasicContext) as ctx:
+            ctx.traps[decimal.Inexact] = True
+            ctx.prec = 100
+
+            # Check config to see if we're charging exchange fees or not
+            if self.app.config.get('cover_autoex_fees', False):
+                posted_payable_amt += posted_fees
+
+            # Assert that the the new payable amount is 150
+            payable_amt = sum([credit.buy_amount for credit in credits2 if credit.payable is True])
+            assert payable_amt == posted_payable_amt
+
+            # Assert that the stuck amount is 40
+            stuck_amt = sum([credit.buy_amount for credit in credits2 if credit.payable is False])
+            assert stuck_amt == posted_stuck_amt
+
+            # Check that the total BTC quantity represented hasn't changed
+            btc_quant = sum([credit.amount for credit in credits2])
+            assert btc_quant == tr2.quantity
+
+            # Check that the old credits BTC amounts look sane
+            old_btc_quant = sum([credit.amount for credit in credits2 if credit.payable is True])
+            assert (old_btc_quant / tr2.avg_price) - posted_fees == posted_payable_amt
+
+            # Check that the new credits BTC amounts look sane
+            new_btc_quant = sum([credit.amount for credit in credits2 if credit.payable is False])
+            assert new_btc_quant / tr2.avg_price == posted_stuck_amt
+
+            # Check that new credit attrs are the same as old (fees, etc)
+            for credit in credits2:
+                if credit.payable is False:
+                    c2 = credits2[credit.id - 20]
+                    assert c2.fee_perc == credit.fee_perc
+                    assert c2.pd_perc == credit.pd_perc
+                    assert c2.block == credit.block
+                    assert c2.user == credit.user
+                    assert c2.sharechain_id == credit.sharechain_id
+                    assert c2.address == credit.address
+                    assert c2.currency == credit.currency
+                    assert c2.type == credit.type
+                    assert c2.payout == credit.payout
+
+        # Assert that the status is 5, partially completed
+        assert tr2._status == 5
+
+    def test_close_after_update_tr_buy(self):
+
+        self.test_update_tr_buy()
+
+        tr = m.TradeRequest.query.first()
+
+        # Check that another update can be pushed.
+        posted_payable_amt = 188.5
+        posted_stuck_amt = 0
+        posted_fees = 1.5
+        push_data = {'trs': {tr.id: {"status": 6,
+                                     "quantity": str(posted_payable_amt),
+                                     "fees": str(posted_fees),
+                                     "stuck_quantity": str(posted_stuck_amt)}}}
+        db.session.expunge_all()
+
+        with self.app.test_request_context('/?name=Peter'):
+            flask.g.signer = TimedSerializer(self.app.config['rpc_signature'])
+            flask.g.signed = push_data
+            update_trade_requests()
+
+        db.session.rollback()
+        db.session.expunge_all()
+
+        tr2 = m.TradeRequest.query.first()
+        credits2 = m.CreditExchange.query.all()
+
+        # Assert that the payable amount is 150
+        with decimal.localcontext(decimal.BasicContext) as ctx:
+            # ctx.traps[decimal.Inexact] = True
+            ctx.prec = 100
+
+            # Check config to see if we're charging exchange fees or not
+            if self.app.config.get('cover_autoex_fees', False):
+                posted_payable_amt += posted_fees
+
+            # Assert that the the total payable amount is what we posted
+            payable_amt = sum([credit.buy_amount for credit in credits2 if credit.payable is True])
+            assert payable_amt == posted_payable_amt
+            total_curr_quant = sum([credit.buy_amount for credit in credits2])
+            assert total_curr_quant + Decimal(posted_fees) == 190
+
+            # Check that the total BTC quantity equals out
+            btc_quant = sum([credit.amount for credit in credits2])
+            assert btc_quant == tr2.quantity
+
+            # Check that the BTC amounts look sane
+            btc_quant = sum([credit.amount for credit in credits2 if credit.payable is True])
+            assert (btc_quant / tr2.avg_price) - Decimal(posted_fees) == posted_payable_amt
+
+            # Check that there is nothing marked unpayable
+            not_payable = sum([credit.amount for credit in credits2 if credit.payable is False])
+            assert not not_payable
 
 
 class TestPayouts(RedisUnitTest):
