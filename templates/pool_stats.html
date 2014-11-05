@@ -11,14 +11,14 @@ $(document).ready(function() {
 
 <div class="row row-header">
   <div class="col-lg-12">
-    <h2>Pool Hashrate
+    <h2>{{ _("Pool Hashrate") }}
     <div class="btn btn-default btn-sm collapse-button" data-toggle="collapse" data-target="#chart" id="hashrate-collapse">{% if hide_hr %}[+]{% else %}[-]{% endif %}</div>
     </h2>
     <div class="col-lg-12" id="chart">
       <ul class="nav nav-tabs">
-        <li class="tab hour"><a>Hour</a></li>
-        <li class="tab day"><a>Day</a></li>
-        <li class="tab month"><a>Month</a></li>
+        <li class="tab hour"><a>{{ _("Hour") }}</a></li>
+        <li class="tab day"><a>{{ _("Day") }}</a></li>
+        <li class="tab month"><a>{{ _("Month") }}</a></li>
       </ul>
       <div style="height:400px;">
         <img src="{{ config['assets_address'] | safe }}/img/712.GIF" style="position:absolute;padding-top:150px;padding-left:400px;"><svg></svg>
@@ -30,18 +30,18 @@ $(document).ready(function() {
 {% if server_status %}
 <br />
 <div class="row page-header">
-  <h2><i class="fa fa-cog"></i> &nbsp; Stratum Status</h2>
+  <h2><i class="fa fa-cog"></i> &nbsp; {{ _("Stratum Status") }}</h2>
   <div class="col-lg-12">
     <div class="bs-example table-responsive">
       <table class="table table-striped table-hover tablesorter" id="blockTable">
         <thead>
           <tr>
-            <th>Server</th>
-            <th>Algo</th>
-            <th>Chain</th>
-            <th>Hashrate (last minute)</th>
-            <th>Workers</th>
-            <th>Miners</th>
+            <th>{{ _("Server") }}</th>
+            <th>{{ _("Algo") }}</th>
+            <th>{{ _("Chain") }}</th>
+            <th>{{ _("Hashrate (last minute)") }}</th>
+            <th>{{ _("Workers") }}</th>
+            <th>{{ _("Miners") }}</th>
           </tr>
         </thead>
         <tbody>
@@ -65,10 +65,10 @@ $(document).ready(function() {
 
 <br />
 <div class="row row-header">
-  <h2>Recently Mined Blocks</h2>
+  <h2>{{ _("Recently Mined Blocks") }}</h2>
   <ul class="nav nav-tabs algo-tabs">
     <li class="tab block-stats{% if block_stats_tab == 'all' %} active{% endif %}" data-algo="all">
-      <a href="#">All Algos</a></li>
+      <a href="#">{{ _("All Algos") }}</a></li>
   {% for algo, currencies in network_data.iteritems() %}
     <li class="tab block-stats{% if block_stats_tab == algo %} active{% endif %}" data-algo="{{ algo }}"><a href="#">{{ algo }}</a></li>
   {% endfor %}
@@ -90,13 +90,13 @@ $(document).ready(function() {
         </div>
         <div class="col-lg-3">
           <h4><small>
-            Current Hashrate: {{ round_data['currency_data']['hashrate'] | hashrate }}
+            {{ _("Current Hashrate:") }} {{ round_data['currency_data']['hashrate'] | hashrate }}
           </small></h4>
         </div>
         <div class="col-lg-3" style="">
           {% if round_data['start_time'] %}
           <h4><small>
-            Last Solve: {{ round_data['start_time'] | human_date_utc }}
+            {{ _("Last Solve:") }} {{ round_data['start_time'] | human_date_utc }}
           </small></h4>
           {% endif %}
         </div>
@@ -119,7 +119,7 @@ $(document).ready(function() {
       {% if round_data['currency_data']['blocks'] %}
       <div class="well well-sm" style="text-align:center;background-color:#212F3D;margin-top:-21px;margin-bottom:21px;">
         <h4><small><a href="/blocks/{{ round_data['currency_data']['code'] }}">
-          View more {{ round_data['currency_data']['name'] }} blocks
+          {{ _("View more") }} {{ round_data['currency_data']['name'] }} {{ _("blocks") }}
         </a></small></h4>
       </div>
       {% endif %}

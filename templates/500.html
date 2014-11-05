@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block body %}
-<h1>Internal Server Error - Pool is out of water</h1>
-<p>Seems we've goofed up, sorry about that. This error has been logged. You might try again in a minute, we'll try to do better next time.</p>
+<h1>{{ _("Internal Server Error - Pool is out of water") }}</h1>
+<p>{{ _("Seems we've goofed up, sorry about that. This error has been logged. You might try again in a minute, we'll try to do better next time.") }}</p>
 {% if g.sentry_event_id %}
-<p>The error identifier is <b>{{ g.sentry_event_id }}</b></p>
+<p>{{ _("The error identifier is") }} <b>{{ g.sentry_event_id }}</b></p>
 {% endif %}
 <img src="{{ config['assets_address'] | safe }}/img/500.jpg">
 {% endblock %}

@@ -1,0 +1,15 @@
+from flask.ext.babel import gettext
+
+gettext('Home')
+gettext('Getting Started')
+gettext('User Stats')
+gettext('Pool Stats')
+gettext('Leaderboard')
+gettext('Extras')
+gettext('Simple Crypto Website')
+gettext('Source Code')
+gettext('Contact Us')
+gettext('Email')
+gettext('IRC')
+gettext('Reddit')
+gettext('Github')

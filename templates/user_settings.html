@@ -8,26 +8,26 @@
 <div class="container">
   <div class="row page-header" style="padding-bottom:10px;">
     <div class="col-sm-12" style="padding:0px;">
-      <h2>Edit Settings for account {{ username }}</h2>
+      <h2>{{ _("Edit Settings for account") }} {{ username }}</h2>
     </div>
   </div>
   <div class="row" style="padding-bottom:10px;">
     <div class="col-sm-6">
       <div class="panel panel-default" style="min-height: 250px;">
-        <div class="panel-heading">How changing settings works
+        <div class="panel-heading">{{ _("How changing settings works") }}
         </div>
         <div class="panel-body">
-          <p>Since there is no registration we use the message signing system
+          <p>{{ _("Since there is no registration we use the message signing system
           built into the QT wallet to prove you control the address. The basic
-          process is:</p>
+          process is:") }}</p>
           <ol>
-            <li>Fill out form with desired settings + generate a message w/
-              those settings</li>
-            <li>Copy the generated message</li>
-            <li>Sign the message with your wallet, using your account address
+            <li>{{ _("Fill out form with desired settings + generate a message w/
+              those settings") }}</li>
+            <li>{{ _("Copy the generated message") }}</li>
+            <li>{{ _("Sign the message with your wallet, using your account address") }}
               ({{ username }})</li>
-            <li>Paste the signature in the signature field below + submit the
-              form</li>
+            <li>{{ _("Paste the signature in the signature field below + submit the
+              form") }}</li>
           </ol>
         </div>
       </div>
@@ -35,19 +35,19 @@
 
     <div class="col-sm-6">
       <div class="panel panel-default" style="min-height: 250px;">
-        <div class="panel-heading">Claim all your earnings
+        <div class="panel-heading">{{ _("Claim all your earnings") }}
         </div>
         <div class="panel-body">
-          <p>By default if you do not have an address set for a merge mined
-          coin it will automatically be converted to your account currency
+          <p>{{ _("By default if you do not have an address set for a merge mined
+          coin it will automatically be converted to your account currency") }}
             ({{ user_currency }}).</p>
 
-          <p>You may (optionally) set an address for any coin we mine and
+          <p>{{ _("You may (optionally) set an address for any coin we mine and
             you'll be paid out your portion of that rather than exchanging
-            it</p>
+            it") }}</p>
 
-          <p>Some merge mined coins can't be exchanged so you'll need to set
-          an address for them or they'll be donated to the pool.</p>
+          <p>{{ _("Some merge mined coins can't be exchanged so you'll need to set
+          an address for them or they'll be donated to the pool.") }}</p>
         </div>
       </div>
     </div>
@@ -55,17 +55,17 @@
   <div class="row page-header" style="padding-bottom:10px;">
     <div class="col-sm-12">
       <div class="alert alert-info">
-        <b>Note: </b> Not all wallet apps sign messages
+        <b>{{ _("Note:") }} </b> {{ _("Not all wallet apps sign messages
         the same way, and some can't sign messages at all. This site works with
-        the QT client's implementation, and this guide is for the QT client.
+        the QT client's implementation, and this guide is for the QT client.") }}
       </div>
     </div>
   </div>
   <div class="row" style="margin-bottom:25px;">
     <div class="col-sm-8 col-sm-offset-2" style="padding:0px;max-width: 800px;">
       <div class="panel panel-default">
-        <div class="panel-heading">Step 1. Pick new settings + generate the
-          message</div>
+        <div class="panel-heading">{{ _("Step 1. Pick new settings + generate the
+          message") }}</div>
         <div class="panel-body">
           {% if result %}
             <div class="clearfix"></div>
@@ -76,60 +76,60 @@
           <form role="form" class="form-horizontal" id="settings-form">
             <fieldset>
               <p class="col-sm-10 col-sm-offset-1 horz-form-heading">
-                <b>General Settings</b>
+                <b>{{ _("General Settings") }}</b>
               <div class="form-group">
                 <label for="anonymous" class="col-sm-3 control-label">
-                  Make anonymous</label>
+                  {{ _("Make anonymous") }}</label>
                 <div class="col-sm-7">
                   <div class="checkbox">
                     <label>
                       <input type="checkbox" id="anonymous"
                              name="anonymous"{% if user.anon %} checked{% endif %}>
-                      This hides your address on the miner leaderboard
+                      {{ _("This hides your address on the miner leaderboard") }}
                     </label>
                   </div>
                 </div>
               </div>
               <div class="form-group">
                 <label for="userAddr" class="col-sm-3 control-label">
-                  Payout Address:</label>
+                  {{ _("Payout Address:") }}</label>
                 <div class="col-sm-7">
                   <div id="userAddr" data-addr="{{ username }}" style="padding-top:7px;">
                     {{ username }} (<b>{{ user_currency }}</b>)</div>
                 </div>
               </div>
               <p class="col-sm-10 col-sm-offset-1 horz-form-heading">
-                <b>Earnings Distribution</b>
-                  <span class="help-block">Optionally donate some of your earnings
-                  to the pool, or to any address that we payout in</span>
+                <b>{{ _("Earnings Distribution") }}</b>
+                  <span class="help-block">{{ _("Optionally donate some of your earnings
+                  to the pool, or to any address that we payout in") }}</span>
               </p>
               <div class="col-sm-10 col-sm-offset-1 default-hide" id="earn-error">
                 <div class="alert alert-{{ alert_cls }} default-hide"
                      id="global-perc">
                   <h4 style="margin-bottom: 0px;">
-                    <i class='fa fa-exclamation-triangle'></i> Total donations
-                    cannot exceed 100%
+                    <i class='fa fa-exclamation-triangle'></i> {{ _("Total donations
+                    cannot exceed 100%%") }}
                   </h4>
                 </div>
                 <div class="alert alert-{{ alert_cls }} default-hide"
                      id="arb-multipart">
                   <h4 style="margin-bottom: 0px;">
-                    <i class='fa fa-exclamation-triangle'></i> Split payout
+                    <i class='fa fa-exclamation-triangle'></i> {{ _("Split payout
                     requires both an address and a percentage, or to remove it
-                    both must be removed.
+                    both must be removed.") }}
                   </h4>
                 </div>
                 <div class="alert alert-{{ alert_cls }} default-hide"
                      id="arb-notmain">
                   <h4 style="margin-bottom: 0px;">
-                    <i class='fa fa-exclamation-triangle'></i> Split payout
-                    address cannot be the same as your main user address.
+                    <i class='fa fa-exclamation-triangle'></i> {{ _("Split payout
+                    address cannot be the same as your main user address.") }}
                   </h4>
                 </div>
               </div>
               <div class="form-group">
-                <label for="poolDonate" class="col-sm-3 control-label">Pool
-                  Donation</label>
+                <label for="poolDonate" class="col-sm-3 control-label">{{ _("Pool
+                  Donation") }}</label>
                 <div class="col-sm-8">
                   <div class="row no-margin">
                     <div class="col-sm-3 no-padding">
@@ -141,13 +141,13 @@
                         <i class='fa fa-exclamation-triangle'></i> 0-100%</div>
                     </div>
                    </div>
-                  <span class="help-block">A percentage to donate directly to
-                    the pool (0-100%)</span>
+                  <span class="help-block">{{ _("A percentage to donate directly to
+                    the pool (0-100%%)") }}</span>
                 </div>
               </div>
               <div class="form-group">
                 <label for="splitPayout" class="col-sm-3 control-label">
-                  Split payout</label>
+                  {{ _("Split payout") }}</label>
                 <div class="col-sm-8">
                   <div class="row no-margin">
                     <div class="col-sm-2 no-padding">
@@ -170,36 +170,36 @@
                       <input type="text" class="form-control buyable-address-field"
                              id="sPayoutAddr"
                              name="{{ user.spayout_curr or 'Any' }}" value="{{ user.spayout_addr or '' }}">
-                      <span class="help-block help-text">Input a valid
-                        {{ currency }} address</span>
+                      <span class="help-block help-text">{{ _("Input a valid
+                        %(currency)s address", currency=currency) }}</span>
                       <span class="help-block checking-address default-hide">
-                        <i class='fa fa-spinner fa-spin'></i> Checking address
-                        validity</span>
+                        <i class='fa fa-spinner fa-spin'></i> {{ _("Checking address
+                        validity") }}</span>
                       <span class="help-block invalid-address default-hide">
-                        <i class='fa fa-exclamation-triangle'></i> Invalid
+                        <i class='fa fa-exclamation-triangle'></i> {{ _("Invalid") }}
                         <span class="address-currency"></span>
-                        address</span>
+                        {{ _("address") }}</span>
                       <span class="help-block error default-hide">
-                        <i class='fa fa-exclamation-triangle'></i> The server
-                      had an error attempting to validate!</span>
+                        <i class='fa fa-exclamation-triangle'></i> {{ _("The server
+                      had an error attempting to validate!") }}</span>
                       <span class="help-block valid-address default-hide">
-                        <i class='fa fa-check'></i> Valid
-                        <span class="address-currency"></span> address</span>
+                        <i class='fa fa-check'></i> {{ _("Valid") }}
+                        <span class="address-currency"></span> {{ _("address") }}</span>
                     </div>
                    </div>
-                  <span class="help-block">Payout a percentage of your earnings
-                    to a specific address</span>
+                  <span class="help-block">{{ _("Payout a percentage of your earnings
+                    to a specific address") }}</span>
                   <div class="help-block fields-required default-hide">
-                    <i class='fa fa-exclamation-triangle'></i> Both fields are
-                    required to make a change</div>
+                    <i class='fa fa-exclamation-triangle'></i> {{ _("Both fields are
+                    required to make a change") }}</div>
                 </div>
               </div>
 
               {% if sellable_currencies %}
               <p class="col-sm-10 col-sm-offset-1 horz-form-heading">
-                <b>Exchangeable Currencies</b>
-                  <span class="help-block">Set an address to disable
-                    {{ user_currency }} conversion for that currency</span>
+                <b>{{ _("Exchangeable Currencies") }}</b>
+                  <span class="help-block">{{ _("Set an address to disable
+                    %(currency)s conversion for that currency", currency=user_currency) }}</span>
               </p>
               {% for curr_obj in sellable_currencies if not user_currency_name == curr_obj.key %}
               <div class="form-group">
@@ -211,20 +211,20 @@
                          {% if curr_obj.key in user.exchangeable_addresses %}
                          value="{{ user.exchangeable_addresses[curr_obj.key] }}"
                         {% endif %}>
-                  <span class="help-block help-text">Input a valid {{ curr_obj.key }}
-                    address</span>
+                  <span class="help-block help-text">{{ _("Input a valid %(currency)s
+                    address", currency=curr_obj.key) }}</span>
                   <span class="help-block checking-address default-hide">
-                    <i class='fa fa-spinner fa-spin'></i> Checking address
-                    validity</span>
+                    <i class='fa fa-spinner fa-spin'></i> {{ _("Checking address
+                    validity") }}</span>
                   <span class="help-block invalid-address default-hide">
-                    <i class='fa fa-exclamation-triangle'></i> Invalid
-                    <span class="address-currency"></span> address</span>
+                    <i class='fa fa-exclamation-triangle'></i> {{ _("Invalid") }}
+                    <span class="address-currency"></span> {{ _("address") }}</span>
                   <span class="help-block error default-hide">
-                    <i class='fa fa-exclamation-triangle'></i> The server
-                  had an error attempting to validate!</span>
+                    <i class='fa fa-exclamation-triangle'></i> {{ _("The server
+                  had an error attempting to validate!") }}</span>
                   <span class="help-block valid-address default-hide">
                     <i class='fa fa-check'></i> Valid
-                    <span class="address-currency"></span> address</span>
+                    <span class="address-currency"></span> {{ _("address") }}</span>
                 </div>
               </div>
               {% endfor %}
@@ -232,9 +232,9 @@
 
               {% if unsellable_currencies %}
               <p class="col-sm-10 col-sm-offset-1 horz-form-heading">
-                <b>Unexchangeable Currencies</b>
-                  <span class="help-block">To receive any these currencies it
-                    is required that you set an address</span>
+                <b>{{ _("Unexchangeable Currencies") }}</b>
+                  <span class="help-block">{{ _("To receive any these currencies it
+                    is required that you set an address") }}</span>
               </p>
               {% for curr_obj in unsellable_currencies %}
               <div class="form-group">
@@ -246,19 +246,19 @@
                          {% if curr_obj.key in user.unexchangeable_addresses %}
                          value="{{ user.unexchangeable_addresses[curr_obj.key] }}"
                         {% endif %}>
-                  <span class="help-block">Input a valid {{ curr_obj.key }} address</span>
+                  <span class="help-block">{{ _("Input a valid %(currency)s address", currency=curr_obj.key) }}</span>
                   <span class="help-block checking-address default-hide">
-                    <i class='fa fa-spinner fa-spin'></i> Checking address
-                    validity</span>
+                    <i class='fa fa-spinner fa-spin'></i> {{ _("Checking address
+                    validity") }}</span>
                   <span class="help-block invalid-address default-hide">
-                    <i class='fa fa-exclamation-triangle'></i> Invalid
-                    <span class="address-currency"></span> address</span>
+                    <i class='fa fa-exclamation-triangle'></i> {{ _("Invalid") }}
+                    <span class="address-currency"></span> {{ _("address") }}</span>
                   <span class="help-block error default-hide">
-                    <i class='fa fa-exclamation-triangle'></i> The server
-                  had an error attempting to validate!</span>
+                    <i class='fa fa-exclamation-triangle'></i> {{ _("The server
+                  had an error attempting to validate!") }}</span>
                   <span class="help-block valid-address default-hide">
-                    <i class='fa fa-check'></i> Valid
-                    <span class="address-currency"></span> address</span>
+                    <i class='fa fa-check'></i> {{ _("Valid") }}
+                    <span class="address-currency"></span> {{ _("address") }}</span>
                 </div>
                 <div class="col-sm-1"><span id="{{ curr_obj.key }}"></span></div>
               </div>
@@ -267,7 +267,7 @@
 
               <div class="col-sm-9 col-sm-offset-3" style="padding-left:8px;padding-top:15px;">
                 <button type="submit" class="btn btn-success" id="generate" data-website="{{ config['site_title'] }}">
-                  Generate message</button>
+                  {{ _("Generate message") }}</button>
               </div>
             </fieldset>
           </form>
@@ -279,14 +279,14 @@
   <div class="row" style="margin-bottom:25px;">
     <div class="col-sm-8 col-sm-offset-2" style="padding:0px;max-width: 800px;">
       <div class="panel panel-default">
-        <div class="panel-heading">Step 2. Copy the message
+        <div class="panel-heading">{{ _("Step 2. Copy the message") }}
         </div>
         <div class="panel-body">
           <form role="form" class="form-horizontal" style="margin-bottom:15px;padding-top:10px;">
             <fieldset>
               <div class="form-group">
-                <label for="message" class="col-lg-3 control-label">Message to
-                  be signed</label>
+                <label for="message" class="col-lg-3 control-label">{{ _("Message to
+                  be signed") }}</label>
                 <div class="col-lg-7" id="message-div">
                   <textarea class="form-control" name="message" id="message"
                             rows="3"></textarea>
@@ -296,9 +296,9 @@
               <div class="col-sm-9 col-sm-offset-3" style="padding-left:8px;padding-top:5px;">
                 <button type="button" class="btn btn-success" id="copy-button"
                         data-clipboard-target="message"
-                        title="Click to copy me.">Copy to Clipboard</button>
+                        title="Click to copy me.">{{ _("Copy to Clipboard") }}</button>
                 <span style="display: none; color:#58CF58; font-weight:500;"
-                      id="copied-notif">Copied!&nbsp;</span>
+                      id="copied-notif">{{ _("Copied!") }}&nbsp;</span>
               </div>
             </fieldset>
           </form>
@@ -310,21 +310,21 @@
   <div class="row" style="margin-bottom:25px;">
     <div class="col-sm-8 col-sm-offset-2" style="padding:0px;max-width: 800px;">
       <div class="panel panel-default">
-        <div class="panel-heading">Step 3. Sign the message
+        <div class="panel-heading">{{ _("Step 3. Sign the message") }}
         </div>
         <div class="panel-body">
           <div>
             <div class="col-lg-10 col-sm-offset-1" style="padding-left:10px;margin-bottom:25px;">
               <ol>
-                <li>Open up your <b>{{ user_currency }} </b>QT wallet</li>
-                <li>Open <b>file</b> menu, click <b>sign message</b></li>
-                <li>It'll prompt you for an address and a message to sign. It will
-                  look something like <a target="_blank" href="http://imgur.com/a/nUmZ0">this</a></li>
-                <li>Put in your user address ({{ username }}) for the address,
-                  and paste the message you just copied.</li>
-                <li>Click 'Sign Message'</li>
-                <li>Copy the signature, and paste it on our site in the
-                  signature field below</li>
+                <li>{{ _("Open up your") }} <b>{{ user_currency }} </b>{{ _("QT wallet") }}</li>
+                <li>{{ _("Open") }} <b>{{ _("file") }}</b> {{ _("menu, click") }} <b>{{ _("sign message") }}</b></li>
+                <li>{{ _("It'll prompt you for an address and a message to sign. It will
+                  look something like") }} <a target="_blank" href="http://imgur.com/a/nUmZ0">{{ _("this") }}</a></li>
+                <li>{{ _("Put in your user address (%(username)s) for the address,
+                  and paste the message you just copied.", username=username) }}</li>
+                <li>{{ _("Click 'Sign Message'") }}</li>
+                <li>{{ _("Copy the signature, and paste it on our site in the
+                  signature field below") }}</li>
               </ol>
             </div>
           </div>
@@ -336,7 +336,7 @@
   <div class="row" style="margin-bottom:25px;">
     <div class="col-sm-8 col-sm-offset-2" style="padding:0px;max-width: 800px;">
       <div class="panel panel-default">
-        <div class="panel-heading">Step 4. Paste signature + update settings
+        <div class="panel-heading">{{ _("Step 4. Paste signature + update settings") }}
         </div>
         <div class="panel-body">
           <form role="form" class="form-horizontal" method="POST" action=""
@@ -345,15 +345,15 @@
             <fieldset>
               <div class="form-group">
                 <label for="addressSignature" class="col-sm-3 control-label">
-                  Signature</label>
+                  {{ _("Signature") }}</label>
                 <div class="col-sm-7">
                   <input type="text" name="signature" class="form-control"
-                         id="addressSignature" placeholder="Paste signature
-                         from your wallet">
+                         id="addressSignature" placeholder="{{ _('Paste signature
+                         from your wallet') }}">
                 </div>
               </div>
               <div class="col-sm-9 col-sm-offset-3" style="padding-left:8px;padding-top:10px;">
-                <button type="submit" class="btn btn-primary">Update Settings!
+                <button type="submit" class="btn btn-primary">{{ _("Update Settings!") }}
                 </button>
               </div>
             </fieldset>

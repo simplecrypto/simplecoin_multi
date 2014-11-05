@@ -5,57 +5,57 @@
 
 <div class="col-lg-10 col-lg-offset-1">
   {% if block %}
-  <h2>{{ block.currency_obj.name }} Block #{{ block.height | comma }}</h2>
+  <h2>{{ block.currency_obj.name }} {{ _("Block") }} #{{ block.height | comma }}</h2>
   <div class="panel panel-default" style="background:none;">
-    <div class="panel-heading">Network Details</div>
+    <div class="panel-heading">{{ _("Network Details") }}</div>
     <div class="table-responsive">
       <table class="table big-table table-striped table-hover">
         <tbody>
           <tr>
-            <th width="30%">Found</th>
+            <th width="30%">{{ _("Found") }}</th>
             <td data-sort-value="{{ block.timestamp }}">{{ block.found_at | human_date_utc }}</td>
           </tr>
           <tr>
-            <th>Currency</th>
+            <th>{{ _("Currency") }}</th>
             <td>{{ block.currency_obj.name }} (<a href="/blocks/{{ block.currency }}">{{ block.currency }}</a>)</td>
           </tr>
           <tr>
-            <th>Algorithm</th>
+            <th>{{ _("Algorithm") }}</th>
             <td>{{ block.algo_obj.display }}</td>
           </tr>
           <tr>
-            <th>Coinbase Value</th>
-            <td>{{ block.total_value | comma }} {{ block.currency }} (with {{ block.transaction_fees | comma }} in fees)</td>
+            <th>{{ _("Coinbase Value") }}</th>
+            <td>{{ block.total_value | comma }} {{ block.currency }} ({{ _("with %(fee)f in fees", fee=block.transaction_fees | comma) }})</td>
           </tr>
           <tr>
-            <th>Difficulty</th>
+            <th>{{ _("Difficulty") }}</th>
             <td>{{ block.difficulty | comma }}</td>
           </tr>
           <tr>
-            <th>Block Hash</th>
+            <th>{{ _("Block Hash") }}</th>
             <td><samp>{{ block.hash }}</samp></td>
           </tr>
           <tr>
-            <th>Blockheight</th>
+            <th>{{ _("Blockheight") }}</th>
             <td>{{ block.height | comma }}</td>
           </tr>
           <tr>
-            <th>Status</th>
+            <th>{{ _("Status") }}</th>
             <td>{{ block.status }}</td>
           </tr>
         </tbody>
       </table>
     </div>
-    <div class="panel-heading">Mining Details</div>
+    <div class="panel-heading">{{ _("Mining Details") }}</div>
     <div class="table-responsive">
       <table class="table big-table table-striped table-hover">
         <tbody>
           <tr>
-            <th width="30%">Simplecoin ID</th>
+            <th width="30%">{{ _("Simplecoin ID") }}</th>
             <td>{{ block.id | comma }}</td>
           </tr>
           <tr>
-            <th>Solved by user</th>
+            <th>{{ _("Solved by user") }}</th>
             <td>{% if block.user in g.anon_users %}
                   Anonymous
                 {% else %}
@@ -64,15 +64,15 @@
             </td>
           </tr>
           <tr>
-            <th>Round Duration</th>
+            <th>{{ _("Round Duration") }}</th>
             <td>{{ block.duration }}</td>
           </tr>
           <tr>
-            <th>Shares required</th>
+            <th>{{ _("Shares required") }}</th>
             <td>{{ (block.hr_shares_to_solve or 1) | comma }}</td>
           </tr>
           <tr>
-            <th>Luck</th>
+            <th>{{ _("Luck") }}</th>
             <td>{{ (block.luck or 0) | comma }} %</td>
           </tr>
         </tbody>
@@ -82,7 +82,7 @@
   {% else %}
   <br>
   <br>
-  <center><h3>No block by that identifier could be found in our database!</h3></center>
+  <center><h3>{{ _("No block by that identifier could be found in our database!") }}</h3></center>
   <br>
   <br>
   {% endif %}

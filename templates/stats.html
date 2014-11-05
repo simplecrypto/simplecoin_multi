@@ -34,17 +34,17 @@ $(document).ready(function() {
     });
 });
 </script>
-<h3>Aren't mining with us yet? Look at the <a href="/configuration_guide">configuration guide.</a></h3>
+<h3>{{ _("Aren't mining with us yet? Look at the") }} <a href="/configuration_guide">{{ _("configuration guide.") }}</a></h3>
 <br />
 <div class="form-group">
   <form class="bs-example form-horizontal" id="statsform">
     <fieldset>
       <div class="form-group">
         <div class="col-lg-9">
-          <input type="text" class="form-control" id="inputAddress" placeholder="Paste your User Address for quick access to individualized stats.">
+          <input type="text" class="form-control" id="inputAddress" placeholder="{{ _('Paste your User Address for quick access to individualized stats.') }}">
           <span class="help-block">
               {% if 'recent_users' in session %}
-                <h4>Recently Visited Stats:</h4>
+                <h4>{{ _("Recently Visited Stats:") }}</h4>
                 <div id="recent-users">
                 {% for address, perc in session['recent_users'] %}
                   <p>
@@ -56,7 +56,7 @@ $(document).ready(function() {
               {% endif %}
           </span>
         </div>
-        <button type="submit" class="btn btn-default">View Stats</button>
+        <button type="submit" class="btn btn-default">{{ _("View Stats") }}</button>
       </div>
     </fieldset>
   </form>
