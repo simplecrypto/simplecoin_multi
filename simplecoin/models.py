@@ -9,7 +9,7 @@ from sqlalchemy.schema import CheckConstraint
 
 from .model_lib import base
 from .filters import sig_round
-from . import db, currencies, chains, algos
+from . import db, currencies, chains, algos, cache
 
 
 def make_upper_lower(trim=None, span=None, offset=None, clip=None, fmt="dt"):
@@ -283,6 +283,11 @@ class Block(base):
 
     @property
     def confirms_remaining(self):
+        data = cache.get("{}_data".format(self.currency)) or {}
+        if data.get('height'):
+            return (self.height +
+                    self.currency_obj.block_mature_confirms -
+                    data['height'])
         return None
 
 
