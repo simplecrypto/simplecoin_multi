@@ -398,6 +398,7 @@ class Chain(ConfigObject):
                             .format(stop_slice, start_slice))
 
         found_shares = 0
+        entry_count = 0
         users = {}
         index = 0
         decoding_time = 0.0
@@ -436,7 +437,6 @@ class Chain(ConfigObject):
                                 .format(slc['encoding']))
             decoding_time += time.time() - t
 
-            entry_count = 0
             t = time.time()
             for user, shares in entries:
                 assert isinstance(shares, (dec, int))
