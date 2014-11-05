@@ -176,6 +176,12 @@ algo = "scrypt"
 address_version = [33]
 block_time = 60
 
+[currencies.ZVTC]
+name = "ZeroVertcoin"
+algo = "scryptn"
+address_version = [50]
+block_time = 150
+
 
 [algos.x11]
 hashes_per_share = 4294967296
