@@ -179,7 +179,7 @@ block_time = 60
 [currencies.ZVTC]
 name = "ZeroVertcoin"
 algo = "scryptn"
-address_version = [50]
+address_version = [82]
 block_time = 150
 
 
