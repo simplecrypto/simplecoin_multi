@@ -50,12 +50,12 @@ $(document).ready(function() {
         <span class="starttime_{{ current_block['currency_data']['code'] }}" style="display:none;">
           {{ current_block['start_time'] }}
         </span>
-        <span class="blockshares">{{ current_block['shares']| round(4) }}</span>
+        <span class="blockshares">{{ current_block['shares'] | comma }}</span>
       </td>
       <td><span class="blockluck">???</span>%</td>
       <td><span class="hours">00</span>:<span class="minutes">00</span>:<span class="seconds">00</span></td>
       <td>{{ current_block['currency_data']['reward'] }}</td>
-      <td>{{ current_block['currency_data']['difficulty'] | round(4) }}</td>
+      <td>{{ current_block['currency_data']['difficulty'] | comma }}</td>
       <td>...</td>
       <td>...</td>
       <td>{{ current_block['currency_data']['height'] | comma }}</td>
