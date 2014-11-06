@@ -18,7 +18,8 @@ country_flag = "/img/ca.svg"
 address = "http://localhost"
 
 [currencies.LTC]
-exchangeable = true
+sellable = true
+buyable = true
 mineable = true
 pool_payout_addr = "LbfSCZE1p9A3Yj2JK1n57kxyD2H1ZSXtNG"
 [currencies.LTC.coinserv]
