@@ -19,6 +19,16 @@ default_stratum_url = "stratum+tcp://stratum.simplemulti.com"
 default_stratum_port = "3363"
 charge_autoex_fees = false
 
+# i18n/localisation configuration
+# =======================================================================
+default_locale = "en"
+
+# acceptable locales that we have translations for
+[available_locales]
+en = "English"
+# zh_Hans_CN = "\u5B98\u8A71"
+# ja = "\u65E5\u672C\u8A9E"
+
 
 [main_cache]
 type = "redis"
@@ -251,6 +261,10 @@ active_key = ""
 title = "Email"
 icon = "envelope"
 link = "mailto:simplecryptogroup@gmail.com"
+[[navbar.right_nav.dropdown]]
+title = "Simple Crypto Website"
+icon = "globe"
+link = "http://www.simplecryptogroup.com"
 [[navbar.right_nav.dropdown]]
 title = "IRC"
 icon = "comments"

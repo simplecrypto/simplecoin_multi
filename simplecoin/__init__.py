@@ -33,6 +33,7 @@ socket.setdefaulttimeout(10)
 root = os.path.abspath(os.path.dirname(__file__) + '/../')
 db = SQLAlchemy()
 cache = Cache()
+babel = Babel()
 # ConfigKeeper proxies
 currencies = LocalProxy(
     lambda: getattr(current_app, 'currencies', None))
@@ -138,6 +139,8 @@ def create_app(mode, configs=None, log_level=None, **kwargs):
     # Register the powerpool datastore + Cache
     # =======================================================================
     db.init_app(app)
+    babel.init_app(app)
+    app.config['BABEL_DEFAULT_LOCALE'] = app.config.get('default_locale')
 
     def configure_redis(config):
         typ = config.pop('type')

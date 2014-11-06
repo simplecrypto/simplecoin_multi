@@ -3,10 +3,11 @@ import yaml
 
 from flask import (current_app, request, render_template, Blueprint, jsonify,
                    g, session, Response, abort)
+from flask.ext.babel import gettext
 
 from .models import (Block, ShareSlice, UserSettings, make_upper_lower, Credit,
                      Payout, DeviceSlice, Transaction)
-from . import db, root, cache, currencies, algos, locations
+from . import db, root, cache, currencies, algos, locations, babel
 from .exceptions import InvalidAddressException
 from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
                     get_alerts, resort_recent_visit, collect_acct_items,
@@ -134,8 +135,20 @@ def block_stats_tab(algo):
     return Response('success')
 
 
+@babel.localeselector
+def get_locale():
+    new_language = request.args.get('lang')
+    if new_language:
+        session['lang'] = new_language
+    elif not 'lang' in session:
+        locales = current_app.config['available_locales'].keys()
+        session['lang'] = request.accept_languages.best_match(locales)
+    return session['lang']
+
+
 @main.before_request
 def add_pool_stats():
+    get_locale()
     g.algos = {k: v for k, v in algos.iteritems() if v.enabled is True}
     g.hashrates = {a: get_pool_hashrate(a) for a in g.algos}
     # Dictionary keyed by algo
