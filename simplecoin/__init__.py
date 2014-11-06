@@ -20,6 +20,7 @@ from flask import Flask, current_app
 from flask.ext.cache import Cache
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.migrate import Migrate
+from flask.ext.babel import Babel
 from jinja2 import FileSystemLoader
 from werkzeug.local import LocalProxy
 
@@ -81,6 +82,7 @@ def create_app(mode, configs=None, log_level=None, **kwargs):
     # =======================================================================
     app = Flask(__name__, static_folder='../static', static_url_path='/static')
     app.jinja_loader = FileSystemLoader(os.path.join(root, 'templates'))
+    babel = Babel(app)
 
     # Objectizes all configurations
     # =======================================================================

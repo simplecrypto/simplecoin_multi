@@ -4,26 +4,26 @@
 {% block body %}
 
 <div class="col-lg-10 col-lg-offset-1">
-  <h2>{{ tx.currency_obj.name }} Transaction <small><samp>{{ tx.txid | truncate(15, True) }}</small></small></h2>
+  <h2>{{ tx.currency_obj.name }} {{ _("Transaction") }} <small><samp>{{ tx.txid | truncate(15, True) }}</small></small></h2>
   <div class="panel panel-default" style="background:none;">
-    <div class="panel-heading">Network Details</div>
+    <div class="panel-heading">{{ _("Network Details") }}</div>
     <div class="table-responsive">
       <table class="table big-table table-striped table-hover">
         <tbody>
           <tr>
-            <th>Sent</th>
+            <th>{{ _("Sent") }}</th>
             <td data-sort-value="{{ tx.timestamp }}">{{ tx.created_at | human_date_utc }}</td>
           </tr>
           <tr>
-            <th>Currency</th>
+            <th>{{ _("Currency") }}</th>
             <td>{{ tx.currency_obj.name }} ({{ tx.currency }})</td>
           </tr>
           <tr>
-            <th>Hash</th>
+            <th>{{ _("Hash") }}</th>
             <td><samp>{{ tx.txid }}</samp></td>
           </tr>
           <tr>
-            <th>Status</th>
+            <th>{{ _("Status") }}</th>
             <td>{{ tx.status }}</td>
           </tr>
         </tbody>

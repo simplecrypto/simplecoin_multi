@@ -1,0 +1,1222 @@
+# Chinese (Simplified, China) translations for PROJECT.
+# Copyright (C) 2014 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2014.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2014-11-04 21:36+0800\n"
+"PO-Revision-Date: 2014-11-03 22:14+0800\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: zh_Hans_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 1.3\n"
+
+#: simplecoin/tr_config.py:3
+msgid "Home"
+msgstr "首页"
+
+#: simplecoin/tr_config.py:4
+msgid "Getting Started"
+msgstr "开始"
+
+#: simplecoin/tr_config.py:5 templates/user_stats.html:41
+msgid "User Stats"
+msgstr "用户"
+
+#: simplecoin/tr_config.py:6
+msgid "Pool Stats"
+msgstr "矿池"
+
+#: simplecoin/tr_config.py:7
+msgid "Leaderboard"
+msgstr "排行榜"
+
+#: simplecoin/tr_config.py:8
+msgid "Extras"
+msgstr "其它"
+
+#: simplecoin/tr_config.py:9
+msgid "Simple Crypto Website"
+msgstr "Simple Crypto网站"
+
+#: simplecoin/tr_config.py:10
+msgid "Source Code"
+msgstr "源码"
+
+#: simplecoin/tr_config.py:11
+msgid "Contact Us"
+msgstr "联系我们"
+
+#: simplecoin/tr_config.py:12
+msgid "Email"
+msgstr "邮件"
+
+#: simplecoin/tr_config.py:13
+msgid "IRC"
+msgstr ""
+
+#: simplecoin/tr_config.py:14
+msgid "Reddit"
+msgstr ""
+
+#: simplecoin/tr_config.py:15
+msgid "Github"
+msgstr ""
+
+#: templates/500.html:3
+msgid "Internal Server Error - Pool is out of water"
+msgstr "服务器发生错误"
+
+#: templates/500.html:4
+msgid ""
+"Seems we've goofed up, sorry about that. This error has been logged. You "
+"might try again in a minute, we'll try to do better next time."
+msgstr "服务挂啦，已记录在案，一会再过来吧"
+
+#: templates/500.html:6
+msgid "The error identifier is"
+msgstr "错误id是"
+
+#: templates/account.html:9 templates/blocks.html:9
+msgid "Newer"
+msgstr "新的"
+
+#: templates/account.html:10 templates/blocks.html:10
+msgid "Older"
+msgstr "旧的"
+
+#: templates/base.html:44
+msgid "Status:"
+msgstr "状态："
+
+#: templates/base.html:46 templates/leaderboard.html:27
+#: templates/user_stats.html:85
+msgid "Hashrate"
+msgstr "算力"
+
+#: templates/base.html:51
+msgid "Active"
+msgstr "当前"
+
+#: templates/base.html:51 templates/pool_stats.html:44
+msgid "Miners"
+msgstr "矿工"
+
+#: templates/base.html:130
+msgid "Donate:"
+msgstr "捐助："
+
+#: templates/block_details.html:8
+msgid "Block"
+msgstr "块"
+
+#: templates/block_details.html:10 templates/transaction_details.html:9
+msgid "Network Details"
+msgstr "网络详情"
+
+#: templates/block_details.html:15
+msgid "Found"
+msgstr "挖到时间"
+
+#: templates/block_details.html:19 templates/payout_table.html:22
+#: templates/transaction_details.html:18 templates/user_stats.html:254
+msgid "Currency"
+msgstr "币种"
+
+#: templates/block_details.html:23
+msgid "Algorithm"
+msgstr "算法"
+
+#: templates/block_details.html:27
+msgid "Coinbase Value"
+msgstr "挖矿奖励"
+
+#: templates/block_details.html:28
+#, python-format
+msgid "with %(fee)f in fees"
+msgstr "有%(fee)f交易费用"
+
+#: templates/block_details.html:31 templates/block_table.html:23
+msgid "Difficulty"
+msgstr "难度"
+
+#: templates/block_details.html:35 templates/block_table.html:25
+msgid "Block Hash"
+msgstr "块Hash"
+
+#: templates/block_details.html:39 templates/block_table.html:26
+msgid "Blockheight"
+msgstr "块高度"
+
+#: templates/block_details.html:43 templates/block_table.html:27
+#: templates/credit_table.html:27 templates/payout_table.html:24
+#: templates/transaction_details.html:26
+msgid "Status"
+msgstr "状态"
+
+#: templates/block_details.html:49
+msgid "Mining Details"
+msgstr "挖矿详情"
+
+#: templates/block_details.html:54
+msgid "Simplecoin ID"
+msgstr ""
+
+#: templates/block_details.html:58
+msgid "Solved by user"
+msgstr "挖到块的矿工"
+
+#: templates/block_details.html:67 templates/block_table.html:21
+msgid "Round Duration"
+msgstr "出块周期"
+
+#: templates/block_details.html:71
+msgid "Shares required"
+msgstr "需要的份额"
+
+#: templates/block_details.html:75 templates/block_table.html:20
+msgid "Luck"
+msgstr "幸运"
+
+#: templates/block_details.html:85
+msgid "No block by that identifier could be found in our database!"
+msgstr "没有找到对应的块"
+
+#: templates/block_table.html:18
+msgid "Age"
+msgstr "块龄"
+
+#: templates/block_table.html:19
+msgid "Shares"
+msgstr "份额"
+
+#: templates/block_table.html:22
+msgid "Reward"
+msgstr "奖励"
+
+#: templates/block_table.html:24
+msgid "Solved by"
+msgstr "挖到块的矿工"
+
+#: templates/configuration_guide.html:13
+msgid "Step 1. Pick the region nearest to you"
+msgstr "第一步 选择最近的服务器"
+
+#: templates/configuration_guide.html:24
+msgid "URL"
+msgstr ""
+
+#: templates/configuration_guide.html:33
+msgid "Step 2. Pick a port"
+msgstr "第二步 选择一个端口"
+
+#: templates/configuration_guide.html:45
+msgid "Pick a server to view available ports"
+msgstr "选择一个服务器查看端口"
+
+#: templates/configuration_guide.html:50
+msgid "Ports"
+msgstr "端口："
+
+#: templates/configuration_guide.html:55
+msgid "ports:"
+msgstr "端口："
+
+#: templates/configuration_guide.html:64 templates/configuration_guide.html:150
+#: templates/home.html:69
+msgid "Port:"
+msgstr "端口："
+
+#: templates/configuration_guide.html:65
+msgid "Payout Method:"
+msgstr "支付方式"
+
+#: templates/configuration_guide.html:66
+msgid "Diff:"
+msgstr "难度"
+
+#: templates/configuration_guide.html:67
+msgid "fee"
+msgstr "费率"
+
+#: templates/configuration_guide.html:82
+msgid "Step 3. Set a username"
+msgstr "第三步 设置用户名"
+
+#: templates/configuration_guide.html:87
+msgid "Payout currency:"
+msgstr "支付币种："
+
+#: templates/configuration_guide.html:95
+msgid "Pick a currency that we pay out in"
+msgstr "选择一个支付币种"
+
+#: templates/configuration_guide.html:99
+msgid "Payout address:"
+msgstr "支付地址："
+
+#: templates/configuration_guide.html:103
+msgid "Insert a valid"
+msgstr "插入一个合法的"
+
+#: templates/configuration_guide.html:103
+#: templates/configuration_guide.html:107
+#: templates/configuration_guide.html:111 templates/user_settings.html:181
+#: templates/user_settings.html:187 templates/user_settings.html:221
+#: templates/user_settings.html:227 templates/user_settings.html:255
+#: templates/user_settings.html:261
+msgid "address"
+msgstr "地址"
+
+#: templates/configuration_guide.html:105
+msgid "Checking address validity"
+msgstr "检查地址合法性"
+
+#: templates/configuration_guide.html:107 templates/user_settings.html:179
+#: templates/user_settings.html:220 templates/user_settings.html:254
+msgid "Invalid"
+msgstr "非法"
+
+#: templates/configuration_guide.html:109
+msgid "The server had an error attempting to validate!"
+msgstr "服务器在检查地址时遇到错误"
+
+#: templates/configuration_guide.html:111 templates/user_settings.html:186
+#: templates/user_settings.html:260
+msgid "Valid"
+msgstr "合法"
+
+#: templates/configuration_guide.html:118
+msgid "Step 4. Configure your first worker (optional settings)"
+msgstr "第四步 配置你的第一个矿工（可选）"
+
+#: templates/configuration_guide.html:124
+msgid "Workername:"
+msgstr "用户名："
+
+#: templates/configuration_guide.html:127
+msgid "Alphanumeric characters only"
+msgstr "只能填数字和字母"
+
+#: templates/configuration_guide.html:134
+msgid "Difficulty:"
+msgstr "难度："
+
+#: templates/configuration_guide.html:137
+msgid ""
+"Don't set this unless you know what you're doing. Must be 2^x and in the "
+"vardiff range"
+msgstr "请谨慎填写该值，必须是2的幂"
+
+#: templates/configuration_guide.html:144
+msgid "Step 5. Configure your miner"
+msgstr "第五步 配置矿工"
+
+#: templates/configuration_guide.html:149
+msgid "URL:"
+msgstr ""
+
+#: templates/configuration_guide.html:149
+#: templates/configuration_guide.html:154
+msgid "Select region above"
+msgstr "前面选择的服务器"
+
+#: templates/configuration_guide.html:150
+#: templates/configuration_guide.html:154
+msgid "Select port above"
+msgstr "前面选择的端口"
+
+#: templates/configuration_guide.html:151
+msgid "Username:"
+msgstr "用户名："
+
+#: templates/configuration_guide.html:151
+#: templates/configuration_guide.html:155
+msgid "Fill in username above"
+msgstr "前面填写的用户名"
+
+#: templates/configuration_guide.html:152
+msgid "Password:"
+msgstr "密码："
+
+#: templates/configuration_guide.html:153
+msgid "Commandline example:"
+msgstr "命令行例子："
+
+#: templates/configuration_guide.html:162
+msgid "Step 6. Make sure your hashrate shows up"
+msgstr "第六步 确保你的算力能正确显示"
+
+#: templates/configuration_guide.html:166
+msgid "Stats link"
+msgstr "状态链接"
+
+#: templates/configuration_guide.html:171
+msgid ""
+"After a few minutes of mining your stats page should be showing a\n"
+"          graph and hashrate for your miners. If it isn't, double check "
+"your\n"
+"          configs."
+msgstr ""
+"几分钟后你的状态页应该会有一张图表和算力。\n"
+"如果没有看到，请再次检查你的配置"
+
+#: templates/configuration_guide.html:178
+msgid "Step 7. Edit your account settings"
+msgstr "第七步 编辑你的账户设置"
+
+#: templates/configuration_guide.html:182
+msgid "Settings link"
+msgstr "设置链接"
+
+#: templates/configuration_guide.html:187
+msgid ""
+"More configuration of your account is available on your account\n"
+"          settings page. Including:"
+msgstr "更多设置包括："
+
+#: templates/configuration_guide.html:190
+msgid ""
+"Setting additional payout addresses (this is required in order to collect"
+" some merged mining rewards!)"
+msgstr "增加支付地址（在获得合并挖矿收益时可以用到）"
+
+#: templates/configuration_guide.html:191
+msgid "Add a donation to the pool"
+msgstr "给矿池捐赠"
+
+#: templates/configuration_guide.html:192
+msgid "Enable privacy (hides your address on the leaderboard)"
+msgstr "设置隐私（在排行榜匿名显示账户地址）"
+
+#: templates/credit_table.html:21
+msgid "ID"
+msgstr ""
+
+#: templates/credit_table.html:22 templates/payout_table.html:20
+msgid "Time"
+msgstr "时间"
+
+#: templates/credit_table.html:23
+msgid "Dest Currency"
+msgstr "支付币种"
+
+#: templates/credit_table.html:24
+msgid "Mined"
+msgstr "挖矿奖励"
+
+#: templates/credit_table.html:25
+#, python-format
+msgid "Donation + Fee Amt (d%%/f%%)"
+msgstr "捐赠 + 费用(d%%/f%%)"
+
+#: templates/credit_table.html:26
+msgid "Total credited"
+msgstr "总的额度"
+
+#: templates/credit_table.html:28
+msgid "Block details"
+msgstr "块详情"
+
+#: templates/credit_table.html:51
+msgid "No credits for this user yet"
+msgstr "该用户尚无信用"
+
+#: templates/home.html:12
+msgid "Pool Details"
+msgstr "矿池详情"
+
+#: templates/home.html:16
+msgid "No registration. Use a wallet address as a username"
+msgstr "无需注册，钱包地址就是用户名"
+
+#: templates/home.html:17
+msgid ""
+"Automatically exchanges mining rewards to the currency of your username "
+"address"
+msgstr "收益自动转换成你挖的币种"
+
+#: templates/home.html:18
+msgid "Auto convert is disableable for currencies you want to keep"
+msgstr "如果不想自动转换可以禁止"
+
+#: templates/home.html:19
+msgid "Seamless merge mining"
+msgstr "支持多币种合并挖矿"
+
+#: templates/home.html:20
+#, python-format
+msgid "2%% fee on profit-switching port, 1%% fee otherwise"
+msgstr "收益自动转换手续费是2%%，其它1%%"
+
+#: templates/home.html:21
+msgid "No payout transaction fees"
+msgstr "无支付交易手续费"
+
+#: templates/home.html:22
+msgid "Miners keep block transaction fees"
+msgstr "块的手续费归矿工所有"
+
+#: templates/home.html:23
+msgid "Currency conversion fees are passed along to miner"
+msgstr "收益转换的费用由矿工承担"
+
+#: templates/home.html:24
+msgid "Vardiff enabled + manual difficulty selection available"
+msgstr "支持可变难度和固定可选难度"
+
+#: templates/home.html:25
+msgid "Daily payouts - Very low minimum balance"
+msgstr "每天支付一次"
+
+#: templates/home.html:26
+msgid "PPLNS payout"
+msgstr "支持PPLNS"
+
+#: templates/home.html:30
+msgid "Current Payout Currencies"
+msgstr "当前可支付币种"
+
+#: templates/home.html:43
+msgid "Payouts + currency conversion info"
+msgstr "支付和币种转换"
+
+#: templates/home.html:46
+msgid "You can mine with any valid address for a currency we pay out in."
+msgstr "你可以选择任意一个我们的支付币种作为地址"
+
+#: templates/home.html:47
+msgid "Your earnings are (by default) converted to the currency of that address"
+msgstr "你的收益默认转换成那个支付币种"
+
+#: templates/home.html:48
+msgid ""
+"If you want to keep a specific coin, instead of converting\n"
+"            it, just add a payout address for it to your account."
+msgstr "如果你不想转换可以在你的账户下添加支付地址"
+
+#: templates/home.html:58
+msgid "Quick start for mining:"
+msgstr "开始挖矿"
+
+#: templates/home.html:61
+msgid "No registration required, payouts go to the address used as username."
+msgstr "无需注册，支付地址就是用户名"
+
+#: templates/home.html:62
+msgid "Note"
+msgstr "注意"
+
+#: templates/home.html:62
+msgid ": Username "
+msgstr "：用户名"
+
+#: templates/home.html:62
+msgid "MUST"
+msgstr "必须"
+
+#: templates/home.html:62
+msgid " be a valid address for a currency we payout in, listed "
+msgstr "是一个我们支持的币种地址，看"
+
+#: templates/home.html:62
+msgid "here"
+msgstr "这里"
+
+#: templates/home.html:65
+msgid "Configure your stratum client with the information below and start mining:"
+msgstr "使用以下信息配置你的stratum客户端"
+
+#: templates/home.html:68
+msgid "URL: "
+msgstr "地址："
+
+#: templates/home.html:70
+msgid "Username: "
+msgstr "用户名："
+
+#: templates/home.html:71
+msgid "Password: "
+msgstr "密码："
+
+#: templates/home.html:72
+msgid "sgminer example:"
+msgstr "sgminer例子："
+
+#: templates/home.html:76
+msgid ""
+"Check your stats and estimated payout by entering your Payout address "
+"below:"
+msgstr "在下面输入地址查看状态和支付情况"
+
+#: templates/home.html:84
+msgid "If your stats are still blank after a few minutes double check your config"
+msgstr "如果状态为空请等带几分钟后再查看"
+
+#: templates/home.html:87 templates/stats.html:59
+msgid "View Stats"
+msgstr "查看状态"
+
+#: templates/home.html:92
+msgid ""
+"Configure your account on your user stats page. Set addresses for\n"
+"                currencies you don't want to be exchanged, add a donation"
+" to the\n"
+"                pool, etc"
+msgstr "设置你的账户，可以设置你不想被转换的地址"
+
+#: templates/home.html:96
+msgid "Setup advanced stats to track GPU temps and actual hashrate with"
+msgstr "跟踪GPU温度和实际的算力请使用"
+
+#: templates/home.html:97
+msgid "Powerpool Agent"
+msgstr ""
+
+#: templates/home.html:102
+msgid "View the full configuration guide"
+msgstr "查看完整配置引导"
+
+#: templates/home.html:114
+msgid "Features"
+msgstr "功能"
+
+#: templates/home.html:124
+msgid "Monitor your rig's health, from anywhere"
+msgstr "随时监控你矿机的运转情况"
+
+#: templates/home.html:125
+msgid ""
+"This setup allows you to monitor multiple rigs easily, without setting up"
+" a pool manager,\n"
+"          and view actual data from each of your rigs, rather than "
+"approximations."
+msgstr "该设置允许你监控多个矿机，获得准确的数据"
+
+#: templates/home.html:128
+msgid "Quick and easy setup, see the"
+msgstr "快速开始设置，请查看"
+
+#: templates/home.html:129
+msgid "Installation Guide"
+msgstr "安装指导"
+
+#: templates/home.html:131
+#, python-format
+msgid ""
+"View stats from rigs remotely - including WUE, Hashrate, Temps, Fan %%, "
+"and more"
+msgstr "查看WUE，算力，温度等"
+
+#: templates/home.html:132
+msgid "Overheat/Low hashrate status indicators and email notifications"
+msgstr "高温低算力邮件通知"
+
+#: templates/home.html:133
+msgid "More features coming soon - including graphs of hashrate and temperature"
+msgstr "更多功能敬请期待"
+
+#: templates/home.html:144
+msgid "Insightful statistics"
+msgstr "丰富的图表"
+
+#: templates/home.html:145
+msgid ""
+"Graphs broken down by worker give you a good at-a-glance picture of what "
+"is going on."
+msgstr "图表非常直观的获取矿工状态信息"
+
+#: templates/home.html:147
+msgid "Easily name a worker anything you want"
+msgstr "名字随便取"
+
+#: templates/home.html:148
+msgid "Drill down graphs to an individual worker with a click"
+msgstr "轻轻一点就能打开"
+
+#: templates/home.html:149
+msgid "Tooltips display your hash rate for each worker at a given point"
+msgstr "提示给出你的算力"
+
+#: templates/home.html:150
+msgid ""
+"View in 'expanded' mode to see what percentage of your hashing power each"
+" of your rigs is"
+msgstr "扩展模式下可以查看矿机算力"
+
+#: templates/home.html:151
+msgid "Easily see your overall hash rate"
+msgstr "轻松查看全部算力"
+
+#: templates/invalid_address.html:6
+msgid "Invalid or unsupported address!"
+msgstr "非法或是不支持的地址"
+
+#: templates/invalid_address.html:7
+msgid ""
+"The address you entered is either not valid or is not a currency type\n"
+"    we pay out"
+msgstr "输入的地址要么是非法的要么是我们不支持的"
+
+#: templates/invalid_address.html:12
+msgid "Currently supported payout currencies include:"
+msgstr "当前可支付币种包括："
+
+#: templates/leaderboard.html:19
+msgid "Top Hashers"
+msgstr "入榜名单"
+
+#: templates/leaderboard.html:25
+msgid "User"
+msgstr "用户"
+
+#: templates/leaderboard.html:48
+msgid "No users to show hashrates for!"
+msgstr "尚无用户入榜"
+
+#: templates/payout_table.html:21
+msgid "Amount"
+msgstr "数量"
+
+#: templates/payout_table.html:23
+msgid "TXID"
+msgstr "交易ID"
+
+#: templates/payout_table.html:43
+msgid "No payouts for this user yet"
+msgstr "该用户尚无支付"
+
+#: templates/pool_stats.html:14
+msgid "Pool Hashrate"
+msgstr "矿池算力"
+
+#: templates/pool_stats.html:19 templates/user_stats.html:58
+msgid "Hour"
+msgstr "时"
+
+#: templates/pool_stats.html:20 templates/user_stats.html:59
+msgid "Day"
+msgstr "天"
+
+#: templates/pool_stats.html:21 templates/user_stats.html:60
+msgid "Month"
+msgstr "月"
+
+#: templates/pool_stats.html:33
+msgid "Stratum Status"
+msgstr "Stratum 状态"
+
+#: templates/pool_stats.html:39
+msgid "Server"
+msgstr "服务器"
+
+#: templates/pool_stats.html:40
+msgid "Algo"
+msgstr "算法"
+
+#: templates/pool_stats.html:41
+msgid "Chain"
+msgstr "链"
+
+#: templates/pool_stats.html:42
+msgid "Hashrate (last minute)"
+msgstr "算力（过去一分钟）"
+
+#: templates/pool_stats.html:43
+msgid "Workers"
+msgstr "工作者"
+
+#: templates/pool_stats.html:68
+msgid "Recently Mined Blocks"
+msgstr "最近挖到的块"
+
+#: templates/pool_stats.html:71
+msgid "All Algos"
+msgstr "所有算法"
+
+#: templates/pool_stats.html:93
+msgid "Current Hashrate:"
+msgstr "当前算力："
+
+#: templates/pool_stats.html:99
+msgid "Last Solve:"
+msgstr "上一个挖到的块龄"
+
+#: templates/pool_stats.html:122
+msgid "View more"
+msgstr "查看更多"
+
+#: templates/pool_stats.html:122
+msgid "blocks"
+msgstr "块"
+
+#: templates/stats.html:37
+msgid "Aren't mining with us yet? Look at the"
+msgstr "还没有跟我们一起挖矿？看这里"
+
+#: templates/stats.html:37
+msgid "configuration guide."
+msgstr "配置引导"
+
+#: templates/stats.html:44
+msgid "Paste your User Address for quick access to individualized stats."
+msgstr "把你的地址粘贴在这然后查看状态信息"
+
+#: templates/stats.html:47
+msgid "Recently Visited Stats:"
+msgstr "最近浏览的状态："
+
+#: templates/transaction_details.html:7
+msgid "Transaction"
+msgstr "交易"
+
+#: templates/transaction_details.html:14
+msgid "Sent"
+msgstr "发送"
+
+#: templates/transaction_details.html:22
+msgid "Hash"
+msgstr ""
+
+#: templates/user_settings.html:11
+msgid "Edit Settings for account"
+msgstr "编辑账户配置"
+
+#: templates/user_settings.html:17
+msgid "How changing settings works"
+msgstr "怎样使配置生效"
+
+#: templates/user_settings.html:20
+msgid ""
+"Since there is no registration we use the message signing system\n"
+"          built into the QT wallet to prove you control the address. The "
+"basic\n"
+"          process is:"
+msgstr "由于没有注册机制所以我们使用QT钱包的消息签名系统去验证你对地址的控制权\n过程如下："
+
+#: templates/user_settings.html:24
+msgid ""
+"Fill out form with desired settings + generate a message w/\n"
+"              those settings"
+msgstr "填写设置，根据设置生成消息"
+
+#: templates/user_settings.html:26
+msgid "Copy the generated message"
+msgstr "复制消息"
+
+#: templates/user_settings.html:27
+msgid "Sign the message with your wallet, using your account address"
+msgstr "使用你的钱包和你的地址签署消息"
+
+#: templates/user_settings.html:29
+msgid ""
+"Paste the signature in the signature field below + submit the\n"
+"              form"
+msgstr "粘贴签名到签名输入框然后提交"
+
+#: templates/user_settings.html:38
+msgid "Claim all your earnings"
+msgstr "配置你收益的转换"
+
+#: templates/user_settings.html:41
+msgid ""
+"By default if you do not have an address set for a merge mined\n"
+"          coin it will automatically be converted to your account currency"
+msgstr "默认情况下合并挖矿挖到的币会转换成你的账户地址上的币种"
+
+#: templates/user_settings.html:45
+msgid ""
+"You may (optionally) set an address for any coin we mine and\n"
+"            you'll be paid out your portion of that rather than "
+"exchanging\n"
+"            it"
+msgstr "你可以选择设置一个合并挖矿地址接收合并挖矿收益"
+
+#: templates/user_settings.html:49
+msgid ""
+"Some merge mined coins can't be exchanged so you'll need to set\n"
+"          an address for them or they'll be donated to the pool."
+msgstr "有些币没法交易所以必须有一个合并挖矿收益地址\n否则会视为捐助给矿池"
+
+#: templates/user_settings.html:58
+msgid "Note:"
+msgstr "注意："
+
+#: templates/user_settings.html:58
+msgid ""
+"Not all wallet apps sign messages\n"
+"        the same way, and some can't sign messages at all. This site "
+"works with\n"
+"        the QT client's implementation, and this guide is for the QT "
+"client."
+msgstr "并非所有的钱包签署消息都是这种方式，有的根本就不没有签署消息这个功能。本引导只针对有消息签署功能的QT钱包。"
+
+#: templates/user_settings.html:67
+msgid ""
+"Step 1. Pick new settings + generate the\n"
+"          message"
+msgstr "第一步 更新设置+生成消息"
+
+#: templates/user_settings.html:79
+msgid "General Settings"
+msgstr "基本设置"
+
+#: templates/user_settings.html:82
+msgid "Make anonymous"
+msgstr "隐藏地址"
+
+#: templates/user_settings.html:88
+msgid "This hides your address on the miner leaderboard"
+msgstr "在排行榜匿名显示账户地址"
+
+#: templates/user_settings.html:95
+msgid "Payout Address:"
+msgstr "支付地址："
+
+#: templates/user_settings.html:102
+msgid "Earnings Distribution"
+msgstr "受益分配"
+
+#: templates/user_settings.html:103
+msgid ""
+"Optionally donate some of your earnings\n"
+"                  to the pool, or to any address that we payout in"
+msgstr "可以选择捐助一部分收益给矿池或者任意我们支持的地址"
+
+#: templates/user_settings.html:110
+#, python-format
+msgid ""
+"Total donations\n"
+"                    cannot exceed 100%%"
+msgstr "总捐助不能超过100%%"
+
+#: templates/user_settings.html:117
+msgid ""
+"Split payout\n"
+"                    requires both an address and a percentage, or to "
+"remove it\n"
+"                    both must be removed."
+msgstr "分割收益需要一个地址和比率或者干脆不要"
+
+#: templates/user_settings.html:125
+msgid ""
+"Split payout\n"
+"                    address cannot be the same as your main user address."
+msgstr "分割收益的地址不能跟你的用户地址相同"
+
+#: templates/user_settings.html:131
+msgid ""
+"Pool\n"
+"                  Donation"
+msgstr "捐助矿池"
+
+#: templates/user_settings.html:144
+#, python-format
+msgid ""
+"A percentage to donate directly to\n"
+"                    the pool (0-100%%)"
+msgstr "捐助一定比率(0-100%%)给矿池"
+
+#: templates/user_settings.html:150
+msgid "Split payout"
+msgstr "分割收益"
+
+#: templates/user_settings.html:173
+#, python-format
+msgid ""
+"Input a valid\n"
+"                        %(currency)s address"
+msgstr "输入一个合法的%(currency)s地址"
+
+#: templates/user_settings.html:176
+msgid ""
+"Checking address\n"
+"                        validity"
+msgstr "检查地址合法性"
+
+#: templates/user_settings.html:183
+msgid ""
+"The server\n"
+"                      had an error attempting to validate!"
+msgstr "服务器在检查地址时遇到错误"
+
+#: templates/user_settings.html:190
+msgid ""
+"Payout a percentage of your earnings\n"
+"                    to a specific address"
+msgstr "将你的收益一部分支付到指定地址"
+
+#: templates/user_settings.html:193
+msgid ""
+"Both fields are\n"
+"                    required to make a change"
+msgstr "需要同时进行两处修改才能生效"
+
+#: templates/user_settings.html:200
+msgid "Exchangeable Currencies"
+msgstr "可交易的币种"
+
+#: templates/user_settings.html:201
+#, python-format
+msgid ""
+"Set an address to disable\n"
+"                    %(currency)s conversion for that currency"
+msgstr "设置一个地址禁止%(currency)s转换成那个币"
+
+#: templates/user_settings.html:214
+#, python-format
+msgid ""
+"Input a valid %(currency)s\n"
+"                    address"
+msgstr "输入一个合法的%(currency)s地址"
+
+#: templates/user_settings.html:217 templates/user_settings.html:251
+msgid ""
+"Checking address\n"
+"                    validity"
+msgstr "检查地址合法性"
+
+#: templates/user_settings.html:223 templates/user_settings.html:257
+msgid ""
+"The server\n"
+"                  had an error attempting to validate!"
+msgstr "服务器在检查地址时遇到错误"
+
+#: templates/user_settings.html:235
+msgid "Unexchangeable Currencies"
+msgstr "不可交易的币种"
+
+#: templates/user_settings.html:236
+msgid ""
+"To receive any these currencies it\n"
+"                    is required that you set an address"
+msgstr "接收这些币种的收益需要设置一个地址"
+
+#: templates/user_settings.html:249
+#, python-format
+msgid "Input a valid %(currency)s address"
+msgstr "输入一个合法的%(currency)s地址"
+
+#: templates/user_settings.html:270
+msgid "Generate message"
+msgstr "生成消息"
+
+#: templates/user_settings.html:282
+msgid "Step 2. Copy the message"
+msgstr "第二步 拷贝消息"
+
+#: templates/user_settings.html:288
+msgid ""
+"Message to\n"
+"                  be signed"
+msgstr "需要签署的消息"
+
+#: templates/user_settings.html:299
+msgid "Copy to Clipboard"
+msgstr "拷贝到剪切板"
+
+#: templates/user_settings.html:301
+msgid "Copied!"
+msgstr "已拷贝！"
+
+#: templates/user_settings.html:313
+msgid "Step 3. Sign the message"
+msgstr "第三步 签署消息"
+
+#: templates/user_settings.html:319
+msgid "Open up your"
+msgstr "打开你的"
+
+#: templates/user_settings.html:319
+msgid "QT wallet"
+msgstr "QT钱包"
+
+#: templates/user_settings.html:320
+msgid "Open"
+msgstr "打开"
+
+#: templates/user_settings.html:320
+msgid "file"
+msgstr "文件"
+
+#: templates/user_settings.html:320
+msgid "menu, click"
+msgstr "按钮，点击"
+
+#: templates/user_settings.html:320
+msgid "sign message"
+msgstr "签署消息"
+
+#: templates/user_settings.html:321
+msgid ""
+"It'll prompt you for an address and a message to sign. It will\n"
+"                  look something like"
+msgstr "它会提示你需要一个地址和消息签署，类似于"
+
+#: templates/user_settings.html:322
+msgid "this"
+msgstr "这样子"
+
+#: templates/user_settings.html:323
+#, python-format
+msgid ""
+"Put in your user address (%(username)s) for the address,\n"
+"                  and paste the message you just copied."
+msgstr "输入你的地址(%(username)s)当作地址，粘贴你刚拷贝的消息"
+
+#: templates/user_settings.html:325
+msgid "Click 'Sign Message'"
+msgstr "点击签署消息"
+
+#: templates/user_settings.html:326
+msgid ""
+"Copy the signature, and paste it on our site in the\n"
+"                  signature field below"
+msgstr "拷贝签名然后粘贴到下面的签名框"
+
+#: templates/user_settings.html:339
+msgid "Step 4. Paste signature + update settings"
+msgstr "第四步 粘贴签名+更新设置"
+
+#: templates/user_settings.html:348
+msgid "Signature"
+msgstr "签名"
+
+#: templates/user_settings.html:351
+msgid ""
+"Paste signature\n"
+"                         from your wallet"
+msgstr "从你的钱包拷贝签名"
+
+#: templates/user_settings.html:356
+msgid "Update Settings!"
+msgstr "更新设置！"
+
+#: templates/user_stats.html:43
+#, python-format
+msgid "Merge mining %(name)s payout address"
+msgstr "%(name)s合并挖矿支付地址"
+
+#: templates/user_stats.html:49
+msgid "Edit account settings"
+msgstr "编辑你的账户设置"
+
+#: templates/user_stats.html:54
+msgid "Worker Hashrates"
+msgstr "矿工算力"
+
+#: templates/user_stats.html:70
+msgid "Worker Status"
+msgstr "矿工状态"
+
+#: templates/user_stats.html:89
+msgid "Efficiency"
+msgstr "效率"
+
+#: templates/user_stats.html:100
+msgid "Accepted Shares"
+msgstr "接受的份额"
+
+#: templates/user_stats.html:105
+msgid "Rejected Shares"
+msgstr "拒绝的份额"
+
+#: templates/user_stats.html:115
+msgid "status"
+msgstr "状态"
+
+#: templates/user_stats.html:119
+msgid "Multiple unnamed workers will do wonky things!"
+msgstr "多个未命名的矿工会不靠谱"
+
+#: templates/user_stats.html:171
+msgid "Detailed view"
+msgstr "详情"
+
+#: templates/user_stats.html:178
+msgid "GPU"
+msgstr ""
+
+#: templates/user_stats.html:179
+msgid "KHash/sec"
+msgstr ""
+
+#: templates/user_stats.html:180
+msgid "WUE"
+msgstr ""
+
+#: templates/user_stats.html:181
+#, python-format
+msgid "Accepted/Rejected(%%)"
+msgstr "接受/拒绝(%%)"
+
+#: templates/user_stats.html:182
+msgid "HW Errors"
+msgstr "HW错误"
+
+#: templates/user_stats.html:183
+msgid "Temperature"
+msgstr "温度"
+
+#: templates/user_stats.html:184
+msgid "Fan Speed"
+msgstr "风扇速度"
+
+#: templates/user_stats.html:185
+msgid "Core/Memory Clock"
+msgstr "主频"
+
+#: templates/user_stats.html:224
+msgid "Running PPAgent"
+msgstr "运行PPAgent"
+
+#: templates/user_stats.html:229
+msgid "Newer version available here"
+msgstr "新的版本在这里"
+
+#: templates/user_stats.html:251
+msgid "Unpaid Credit Summary"
+msgstr "未授信的汇总"
+
+#: templates/user_stats.html:255
+msgid "Total Pending"
+msgstr "总的挂起"
+
+#: templates/user_stats.html:256
+msgid "Immature"
+msgstr "成熟"
+
+#: templates/user_stats.html:257
+msgid "Unconverted"
+msgstr "未转换"
+
+#: templates/user_stats.html:258
+msgid "Partially Converted (BTC amount)"
+msgstr "部分转换"
+
+#: templates/user_stats.html:259
+msgid "Payable"
+msgstr "可支付"
+
+#: templates/user_stats.html:278
+msgid "Recent Payouts"
+msgstr "最近支付"
+
+#: templates/user_stats.html:281
+msgid "View all account transactions"
+msgstr "查看所有交易"
+
+#: templates/user_stats.html:285
+msgid "Recent Unpaid Block Credits"
+msgstr "最近为支付的信用"
+
+#: templates/user_stats.html:288
+msgid "View all recent credits"
+msgstr "查看最近所有的信用"
+

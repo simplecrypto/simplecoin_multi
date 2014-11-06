@@ -18,14 +18,14 @@
         <table class="table table-striped table-hover tablesorter" id="blockCreditTable">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Time</th>
-              <th>Dest Currency</th>
-              <th>Mined</th>
-              <th>Donation + Fee Amt (d%/f%)</th>
-              <th>Total credited</th>
-              <th>Status</th>
-              <th>Block details</th>
+              <th>{{ _("ID") }}</th>
+              <th>{{ _("Time") }}</th>
+              <th>{{ _("Dest Currency") }}</th>
+              <th>{{ _("Mined") }}</th>
+              <th>{{ _("Donation + Fee Amt (d%%/f%%)") }}</th>
+              <th>{{ _("Total credited") }}</th>
+              <th>{{ _("Status") }}</th>
+              <th>{{ _("Block details") }}</th>
             </tr>
           </thead>
           <tbody>
@@ -48,5 +48,5 @@
       </div>
     </div>
     {% else %}
-    <div class="text-center"><h3>No credits for this user yet</h3></div>
+    <div class="text-center"><h3>{{ _("No credits for this user yet") }}</h3></div>
     {% endif %}

@@ -3,13 +3,13 @@
 {% set page_title = "Stats - Lookup mining stats for an address" %}
 {% block body %}
 <div style="text-align: center; padding-top:100px; color:#ebebeb;">
-  <h1>Invalid or unsupported address!</h1>
-  <p>The address you entered is either not valid or is not a currency type
-    we pay out
+  <h1>{{ _("Invalid or unsupported address!") }}</h1>
+  <p>{{ _("The address you entered is either not valid or is not a currency type
+    we pay out") }}
   </p>
   <br>
   {% if allowed_currencies %}
-  <h4>Currently supported payout currencies include:</h4>
+  <h4>{{ _("Currently supported payout currencies include:") }}</h4>
   {% for abv in allowed_currencies %}
     {{ abv.name }}<br>
   {% endfor %}

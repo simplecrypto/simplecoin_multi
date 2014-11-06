@@ -38,26 +38,26 @@ $(document).ready(function() {
 {% endif %}
 <div class="container">
   <div class="row page-header">
-    <h2 style="word-wrap:break-word;margin-bottom:2px;">User Stats - {{ username }} </h2>
+    <h2 style="word-wrap:break-word;margin-bottom:2px;">{{ _("User Stats") }} - {{ username }} </h2>
     {% for curr, name, merged_addr in merged_addrs %}
-      <span style="padding-left:15px;">Merge mining {{ name }} payout address : {{ merged_addr }}
+      <span style="padding-left:15px;">{{ _("Merge mining %(name)s payout address", name=name) }} : {{ merged_addr }}
         <a style="color:gray;" href="/set_merge/{{ username }}/{{ curr }}"><i class="fa fa-edit" ></i></a>
       </span><br>
     {% endfor %}
     <span style="padding-left:15px;">
       <a href="/settings/{{ username }}">
-      Edit account settings <i style="color:gray;" class="fa fa-edit" ></i></a>
+      {{ _("Edit account settings") }} <i style="color:gray;" class="fa fa-edit" ></i></a>
     </span><br>
     <br>
   </div>
   <div class="row row-header">
-    <h2>Worker Hashrates
+    <h2>{{ _("Worker Hashrates") }}
       <div class="btn btn-default btn-sm collapse-button" data-toggle="collapse" data-target="#chart" id="hashrate-collapse">{% if hide_hr %}[+]{% else %}[-]{% endif %}</div></h2>
     <div class="col-lg-12 collapse {% if not hide_hr %}in{% endif %}" id="chart">
       <ul class="nav nav-tabs">
-        <li class="tab hour"><a>Hour</a></li>
-        <li class="tab day"><a>Day</a></li>
-        <li class="tab month"><a>Month</a></li>
+        <li class="tab hour"><a>{{ _("Hour") }}</a></li>
+        <li class="tab day"><a>{{ _("Day") }}</a></li>
+        <li class="tab month"><a>{{ _("Month") }}</a></li>
       </ul>
     <div style="height:400px;">
       <img src="{{ config['assets_address'] | safe }}/img/712.GIF" style="position:absolute;padding-top:150px;padding-left:400px;"><svg></svg>
@@ -67,7 +67,7 @@ $(document).ready(function() {
 
   {% if workers %}
   <div class="row page-header">
-    <h2>Worker Status</h2>
+    <h2>{{ _("Worker Status") }}</h2>
     <br>
     {% for worker in workers %}
     <div class="col-lg-10 col-lg-offset-1 col-md-12 col-sm-12 col-xs-12">
@@ -82,11 +82,11 @@ $(document).ready(function() {
               &nbsp;&nbsp;<small style="font-size:8pt;">{{ server.display_text }} ({{ connections }} connections)</small>
             {% endfor %}
             <span class="pull-right">
-            <small class="text-right" style="padding-left:10px;font-weight:300;">Hashrate:
+            <small class="text-right" style="padding-left:10px;font-weight:300;">{{ _("Hashrate") }}:
               {{ worker['last_10_shares'].hashrate() | hashrate }} &nbsp;
               <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                        title="Average hashrate over the last ten minutes based on accepted shares, NOT PPAgent."></i></small>
-            <small class="text-right" style="padding-left:10px;font-weight:300;">Efficiency:
+            <small class="text-right" style="padding-left:10px;font-weight:300;">{{ _("Efficiency") }}:
               {{ worker['total_shares'].efficiency | round(2) }}% &nbsp;
               <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                        title="Computed from accepted/total({{ worker['total_shares'].accepted }}/{{ worker['total_shares'].total }}) shares submitted in the last 24 hours"></i></small>
@@ -97,12 +97,12 @@ $(document).ready(function() {
         <div class="panel-body" style="padding:0px;">
           <div class="table-responsive  bs-component" style="position:relative;padding:9px;">
             <div class="col-xs-6 text-center">
-              <h4>Accepted Shares: {{ '{:,}'.format(worker['total_shares'].accepted) }}&nbsp;
+              <h4>{{ _("Accepted Shares") }}: {{ '{:,}'.format(worker['total_shares'].accepted) }}&nbsp;
                 <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                      title="Accepted shares over the last 24 hours"></i></h4>
             </div>
             <div class="col-xs-6 text-center">
-              <h4>Rejected Shares: {{ '{:,}'.format(worker['total_shares'].rejected) }}&nbsp;
+              <h4>{{ _("Rejected Shares") }}: {{ '{:,}'.format(worker['total_shares'].rejected) }}&nbsp;
                 <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
                      title="Rejected shares over the last 24 hours"></i></h4>
             </div>
@@ -112,17 +112,17 @@ $(document).ready(function() {
           {% set stat = worker['status'] %}
           <div class="table-responsive bs-component worker-table-wrapper">
             <div class="worker-wrapper">
-              <b>{{ stat['type'] }} status</b>
+              <b>{{ stat['type'] }} {{ _("status") }}</b>
             {% if not worker['name'] %}
               {# Show a warning about unnamed workers #}
               <small style="font-size:14px;color:#ff0000;font-weight:400;">
-                Multiple unnamed workers will do wonky things!
+                {{ _("Multiple unnamed workers will do wonky things!") }}
               </small>
             {% endif %}
             {% if worker['status_stale'] == True %}
               {# if stale then show a warning #}
               {#
-              <small colspan="3" style="font-size:14px;color:#EEA236;"> <i>Updated {{ worker['status_time'] | human_date_utc }}</i></small>
+              <small colspan="3" style="font-size:14px;color:#EEA236;"> <i>{{ _("Updated") }} {{ worker['status_time'] | human_date_utc }}</i></small>
               <div class="btn btn-default btn-sm collapse-button" data-toggle="collapse" data-target="#worker-{{ worker['name'] }}">
                 [ + ]
               </div>
@@ -131,7 +131,7 @@ $(document).ready(function() {
               {# Not stale - show last updated time #}
               {#
               <small colspan="3" style=" font-size:14px;font-weight:300;">
-                <i>Updated {{ worker['status_time'] | human_date_utc }}</i>
+                <i>{{ _("Updated") }} {{ worker['status_time'] | human_date_utc }}</i>
               </small>
               #}
               <div class="btn btn-default btn-sm collapse-button"
@@ -168,21 +168,21 @@ $(document).ready(function() {
                          title="This value is calculated from the reported WU({{ worker['wu'] }}) / reported average hashrate({{ (worker['total_hashrate']*1000)|int }}). A value of 90%+ is ideal. To increase your WUE make sure your rig is not having hardware errors"></i></h4>
                 </div>
                 <div class="col-xs-3 text-center">
-                  <h4><i class="fa fa-bar-chart-o"></i> <a href="/{{ username }}/{{ worker['name'] }}">Detailed view</a></h4>
+                  <h4><i class="fa fa-bar-chart-o"></i> <a href="/{{ username }}/{{ worker['name'] }}">{{ _("Detailed view") }}</a></h4>
                 </div>
                 <div class="clearfix"></div>
               </div>
               <table class="table table-striped table-hover worker-table">
                 <thead>
                   <tr>
-                    <th>GPU</th>
-                    <th>KHash/sec</th>
-                    <th>WUE</th>
-                    <th>Accepted/Rejected(%)</th>
-                    <th>HW Errors</th>
-                    <th>Temperature</th>
-                    <th>Fan Speed</th>
-                    <th>Core/Memory Clock</th>
+                    <th>{{ _("GPU") }}</th>
+                    <th>{{ _("KHash/sec") }}</th>
+                    <th>{{ _("WUE") }}</th>
+                    <th>{{ _("Accepted/Rejected(%%)") }}</th>
+                    <th>{{ _("HW Errors") }}</th>
+                    <th>{{ _("Temperature") }}</th>
+                    <th>{{ _("Fan Speed") }}</th>
+                    <th>{{ _("Core/Memory Clock") }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -221,12 +221,12 @@ $(document).ready(function() {
                 {% endfor %}
                   <tr>
                     <th colspan="8" style="text-align:left;">
-                      <small>Running PPAgent v{{ stat.get('v', '0.2') }}</small>&nbsp;
+                      <small>{{ _("Running PPAgent") }} v{{ stat.get('v', '0.2') }}</small>&nbsp;
                       {% if worker['status_version'] < config['latest_ppagent'] %}
                         {# Notice about out of date ppagent #}
                         <a href="https://github.com/icook/ppagent#upgrade">
                           <small style="color:#FFD600;font-weight:400;">
-                            Newer version available here
+                            {{ _("Newer version available here") }}
                           </small>
                         </a>&nbsp;&nbsp;
                       {% endif %}
@@ -248,15 +248,15 @@ $(document).ready(function() {
     <div class="col-lg-12">
       {% for payout_currency, data in earning_summary.iteritems() %}
       <div class="bs-example table-responsive">
-        <h3>{{ payout_currency.name }} Unpaid Credit Summary</h3>
+        <h3>{{ payout_currency.name }} {{ _("Unpaid Credit Summary") }}</h3>
         <table class="table table-striped table-hover">
           <tr>
-            <th>Currency</th>
-            <th>Total Pending</th>
-            <th>Immature</th>
-            <th>Unconverted</th>
-            <th>Partially Converted (BTC amount)</th>
-            <th>Payable</th>
+            <th>{{ _("Currency") }}</th>
+            <th>{{ _("Total Pending") }}</th>
+            <th>{{ _("Immature") }}</th>
+            <th>{{ _("Unconverted") }}</th>
+            <th>{{ _("Partially Converted (BTC amount)") }}</th>
+            <th>{{ _("Payable") }}</th>
           </tr>
           {% for currency, cdata in data['by_currency'].iteritems() %}
           <tr>
@@ -275,16 +275,16 @@ $(document).ready(function() {
   </div>
 
   <div class="row row-header">
-    <h2>Recent Payouts</h2>
+    <h2>{{ _("Recent Payouts") }}</h2>
     <br>
     {% include "payout_table.html" %}
-    <a href="/{{ username }}/account">View all account transactions</a>
+    <a href="/{{ username }}/account">{{ _("View all account transactions") }}</a>
   </div>
 
   <div class="row row-header">
-    <h2>Recent Unpaid Block Credits</h2>
+    <h2>{{ _("Recent Unpaid Block Credits") }}</h2>
     <br>
     {% include "credit_table.html" %}
-    <a href="/{{ username }}/aggr_account">View all recent credits</a>
+    <a href="/{{ username }}/aggr_account">{{ _("View all recent credits") }}</a>
   </div>
 {% endblock %}
