@@ -305,13 +305,12 @@ msgid "Alphanumeric characters only"
 msgstr ""
 
 #: templates/configuration_guide.html:134
-msgid "Difficulty:"
+msgid "Starting difficulty:"
 msgstr ""
 
 #: templates/configuration_guide.html:137
 msgid ""
-"Don't set this unless you know what you're doing. Must be 2^x and in the "
-"vardiff range"
+"Optional. Specifies a starting difficulty"
 msgstr ""
 
 #: templates/configuration_guide.html:144
