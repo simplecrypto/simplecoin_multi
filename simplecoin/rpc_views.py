@@ -78,6 +78,11 @@ def update_trade_requests():
         try:
             tr = (TradeRequest.query.filter_by(id=int(tr_id)).
                   with_lockmode('update').one())
+
+            if tr_dict['status'] == 6 and tr._status == 6:
+                updated.append(tr_id)
+                continue
+
             tr._status = tr_dict['status']
 
             if tr_dict['status'] == 6:
