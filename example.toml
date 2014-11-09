@@ -1,6 +1,6 @@
 pool_payout_currency = "LTC"
 SECRET_KEY = "somethting_really_secret"
-SQLALCHEMY_DATABASE_URI = "sqlite:///database.sqlite3"
+SQLALCHEMY_DATABASE_URI = "postgresql://<usr>:<pwd>@<url>:5432/<dbname>"
 DEBUG = true
 rpc_signature = "test"
 
