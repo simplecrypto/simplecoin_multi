@@ -56,3 +56,5 @@ nosetests.xml
 .sass-cache
 tags
 celerybeat-schedule
+
+doc/_build/
