@@ -3,6 +3,7 @@ SimpleCoin Multi
 
 [![Build Status](https://travis-ci.org/simplecrypto/simplecoin_multi.svg?branch=master)](https://travis-ci.org/simplecrypto/simplecoin_multi)
 [![Coverage Status](https://coveralls.io/repos/simplecrypto/simplecoin_multi/badge.png?branch=master)](https://coveralls.io/r/simplecrypto/simplecoin_multi?branch=master)
+[![Documentation Status](https://readthedocs.org/projects/simplecoin-multi/badge/?version=latest)](https://readthedocs.org/projects/simplecoin-multi/?badge=latest)
 
 A multipool version of simplecoin.
 
