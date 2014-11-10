@@ -75,88 +75,52 @@ def cache_profitability():
     """
     # track chain profits
     chain_profit = {}
-    for chain in chains:
-        chain_profit.setdefault(chain, {'btc': 0, 'mhashes': 0})
 
-    for currency in currencies.itervalues():
-        if currency.mineable is False:
-            continue
-        if currency.sellable is False:
-            continue
+    start_time = datetime.datetime.utcnow() - datetime.timedelta(hours=48)
 
-        twenty_four_h_ago = datetime.datetime.utcnow() - datetime.timedelta(hours=48)
+    query_currencies = [c.key for c in currencies if c.mineable and c.sellable]
+    blocks = (Block.query.filter(Block.found_at > start_time).
+              filter(Block.currency.in_(query_currencies)))
 
-        blocks = (Block.query.filter_by(currency=currency.key).
-                  order_by(Block.found_at.desc())
-                  .filter(Block.found_at > twenty_four_h_ago)
-                  .limit(100).all())
+    for block in blocks:
+        chain_data = block.profitability()
 
+        for chainid, data in chain_data.iteritems():
+
+            if chainid not in chains:
+                current_app.logger.warn(
+                    "Chain #{} not configured properly! Skipping it..."
+                    .format(chainid))
+                continue
+
+            # Set the block for convenience later
+            data['block'] = block
+            chain_profit[chainid].setdefault(block.currency_obj, []).append(data)
+
+    for chainid, chain_currencies in chain_profit.iteritems():
+        merged_shares = 0
+        main_shares = 0
         btc_total = 0
-        sold_mhashes = 0
-        for block in blocks:
-            btc, mhashes = block.profitability()
-            btc_total += btc
-            sold_mhashes += mhashes
-
-            for chain in block.chain_payouts:
-
-                if chain.chainid not in chain_profit:
-                    current_app.logger.warn(
-                        "Chain #{} not configured properly! Skipping it..."
-                        .format(chain.chainid))
-                    continue
-
-                chain_profit[chain.chainid]['btc'] += chain.profitability()
-                # If its a merged coin, track the mhashes separately
-                if currency.merged is False:
-                    chain_profit[chain.chainid]['mhashes'] += chain.mhashes
+        for currency, entries in chain_currencies.iteritems():
+            for data in entries:
+                btc_total += data['btc_total']
+                if currency.merged:
+                    merged_shares += data['sold_shares']
                 else:
-                    chain_profit[chain.chainid].setdefault('merged_chains', [])
-                    if currency.key not in chain_profit[chain.chainid]['merged_chains']:
-                        chain_profit[chain.chainid]['merged_chains'].append(currency.key)
-                    chain_profit[chain.chainid].setdefault('merged_mhash', 0)
-                    chain_profit[chain.chainid]['merged_mhash'] += chain.mhashes
+                    main_shares += data['sold_shares']
 
-        # Determine BTC/mhash for the whole currency
-        try:
-            btc_per_mhash = btc_total / sold_mhashes
-        except (ZeroDivisionError, decimal.InvalidOperation):
-            btc_per_mhash = Decimal('0')
-
-        btc_per_mhash_per_day = btc_per_mhash * 86400
-
-        current_app.logger.debug("Caching currency {} with profit {}"
-                                 .format(currency.key, btc_per_mhash_per_day))
-
-        cache.set('{}_profitability'.format(currency.key),
-                  btc_per_mhash_per_day, timeout=3600 * 2)
-
-    # Determine BTC/mhash for each chain
-    for chain_id, profit_data in chain_profit.iteritems():
-
-        # Calculate average merge mined mhashes
-        merged_mhash = 0
-        if 'merged_chains' in profit_data:
-            merged_mhash = profit_data['merged_mhash'] / len(profit_data['merged_chains'])
-
-        try:
-            btc_per_mhash = profit_data['btc'] / profit_data['mhashes']
-        except (ZeroDivisionError, decimal.InvalidOperation):
-
-            # If there are no mainnet blocks, use the mhashes from merged nets
-            if merged_mhash > 0:
-                try:
-                    btc_per_mhash = profit_data['btc'] / merged_mhash
-                except (ZeroDivisionError, decimal.InvalidOperation):
-                    btc_per_mhash = Decimal('0')
-
-        btc_per_mhash_per_day = btc_per_mhash * 86400
+        hps = chains[chainid].algo.hashes_per_share
+        if main_shares == 0:
+            btc_per = btc_total / (merged_shares * hps)
+        else:
+            btc_per = btc_total / (main_shares * hps)
+        btc_per *= 86400  # per day
 
         current_app.logger.debug("Caching chain #{} with profit {}"
-                                 .format(chain_id, btc_per_mhash_per_day))
+                                 .format(chainid, btc_per))
 
-        cache.set('chain_{}_profitability'.format(chain_id),
-                  btc_per_mhash_per_day, timeout=3600 * 2)
+        cache.set('chain_{}_profitability'.format(chainid),
+                  btc_per, timeout=3600 * 2)
 
 
 @crontab

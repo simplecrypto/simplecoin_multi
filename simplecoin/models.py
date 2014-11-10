@@ -162,17 +162,6 @@ class ChainPayout(base):
     def mhashes(self):
         return self.hashes / 1000000
 
-    def profitability(self):
-        btc_earned, sold_mhashes = self.block.profitability()
-
-        # Determine BTC/mhash
-        try:
-            btc_per_mhash = btc_earned / sold_mhashes
-        except (ZeroDivisionError, decimal.InvalidOperation):
-            return 0
-
-        return btc_per_mhash * self.mhashes
-
     def make_credit_obj(self, user, address, currency, shares):
         """ Makes the appropriate credit object given a few details. Payout
         amount too be calculated. """
@@ -311,35 +300,42 @@ class Block(base):
                     data['height'])
         return None
 
-    def profitability(self):
-        hps = current_app.algos[self.algo].hashes_per_share
-
+    def chain_profitability(self):
+        """ Creates a dictionary that is keyed by chainid to represent the BTC
+        earned per number of shares for every share chain that helped solve
+        this block """
         # Get a some credit totals
-        btc_total = 0
-        amount_total = 0
-        amount_sold = 0
+        chain_data = {}
+        for chain_payout in self.chain_payouts:
+            chain = chain_data.setdefault(
+                chain_payout.chainid,
+                dict(btc_total=0,
+                     amount_total=0,
+                     amount_sold=0,
+                     obj=chain_payout)
+            )
+
         for credit in self.credits:
-            amount_total += credit.amount
+            chain = chain_data[credit.sharechain_id]
+            chain['amount_total'] += credit.amount
 
             if credit.type == 1 and credit.sell_amount > 0:
-                amount_sold += credit.amount
-                btc_total += credit.sell_amount
+                chain['amount_sold'] += credit.amount
+                chain['btc_total'] += credit.sell_amount
 
         # We're gonna need to be pretty precise here
         with decimal.localcontext(decimal.BasicContext) as ctx:
             ctx.rounding = decimal.ROUND_DOWN
             ctx.prec = 100
+            for chain_id, data in chain_data.iteritems():
+                # determine what percent was sold
+                sold_perc = data['amount_sold'] / data['amount_total']
 
-            # determine what percent was sold
-            sold_perc = amount_sold / amount_total
+                # Determine shares that accounted for that sale quantity
+                data['sold_shares'] = data['obj'].chain_shares * sold_perc
 
-            # Get a mhashes total
-            mhash_total = (self.shares_to_solve * hps) / 1000000
+        return chain_data
 
-            # Determine mhashes sold
-            sold_mhashes = mhash_total * sold_perc
-
-        return btc_total, sold_mhashes
 
 class Transaction(base):
     id = db.Column(db.Integer, primary_key=True)
