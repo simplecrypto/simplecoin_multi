@@ -11,9 +11,8 @@ from .models import (Block, ShareSlice, UserSettings, make_upper_lower, Credit,
 from . import db, root, cache, currencies, algos, locations, babel
 from .exceptions import InvalidAddressException
 from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
-                    get_alerts, resort_recent_visit, collect_acct_items,
-                    CommandException, anon_users, collect_pool_stats,
-                    get_past_chain_profit)
+                    get_alerts, resort_recent_visit, CommandException,
+                    anon_users, collect_pool_stats, get_past_chain_profit)
 
 
 main = Blueprint('main', __name__)

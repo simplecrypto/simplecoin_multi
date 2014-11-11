@@ -81,51 +81,24 @@ def get_past_chain_profit():
 
 
 @cache.memoize(timeout=3600)
-def get_pool_acc_rej(timedelta=None):
+def get_pool_acc_rej(algo, timedelta=None):
     """ Get accepted and rejected share count totals for the last month """
     if timedelta is None:
         timedelta = datetime.timedelta(days=30)
 
-    # Pull from five minute shares if we're looking at a day timespan
-    if timedelta <= datetime.timedelta(days=1):
-        rej_typ = FiveMinuteReject
-        acc_typ = FiveMinuteShare
-    else:
-        rej_typ = OneHourReject
-        acc_typ = OneHourShare
-
-    one_month_ago = datetime.datetime.utcnow() - timedelta
-    rejects = (rej_typ.query.
-               filter(rej_typ.time >= one_month_ago).
-               filter_by(user="pool_stale"))
-    accepts = (acc_typ.query.
-               filter(acc_typ.time >= one_month_ago).
-               filter_by(user="pool"))
-    reject_total = sum([hour.value for hour in rejects])
-    accept_total = sum([hour.value for hour in accepts])
-    return reject_total, accept_total
+    lower, upper = make_upper_lower(offset=datetime.timedelta(minutes=2))
+    shares = {}
+    for slc in ShareSlice.get_span(ret_query=True,
+                                   upper=upper,
+                                   lower=lower,
+                                   user=("pool", ),
+                                   algo=(algo, )):
+        shares.setdefault(slc.share_type, 0)
+        shares[slc.share_type] += slc.value
+    return shares
 
 
-@cache.memoize(timeout=3600)
-def users_blocks(address, algo=None, merged=None):
-    q = db.session.query(Block).filter_by(user=address, merged=False)
-    if algo:
-        q.filter_by(algo=algo)
-    return algo.count()
-
-
-@cache.memoize(timeout=86400)
-def all_time_shares(address):
-    shares = db.session.query(ShareSlice).filter_by(user=address)
-    return sum([share.value for share in shares])
-
-
-@cache.memoize(timeout=60)
 def last_block_time(algo, merged=False):
-    return last_block_time_nocache(algo, merged=merged)
-
-
-def last_block_time_nocache(algo, merged=False):
     """ Retrieves the last time a block was solved using progressively less
     accurate methods. Essentially used to calculate round time.
     TODO XXX: Add pool selector to each of the share queries to grab only x11,
@@ -148,21 +121,6 @@ def anon_users():
 
 
 @cache.memoize(timeout=60)
-def last_block_found(algorithm=None, merged=False):
-    last_block = Block.query.filter_by(merged=merged).order_by(Block.height.desc()).first()
-    if not last_block:
-        return None
-    return last_block
-
-
-def last_blockheight(merged=False):
-    last = last_block_found(merged=merged)
-    if not last:
-        return 0
-    return last.height
-
-
-@cache.memoize(timeout=60)
 def get_pool_hashrate(algo):
     """ Retrieves the pools hashrate average for the last 10 minutes. """
     lower, upper = make_upper_lower(offset=datetime.timedelta(minutes=2))
@@ -177,32 +135,6 @@ def get_pool_hashrate(algo):
 @cache.cached(timeout=60, key_prefix='alerts')
 def get_alerts():
     return yaml.load(open(root + '/static/yaml/alerts.yaml'))
-
-
-@cache.memoize(timeout=60)
-def last_10_shares(user, algo):
-    lower, upper = make_upper_lower(offset=datetime.timedelta(minutes=2))
-    minutes = (ShareSlice.query.filter_by(user=user).
-               filter(ShareSlice.time > lower, ShareSlice.time < upper))
-    if minutes:
-        return sum([min.value for min in minutes])
-    return 0
-
-
-@cache.memoize(timeout=60)
-def collect_acct_items(address, limit=None, offset=0):
-    """ Get account items for a specific user """
-    credits = (Credit.query.filter_by(user=address).join(Credit.block).
-               order_by(Block.found_at.desc()).limit(limit).offset(offset))
-    return credits
-
-
-def collect_user_credits(address):
-    credits = (Credit.query.filter_by(user=address, payout_id=None).
-               filter(Credit.block != None).options(db.joinedload('payout'),
-                                                    db.joinedload('block'))
-               .order_by(Credit.id.desc())).all()
-    return credits
 
 
 def collect_pool_stats():
@@ -252,7 +184,7 @@ def collect_pool_stats():
         currency_data.update(cache.get("{}_data".format(currency.key)) or {})
 
         # Check the cache for the currency's profit data
-        profit =  cache.get("{}_profitability".format(currency.key)) or '???'
+        profit = cache.get("{}_profitability".format(currency.key)) or '???'
         if profit is not '???':
             profit = profit.quantize(Decimal('0.00000001'))
         profit = {'profitability': profit}
@@ -492,15 +424,6 @@ def collect_user_stats(user_address):
                 f_per=f_perc)
 
 
-def get_pool_eff(timedelta=None):
-    rej, acc = get_pool_acc_rej(timedelta)
-    # avoid zero division error
-    if not rej and not acc:
-        return 100
-    else:
-        return (float(acc) / (acc + rej)) * 100
-
-
 def resort_recent_visit(recent):
     """ Accepts a new dictionary of recent visitors and calculates what
     percentage of your total visits have gone to that address. Used to dim low
@@ -544,8 +467,6 @@ def time_format(seconds):
 
 def validate_str_perc(perc, round=dec('0.01')):
     """
-    The go-to function for all your percentage validation needs.
-
     Tries to convert a var representing an 0-100 scale percentage into a
     mathematically useful Python Decimal. Default is rounding to 0.01%
 
@@ -588,7 +509,7 @@ def validate_message_vals(address, **kwargs):
         except Exception:
             raise CommandException("{} is not configured".format(curr))
         # Be a bit extra paranoid
-        if not curr_ver in curr_obj.address_version:
+        if curr_ver not in curr_obj.address_version:
             raise CommandException("\'{}\' is not a valid {} "
                                    "address".format(addr, curr))
 
