@@ -66,6 +66,12 @@ class TestDistributor(unittest.TestCase):
 
         _distributor(amount, splits)
 
+    def test_catch_empty(self):
+        amount = Decimal("1.00007884")
+        splits = {}
+
+        self.assertRaises(Exception, _distributor, (amount, splits))
+
 
 class TestGenerateTradeRequests(UnitTest):
     def test_payout_generation(self):

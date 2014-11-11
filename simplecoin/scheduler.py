@@ -511,6 +511,9 @@ def _distributor(amount, splits, scale=None, addtl_prec=0):
     scale = int(scale or 28) * -1
     amount = Decimal(amount)
 
+    if not splits:
+        raise Exception("Splits cannot be empty!")
+
     with decimal.localcontext(decimal.BasicContext) as ctx:
         ctx.rounding = decimal.ROUND_DOWN
         smallest = Decimal((0, (1, ), scale))
