@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-11-04 21:36+0800\n"
+"POT-Creation-Date: 2014-11-10 19:59-0600\n"
 "PO-Revision-Date: 2014-11-03 22:14+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: zh_Hans_CN <LL@li.org>\n"
@@ -108,7 +108,11 @@ msgstr "当前"
 msgid "Miners"
 msgstr "矿工"
 
-#: templates/base.html:130
+#: templates/base.html:89
+msgid "Language"
+msgstr ""
+
+#: templates/base.html:140
 msgid "Donate:"
 msgstr "捐助："
 
@@ -160,31 +164,31 @@ msgstr "块高度"
 msgid "Status"
 msgstr "状态"
 
-#: templates/block_details.html:49
+#: templates/block_details.html:53
 msgid "Mining Details"
 msgstr "挖矿详情"
 
-#: templates/block_details.html:54
+#: templates/block_details.html:58
 msgid "Simplecoin ID"
 msgstr ""
 
-#: templates/block_details.html:58
+#: templates/block_details.html:62
 msgid "Solved by user"
 msgstr "挖到块的矿工"
 
-#: templates/block_details.html:67 templates/block_table.html:21
+#: templates/block_details.html:71 templates/block_table.html:21
 msgid "Round Duration"
 msgstr "出块周期"
 
-#: templates/block_details.html:71
+#: templates/block_details.html:75
 msgid "Shares required"
 msgstr "需要的份额"
 
-#: templates/block_details.html:75 templates/block_table.html:20
+#: templates/block_details.html:79 templates/block_table.html:20
 msgid "Luck"
 msgstr "幸运"
 
-#: templates/block_details.html:85
+#: templates/block_details.html:89
 msgid "No block by that identifier could be found in our database!"
 msgstr "没有找到对应的块"
 
@@ -228,7 +232,7 @@ msgstr "端口："
 msgid "ports:"
 msgstr "端口："
 
-#: templates/configuration_guide.html:64 templates/configuration_guide.html:150
+#: templates/configuration_guide.html:64 templates/configuration_guide.html:151
 #: templates/home.html:69
 msgid "Port:"
 msgstr "端口："
@@ -245,119 +249,126 @@ msgstr "难度"
 msgid "fee"
 msgstr "费率"
 
-#: templates/configuration_guide.html:82
+#: templates/configuration_guide.html:68
+msgid "Past 24h Profit:"
+msgstr ""
+
+#: templates/configuration_guide.html:68
+msgid "BTC/MH"
+msgstr ""
+
+#: templates/configuration_guide.html:83
 msgid "Step 3. Set a username"
 msgstr "第三步 设置用户名"
 
-#: templates/configuration_guide.html:87
+#: templates/configuration_guide.html:88
 msgid "Payout currency:"
 msgstr "支付币种："
 
-#: templates/configuration_guide.html:95
+#: templates/configuration_guide.html:96
 msgid "Pick a currency that we pay out in"
 msgstr "选择一个支付币种"
 
-#: templates/configuration_guide.html:99
+#: templates/configuration_guide.html:100
 msgid "Payout address:"
 msgstr "支付地址："
 
-#: templates/configuration_guide.html:103
+#: templates/configuration_guide.html:104
 msgid "Insert a valid"
 msgstr "插入一个合法的"
 
-#: templates/configuration_guide.html:103
-#: templates/configuration_guide.html:107
-#: templates/configuration_guide.html:111 templates/user_settings.html:181
+#: templates/configuration_guide.html:104
+#: templates/configuration_guide.html:108
+#: templates/configuration_guide.html:112 templates/user_settings.html:181
 #: templates/user_settings.html:187 templates/user_settings.html:221
 #: templates/user_settings.html:227 templates/user_settings.html:255
 #: templates/user_settings.html:261
 msgid "address"
 msgstr "地址"
 
-#: templates/configuration_guide.html:105
+#: templates/configuration_guide.html:106
 msgid "Checking address validity"
 msgstr "检查地址合法性"
 
-#: templates/configuration_guide.html:107 templates/user_settings.html:179
+#: templates/configuration_guide.html:108 templates/user_settings.html:179
 #: templates/user_settings.html:220 templates/user_settings.html:254
 msgid "Invalid"
 msgstr "非法"
 
-#: templates/configuration_guide.html:109
+#: templates/configuration_guide.html:110
 msgid "The server had an error attempting to validate!"
 msgstr "服务器在检查地址时遇到错误"
 
-#: templates/configuration_guide.html:111 templates/user_settings.html:186
+#: templates/configuration_guide.html:112 templates/user_settings.html:186
 #: templates/user_settings.html:260
 msgid "Valid"
 msgstr "合法"
 
-#: templates/configuration_guide.html:118
+#: templates/configuration_guide.html:119
 msgid "Step 4. Configure your first worker (optional settings)"
 msgstr "第四步 配置你的第一个矿工（可选）"
 
-#: templates/configuration_guide.html:124
+#: templates/configuration_guide.html:125
 msgid "Workername:"
 msgstr "用户名："
 
-#: templates/configuration_guide.html:127
+#: templates/configuration_guide.html:128
 msgid "Alphanumeric characters only"
 msgstr "只能填数字和字母"
 
-#: templates/configuration_guide.html:134
-msgid "Difficulty:"
+#: templates/configuration_guide.html:135
+#, fuzzy
+msgid "Starting difficulty:"
 msgstr "难度："
 
-#: templates/configuration_guide.html:137
-msgid ""
-"Don't set this unless you know what you're doing. Must be 2^x and in the "
-"vardiff range"
-msgstr "请谨慎填写该值，必须是2的幂"
+#: templates/configuration_guide.html:138
+msgid "Optional. Specifies a starting difficulty"
+msgstr ""
 
-#: templates/configuration_guide.html:144
+#: templates/configuration_guide.html:145
 msgid "Step 5. Configure your miner"
 msgstr "第五步 配置矿工"
 
-#: templates/configuration_guide.html:149
+#: templates/configuration_guide.html:150
 msgid "URL:"
 msgstr ""
 
-#: templates/configuration_guide.html:149
-#: templates/configuration_guide.html:154
+#: templates/configuration_guide.html:150
+#: templates/configuration_guide.html:155
 msgid "Select region above"
 msgstr "前面选择的服务器"
 
-#: templates/configuration_guide.html:150
-#: templates/configuration_guide.html:154
+#: templates/configuration_guide.html:151
+#: templates/configuration_guide.html:155
 msgid "Select port above"
 msgstr "前面选择的端口"
 
-#: templates/configuration_guide.html:151
+#: templates/configuration_guide.html:152
 msgid "Username:"
 msgstr "用户名："
 
-#: templates/configuration_guide.html:151
-#: templates/configuration_guide.html:155
+#: templates/configuration_guide.html:152
+#: templates/configuration_guide.html:156
 msgid "Fill in username above"
 msgstr "前面填写的用户名"
 
-#: templates/configuration_guide.html:152
+#: templates/configuration_guide.html:153
 msgid "Password:"
 msgstr "密码："
 
-#: templates/configuration_guide.html:153
+#: templates/configuration_guide.html:154
 msgid "Commandline example:"
 msgstr "命令行例子："
 
-#: templates/configuration_guide.html:162
+#: templates/configuration_guide.html:163
 msgid "Step 6. Make sure your hashrate shows up"
 msgstr "第六步 确保你的算力能正确显示"
 
-#: templates/configuration_guide.html:166
+#: templates/configuration_guide.html:167
 msgid "Stats link"
 msgstr "状态链接"
 
-#: templates/configuration_guide.html:171
+#: templates/configuration_guide.html:172
 msgid ""
 "After a few minutes of mining your stats page should be showing a\n"
 "          graph and hashrate for your miners. If it isn't, double check "
@@ -367,31 +378,31 @@ msgstr ""
 "几分钟后你的状态页应该会有一张图表和算力。\n"
 "如果没有看到，请再次检查你的配置"
 
-#: templates/configuration_guide.html:178
+#: templates/configuration_guide.html:179
 msgid "Step 7. Edit your account settings"
 msgstr "第七步 编辑你的账户设置"
 
-#: templates/configuration_guide.html:182
+#: templates/configuration_guide.html:183
 msgid "Settings link"
 msgstr "设置链接"
 
-#: templates/configuration_guide.html:187
+#: templates/configuration_guide.html:188
 msgid ""
 "More configuration of your account is available on your account\n"
 "          settings page. Including:"
 msgstr "更多设置包括："
 
-#: templates/configuration_guide.html:190
+#: templates/configuration_guide.html:191
 msgid ""
 "Setting additional payout addresses (this is required in order to collect"
 " some merged mining rewards!)"
 msgstr "增加支付地址（在获得合并挖矿收益时可以用到）"
 
-#: templates/configuration_guide.html:191
+#: templates/configuration_guide.html:192
 msgid "Add a donation to the pool"
 msgstr "给矿池捐赠"
 
-#: templates/configuration_guide.html:192
+#: templates/configuration_guide.html:193
 msgid "Enable privacy (hides your address on the leaderboard)"
 msgstr "设置隐私（在排行榜匿名显示账户地址）"
 
@@ -744,15 +755,15 @@ msgstr "所有算法"
 msgid "Current Hashrate:"
 msgstr "当前算力："
 
-#: templates/pool_stats.html:99
+#: templates/pool_stats.html:104
 msgid "Last Solve:"
 msgstr "上一个挖到的块龄"
 
-#: templates/pool_stats.html:122
+#: templates/pool_stats.html:127
 msgid "View more"
 msgstr "查看更多"
 
-#: templates/pool_stats.html:122
+#: templates/pool_stats.html:127
 msgid "blocks"
 msgstr "块"
 
@@ -798,7 +809,9 @@ msgid ""
 "          built into the QT wallet to prove you control the address. The "
 "basic\n"
 "          process is:"
-msgstr "由于没有注册机制所以我们使用QT钱包的消息签名系统去验证你对地址的控制权\n过程如下："
+msgstr ""
+"由于没有注册机制所以我们使用QT钱包的消息签名系统去验证你对地址的控制权\n"
+"过程如下："
 
 #: templates/user_settings.html:24
 msgid ""
@@ -842,7 +855,9 @@ msgstr "你可以选择设置一个合并挖矿地址接收合并挖矿收益"
 msgid ""
 "Some merge mined coins can't be exchanged so you'll need to set\n"
 "          an address for them or they'll be donated to the pool."
-msgstr "有些币没法交易所以必须有一个合并挖矿收益地址\n否则会视为捐助给矿池"
+msgstr ""
+"有些币没法交易所以必须有一个合并挖矿收益地址\n"
+"否则会视为捐助给矿池"
 
 #: templates/user_settings.html:58
 msgid "Note:"
@@ -1219,4 +1234,10 @@ msgstr "最近为支付的信用"
 #: templates/user_stats.html:288
 msgid "View all recent credits"
 msgstr "查看最近所有的信用"
+
+#~ msgid ""
+#~ "Don't set this unless you know "
+#~ "what you're doing. Must be 2^x and"
+#~ " in the vardiff range"
+#~ msgstr "请谨慎填写该值，必须是2的幂"
 
