@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-11-10 21:56-0600\n"
+"POT-Creation-Date: 2014-11-11 02:50-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -83,11 +83,11 @@ msgstr ""
 msgid "The error identifier is"
 msgstr ""
 
-#: templates/account.html:9 templates/blocks.html:9
+#: templates/account.html:9 templates/blocks.html:39
 msgid "Newer"
 msgstr ""
 
-#: templates/account.html:10 templates/blocks.html:10
+#: templates/account.html:10 templates/blocks.html:40
 msgid "Older"
 msgstr ""
 
@@ -95,8 +95,8 @@ msgstr ""
 msgid "Status:"
 msgstr ""
 
-#: templates/base.html:46 templates/leaderboard.html:27
-#: templates/user_stats.html:85
+#: templates/base.html:46 templates/blocks.html:18
+#: templates/leaderboard.html:27 templates/user_stats.html:85
 msgid "Hashrate"
 msgstr ""
 
@@ -164,31 +164,43 @@ msgstr ""
 msgid "Status"
 msgstr ""
 
-#: templates/block_details.html:53
+#: templates/block_details.html:49
 msgid "Mining Details"
 msgstr ""
 
-#: templates/block_details.html:58
+#: templates/block_details.html:54
 msgid "Simplecoin ID"
 msgstr ""
 
-#: templates/block_details.html:62
+#: templates/block_details.html:58
 msgid "Solved by user"
 msgstr ""
 
-#: templates/block_details.html:71 templates/block_table.html:21
+#: templates/block_details.html:67 templates/block_table.html:21
 msgid "Round Duration"
 msgstr ""
 
+#: templates/block_details.html:71
+msgid "Hashes required"
+msgstr ""
+
 #: templates/block_details.html:75
+msgid "Average hashrate"
+msgstr ""
+
+#: templates/block_details.html:79
 msgid "Shares required"
 msgstr ""
 
-#: templates/block_details.html:79 templates/block_table.html:20
+#: templates/block_details.html:83 templates/block_table.html:20
 msgid "Luck"
 msgstr ""
 
 #: templates/block_details.html:89
+msgid "Chain Distribution"
+msgstr ""
+
+#: templates/block_details.html:106
 msgid "No block by that identifier could be found in our database!"
 msgstr ""
 
@@ -196,7 +208,7 @@ msgstr ""
 msgid "Age"
 msgstr ""
 
-#: templates/block_table.html:19
+#: templates/block_table.html:19 templates/blocks.html:19
 msgid "Shares"
 msgstr ""
 
@@ -206,6 +218,26 @@ msgstr ""
 
 #: templates/block_table.html:24
 msgid "Solved by"
+msgstr ""
+
+#: templates/blocks.html:9
+msgid "Block Stats"
+msgstr ""
+
+#: templates/blocks.html:14
+msgid "Time Period"
+msgstr ""
+
+#: templates/blocks.html:15
+msgid "Orphan Percentage"
+msgstr ""
+
+#: templates/blocks.html:16
+msgid "Low Diff Eff"
+msgstr ""
+
+#: templates/blocks.html:17
+msgid "Dup Eff"
 msgstr ""
 
 #: templates/configuration_guide.html:13

@@ -82,6 +82,7 @@ def blocks(q=None, currency=None):
 
     blocks = blocks.offset(offset).limit(100)
     return render_template('blocks.html', blocks=blocks, page=page,
+                           currency=currencies[currency],
                            currency_data=currency_data)
 
 

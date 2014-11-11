@@ -17,9 +17,13 @@ from .models import (ShareSlice, Block, Credit, UserSettings, make_upper_lower,
 class ShareTracker(object):
     def __init__(self, algo):
         self.types = {typ: ShareTypeTracker(typ) for typ in ShareSlice.SHARE_TYPES}
-        self.algo = algos[algo]
+        self._algo = algo
         self.lowest = None
         self.highest = None
+
+    @property
+    def algo(self):
+        return algos[self._algo]
 
     def count_slice(self, slc):
         self.types[slc.share_type].shares += slc.value
@@ -119,7 +123,7 @@ def get_past_chain_profit():
     return past_chain_profit
 
 
-#@cache.memoize(timeout=3600)
+@cache.memoize(timeout=3600)
 def pool_share_tracker(algo, timedelta=None, user=None, worker=None):
     """ Get accepted and rejected share count totals for the last month """
     if timedelta is None:
@@ -127,13 +131,9 @@ def pool_share_tracker(algo, timedelta=None, user=None, worker=None):
 
     lower, upper = make_upper_lower(span=timedelta)
     tracker = ShareTracker(algo)
-    print timedelta
-    i = 0
     for slc in ShareSlice.get_span(ret_query=True, upper=upper, lower=lower,
                                    user=user, algo=(algo, ), worker=worker):
-        i += 1
         tracker.count_slice(slc)
-    print i
     return tracker
 
 

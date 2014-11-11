@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-11-10 21:56-0600\n"
+"POT-Creation-Date: 2014-11-11 02:50-0600\n"
 "PO-Revision-Date: 2014-11-03 22:14+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: zh_Hans_CN <LL@li.org>\n"
@@ -83,11 +83,11 @@ msgstr "服务挂啦，已记录在案，一会再过来吧"
 msgid "The error identifier is"
 msgstr "错误id是"
 
-#: templates/account.html:9 templates/blocks.html:9
+#: templates/account.html:9 templates/blocks.html:39
 msgid "Newer"
 msgstr "新的"
 
-#: templates/account.html:10 templates/blocks.html:10
+#: templates/account.html:10 templates/blocks.html:40
 msgid "Older"
 msgstr "旧的"
 
@@ -95,8 +95,8 @@ msgstr "旧的"
 msgid "Status:"
 msgstr "状态："
 
-#: templates/base.html:46 templates/leaderboard.html:27
-#: templates/user_stats.html:85
+#: templates/base.html:46 templates/blocks.html:18
+#: templates/leaderboard.html:27 templates/user_stats.html:85
 msgid "Hashrate"
 msgstr "算力"
 
@@ -164,31 +164,46 @@ msgstr "块高度"
 msgid "Status"
 msgstr "状态"
 
-#: templates/block_details.html:53
+#: templates/block_details.html:49
 msgid "Mining Details"
 msgstr "挖矿详情"
 
-#: templates/block_details.html:58
+#: templates/block_details.html:54
 msgid "Simplecoin ID"
 msgstr ""
 
-#: templates/block_details.html:62
+#: templates/block_details.html:58
 msgid "Solved by user"
 msgstr "挖到块的矿工"
 
-#: templates/block_details.html:71 templates/block_table.html:21
+#: templates/block_details.html:67 templates/block_table.html:21
 msgid "Round Duration"
 msgstr "出块周期"
 
+#: templates/block_details.html:71
+#, fuzzy
+msgid "Hashes required"
+msgstr "需要的份额"
+
 #: templates/block_details.html:75
+#, fuzzy
+msgid "Average hashrate"
+msgstr "矿工算力"
+
+#: templates/block_details.html:79
 msgid "Shares required"
 msgstr "需要的份额"
 
-#: templates/block_details.html:79 templates/block_table.html:20
+#: templates/block_details.html:83 templates/block_table.html:20
 msgid "Luck"
 msgstr "幸运"
 
 #: templates/block_details.html:89
+#, fuzzy
+msgid "Chain Distribution"
+msgstr "受益分配"
+
+#: templates/block_details.html:106
 msgid "No block by that identifier could be found in our database!"
 msgstr "没有找到对应的块"
 
@@ -196,7 +211,7 @@ msgstr "没有找到对应的块"
 msgid "Age"
 msgstr "块龄"
 
-#: templates/block_table.html:19
+#: templates/block_table.html:19 templates/blocks.html:19
 msgid "Shares"
 msgstr "份额"
 
@@ -207,6 +222,27 @@ msgstr "奖励"
 #: templates/block_table.html:24
 msgid "Solved by"
 msgstr "挖到块的矿工"
+
+#: templates/blocks.html:9
+#, fuzzy
+msgid "Block Stats"
+msgstr "块"
+
+#: templates/blocks.html:14
+msgid "Time Period"
+msgstr ""
+
+#: templates/blocks.html:15
+msgid "Orphan Percentage"
+msgstr ""
+
+#: templates/blocks.html:16
+msgid "Low Diff Eff"
+msgstr ""
+
+#: templates/blocks.html:17
+msgid "Dup Eff"
+msgstr ""
 
 #: templates/configuration_guide.html:13
 msgid "Step 1. Pick the region nearest to you"
