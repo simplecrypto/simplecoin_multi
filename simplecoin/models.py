@@ -253,9 +253,11 @@ class Block(base):
 
     @property
     def average_hashrate(self):
+        t = self.duration.total_seconds()
+        if not t:
+            return 0.0
         return (float(sum([bp.chain_shares for bp in self.chain_payouts])) *
-                float(self.currency_obj.algo.hashes_per_share) /
-                self.duration.total_seconds())
+                float(self.currency_obj.algo.hashes_per_share) / t)
 
     @property
     def hashes_to_solve(self):
