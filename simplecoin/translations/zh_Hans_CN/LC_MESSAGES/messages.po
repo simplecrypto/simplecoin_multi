@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-11-10 19:59-0600\n"
+"POT-Creation-Date: 2014-11-10 21:56-0600\n"
 "PO-Revision-Date: 2014-11-03 22:14+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: zh_Hans_CN <LL@li.org>\n"
@@ -250,7 +250,7 @@ msgid "fee"
 msgstr "费率"
 
 #: templates/configuration_guide.html:68
-msgid "Past 24h Profit:"
+msgid "Past 4d Profit:"
 msgstr ""
 
 #: templates/configuration_guide.html:68
@@ -1236,8 +1236,8 @@ msgid "View all recent credits"
 msgstr "查看最近所有的信用"
 
 #~ msgid ""
-#~ "Don't set this unless you know "
-#~ "what you're doing. Must be 2^x and"
-#~ " in the vardiff range"
 #~ msgstr "请谨慎填写该值，必须是2的幂"
+
+#~ msgid "Past 24h Profit:"
+#~ msgstr ""
 

@@ -93,11 +93,11 @@ $(document).ready(function() {
             {{ _("Current Hashrate:") }} {{ round_data['currency_data']['hashrate'] | hashrate }}
           </small></h4>
         </div>
-        <div class="col-lg-3">
+        {# <div class="col-lg-3">
           <h4><small>
             Past 24h Profit: {{ round_data['currency_data']['profitability'] }} BTC/MH
           </small></h4>
-        </div>
+        </div> #}
         <div class="col-lg-3" style="">
           {% if round_data['start_time'] %}
           <h4><small>
