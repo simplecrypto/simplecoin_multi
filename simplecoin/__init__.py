@@ -261,6 +261,8 @@ def create_app(mode, configs=None, log_level=None, **kwargs):
         sched.add_cron_job(sch.leaderboard,
                            minute='0,5,10,15,20,25,30,35,40,45,50,55',
                            second=30)
+        # every hour
+        sched.add_cron_job(sch.cache_profitability, second=0, minute=8)
 
         app.scheduler = sched
 
