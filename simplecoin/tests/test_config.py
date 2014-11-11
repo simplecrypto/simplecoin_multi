@@ -1,4 +1,4 @@
-from simplecoin import currencies
+from simplecoin import currencies, chains
 from simplecoin.exceptions import InvalidAddressException
 from simplecoin.tests import UnitTest
 
@@ -22,3 +22,6 @@ class TestConfig(UnitTest):
             InvalidAddressException,
             lambda: currencies.lookup_payable_addr(
                 "test"))
+
+    def test_chain_repr(self):
+        repr(chains.values()[0])
