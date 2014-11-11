@@ -4,10 +4,25 @@ from simplecoin import db, cache
 from simplecoin.scheduler import leaderboard
 from simplecoin.utils import anon_users
 from simplecoin.tests import RedisUnitTest, UnitTest
+
 import simplecoin.models as m
 
 
 class TestViewsRedis(RedisUnitTest):
+    def test_basic_not_500(self):
+        for view in ['/',
+                     '/pool_stats',
+                     '/configuration_guide',
+                     '/stats',
+                     '/leaderboard',
+                     '/news',
+                     '/blocks',
+                     '/merge_blocks',
+                     '/faq']:
+            with self.app.test_client() as c:
+                rv = c.get(view)
+                self.assertNotEqual(rv.status_code, 500)
+
     def test_leaderboard_anon(self):
         s = m.UserSettings(user="185cYTmEaTtKmBZc8aSGCr9v2VCDLqQHgR", anon=True)
         db.session.add(s)
