@@ -68,13 +68,34 @@
             <td>{{ block.duration }}</td>
           </tr>
           <tr>
+            <th>{{ _("Hashes required") }}</th>
+            <td>{{ (block.hashes_to_solve or 1) | hashrate(sec=False) }}</td>
+          </tr>
+          <tr>
+            <th>{{ _("Average hashrate") }}</th>
+            <td>{{ (block.average_hashrate or 1) | hashrate }}</td>
+          </tr>
+          <tr>
             <th>{{ _("Shares required") }}</th>
-            <td>{{ (block.hr_shares_to_solve or 1) | comma }}</td>
+            <td>{{ (block.shares_to_solve or 1) | comma }}</td>
           </tr>
           <tr>
             <th>{{ _("Luck") }}</th>
             <td>{{ (block.luck or 0) | comma }} %</td>
           </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="panel-heading">{{ _("Chain Distribution") }}</div>
+    <div class="table-responsive">
+      <table class="table big-table table-striped table-hover">
+        <tbody>
+          {% for chain, (shares, perc) in block.chain_distrib().iteritems() %}
+          <tr>
+            <td>{{ chain.title }}</td>
+            <td>{{ shares | comma }} shares ({{ perc | comma }}%)</td>
+          </tr>
+          {% endfor %}
         </tbody>
       </table>
     </div>

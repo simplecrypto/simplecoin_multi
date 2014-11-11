@@ -248,17 +248,24 @@ class Block(base):
 
     @property
     def contributed(self):
-        # Total fees + donations associated with this block
+        """ Total fees + donations associated with this block """
         return sum([(bp.donations + bp.fees) for bp in self.chain_payouts]) or 0
 
     @property
-    def shares_to_solve(self):
-        # Total shares that were required to solve the block
-        return sum([bp.chain_shares for bp in self.chain_payouts])
+    def average_hashrate(self):
+        return (float(sum([bp.chain_shares for bp in self.chain_payouts])) *
+                float(self.currency_obj.algo.hashes_per_share) /
+                self.duration.total_seconds())
 
     @property
-    def hr_shares_to_solve(self):
-        return float(self.shares_to_solve)
+    def hashes_to_solve(self):
+        return (sum([bp.chain_shares for bp in self.chain_payouts]) *
+                self.currency_obj.algo.hashes_per_share)
+
+    @property
+    def shares_to_solve(self):
+        """ Total shares that were required to solve the block """
+        return sum([bp.chain_shares for bp in self.chain_payouts])
 
     @property
     def status(self):
@@ -280,7 +287,7 @@ class Block(base):
     @property
     def luck(self):
         hps = current_app.algos[self.algo].hashes_per_share
-        return ((self.difficulty * (2 ** 32)) / ((float(self.hr_shares_to_solve) or 1) * hps)) * 100
+        return ((self.difficulty * (2 ** 32)) / ((float(self.shares_to_solve) or 1) * hps)) * 100
 
     @property
     def timestamp(self):
@@ -300,6 +307,18 @@ class Block(base):
                     self.currency_obj.block_mature_confirms -
                     data['height'])
         return None
+
+    def chain_distrib(self):
+        chain_data = {}
+        total = 0
+        for chain_payout in self.chain_payouts:
+            total += chain_payout.chain_shares
+            chain_data.setdefault(chain_payout.config_obj, [chain_payout.chain_shares, 0])
+
+        for data in chain_data.itervalues():
+            data[1] = data[0] / total * 100
+
+        return chain_data
 
     def chain_profitability(self):
         """ Creates a dictionary that is keyed by chainid to represent the BTC

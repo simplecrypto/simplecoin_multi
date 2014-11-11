@@ -48,14 +48,15 @@ def humana_date(*args, **kwargs):
     return ago.human(*args, **kwargs)
 
 
-def hashrate(hashrate, num_fmt="{:,.2f}"):
+def hashrate(hashrate, num_fmt="{:,.2f}", sec=True):
+    unit = "/s" if sec else ""
     if hashrate > 1000000000:
-        return "{} GH/s".format(num_fmt.format(hashrate / 1000000000))
+        return "{} GH{}".format(num_fmt.format(hashrate / 1000000000), unit)
     if hashrate > 1000000:
-        return "{} MH/s".format(num_fmt.format(hashrate / 1000000))
+        return "{} MH{}".format(num_fmt.format(hashrate / 1000000), unit)
     if hashrate > 1000:
-        return "{} KH/s".format(num_fmt.format(hashrate / 1000))
-    return "{} H/s".format(num_fmt.format(hashrate))
+        return "{} KH{}".format(num_fmt.format(hashrate / 1000), unit)
+    return "{} H{}".format(num_fmt.format(hashrate), unit)
 
 
 def human_date_utc(*args, **kwargs):
