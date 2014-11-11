@@ -47,6 +47,30 @@ class ShareTracker(object):
         return sum([self.types['dup'].shares, self.types['low'].shares, self.types['stale'].shares])
 
     @property
+    def stale_efficiency(self):
+        rej = float(self.types['stale'].shares)
+        acc = float(self.types['acc'].shares)
+        if rej:
+            return 100.0 * (acc / (rej + acc))
+        return 100.0
+
+    @property
+    def dup_efficiency(self):
+        rej = float(self.types['dup'].shares)
+        acc = float(self.types['acc'].shares)
+        if rej:
+            return 100.0 * (acc / (rej + acc))
+        return 100.0
+
+    @property
+    def low_efficiency(self):
+        rej = float(self.types['low'].shares)
+        acc = float(self.types['acc'].shares)
+        if rej:
+            return 100.0 * (acc / (rej + acc))
+        return 100.0
+
+    @property
     def efficiency(self):
         rej = self.rejected
         acc = float(self.types['acc'].shares)
@@ -68,6 +92,21 @@ class ShareTypeTracker(object):
         return self.share_type.__hash__()
 
 
+@cache.memoize(timeout=3600)
+def orphan_percentage(currency, timedelta=None):
+    if timedelta is None:
+        timedelta = datetime.timedelta(days=30)
+    lower, _ = make_upper_lower(span=timedelta)
+    base = Block.query.filter(Block.found_at > lower)
+    mature_blocks = base.filter_by(currency=currency, mature=True).count()
+    orphan_blocks = base.filter_by(currency=currency, orphan=True).count()
+
+    total = mature_blocks + orphan_blocks
+    if total:
+        return float(orphan_blocks) / total * 100
+    return 0.0
+
+
 def get_past_chain_profit():
     past_chain_profit = {}
     for chain in chains:
@@ -80,22 +119,22 @@ def get_past_chain_profit():
     return past_chain_profit
 
 
-@cache.memoize(timeout=3600)
-def get_pool_acc_rej(algo, timedelta=None):
+#@cache.memoize(timeout=3600)
+def pool_share_tracker(algo, timedelta=None, user=None, worker=None):
     """ Get accepted and rejected share count totals for the last month """
     if timedelta is None:
         timedelta = datetime.timedelta(days=30)
 
-    lower, upper = make_upper_lower(offset=datetime.timedelta(minutes=2))
-    shares = {}
-    for slc in ShareSlice.get_span(ret_query=True,
-                                   upper=upper,
-                                   lower=lower,
-                                   user=("pool", ),
-                                   algo=(algo, )):
-        shares.setdefault(slc.share_type, 0)
-        shares[slc.share_type] += slc.value
-    return shares
+    lower, upper = make_upper_lower(span=timedelta)
+    tracker = ShareTracker(algo)
+    print timedelta
+    i = 0
+    for slc in ShareSlice.get_span(ret_query=True, upper=upper, lower=lower,
+                                   user=user, algo=(algo, ), worker=worker):
+        i += 1
+        tracker.count_slice(slc)
+    print i
+    return tracker
 
 
 def last_block_time(algo, merged=False):
