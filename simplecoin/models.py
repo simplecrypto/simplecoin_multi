@@ -2,6 +2,7 @@ import calendar
 from decimal import Decimal
 import decimal
 import logging
+import cPickle
 
 from collections import namedtuple
 from datetime import datetime, timedelta
@@ -305,6 +306,13 @@ class Block(base):
         earned per number of shares for every share chain that helped solve
         this block """
         # Get a some credit totals
+        chain_data = cache.cache._client.get(
+            "chain_profitability_{}".format(self.hash))
+        if chain_data:
+            chain_data = cPickle.loads(chain_data)
+            return chain_data
+
+        uncacheable = False
         chain_data = {}
         for chain_payout in self.chain_payouts:
             chain = chain_data.setdefault(
@@ -324,6 +332,8 @@ class Block(base):
             if credit.type == 1 and credit.sell_amount > 0:
                 chain['amount_sold'] += credit.amount
                 chain['btc_total'] += credit.sell_amount
+            elif credit.type == 1:
+                uncacheable = True
 
         # We're gonna need to be pretty precise here
         with decimal.localcontext(decimal.BasicContext) as ctx:
@@ -334,8 +344,12 @@ class Block(base):
                 sold_perc = data['amount_sold'] / data['amount_total']
 
                 # Determine shares that accounted for that sale quantity
-                data['sold_shares'] = data['obj'].chain_shares * sold_perc
+                data['sold_shares'] = data.pop('obj').chain_shares * sold_perc
 
+        if not uncacheable:
+            cache.cache._client.set(
+                "chain_profitability_{}".format(self.hash),
+                cPickle.dumps(chain_data))
         return chain_data
 
 
