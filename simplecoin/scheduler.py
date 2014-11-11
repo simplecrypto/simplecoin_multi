@@ -78,12 +78,13 @@ def cache_profitability():
 
     start_time = datetime.datetime.utcnow() - datetime.timedelta(hours=48)
 
-    query_currencies = [c.key for c in currencies if c.mineable and c.sellable]
+    query_currencies = [c.key for c in currencies.itervalues() if c.mineable and c.sellable]
     blocks = (Block.query.filter(Block.found_at > start_time).
               filter(Block.currency.in_(query_currencies)))
 
     for block in blocks:
-        chain_data = block.profitability()
+        chain_data = block.chain_profitability()
+        current_app.logger.info("Get {} from {}".format(chain_data, block))
 
         for chainid, data in chain_data.iteritems():
 
@@ -95,6 +96,7 @@ def cache_profitability():
 
             # Set the block for convenience later
             data['block'] = block
+            chain_profit.setdefault(chainid, {})
             chain_profit[chainid].setdefault(block.currency_obj, []).append(data)
 
     for chainid, chain_currencies in chain_profit.iteritems():
@@ -110,10 +112,12 @@ def cache_profitability():
                     main_shares += data['sold_shares']
 
         hps = chains[chainid].algo.hashes_per_share
-        if main_shares == 0:
+        if main_shares != 0:
+            btc_per = btc_total / (main_shares * hps)
+        elif merged_shares != 0:
             btc_per = btc_total / (merged_shares * hps)
         else:
-            btc_per = btc_total / (main_shares * hps)
+            btc_per = 0
         btc_per *= 86400  # per day
 
         current_app.logger.debug("Caching chain #{} with profit {}"

@@ -316,6 +316,8 @@ class Block(base):
             )
 
         for credit in self.credits:
+            if not credit.sharechain_id:
+                continue
             chain = chain_data[credit.sharechain_id]
             chain['amount_total'] += credit.amount
 
