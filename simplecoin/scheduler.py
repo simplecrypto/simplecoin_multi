@@ -102,8 +102,11 @@ def cache_profitability():
     for chainid, chain_currencies in chain_profit.iteritems():
         merged_shares = 0
         main_shares = 0
+        merged_currencies = 0
         btc_total = 0
         for currency, entries in chain_currencies.iteritems():
+            if currency.merged:
+                merged_currencies += 1
             for data in entries:
                 btc_total += data['btc_total']
                 if currency.merged:
@@ -115,7 +118,7 @@ def cache_profitability():
         if main_shares != 0:
             btc_per = btc_total / (main_shares * hps)
         elif merged_shares != 0:
-            btc_per = btc_total / (merged_shares * hps)
+            btc_per = btc_total / (merged_shares * hps / merged_currencies)
         else:
             btc_per = 0
         btc_per *= 86400  # per day
