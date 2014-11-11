@@ -76,7 +76,7 @@ def cache_profitability():
     # track chain profits
     chain_profit = {}
 
-    start_time = datetime.datetime.utcnow() - datetime.timedelta(hours=48)
+    start_time = datetime.datetime.utcnow() - datetime.timedelta(hours=96)
 
     query_currencies = [c.key for c in currencies.itervalues() if c.mineable and c.sellable]
     blocks = (Block.query.filter(Block.found_at > start_time).
