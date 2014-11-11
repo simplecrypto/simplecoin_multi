@@ -8,11 +8,12 @@ from flask.ext.babel import gettext
 
 from .models import (Block, ShareSlice, UserSettings, make_upper_lower, Credit,
                      Payout, DeviceSlice, Transaction)
-from . import db, root, cache, currencies, algos, locations, chains, babel
+from . import db, root, cache, currencies, algos, locations, babel
 from .exceptions import InvalidAddressException
 from .utils import (verify_message, collect_user_stats, get_pool_hashrate,
                     get_alerts, resort_recent_visit, collect_acct_items,
-                    CommandException, anon_users, collect_pool_stats)
+                    CommandException, anon_users, collect_pool_stats,
+                    get_past_chain_profit)
 
 
 main = Blueprint('main', __name__)
@@ -21,20 +22,17 @@ main = Blueprint('main', __name__)
 @main.route("/")
 def home():
     payout_currencies = currencies.buyable_currencies
+    past_chain_profit = get_past_chain_profit()
     return render_template('home.html',
                            payout_currencies=payout_currencies,
+                           past_chain_profit=past_chain_profit,
                            locations=locations)
 
 
 @main.route("/configuration_guide")
 def configuration_guide():
     payout_currencies = currencies.buyable_currencies
-
-    past_chain_profit = {}
-    for chain in chains:
-        chain_profit = (cache.get("chain_{}_profitability".format(chain))
-                        .quantize(Decimal('0.00000001')) or '???')
-        past_chain_profit[chain] = chain_profit
+    past_chain_profit = get_past_chain_profit()
 
     return render_template('config_guide_wrapper.html',
                            payout_currencies=payout_currencies,

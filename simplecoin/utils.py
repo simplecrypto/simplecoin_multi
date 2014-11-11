@@ -9,7 +9,7 @@ from cryptokit.rpc import CoinRPCException
 from decimal import Decimal as dec, Decimal
 
 from .exceptions import CommandException, InvalidAddressException
-from . import db, cache, root, redis_conn, currencies, powerpools, algos
+from . import db, cache, root, redis_conn, currencies, powerpools, algos, chains
 from .models import (ShareSlice, Block, Credit, UserSettings, make_upper_lower,
                      Payout)
 
@@ -61,11 +61,23 @@ class ShareTypeTracker(object):
         self.shares = 0
 
     def __repr__(self):
-        return "<ShareTypeTracker 0x{} {} {}>".format(id(self), self.share_type,
-                                                      self.shares)
+        return "<ShareTypeTracker 0x{} {} {}>".format(
+            id(self), self.share_type, self.shares)
 
     def __hash__(self):
         return self.share_type.__hash__()
+
+
+def get_past_chain_profit():
+    past_chain_profit = {}
+    for chain in chains:
+        raw = cache.get("chain_{}_profitability".format(chain))
+        if raw:
+            chain_profit = (raw * 1000000).quantize(Decimal('0.00000001'))
+        else:
+            chain_profit = '???'
+        past_chain_profit[chain] = chain_profit
+    return past_chain_profit
 
 
 @cache.memoize(timeout=3600)
