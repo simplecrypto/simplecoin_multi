@@ -66,10 +66,13 @@ def blocks(q=None, currency=None):
         blocks = blocks.filter(q)
 
     currency_data = None
-    if currency:
+    try:
+        algo = currencies[currency].algo
+    except KeyError:
+        algo = None
+    if currency and algo:
         currency_data = {}
         for i in [1, 7, 30]:
-            algo = currencies[currency].algo
             td = datetime.timedelta(days=i)
             orphan_perc = orphan_percentage(currency, timedelta=td)
             share_tracker = pool_share_tracker(
@@ -79,10 +82,13 @@ def blocks(q=None, currency=None):
                 timedelta=td)
             currency_data['{} days'.format(i)] = [orphan_perc, share_tracker]
         blocks = blocks.filter_by(currency=currency)
+    elif currency:
+        blocks = []
 
-    blocks = blocks.offset(offset).limit(100)
+    if blocks:
+        blocks = blocks.offset(offset).limit(100)
     return render_template('blocks.html', blocks=blocks, page=page,
-                           currency=currencies[currency],
+                           currency=currency,
                            currency_data=currency_data)
 
 

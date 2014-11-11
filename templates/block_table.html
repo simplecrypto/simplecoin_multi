@@ -82,6 +82,10 @@ $(document).ready(function() {
       <td>{{ '{:,}'.format(block.height) }}</td>
       <td>{{ block.status }}</td>
     </tr>
+    {% else %}
+    <tr>
+      <th colspan="10">{{ _("No blocks matching that criteria") }}</th>
+    </tr>
     {% endfor %}
     </tbody>
   </table>
