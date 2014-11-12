@@ -70,7 +70,7 @@ def blocks(q=None, currency=None):
         algo = currencies[currency].algo
     except KeyError:
         algo = None
-    if currency and algo:
+    if currency and algo is not None:
         currency_data = {}
         for i in [1, 7, 30]:
             td = datetime.timedelta(days=i)

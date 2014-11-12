@@ -40,6 +40,11 @@ class ConfigObject(dict):
     def __repr__(self):
         return "<{} {}>".format(self.__class__.__name__, self.key)
 
+    def __nonzero__(self):
+        return True
+
+    __bool__ = __nonzero__
+
     def __gt__(self, other):
         if type(other) != type(self):
             return False
