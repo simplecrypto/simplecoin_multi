@@ -13,7 +13,8 @@ import bz2
 
 from simplecoin import (db, cache, redis_conn, create_app, currencies,
                         powerpools, algos, global_config, chains)
-from simplecoin.utils import last_block_time, anon_users, time_format
+from simplecoin.utils import last_block_time, anon_users, time_format, \
+    get_past_chain_profit
 from simplecoin.exceptions import RemoteException, InvalidAddressException
 from simplecoin.models import (Block, Credit, UserSettings, TradeRequest,
                                CreditExchange, Payout, ShareSlice, ChainPayout,
@@ -1065,6 +1066,7 @@ def server_status():
     status information.
     """
     # Reset the hashrate for each currency
+    past_chain_profit = get_past_chain_profit()
     currency_hashrates = {}
     algo_miners = {}
     servers = {}
@@ -1081,7 +1083,8 @@ def server_status():
             servers[powerpool.key] = dict(workers=data['client_count_authed'],
                                           miners=data['address_count'],
                                           hashrate=data['hps'],
-                                          name=powerpool.stratum_address)
+                                          name=powerpool.stratum_address,
+                                          profit_4d=past_chain_profit[powerpool.chain.id])
             algo_miners.setdefault(powerpool.chain.algo.key, 0)
             algo_miners[powerpool.chain.algo.key] += data['address_count']
 
