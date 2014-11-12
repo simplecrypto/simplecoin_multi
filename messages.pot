@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-11-11 02:50-0600\n"
+"POT-Creation-Date: 2014-11-12 13:26-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -220,6 +220,10 @@ msgstr ""
 msgid "Solved by"
 msgstr ""
 
+#: templates/block_table.html:87
+msgid "No blocks matching that criteria"
+msgstr ""
+
 #: templates/blocks.html:9
 msgid "Block Stats"
 msgstr ""
@@ -281,11 +285,11 @@ msgstr ""
 msgid "fee"
 msgstr ""
 
-#: templates/configuration_guide.html:68
+#: templates/configuration_guide.html:68 templates/pool_stats.html:45
 msgid "Past 4d Profit:"
 msgstr ""
 
-#: templates/configuration_guide.html:68
+#: templates/configuration_guide.html:68 templates/pool_stats.html:62
 msgid "BTC/MH"
 msgstr ""
 
@@ -772,27 +776,27 @@ msgstr ""
 msgid "Workers"
 msgstr ""
 
-#: templates/pool_stats.html:68
+#: templates/pool_stats.html:74
 msgid "Recently Mined Blocks"
 msgstr ""
 
-#: templates/pool_stats.html:71
+#: templates/pool_stats.html:77
 msgid "All Algos"
 msgstr ""
 
-#: templates/pool_stats.html:93
+#: templates/pool_stats.html:99
 msgid "Current Hashrate:"
 msgstr ""
 
-#: templates/pool_stats.html:104
+#: templates/pool_stats.html:110
 msgid "Last Solve:"
 msgstr ""
 
-#: templates/pool_stats.html:127
+#: templates/pool_stats.html:133
 msgid "View more"
 msgstr ""
 
-#: templates/pool_stats.html:127
+#: templates/pool_stats.html:133
 msgid "blocks"
 msgstr ""
 
