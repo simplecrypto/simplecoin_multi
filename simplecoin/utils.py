@@ -274,7 +274,20 @@ def collect_pool_stats():
         round_data['currency_data'].update(currency_data)
         network_data[currency.algo.display][currency.key].update(round_data)
 
-    server_status = cache.get('server_status') or {}
+    past_chain_profit = get_past_chain_profit()
+
+    server_status_defaults = {}
+    for powerpool in powerpools.itervalues():
+        server_status_defaults[powerpool.key] = \
+            dict(name=powerpool.stratum_address,
+                 offline=True,
+                 hashrate=0,
+                 workers=0,
+                 miners=0,
+                 profit_4d=past_chain_profit[powerpool.chain.id])
+
+    server_status = cache.get('server_status') or server_status_defaults
+
     block_stats_tab = session.get('block_stats_tab', "all")
 
     # Session key may have expired but be returned as undefined

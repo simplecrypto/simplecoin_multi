@@ -42,18 +42,24 @@ $(document).ready(function() {
             <th>{{ _("Hashrate (last minute)") }}</th>
             <th>{{ _("Workers") }}</th>
             <th>{{ _("Miners") }}</th>
+            <th>{{ _("Past 4d Profit:") }}</th>
           </tr>
         </thead>
         <tbody>
         {% for pp, data in server_status.iteritems() %}
         {% set pp = powerpools[pp] %}
         <tr>
-          <th>{{ pp.stratum_address }} (diff {{pp.diff}})</th>
+          <th>
+            <i class="fa fa-circle" style="color:{% if data['offline'] %}#B12627{% else %}#5BCE00{% endif %}"
+                data-toggle="tooltip" data-placement="right"
+                title="{% if data['offline'] %}Offline{% else %}Online{% endif %}"></i>&nbsp;{{ pp.stratum_address }} (diff {{pp.diff}})
+          </th>
           <td>{{ pp.chain.algo.display }}</td>
           <td>{{ pp.chain.title }} ({{ pp.chain.type }})</td>
           <td>{{ data['hashrate'] | hashrate }}</td>
           <td>{{ "{:,}".format(data['workers']) }}</td>
           <td>{{ "{:,}".format(data['miners']) }}</td>
+          <td>{{ data['profit_4d'] }} {{ _("BTC/MH") }}</td>
         </tr>
         {% endfor %}
         </tbody>
