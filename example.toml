@@ -4,6 +4,13 @@ SQLALCHEMY_DATABASE_URI = "postgresql://<usr>:<pwd>@<url>:5432/<dbname>"
 DEBUG = true
 rpc_signature = "test"
 
+latest_ppagent = [0, 3, 5]
+blocks_stats_page = 15
+charge_autoex_fees = false
+
+default_stratum_port = 3333
+default_stratum_url = "stratum+tcp://"
+
 [chains.1]
 title = "Litecoin + SYS MM"
 algo = "scrypt"
