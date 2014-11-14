@@ -1065,13 +1065,20 @@ def server_status():
     Periodically poll the backend to get number of workers and other general
     status information.
     """
-    # Reset the hashrate for each currency
     past_chain_profit = get_past_chain_profit()
     currency_hashrates = {}
     algo_miners = {}
     servers = {}
     raw_servers = {}
     for powerpool in powerpools.itervalues():
+
+        server_default = dict(workers=0,
+                              miners=0,
+                              hashrate=0,
+                              name='???',
+                              profit_4d=0,
+                              currently_mining='???')
+
         try:
             data = powerpool.request('')
         except Exception:
@@ -1080,16 +1087,21 @@ def server_status():
             continue
         else:
             raw_servers[powerpool.stratum_address] = data
-            servers[powerpool.key] = dict(workers=data['client_count_authed'],
-                                          miners=data['address_count'],
-                                          hashrate=data['hps'],
-                                          name=powerpool.stratum_address,
-                                          profit_4d=past_chain_profit[powerpool.chain.id])
+            status = {'workers': data['client_count_authed'],
+                      'miners': data['address_count'],
+                      'hashrate': data['hps'],
+                      'name': powerpool.stratum_address,
+                      'profit_4d': past_chain_profit[powerpool.chain.id]}
+
+            server_default.update(status)
+            servers[powerpool.key] = server_default
+
             algo_miners.setdefault(powerpool.chain.algo.key, 0)
             algo_miners[powerpool.chain.algo.key] += data['address_count']
 
             if 'last_flush_job' in data and 'currency' in data['last_flush_job']:
                 curr = data['last_flush_job']['currency']
+                servers[powerpool.key].update({'currently_mining': curr})
                 currency_hashrates.setdefault(currencies[curr], 0)
                 currency_hashrates[currencies[curr]] += data['hps']
                 # Add hashrate to the merged networks too

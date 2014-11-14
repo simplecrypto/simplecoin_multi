@@ -39,6 +39,7 @@ $(document).ready(function() {
             <th>{{ _("Server") }}</th>
             <th>{{ _("Algo") }}</th>
             <th>{{ _("Chain") }}</th>
+            <th>{{ _("Currently Mining") }}</th>
             <th>{{ _("Hashrate (last minute)") }}</th>
             <th>{{ _("Workers") }}</th>
             <th>{{ _("Miners") }}</th>
@@ -56,6 +57,7 @@ $(document).ready(function() {
           </th>
           <td>{{ pp.chain.algo.display }}</td>
           <td>{{ pp.chain.title }} ({{ pp.chain.type }})</td>
+          <td>{{ data['currently_mining'] }}</td>
           <td>{{ data['hashrate'] | hashrate }}</td>
           <td>{{ "{:,}".format(data['workers']) }}</td>
           <td>{{ "{:,}".format(data['miners']) }}</td>
@@ -80,38 +82,38 @@ $(document).ready(function() {
   {% endfor %}
   </ul>
 
-  <div class="col-lg-12 collapse {% if not hide_hr %}in{% endif %}" id="chart" style="border-top:1px solid #4e5d6c;">
+  <div class="col-sm-12 collapse {% if not hide_hr %}in{% endif %}" id="chart" style="border-top:1px solid #4e5d6c;">
 
   {% for algo, currencies in network_data.iteritems() %}
 
   <div class="row algo {{ algo }}">
-    <div class="col-lg-12 no-padding">
+    <div class="col-sm-12 no-padding">
 
       {% for currency, round_data in currencies.iteritems() %}
       <div class="row psuedo-panel" style="padding-left:15px;padding-right:15px;">
-        <div class="col-lg-3">
+        <div class="col-sm-3">
           <h4><small>
             {{ round_data['currency_data']['name'] }} ({{ algo }})
           </small></h4>
         </div>
-        <div class="col-lg-3">
+        <div class="col-sm-3">
           <h4><small>
             {{ _("Current Hashrate:") }} {{ round_data['currency_data']['hashrate'] | hashrate }}
           </small></h4>
         </div>
-        {# <div class="col-lg-3">
+        {# <div class="col-sm-3">
           <h4><small>
             Past 24h Profit: {{ round_data['currency_data']['profitability'] }} BTC/MH
           </small></h4>
         </div> #}
-        <div class="col-lg-3" style="">
+        <div class="col-sm-3" style="">
           {% if round_data['start_time'] %}
           <h4><small>
             {{ _("Last Solve:") }} {{ round_data['start_time'] | human_date_utc }}
           </small></h4>
           {% endif %}
         </div>
-        <div class="col-lg-3" style="background-color:#485563;">
+        <div class="col-sm-3" style="background-color:#485563;">
           <h3 data-toggle="collapse" data-target="#{{ round_data['currency_data']['code'] }}-details">
             <div id="{{ round_data['currency_data']['code'] }}-expander"
                  class="btn btn-default pull-right btn-sm collapse-button collapse-currency">
