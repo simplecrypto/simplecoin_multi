@@ -361,7 +361,7 @@ def update_network():
             continue
 
         try:
-            gbt = currency.coinserv.getblocktemplate()
+            gbt = currency.coinserv.getblocktemplate({})
         except (urllib3.exceptions.HTTPError, CoinRPCException) as e:
             current_app.logger.error("Unable to communicate with {} RPC server: {}"
                                      .format(currency, e))
