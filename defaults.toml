@@ -200,6 +200,30 @@ algo = "scryptn"
 address_version = [82]
 block_time = 150
 
+[currencies.NVC]
+name = "Novacoin"
+algo = "scrypt"
+address_version = [8]
+block_time = 600
+
+[currencies.POT]
+name = "Potcoin"
+algo = "scrypt"
+address_version = [55]
+block_time = 40
+
+[currencies.AUR]
+name = "Auroracoin"
+algo = "scrypt"
+address_version = [23]
+block_time = 300
+
+#[currencies.TAG]
+#name = "Tagcoin"
+#algo = "scrypt"
+#address_version = [65]
+#block_time = 240
+
 
 [algos.x11]
 hashes_per_share = 4294967296
