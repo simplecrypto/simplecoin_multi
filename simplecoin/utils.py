@@ -48,7 +48,8 @@ class ShareTracker(object):
 
     @property
     def rejected(self):
-        return sum([self.types['dup'].shares, self.types['low'].shares, self.types['stale'].shares])
+        #return sum([self.types['dup'].shares, self.types['low'].shares, self.types['stale'].shares])
+        return self.types['stale'].shares
 
     @property
     def stale_efficiency(self):
