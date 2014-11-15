@@ -286,7 +286,8 @@ def collect_pool_stats():
                  hashrate=0,
                  workers=0,
                  miners=0,
-                 profit_4d=past_chain_profit[powerpool.chain.id])
+                 profit_4d=past_chain_profit[powerpool.chain.id],
+                 currently_mining="???")
 
     server_status = cache.get('server_status') or server_status_defaults
 

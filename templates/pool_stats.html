@@ -104,57 +104,12 @@ $(document).ready(function() {
        style="border-top:1px solid #4e5d6c;">
     {% for algo, currencies in network_data.iteritems() %}
     <div class="row algo {{ algo }}">
-      {% for currency, round_data in currencies.iteritems() %}
-      <div class="col-sm-12 no-padding {% if round_data['currency_data']['merged'] == True %}collapse merged{% endif %}">
-        <div class="row psuedo-panel" style="padding-left:15px;padding-right:15px;">
-          <div class="col-sm-3">
-            <h4><small>
-              {{ round_data['currency_data']['name'] }} ({{ algo }})
-            </small></h4>
-          </div>
-          <div class="col-sm-3">
-            <h4><small>
-              {{ _("Current Hashrate:") }} {{ round_data['currency_data']['hashrate'] | hashrate }}
-            </small></h4>
-          </div>
-          {# <div class="col-sm-3">
-            <h4><small>
-              Past 24h Profit: {{ round_data['currency_data']['profitability'] }} BTC/MH
-            </small></h4>
-          </div> #}
-          <div class="col-sm-3" style="">
-            {% if round_data['start_time'] %}
-            <h4><small>
-              {{ _("Last Solve:") }} {{ round_data['start_time'] | human_date_utc }}
-            </small></h4>
-            {% endif %}
-          </div>
-          <div class="col-sm-3" style="background-color:#485563;">
-            <h3 data-toggle="collapse" data-target="#{{ round_data['currency_data']['code'] }}-details">
-              <div id="{{ round_data['currency_data']['code'] }}-expander"
-                   class="btn btn-default pull-right btn-sm collapse-button collapse-currency">
-                {% if round_data['status'] == 'Idle' %}[+]{% else %}[-]{% endif %}
-              </div>
-            </h3>
-          </div>
-        </div>
-        <div class="collapse {% if round_data['status'] != 'Idle' %}in{% endif %}"
-             id="{{ round_data['currency_data']['code'] }}-details">
-        <div class="row">
-        {% set blocks = round_data['currency_data']['blocks'] %}
-        {% set current_block = round_data %}
-        {% include "block_table.html" %}
-        </div>
-        {% if round_data['currency_data']['blocks'] %}
-        <div class="well well-sm" style="text-align:center;background-color:#212F3D;margin-top:-21px;margin-bottom:21px;">
-          <h4><small><a href="/blocks/{{ round_data['currency_data']['code'] }}">
-            {{ _("View more") }} {{ round_data['currency_data']['name'] }} {{ _("blocks") }}
-          </a></small></h4>
-        </div>
-        {% endif %}
-        </div>
-      </div>
-        {% endfor %}
+      {% for currency, round_data in currencies.iteritems() if round_data['status'] != 'Idle'%}
+        {% include "pool_stats_currency_info.html" %}
+      {% endfor %}
+      {% for currency, round_data in currencies.iteritems() if round_data['status'] == 'Idle'%}
+        {% include "pool_stats_currency_info.html" %}
+      {% endfor %}
     </div>
     {% endfor %}
   </div>

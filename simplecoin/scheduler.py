@@ -1110,7 +1110,12 @@ def server_status():
                         currency_hashrates.setdefault(currencies[currency], 0)
                         currency_hashrates[currencies[currency]] += data['hps']
 
-    for currency, hashrate in currency_hashrates.iteritems():
+    # Set hashrate to 0 if not located
+    for currency in currencies.itervalues():
+        hashrate = 0
+        if currency in currency_hashrates:
+            hashrate = currency_hashrates[currency]
+
         cache.set('hashrate_' + currency.key, hashrate, timeout=120)
 
     cache.set('raw_server_status', raw_servers, timeout=1200)
