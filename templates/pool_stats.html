@@ -73,7 +73,21 @@ $(document).ready(function() {
 
 <br />
 <div class="row row-header">
-  <h2>{{ _("Recently Mined Blocks") }}</h2>
+  <div class="col-sm-9">
+    <h2>
+      {{ _("Recently Mined Blocks") }}
+    </h2>
+  </div>
+  <div class="col-sm-3 text-right " style="min-height: 67px;">
+   <div class="checkbox" style="position:absolute;bottom:0;right:0;">
+      <label>
+        <input type="checkbox" id="hide-merged"
+               name="hide-merged" checked
+               data-toggle="collapse" data-target=".merged">
+        {{ _("Hide merge mined currencies") }}
+      </label>
+    </div>
+  </div>
   <ul class="nav nav-tabs algo-tabs">
     <li class="tab block-stats{% if block_stats_tab == 'all' %} active{% endif %}" data-algo="all">
       <a href="#">{{ _("All Algos") }}</a></li>
@@ -85,12 +99,11 @@ $(document).ready(function() {
   <div class="col-sm-12 collapse {% if not hide_hr %}in{% endif %}" id="chart" style="border-top:1px solid #4e5d6c;">
 
   {% for algo, currencies in network_data.iteritems() %}
-
   <div class="row algo {{ algo }}">
     <div class="col-sm-12 no-padding">
 
       {% for currency, round_data in currencies.iteritems() %}
-      <div class="row psuedo-panel" style="padding-left:15px;padding-right:15px;">
+      <div class="row psuedo-panel {% if round_data['currency_data']['merged'] == True %}collapse merged{% endif %}" style="padding-left:15px;padding-right:15px;">
         <div class="col-sm-3">
           <h4><small>
             {{ round_data['currency_data']['name'] }} ({{ algo }})

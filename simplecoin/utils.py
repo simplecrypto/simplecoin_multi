@@ -189,6 +189,7 @@ def collect_pool_stats():
         # Set currency defaults
         currency_data = dict(code=currency.key,
                              name=currency.name,
+                             merged=currency.merged,
                              difficulty=None,
                              hashrate=0,
                              height=None,
