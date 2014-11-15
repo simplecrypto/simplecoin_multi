@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2014-11-12 13:26-0600\n"
+"POT-Creation-Date: 2014-11-14 18:55-0600\n"
 "PO-Revision-Date: 2014-11-03 22:14+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: zh_Hans_CN <LL@li.org>\n"
@@ -104,7 +104,7 @@ msgstr "算力"
 msgid "Active"
 msgstr "当前"
 
-#: templates/base.html:51 templates/pool_stats.html:44
+#: templates/base.html:51 templates/pool_stats.html:45
 msgid "Miners"
 msgstr "矿工"
 
@@ -289,11 +289,11 @@ msgstr "难度"
 msgid "fee"
 msgstr "费率"
 
-#: templates/configuration_guide.html:68 templates/pool_stats.html:45
+#: templates/configuration_guide.html:68 templates/pool_stats.html:46
 msgid "Past 4d Profit:"
 msgstr ""
 
-#: templates/configuration_guide.html:68 templates/pool_stats.html:62
+#: templates/configuration_guide.html:68 templates/pool_stats.html:64
 msgid "BTC/MH"
 msgstr ""
 
@@ -776,34 +776,42 @@ msgid "Chain"
 msgstr "链"
 
 #: templates/pool_stats.html:42
+msgid "Currently Mining"
+msgstr ""
+
+#: templates/pool_stats.html:43
 msgid "Hashrate (last minute)"
 msgstr "算力（过去一分钟）"
 
-#: templates/pool_stats.html:43
+#: templates/pool_stats.html:44
 msgid "Workers"
 msgstr "工作者"
 
-#: templates/pool_stats.html:74
+#: templates/pool_stats.html:78
 msgid "Recently Mined Blocks"
 msgstr "最近挖到的块"
 
-#: templates/pool_stats.html:77
+#: templates/pool_stats.html:87
+msgid "Hide merge mined currencies"
+msgstr ""
+
+#: templates/pool_stats.html:93
 msgid "All Algos"
 msgstr "所有算法"
 
-#: templates/pool_stats.html:99
+#: templates/pool_stats.html:114
 msgid "Current Hashrate:"
 msgstr "当前算力："
 
-#: templates/pool_stats.html:110
+#: templates/pool_stats.html:125
 msgid "Last Solve:"
 msgstr "上一个挖到的块龄"
 
-#: templates/pool_stats.html:133
+#: templates/pool_stats.html:148
 msgid "View more"
 msgstr "查看更多"
 
-#: templates/pool_stats.html:133
+#: templates/pool_stats.html:148
 msgid "blocks"
 msgstr "块"
 
