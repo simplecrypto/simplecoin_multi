@@ -116,7 +116,7 @@ def cache_profitability():
                     main_shares += data['sold_shares']
 
         hps = chains[chainid].algo.hashes_per_share
-        if block.algo == sha256: 
+        if block.algos == sha256: 
             btc_per = btc_total / (main_shares * (hps * 1000000000))
         elif main_shares != 0:
             btc_per = btc_total / (main_shares * hps)
