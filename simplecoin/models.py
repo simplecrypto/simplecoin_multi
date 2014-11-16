@@ -162,6 +162,10 @@ class ChainPayout(base):
     @property
     def mhashes(self):
         return self.hashes / 1000000
+        
+    @property
+    def ghashes(self):
+        return self.hashes / 1000000000
 
     def make_credit_obj(self, user, address, currency, shares):
         """ Makes the appropriate credit object given a few details. Payout
