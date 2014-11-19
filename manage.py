@@ -56,20 +56,26 @@ def list_donation_perc():
                      .format(k * 100, v) for k, v in sorted(summ.items())])
 
 
+@manager.option("--currency", type=str, dest="currency", default=None)
 @manager.option('stop_id', type=int)
 @manager.option('start_id', type=int)
-def del_payouts(start_id, stop_id):
+def del_payouts(start_id, stop_id, currency=None):
     """
     Deletes payouts between start and stop id and removes their id from the
     associated Credits.
 
     Expects a start and stop payout id for payouts to be deleted
 
+    If currency is passed, only payout matching that currency will be removed
+
     ::Warning:: This can really fuck things up!
     """
     from simplecoin.models import Payout
     payouts = Payout.query.filter(Payout.id >= start_id,
-                                              Payout.id <= stop_id).all()
+                                  Payout.id <= stop_id).all()
+
+    if currency is not None:
+        payouts = [payout for payout in payouts if payout.currency == currency]
 
     pids = [payout.id for payout in payouts]
 
