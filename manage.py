@@ -84,6 +84,9 @@ def del_payouts(start_id, stop_id, currency=None):
     for credit in credits:
         credit.payout = None
 
+        if credit.block and credit.block.orphan:
+            credit.payable = False
+
     db.session.flush()
 
     for payout in payouts:

@@ -190,6 +190,13 @@ def create_payouts():
 
     q = Credit.query.filter_by(payable=True, payout_id=None).all()
     for credit in q:
+
+        if credit.block and credit.block.orphan:
+            current_app.logger.error(
+                "Credit {} was marked as both payable, but it's block was "
+                "marked orphaned! Aborting...".format(credit.id))
+            return
+
         key = (credit.currency, credit.user, credit.address)
         lst = grouped_credits.setdefault(key, [])
         lst.append(credit)
@@ -398,10 +405,14 @@ def update_network():
 
 
 @crontab
-@SchedulerCommand.command
-def update_block_state():
+@SchedulerCommand.option("-b", "--block-id", type=int, dest="block_id")
+def update_block_state(block_id=None):
     """
-    Loops through all immature and non-orphaned blocks.
+    Loops through blocks (default immature and non-orphaned blocks)
+
+    If `block_id` is passed, instead of the checking the default blocks,
+    all blocks of the same currency of a >= id will be updated.
+
     First checks to see if blocks are orphaned,
     then it checks to see if they are now matured.
     """
@@ -418,9 +429,15 @@ def update_block_state():
                 return None
         return heights[currency.key]
 
-    # Select all immature & non-orphaned blocks
-    immature = Block.query.filter_by(mature=False, orphan=False)
-    for block in immature:
+    # Select immature & non-orphaned blocks if none are passed
+    if block_id is None:
+        blocks = Block.query.filter_by(mature=False, orphan=False).all()
+    else:
+        block = Block.query.filter_by(id=block_id).one()
+        blocks = (Block.query.filter_by(currency=block.currency)
+                             .filter(Block.id >= block_id).all())
+
+    for block in blocks:
         try:
             currency = currencies[block.currency]
         except KeyError:
@@ -428,6 +445,7 @@ def update_block_state():
                 "Unable to process block {}, no currency configuration."
                 .format(block))
             continue
+
         blockheight = get_blockheight(currency)
 
         if not blockheight:
@@ -446,31 +464,37 @@ def update_block_state():
         try:
             # Check to see if the block hash exists in the block chain
             output = currency.coinserv.getblock(block.hash)
-            current_app.logger.debug("Confirms: {}; Height diff: {}"
-                                     .format(output['confirmations'],
-                                             blockheight - block.height))
+            current_app.logger.debug(
+                "Confirms: {}; Height diff: {}"
+                .format(output['confirmations'], blockheight - block.height))
         except urllib3.exceptions.HTTPError as e:
-            current_app.logger.error("Unable to communicate with {} RPC server: {}"
-                                     .format(currency.key, e))
+            current_app.logger.error("Unable to communicate with {} RPC server:"
+                                     " {}".format(currency.key, e))
             continue
         except CoinRPCException:
-            current_app.logger.info("Block {} not in coin database, assume orphan!"
-                                    .format(block))
+            current_app.logger.info(
+                "Block {} not in coin database, assume orphan!".format(block))
             block.orphan = True
+            for credit in block.credits:
+                credit.payable = False
         else:
             # if the block has the proper number of confirms
-            if output['confirmations'] > currency.block_mature_confirms:
-                current_app.logger.info("Block {} meets {} confirms, mark mature"
-                                        .format(block, currency.block_mature_confirms))
+            if output['confirmations'] >= currency.block_mature_confirms:
+                current_app.logger.info(
+                    "Block {} meets {} confirms, mark mature"
+                    .format(block, currency.block_mature_confirms))
                 block.mature = True
                 for credit in block.credits:
                     if credit.type == 0:
                         credit.payable = True
             # else if the result shows insufficient confirms, mark orphan
             elif output['confirmations'] < currency.block_mature_confirms:
-                current_app.logger.info("Block {} occured {} height ago, but not enough confirms. Marking orphan."
-                                        .format(block, currency.block_mature_confirms))
+                current_app.logger.info(
+                    "Block {} occured {} height ago, but not enough confirms. "
+                    "Marking orphan.".format(block, currency.block_mature_confirms))
                 block.orphan = True
+                for credit in block.credits:
+                    credit.payable = False
 
         db.session.commit()
 
@@ -484,13 +508,16 @@ def generate_credits(dont_simulate=True):
     unproc_blocks = redis_conn.keys("unproc_block*")
     for key in unproc_blocks:
         hash = key[13:]
-        current_app.logger.info("==== Attempting to process block hash {}".format(hash))
+        current_app.logger.info("==== Attempting to process block hash {}"
+                                .format(hash))
         try:
             credit_block(key, simulate=simulate)
         except Exception:
             db.session.rollback()
-            current_app.logger.error("Unable to payout block {}".format(hash), exc_info=True)
-        current_app.logger.info("==== Done processing block hash {}".format(hash))
+            current_app.logger.error("Unable to payout block {}".format(hash),
+                                     exc_info=True)
+        current_app.logger.info("==== Done processing block hash {}"
+                                .format(hash))
 
 
 def distributor(*args, **kwargs):
@@ -581,7 +608,8 @@ def credit_block(redis_key, simulate=False):
     if simulate is not True:
         simulate = False
     if simulate:
-        current_app.logger.warn("Running in simulate mode, no commit will be performed")
+        current_app.logger.warn(
+            "Running in simulate mode, no DB commit will be performed")
         current_app.logger.setLevel(logging.DEBUG)
 
     data = redis_conn.hgetall(redis_key)
@@ -590,7 +618,8 @@ def credit_block(redis_key, simulate=False):
     # If start_time isn't listed explicitly do our best to derive from
     # statistical share records
     if 'start_time' in data:
-        time_started = datetime.datetime.utcfromtimestamp(float(data.get('start_time')))
+        time_started = datetime.datetime.utcfromtimestamp(
+            float(data.get('start_time')))
     else:
         time_started = last_block_time(data['algo'], merged=merged)
 
@@ -807,12 +836,17 @@ def credit_block(redis_key, simulate=False):
             amount=+donations_collected)
         db.session.add(p)
 
-    current_app.logger.info("Collected {} in donation".format(donations_collected))
-    current_app.logger.info("Collected {} from fees".format(fees_collected))
-    current_app.logger.info("Net swing from block {}"
-                            .format(fees_collected + donations_collected))
+    current_app.logger.info("Collected {} {} in donation"
+                            .format(donations_collected, block.currency))
+    current_app.logger.info("Collected {} {} from fees"
+                            .format(fees_collected, block.currency))
+    current_app.logger.info(
+        "Net swing from block {} {}"
+        .format(fees_collected + donations_collected, block.currency))
 
-    pool_key = (pool_payout['user'], pool_payout['address'], pool_payout['currency'])
+    pool_key = (pool_payout['user'], pool_payout['address'],
+                pool_payout['currency'])
+
     for chain in chains:
         if pool_key not in chain.credits:
             continue
