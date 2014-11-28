@@ -218,12 +218,25 @@ name = "Auroracoin"
 algo = "scrypt"
 address_version = [23]
 block_time = 300
+block_mature_confirms = 100
 
 [currencies.TAG]
 name = "Tagcoin"
 algo = "scrypt"
 address_version = [65]
 block_time = 240
+
+[currencies.EXCL]
+name = "Exclusivecoin"
+algo = "x11"
+address_version = [33]
+block_time = 40
+
+[currencies.CKC]
+name = "Checkcoin"
+algo = "x11"
+address_version = [28]
+block_time = 150
 
 
 [algos.x11]
