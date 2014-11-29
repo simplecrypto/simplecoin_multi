@@ -217,52 +217,21 @@ def create_app(mode, configs=None, log_level=None, **kwargs):
         sched = Scheduler(standalone=True)
         # monkey patch the thread pool for flask contexts
         ThreadPool._old_run_jobs = ThreadPool._run_jobs
+
         def _run_jobs(self, core):
             self.app.logger.debug("Starting patched threadpool worker!")
             with self.app.app_context():
                 ThreadPool._old_run_jobs(self, core)
         ThreadPool._run_jobs = _run_jobs
-        # All these tasks actually change the database, and shouldn't
-        # be run by the staging server
-        if not app.config.get('stage', False):
-            sched.add_cron_job(sch.compress_slices, minute='0,15,30,45',
-                               second=35)
-            # every minute at 55 seconds after the minute
-            sched.add_cron_job(sch.generate_credits, second=55)
-            sched.add_cron_job(sch.create_trade_req, args=("sell",), minute=1,
-                               hour="0,6,12,18")
-            sched.add_cron_job(sch.create_trade_req, args=("buy",), minute=1,
-                               hour="0,6,12,18")
-            # every minute at 55 seconds after the minute
-            sched.add_cron_job(sch.collect_minutes, second=35)
-            sched.add_cron_job(sch.collect_ppagent_data, second=40)
-            # every five minutes 20 seconds after the minute
-            sched.add_cron_job(sch.compress_minute,
-                               minute='0,5,10,15,20,25,30,35,40,45,50,55',
-                               second=20)
-            # every hour 2.5 minutes after the hour
-            sched.add_cron_job(sch.compress_five_minute, minute=2, second=30)
-            # every minute 2 seconds after the minute
-            sched.add_cron_job(sch.update_block_state, second=2)
-            # every day
-            sched.add_cron_job(sch.update_block_state, hour=0, second=0, minute=3)
-        else:
-            app.logger.info("Stage mode has been set in the configuration, not "
-                            "running scheduled database altering cron tasks")
 
-        sched.add_cron_job(sch.update_online_workers,
-                           minute='0,5,10,15,20,25,30,35,40,45,50,55',
-                           second=30)
-        sched.add_cron_job(sch.cache_user_donation, minute='0,15,30,45',
-                           second=15)
-        sched.add_cron_job(sch.update_network, second=20)
-        sched.add_cron_job(sch.server_status, second=15)
-        # every 15 minutes 2 seconds after the minute
-        sched.add_cron_job(sch.leaderboard,
-                           minute='0,5,10,15,20,25,30,35,40,45,50,55',
-                           second=30)
-        # every hour
-        sched.add_cron_job(sch.cache_profitability, second=0, minute=8)
+        for task_name, task_config in app.config['tasks'].iteritems():
+            if not task_config.get('enabled', False):
+                continue
+
+            stripped_config = task_config.copy()
+            del stripped_config['enabled']
+            task = getattr(sched, task_name)
+            sched.add_cron_job(task, **stripped_config)
 
         app.scheduler = sched
 

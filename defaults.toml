@@ -238,7 +238,87 @@ algo = "x11"
 address_version = [28]
 block_time = 150
 
+# Tasks
+# =========================================
+# All "task" entries configure when functions in scheduler.py get run.
+# Description of the tasks purpose can be found in scheduler.py Time periods
+# that are not defined are implied to be "*". So omitting "minute" will run the
+# task every minute.
+[tasks.compress_slices]
+enabled = true
+minute = "0,15,30,45"
+second = 35
 
+[tasks.generate_credits]
+enabled = true
+second = 55
+
+[tasks.create_trade_req]
+enabled = true
+args = ["sell"]
+minute = 1
+hour = "0,6,12,18"
+
+[tasks.create_trade_req]
+enabled = true
+args = ["buy"]
+minute = 1
+hour = "0,6,12,18"
+
+[tasks.collect_minutes]
+enabled = true
+second = 35
+
+[tasks.collect_ppagent_data]
+enabled = true
+second = 40
+
+[tasks.compress_minute]
+enabled = true
+minute = "0,5,10,15,20,25,30,35,40,45,50,55"
+second = 20
+
+[tasks.compress_five_minute]
+enabled = true
+minute = 2
+second = 2
+
+[tasks.update_block_state]
+enabled = true
+hour = 0
+second = 0
+minute = 3
+
+[tasks.update_online_workers]
+enabled = true
+minute = "0,5,10,15,20,25,30,35,40,45,50,55"
+second = 30
+
+[tasks.cache_user_donation]
+enabled = true
+minute = "0,15,30,45"
+second = 15
+
+[tasks.update_network]
+enabled = true
+second = 20
+
+[tasks.server_status]
+enabled = true
+second = 15
+
+[tasks.leaderboard]
+enabled = true
+minute = "0,5,10,15,20,25,30,35,40,45,50,55"
+second = 30
+
+[tasks.cache_profitability]
+enabled = true
+second = 0
+minute = 8
+
+# Algorithms
+# =========================================
 [algos.x11]
 hashes_per_share = 4294967296
 normalize_mult = 0.181818182
