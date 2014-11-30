@@ -264,14 +264,14 @@ name = "create_trade_req"
 enabled = true
 args = ["sell"]
 minute = 1
-hour = "0,6,12,18"
+hour = "*/4"
 
 [[tasks]]
 name = "create_trade_req"
 enabled = true
 args = ["buy"]
-minute = 1
-hour = "0,6,12,18"
+minute = 2
+hour = "*/6"
 
 [[tasks]]
 name = "collect_minutes"
@@ -286,7 +286,7 @@ second = 40
 [[tasks]]
 name = "compress_minute"
 enabled = true
-minute = "0,5,10,15,20,25,30,35,40,45,50,55"
+minute = "*/5"
 second = 20
 
 [[tasks]]
@@ -298,20 +298,18 @@ second = 2
 [[tasks]]
 name = "update_block_state"
 enabled = true
-hour = 0
-second = 0
-minute = 3
+minute = "*/2"
 
 [[tasks]]
 name = "update_online_workers"
 enabled = true
-minute = "0,5,10,15,20,25,30,35,40,45,50,55"
+minute = "*/5"
 second = 30
 
 [[tasks]]
 name = "cache_user_donation"
 enabled = true
-minute = "0,15,30,45"
+minute = "*/15"
 second = 15
 
 [[tasks]]
@@ -327,8 +325,8 @@ second = 15
 [[tasks]]
 name = "leaderboard"
 enabled = true
-minute = "0,5,10,15,20,25,30,35,40,45,50,55"
-second = 30
+minute = "*/5"
+second = 40
 
 [[tasks]]
 name = "cache_profitability"
