@@ -21,6 +21,7 @@ fee_perc = "0.01"
 title = "Vertcoin"
 algo = "scryptn"
 type = "pplns"
+currencies = ["VTC"]
 last_n = 2
 fee_perc = "0.01"
 

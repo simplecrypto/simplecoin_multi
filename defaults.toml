@@ -36,6 +36,9 @@ type = "redis"
 [redis_conn]
 type = "redis"
 
+[chains.default]
+currencies = []
+
 [mining_servers.default]
 display = true
 

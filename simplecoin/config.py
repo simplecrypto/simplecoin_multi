@@ -12,7 +12,8 @@ from cryptokit.base58 import address_version
 from decimal import Decimal as dec
 
 from . import models as m
-from . import redis_conn, chains, powerpools, locations, algos, global_config
+from . import (redis_conn, chains, powerpools, locations, algos, global_config,
+               currencies)
 from .utils import time_format
 from .exceptions import (ConfigurationException, RemoteException,
                          InvalidAddressException)
@@ -353,13 +354,14 @@ class CurrencyKeeper(Keeper):
 
 
 class Chain(ConfigObject):
-    requires = ['type', 'fee_perc', '_algo']
-    defaults = dict(block_bonus="0")
+    requires = ['type', 'fee_perc', '_algo', '_currencies']
+    defaults = dict(block_bonus="0", currencies=[])
     max_indexes = 1000
     min_index = 0
 
     def __init__(self, bootstrap):
         bootstrap['_algo'] = bootstrap.pop('algo')
+        bootstrap['_currencies'] = bootstrap.pop('currencies')
         bootstrap['key'] = int(bootstrap['key'])
         ConfigObject.__init__(self, bootstrap)
         self.id = self.key
@@ -368,6 +370,10 @@ class Chain(ConfigObject):
         assert isinstance(self.block_bonus, basestring)
         self.fee_perc = dec(self.fee_perc)
         self.hr_fee_perc = round(self.fee_perc * 100, 2)
+
+    @property
+    def currencies(self):
+        return [currencies[curr] for curr in self._currencies]
 
     @property
     def algo(self):

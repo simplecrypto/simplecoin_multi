@@ -13,6 +13,7 @@ default_stratum_url = "stratum+tcp://"
 
 [chains.1]
 title = "Litecoin + SYS MM"
+currencies = ["SYS", "LTC"]
 algo = "scrypt"
 type = "pplns"
 last_n = 2
