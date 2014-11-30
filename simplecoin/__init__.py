@@ -224,8 +224,16 @@ def create_app(mode, configs=None, log_level=None, **kwargs):
                 ThreadPool._old_run_jobs(self, core)
         ThreadPool._run_jobs = _run_jobs
 
+        stage_tasks = set(["cache_profitability", "leaderboard",
+                           "server_status", "update_network",
+                           "cache_user_donation", "update_online_workers"])
         for task_config in app.config['tasks']:
             if not task_config.get('enabled', False):
+                continue
+            if app.config['stage'] and task_config['name'] not in stage_tasks:
+                app.logger.debug(
+                    "Skipping scheduling {} because in stage mode!"
+                    .format(task_config['name']))
                 continue
 
             stripped_config = task_config.copy()
