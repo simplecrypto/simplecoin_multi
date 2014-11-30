@@ -52,6 +52,20 @@ class UnitTest(unittest.TestCase):
         db.session.add(blk)
         return blk
 
+    def random_shares(self):
+        addresses = ['DSAEhYmKZmDN9e1vGPRWSvRQEiWGARhiVh',
+                     'DLePZigvzzvSyoWztctVVsPtDuhzBfqEgd',
+                     'LVsJCXPThJzGhenQT2yuAEy82RTDQjQUYy',
+                     'DKcNvReNSfaCV9iCJjBnxt8zJfiTqzv2vk',
+                     'D6xxcZtoQuCajFgVaoPgsq31WNHFst3yce']
+        lst = []
+        total = 0
+        for i in xrange(250):
+            shares = random.randint(1, 200)
+            lst.append("{}:{}".format(random.choice(addresses), shares))
+            total += shares
+        return lst, total
+
 
 class RedisUnitTest(UnitTest):
     def setUp(self):

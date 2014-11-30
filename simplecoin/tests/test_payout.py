@@ -257,24 +257,10 @@ class TestPayouts(RedisUnitTest):
         "merged": "0"
     }
 
-    def random_shares(self):
-        """ Generate some random shares. Somewhat bad practice for unit tests.
-        Perhaps we set a static randomness seed in the future """
-        addresses = ['DSAEhYmKZmDN9e1vGPRWSvRQEiWGARhiVh',
-                     'DLePZigvzzvSyoWztctVVsPtDuhzBfqEgd',
-                     'LVsJCXPThJzGhenQT2yuAEy82RTDQjQUYy',
-                     'DKcNvReNSfaCV9iCJjBnxt8zJfiTqzv2vk',
-                     'D6xxcZtoQuCajFgVaoPgsq31WNHFst3yce']
-        lst = []
-        for i in xrange(250):
-            lst.append("{}:{}".format(random.choice(addresses),
-                                      random.randint(1, 200)))
-        return lst
-
     def test_slice_compression(self):
         """ Make sure that uncompressed and compressed slices behave the same
         for paying out users """
-        shares = self.random_shares()
+        shares, _ = self.random_shares()
 
         def setup():
             self.app.redis.hmset(
