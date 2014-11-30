@@ -244,75 +244,90 @@ block_time = 150
 # Description of the tasks purpose can be found in scheduler.py Time periods
 # that are not defined are implied to be "*". So omitting "minute" will run the
 # task every minute.
-[tasks.compress_slices]
+[[tasks]]
+name = "compress_slices"
 enabled = true
 minute = "0,15,30,45"
 second = 35
 
-[tasks.generate_credits]
+[[tasks]]
+name = "generate_credits"
 enabled = true
 second = 55
 
-[tasks.create_trade_req]
+[[tasks]]
+name = "create_trade_req"
 enabled = true
 args = ["sell"]
 minute = 1
 hour = "0,6,12,18"
 
-[tasks.create_trade_req]
+[[tasks]]
+name = "create_trade_req"
 enabled = true
 args = ["buy"]
 minute = 1
 hour = "0,6,12,18"
 
-[tasks.collect_minutes]
+[[tasks]]
+name = "collect_minutes"
 enabled = true
 second = 35
 
-[tasks.collect_ppagent_data]
+[[tasks]]
+name = "collect_ppagent_data"
 enabled = true
 second = 40
 
-[tasks.compress_minute]
+[[tasks]]
+name = "compress_minute"
 enabled = true
 minute = "0,5,10,15,20,25,30,35,40,45,50,55"
 second = 20
 
-[tasks.compress_five_minute]
+[[tasks]]
+name = "compress_five_minute"
 enabled = true
 minute = 2
 second = 2
 
-[tasks.update_block_state]
+[[tasks]]
+name = "update_block_state"
 enabled = true
 hour = 0
 second = 0
 minute = 3
 
-[tasks.update_online_workers]
+[[tasks]]
+name = "update_online_workers"
 enabled = true
 minute = "0,5,10,15,20,25,30,35,40,45,50,55"
 second = 30
 
-[tasks.cache_user_donation]
+[[tasks]]
+name = "cache_user_donation"
 enabled = true
 minute = "0,15,30,45"
 second = 15
 
-[tasks.update_network]
+[[tasks]]
+name = "update_network"
 enabled = true
 second = 20
 
-[tasks.server_status]
+[[tasks]]
+name = "server_status"
 enabled = true
 second = 15
 
-[tasks.leaderboard]
+[[tasks]]
+name = "leaderboard"
 enabled = true
 minute = "0,5,10,15,20,25,30,35,40,45,50,55"
 second = 30
 
-[tasks.cache_profitability]
+[[tasks]]
+name = "cache_profitability"
 enabled = true
 second = 0
 minute = 8

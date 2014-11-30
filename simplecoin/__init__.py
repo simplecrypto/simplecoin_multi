@@ -224,13 +224,13 @@ def create_app(mode, configs=None, log_level=None, **kwargs):
                 ThreadPool._old_run_jobs(self, core)
         ThreadPool._run_jobs = _run_jobs
 
-        for task_name, task_config in app.config['tasks'].iteritems():
+        for task_config in app.config['tasks']:
             if not task_config.get('enabled', False):
                 continue
 
             stripped_config = task_config.copy()
             del stripped_config['enabled']
-            task = getattr(sched, task_name)
+            task = getattr(sch, task_config['name'])
             sched.add_cron_job(task, **stripped_config)
 
         app.scheduler = sched
