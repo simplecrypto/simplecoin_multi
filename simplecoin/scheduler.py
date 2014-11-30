@@ -400,7 +400,8 @@ def update_network():
                   dict(height=gbt['height'],
                        difficulty=difficulty,
                        reward=gbt['coinbasevalue'] * current_app.SATOSHI,
-                       difficulty_avg=difficulty_avg),
+                       difficulty_avg=difficulty_avg,
+                       difficulty_avg_stale=len(diff_list) < keep_count),
                   timeout=1200)
 
 
