@@ -66,7 +66,7 @@ def crontab(func, *args, **kwargs):
 @SchedulerCommand.option('-ds', '--dont-simulate', default=False, action="store_true")
 def share_cleanup(dont_simulate=True):
     """ Runs chain_cleanup on each chain. """
-    for chain in chains:
+    for chain in chains.itervalues():
         try:
             chain_cleanup(chain, dont_simulate)
         except Exception:
