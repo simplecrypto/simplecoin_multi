@@ -27,4 +27,4 @@ class TestTasks(RedisUnitTest):
 
         chain_cleanup(chains[1], dont_simulate=True)
         # 11 total keys, we will delete 5
-        self.assertEquals(len(self.app.redis.keys("chain_1_slice_*")), 6)
+        self.assertEquals(len(self.app.redis.keys("chain_1_slice_*")), 8)

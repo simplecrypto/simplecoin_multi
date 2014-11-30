@@ -151,7 +151,7 @@ def chain_cleanup(chain, dont_simulate):
                             .format(found_shares, iterations))
 
     # Delete all share slices older than the last index found
-    oldest_kept = index + 1
+    oldest_kept = index - 1
     empty_found = 0
     deleted_count = 0
     for index in xrange(oldest_kept, -1, -1):
