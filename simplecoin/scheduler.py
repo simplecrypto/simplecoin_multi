@@ -63,9 +63,103 @@ def crontab(func, *args, **kwargs):
 
 
 @crontab
-@SchedulerCommand.command
-def cleanup():
-    pass
+@SchedulerCommand.option('-ds', '--dont-simulate', default=False, action="store_true")
+def share_cleanup(dont_simulate=True):
+    """ Runs chain_cleanup on each chain. """
+    for chain in chains:
+        try:
+            chain_cleanup(chain, dont_simulate)
+        except Exception:
+            current_app.logger.exception(
+                "Unhandled exception cleaning up chain {}".format(chain.id))
+
+
+def chain_cleanup(chain, dont_simulate):
+    """ Handles removing all redis share slices that we are fairly certain won't
+    be needed to credit a block if one were to be solved in the future. """
+    if not chain.currencies:
+        current_app.logger.warn(
+            "Unable to run share slice cleanup on chain {} since currencies "
+            "aren't specified!".format(chain.id))
+        return
+
+    # Get the current sharechain index from redis
+    current_index = int(redis_conn.get("chain_{}_slice_index".format(chain.id)) or 0)
+    if not current_index:
+        current_app.logger.warn(
+            "Index couldn't be determined for chain {}".format(chain.id))
+        return
+
+    # Find the maximum average difficulty of all currencies on this sharechain
+    max_diff = 0
+    max_diff_currency = None
+    for currency in chain.currencies:
+        currency_data = cache.get("{}_data".format(currency.key))
+        if not currency_data or currency_data['difficulty_avg_stale']:
+            current_app.logger.warn(
+                "Cache doesn't accurate enough average diff for {} to cleanup chain {}"
+                .format(currency, chain.id))
+            return
+
+        if currency_data['difficulty_avg'] > max_diff:
+            max_diff = currency_data['difficulty_avg']
+            max_diff_currency = currency
+
+    assert max_diff != 0
+
+    hashes_to_solve = max_diff * (2 ** 32)
+    shares_to_solve = hashes_to_solve / chain.algo.hashes_per_share
+    shares_to_keep = shares_to_solve * chain.safety_margin
+    if chain.type == "pplns":
+        shares_to_keep *= chain.last_n
+    current_app.logger.info(
+        "Keeping {:,} shares based on max diff {} for {} on chain {}"
+        .format(shares_to_keep, max_diff, max_diff_currency, chain.id))
+
+    # Delete any shares past shares_to_keep
+    found_shares = 0
+    for index in xrange(current_index, -1, -1):
+        slc_key = "chain_{}_slice_{}".format(chain.id, index)
+        key_type = redis_conn.type(slc_key)
+
+        # Fetch slice information
+        if key_type == "list":
+            # For speed sake, ignore uncompressed slices
+            continue
+        elif key_type == "hash":
+            found_shares += float(redis_conn.hget(slc_key, "total_shares"))
+        else:
+            raise Exception("Unexpected slice key type {}".format(key_type))
+
+        if found_shares >= shares_to_keep:
+            break
+
+    if found_shares < shares_to_keep:
+        return
+
+    # Delete all share slices older than the last index found
+    oldest_kept = index + 1
+    empty_found = 0
+    deleted_count = 0
+    for index in xrange(oldest_kept, -1, -1):
+        if empty_found >= 20:
+            current_app.logger.debug("20 empty in a row, exiting")
+            break
+        key = "chain_{}_slice_{}".format(chain, index)
+
+        if dont_simulate:
+            if redis_conn.delete(key):
+                deleted_count += 1
+                empty_found = 0
+            else:
+                empty_found += 1
+        else:
+            current_app.logger.info("Would delete {}".format(key))
+
+    if dont_simulate:
+        current_app.logger.info(
+            "Deleted {} total share slices from #{:,}->{:,}"
+            .format(deleted_count, oldest_kept, index))
 
 
 @crontab

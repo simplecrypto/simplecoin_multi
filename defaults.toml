@@ -38,6 +38,7 @@ type = "redis"
 
 [chains.default]
 currencies = []
+safety_margin = 2
 
 [mining_servers.default]
 display = true

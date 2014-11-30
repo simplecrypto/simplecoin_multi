@@ -354,8 +354,8 @@ class CurrencyKeeper(Keeper):
 
 
 class Chain(ConfigObject):
-    requires = ['type', 'fee_perc', '_algo', '_currencies']
-    defaults = dict(block_bonus="0", currencies=[])
+    requires = ['type', 'fee_perc', '_algo', '_currencies', 'safety_margin']
+    defaults = dict(block_bonus="0", currencies=[], safety_margin=2)
     max_indexes = 1000
     min_index = 0
 
