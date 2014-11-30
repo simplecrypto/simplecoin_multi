@@ -18,10 +18,10 @@ last_n = 2
 fee_perc = "0.01"
 
 [chains.1]
-title = "Vertcoin"
-algo = "scryptn"
+title = "Dogecoin"
+algo = "scrypt"
 type = "pplns"
-currencies = ["VTC"]
+currencies = ["DOGE"]
 last_n = 2
 fee_perc = "0.01"
 
