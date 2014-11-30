@@ -118,24 +118,37 @@ def chain_cleanup(chain, dont_simulate):
 
     # Delete any shares past shares_to_keep
     found_shares = 0
+    empty_slices = 0
+    iterations = 0
     for index in xrange(current_index, -1, -1):
+        iterations += 1
         slc_key = "chain_{}_slice_{}".format(chain.id, index)
         key_type = redis_conn.type(slc_key)
 
         # Fetch slice information
         if key_type == "list":
+            empty_slices = 0
             # For speed sake, ignore uncompressed slices
             continue
         elif key_type == "hash":
+            empty_slices = 0
             found_shares += float(redis_conn.hget(slc_key, "total_shares"))
+        elif key_type == "none":
+            empty_slices += 1
         else:
             raise Exception("Unexpected slice key type {}".format(key_type))
 
-        if found_shares >= shares_to_keep:
+        if found_shares >= shares_to_keep or empty_slices >= 20:
             break
 
     if found_shares < shares_to_keep:
+        current_app.logger.info(
+            "Not enough shares {:,}/{:,} for cleanup on chain {}"
+            .format(found_shares, shares_to_keep, chain.id))
         return
+
+    current_app.logger.info("Found {:,} shares after {:,} iterations"
+                            .format(found_shares, iterations))
 
     # Delete all share slices older than the last index found
     oldest_kept = index + 1
@@ -146,15 +159,16 @@ def chain_cleanup(chain, dont_simulate):
             current_app.logger.debug("20 empty in a row, exiting")
             break
         key = "chain_{}_slice_{}".format(chain, index)
-
-        if dont_simulate:
-            if redis_conn.delete(key):
-                deleted_count += 1
-                empty_found = 0
-            else:
-                empty_found += 1
+        if redis_conn.type(key) == "none":
+            empty_found += 1
         else:
-            current_app.logger.info("Would delete {}".format(key))
+            empty_found = 0
+
+            if dont_simulate:
+                if redis_conn.delete(key):
+                    deleted_count += 1
+            else:
+                current_app.logger.info("Would delete {}".format(key))
 
     if dont_simulate:
         current_app.logger.info(
