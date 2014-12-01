@@ -129,6 +129,24 @@ algo = "scryptn"
 address_version = [71]
 block_time = 150
 
+[currencies.MRY]
+name = "Murraycoin"
+algo = "scryptn"
+address_version = [50]
+block_time = 100
+
+[currencies.SPA]
+name = "Spaincoin"
+algo = "scryptn"
+address_version = [63]
+block_time = 120
+
+[currencies.EXE]
+name = "Execoin"
+algo = "scryptn"
+address_version = [33]
+block_time = 45
+
 [currencies.MON]
 name = "Monocle"
 algo = "scryptn"
