@@ -64,6 +64,40 @@ def crontab(func, *args, **kwargs):
 
 @crontab
 @SchedulerCommand.option('-ds', '--dont-simulate', default=False, action="store_true")
+def credit_cleanup(days_ago=7, batch_size=10000, sleep=1, dont_simulate=True):
+    objs_count = 100
+    while objs_count:
+        t = time.time()
+        days_ago_dt = datetime.datetime.utcnow() - datetime.timedelta(days=days_ago)
+        # How inefficient? So inefficient...
+        objs = (Credit.query.filter(Credit.payout_id != None).
+                join(Credit.block, aliased=True).
+                filter(Block.found_at < days_ago_dt).
+                join(Credit.payout, aliased=True).
+                filter(Payout.transaction_id != None).
+                limit(batch_size))
+        if dont_simulate:
+            objs_count = 0
+            ids = []
+            for obj in objs:
+                objs_count += 1
+                ids.append(obj.id)
+                db.session.delete(obj)
+            db.session.commit()
+            db.session.expunge_all()
+            current_app.logger.info("Deleted {:,} old credits in {}s"
+                                    .format(objs_count, time.time() - t))
+        else:
+            objs_count = objs.count()
+            current_app.logger.info("Would've deleted {:,} old credits in {}s"
+                                    .format(objs_count, time.time() - t))
+
+        # Try not to bog down processes with cleanup tasks...
+        time.sleep(sleep)
+
+
+@crontab
+@SchedulerCommand.option('-ds', '--dont-simulate', default=False, action="store_true")
 def share_cleanup(dont_simulate=True):
     """ Runs chain_cleanup on each chain. """
     for chain in chains.itervalues():
