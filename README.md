@@ -28,6 +28,11 @@ Features
 For installation instructions please [read the
 docs](http://simplecoin-multi.readthedocs.org/en/latest/).
 
+Questions
+=========
+If you're having trouble you can ask on the mailing list.
+
+#### [Simplecrypto Development Google Group](https://groups.google.com/forum/#!forum/simplecrypto-dev)
 
 Contribute
 ===============
