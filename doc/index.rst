@@ -8,12 +8,13 @@ SimpleCoin: A mining pool frontend
 
 SimpleCoin is an open source mining pool frontend, it performs many of the same
 functions as software like MPOS. It is currently under active development for
-use in the [SimpleMulti](http://simplemulti.com) mining pool, although we are
+use in the `SimpleMulti <http://simplemulti.com>`_ mining pool, although we are
 gradually adding documentation so it can be set up more easily by others as
 well.
 
 Features
 -----------------------------
+
 * Multi-currency support. One instance of this pool software supports mining
   and paying out many currencies.
 * Multi-algo support. Currently configured for X11, Scrypt, and Scrypt-N, but
@@ -22,7 +23,7 @@ Features
   like.
 * Multi-chain support. Some miners can mine with PPLNS, while others use PROP
   payout, but they work together to solve blocks faster for each "chain".
-* Translation support. Thanks to [sbwdlihao's](https://github.com/sbwdlihao)
+* Translation support. Thanks to `sbwdlihao's <https://github.com/sbwdlihao>`_
   contributions we support internationalization.
 
 Table of Contents
@@ -31,6 +32,6 @@ Table of Contents
 .. toctree::
    :maxdepth: 2
 
-   api.rst
    setup.rst
    production.rst
+   api.rst

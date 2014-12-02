@@ -45,33 +45,9 @@ supervisor in development to watch for file changes and reload the server.
 
     supervisord -c supervisor.conf
 
-This should successfully start the development server if all is well. If not,
-taking a look at the supervisor log can help.
-
-.. code-block:: bash
-
-    tail -f supervisord.log
-
-It's also possible that gunicorn is failing to start completely, in which case you can run it
-by hand to see what's going wrong.
-
-.. code-block:: bash
-
-    gunicorn simplecoin.wsgi_entry:app -R -b 0.0.0.0:9400
-
-To perform various periodic tasks, you'll need to start the scheduler. It does
-things like pulling PowerPool's share data out of redis, generating various
-cached values, creating payouts & trade requests, and many other vital tasks.
-To get it running you'll first need to set an environment variable with the
-path to the config file. It should look something like this:
-
-.. code-block:: bash
-
-    export SIMPLECOIN_CONFIG=/home/$USER/simplecoin_multi/config.toml
-    python simplecoin/scheduler.py
-
-If you already have PowerPool setup you should now be good to start testing
-things out!
+This should successfully start both the development server and the task
+scheduler if all is well. If not, carefully reading the output from supervisor
+should give good hints on what's not working right.
 
 Mining
 ------
@@ -86,14 +62,19 @@ We recommend the litecoin testnet for testing.
 Payouts & Manual Exchanging
 ---------------------------
 
-The RPC client works with SCM's RPC views. This can be run on a secure server
-to pull payout and trade data. This client is what actually makes the payouts,
-and the simplecoin_rpc_client allows manually managing exchanging.
+The RPC client works with SimpleCoin Multi's RPC views. This can be run on a
+secure server to pull payout and trade data. This client is what actually makes
+the payouts, and the ``simplecoin_rpc_client`` allows manually managing
+exchanging.
 
 `simplecoin_rpc_client <http://github.com/simplecrypto/simplecoin_rpc_client>`_
 
+Unfortunately docs for how to use this (especially in a production setting) are
+very lacking at the moment.
+
 Autoexchanging
 -----------------------------
+
 We currently offer no code to perform automatic exchanging, although you could
 expand the RPC client to do it, or write your own app to handle it. A first
 class autoexchanging service may be offered by us at some point in the future.
