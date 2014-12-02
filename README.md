@@ -7,7 +7,10 @@ SimpleCoin Multi
 SimpleCoin is an open source mining pool frontend, it performs many of the same
 functions as software like MPOS. It is currently under active development for
 use in the [SimpleMulti](http://simplemulti.com) mining pool, although we are
-gradually adding documentation so it can be set up more easily by others as well.
+gradually adding documentation so it can be set up more easily by others as
+well. It should be considered beta software, and breaking/sweeping changes may
+still be added occasionally. We are following Semantic Versioning, and as such
+once we reach v1.0 breaking changes will be less frequent.
 
 Features
 -----------------------------
@@ -22,128 +25,9 @@ Features
 * Translation support. Thanks to [sbwdlihao's](https://github.com/sbwdlihao)
   contributions we support internationalization.
 
+For installation instructions please [read the
+docs](http://simplecoin-multi.readthedocs.org/en/latest/).
 
-Developement Setup
-==============================
-
-SimpleCoin Multi Installation
------------------------------
-SimpleCoinMulti uses PostgreSQL as its primary database, although SCM is
-configurable and allows using pretty much any database supported via SQLAlchemy.
-Setup is tested running on Ubuntu 12.04. If you're doing development you'll
-also want to install Supervisor for convenience.
-
-    apt-get install redis-server postgresql-contrib-9.3 postgresql-9.3 postgresql-server-dev-9.3
-    # to install supervisor as well
-    apt-get install supervisor
-
-Now you'll want to setup a Python virtual enviroment to run the application in.
-This isn't stricly necessary, but not using virtualenv can cause all kinds of
-headache, so it's *highly* recommended. You'll want to setup virtualenvwrapper
-to make this easier.
-
-    # make a new virtual environment for simplecoin multi
-    mkvirtualenv scm
-    # clone the source code repo
-    git clone git@github.com:simplecrypto/simplecoin_multi.git
-    cd simplecoin_multi
-    pip install -e .
-    # install all python dependencies
-    pip install -r requirements.txt
-    pip install -r dev-requirements.txt
-
-Initialize an empty database & add tables
-
-    # creates a new user with password 'testing', creates the database
-    ./util/reset_db.sh
-    # creates the database schema for simpledoge
-    python manage.py init_db
-
-Now everything should be ready for running the server. This project uses
-supervisor in development to watch for file changes and reload the server.
-
-    supervisord -c supervisor.conf
-
-This should successfully start the development server if all is well. If not,
-taking a look at the supervisor log can help.
-
-    tail -f supervisord.log
-
-It's also possible that gunicorn is failing to start completely, in which case you can run it
-by hand to see what's going wrong.
-
-    gunicorn simplecoin.wsgi_entry:app -R -b 0.0.0.0:9400
-
-To perform various periodic tasks, you'll need to start the scheduler. It does
-things like pulling PowerPool's share data out of redis, generating various
-cached values, creating payouts & trade requests, and many other vital tasks.
-To get it running you'll first need to set an environment variable with the
-path to the config file. It should look something like this:
-
-    export SIMPLECOIN_CONFIG=/home/$USER/simplecoin_multi/config.toml
-    python simplecoin/scheduler.py
-
-If you already have PowerPool setup you should now be good to start testing
-things out!
-
-Next Steps - Mining
------------------------------
-If you want to start sending shares and solved blocks to Redis for this dev
-instance to process, head over to
-[powerpool](https://github.com/simplecrypto/powerpool) and read it's setup
-instructions. You'll likely want to run a local [testnet in a
-box](https://github.com/freewil/bitcoin-testnet-box), or on the live testnet.
-We recommend the litecoin testnet for testing.
-
-Next Steps - Payouts & Manual Exchanging
-----------------------------------------
-The RPC client works with SCM's RPC views. This can be run on a secure server
-to pull payout and trade data. This client is what actually makes the payouts,
-and the simplecoin_rpc_client allows manually managing exchanging.
-[simplecoin_rpc_client](http://github.com/simplecrypto/simplecoin_rpc_client)
-
-Next Steps - Autoexchanging
------------------------------
-We currently offer no code to perform automatic exchanging, although you could
-expand the RPC client to do it, or write your own app to handle it. A first
-class autoexchanging service may be offered by us at some point in the future.
-
-
-Production Installation
-==============================
-Currently we have very limited documentation on how to properly setup SCM for
-production. SimpleCoin Multi is still a pretty green package. By reading
-through the development instructions above you should be able to get an idea of
-how you might set it up in production, but we take no responsibilities for
-problems that arise. If you have questions you're welcome to ask in
-our IRC #simplecrypto but we won't always have time to help.
-
-Webserver Installation
------------------------------
-The development environment uses Gunicorn as its primary webserver, and this
-is still do-able for production, but Gunicorn develops problems quickly under
-load. Gunicorn recommends you put a HTTP proxy server in front of it (such as
-nginx).
-
-Process management
------------------------------
-It is a good idea to use a process control package like Supervisor or Upstart
-to run & manage gunicorn, nginx, the scheduler, and any other mission critical
-processes (ie, PowerPool, coin daemons, etc). This allows easier log
-management, user control, automatically restarts, etc.
-
-
-Building the docs
-==============================
-``` bash
-workon scm
-# install sphinx
-pip install -r requirements-docs.txt
-cd doc/
-make html
-# view it in your browser
-google-chrome _build/html/index.html
-```
 
 Contribute
 ===============
@@ -151,7 +35,8 @@ Contribute
 Code
 ---------------
 We're actively working on SCM, so please feel free to send in pull requests.
-Before sending a pull request, it's a good idea to run the tests:
+Before sending a pull request, it's a good idea to run the tests. Code that
+breaks tests will not be merged until it's fixed.
 
 ``` bash
 # enter our virtualenv
@@ -166,7 +51,22 @@ nosetests --with-coverage --cover-package=simplecoin --cover-html
 For pull requests that touch on especially sensitive areas, such as payout
 calculations, share processing, etc, we will want to thoroughly test the changes
 before merging it in. This may take us a while, so including tests for your code
-and keeping it clean help speed things up.
+and keeping it clean will help speed things up.
+
+Documentation
+------------------------------
+Documentation changes are very welcome. Before committing and making your pull
+request you can build you changes locally if needed with the following:
+
+``` bash
+workon scm
+# install sphinx
+pip install -r requirements-docs.txt
+cd doc/
+make html
+# view it in your browser
+google-chrome _build/html/index.html
+```
 
 Donate
 ---------------
