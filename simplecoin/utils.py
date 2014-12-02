@@ -11,7 +11,7 @@ from decimal import Decimal as dec, Decimal
 from .exceptions import CommandException, InvalidAddressException
 from . import db, cache, root, redis_conn, currencies, powerpools, algos, chains
 from .models import (ShareSlice, Block, Credit, UserSettings, make_upper_lower,
-                     Payout)
+                     Payout, CreditExchange)
 
 
 class ShareTracker(object):
@@ -329,7 +329,6 @@ def collect_user_stats(user_address):
                                             clip=datetime.timedelta(minutes=2))
 
     newest = datetime.datetime.fromtimestamp(0)
-    # XXX: Needs to only sum the last 24 hours
     for slc in ShareSlice.get_span(ret_query=True,
                                    upper=upper_day,
                                    lower=lower_day,
@@ -424,7 +423,8 @@ def collect_user_stats(user_address):
     payouts = Payout.query.filter_by(user=user_address).order_by(Payout.created_at.desc()).limit(20)
 
     # Loop through all unaggregated credits to find the rest
-    credits = (Credit.query.filter_by(user=user_address, payout_id=None).
+    credits = (Credit.query.with_polymorphic(CreditExchange).
+               filter_by(user=user_address, payout_id=None).
                filter(Credit.block != None).
                options(db.joinedload('payout'),
                        db.joinedload('block')).
