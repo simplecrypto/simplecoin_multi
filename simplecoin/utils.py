@@ -212,6 +212,7 @@ def collect_pool_stats():
 
         # Grab some blocks for this currency
         blocks = (Block.query.filter_by(currency=currency.key).
+                  options(db.joinedload('chain_payouts')).
                   order_by(Block.found_at.desc()).limit(4).all())
 
         # Update the dicts if we found any blocks
