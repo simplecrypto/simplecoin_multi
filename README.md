@@ -68,7 +68,7 @@ make html
 google-chrome _build/html/index.html
 ```
 
-Donate
+Chedda
 ---------------
 If you feel so inclined, you can give back to the devs:
 
