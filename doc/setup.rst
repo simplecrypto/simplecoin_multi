@@ -6,6 +6,11 @@ configurable and allows using pretty much any database supported via SQLAlchemy.
 Setup is tested running on Ubuntu 12.04. If you're doing development you'll
 also want to install Supervisor for convenience.
 
+Installation
+------------
+
+To install thse packages on Ubuntu 12.04:
+
 .. code-block:: bash
 
     apt-get install redis-server postgresql-contrib-9.3 postgresql-9.3 postgresql-server-dev-9.3
