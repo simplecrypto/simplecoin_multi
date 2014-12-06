@@ -1,16 +1,44 @@
+########################
+# Config setup
+########################
+# This is an example config which overwrites the 'defaults.toml'
+
+###### Pool specific info ###########
+
+# Title of the site
+site_title = "Simple Coin Multi"
+
+# the FQDN
+site_url = "http://www.simplecoinmulti.com"
+
+# currency the pool owner gets paid in. This currency must be configured as
+# an exchangeable currency
 pool_payout_currency = "LTC"
+
+# Database setup
 SECRET_KEY = "somethting_really_secret"
 SQLALCHEMY_DATABASE_URI = "postgresql://<usr>:<pwd>@<url>:5432/<dbname>"
+
+# Log at debug level
 DEBUG = true
+
+# Signature to match your settings in the SC RPC client
 rpc_signature = "test"
 
+# Notify users if using a PPAgent version older than this
 latest_ppagent = [0, 3, 5]
+
+# How many blocks to show by default
 blocks_stats_page = 15
+
+# Pass exchange fees to miners if True
 charge_autoex_fees = false
 
+# Ports/URL to show on quickstart guide
 default_stratum_port = 3333
 default_stratum_url = "stratum+tcp://"
 
+# Payout chains
 [chains.1]
 title = "Litecoin + SYS MM"
 currencies = ["SYS", "LTC"]
@@ -19,12 +47,14 @@ type = "pplns"
 last_n = 2
 fee_perc = "0.01"
 
+# Server locations
 [locations.CA]
 location_acronym = "CA"
 location = "Beauharnois, Canada"
 country_flag = "/img/ca.svg"
 address = "http://localhost"
 
+# Custom currency configs
 [currencies.LTC]
 sellable = true
 buyable = true
@@ -45,6 +75,8 @@ address = "127.0.0.1"
 username = "admin1"
 password = "123"
 
+# Each of these is a port. Monitor address must match up to a PP stratum
+# monitor endpoint
 [mining_servers.1]
 address = "localhost"
 monitor_address = "http://localhost:3855/stratum"
