@@ -1,0 +1,16 @@
+<!-- Payout currencies for the pool ================================================== -->
+<div class="panel panel-default">
+<div class="well well-lg" style="text-align:center;background-color:#212F3D;margin-bottom:0px;">
+  <h3 data-toggle="collapse" data-target="#payout-currencies">{{ _("Current Payout Currencies") }}
+    <div id="pool-details" class="btn btn-default pull-right btn-sm collapse-button">[+]</div></h3>
+</div>
+<div class="panel-body collapse" id="payout-currencies" style="padding-bottom:0px;padding-top:0px;">
+  <div class="row" style="padding-top:15px;padding-bottom:15px;">
+    {% for c in payout_currencies %}
+    <div class="col-sm-6">
+      <li>{{ c.name }} ({{ c }})</li>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+</div>

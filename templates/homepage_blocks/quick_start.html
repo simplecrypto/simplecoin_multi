@@ -1,0 +1,54 @@
+<!-- Quick start ================================================== -->
+<div class="col-sm-7">
+  <div class="panel panel-default">
+    <div class="panel-heading">{{ _("Quick start for mining:") }}
+    </div>
+    <div class="panel-body">
+      <h4><b>{{ _("No registration required, payouts go to the address used as username.") }}</b></h4>
+      <b>{{ _("Note") }}</b>{{ _(": Username ") }}<b>{{ _("MUST") }}</b>{{ _(" be a valid address for a currency we payout in, listed ") }}<a href="#" data-toggle="collapse" data-target="#payout-currencies">{{ _("here") }}</a>
+      <p>
+      <ol>
+          <li>{{ _("Configure your stratum client with the information below and start mining:") }}
+            <p><small>
+              <div class="well" style="min-height:130px;background-color:#212F3D;margin-bottom:0;">
+                <b>{{ _("URL: ") }}</b>{{ config['default_stratum_url'] }}<br>
+                <b>{{ _("Port:") }}</b> {{ config['default_stratum_port'] }} &nbsp; <span><small><a href="/configuration_guide">{{ _("More ports:") }}</a></small></span><br>
+                <b>{{ _("Username: ") }}</b>[Your wallet address].[Worker Name]<br>
+                <b>{{ _("Password: ") }}</b>x<br>
+                <b>{{ _("sgminer example:") }}</b> ./sgminer -o {{ config['default_stratum_url'] }}:{{ config['default_stratum_port'] }} -u {{ config['pool_payout_addr'] }}.worker1 -p x -I 13
+              </div>
+              <h5 class="text-right"><a href="/configuration_guide">{{ _("View all config options:") }}</a></h5>
+            </small></p>
+          </li>
+          <li>{{ _("Check your stats and estimated payout by entering your Payout address below:") }}</li>
+          <div class="form-group">
+            <form class="bs-example form-horizontal" id="statsform">
+              <fieldset>
+                <div class="form-group">
+                  <div class="col-sm-9">
+                    <input type="text" class="form-control" id="inputAddress" placeholder="Payout Address">
+                    <span class="help-block">
+                    {{ _("If your stats are still blank after a few minutes double check your config") }}
+                    </span>
+                  </div>
+                  <button type="submit" class="btn btn-default">{{ _("View Stats") }}</button>
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <li>{{ _("Configure your account on your user stats page. Set addresses for
+            currencies you don't want to be exchanged, add a donation to the
+            pool, etc") }}
+          </li>
+          <li>{{ _("Setup advanced stats to track GPU temps and actual hashrate with") }}
+            <a href="https://github.com/simplecrypto/ppagent">{{ _("Powerpool Agent") }}</a>
+          </li>
+        </ol>
+      </div>
+      <div class="well well-lg" style="text-align:center;background-color:#212F3D;">
+        <h3 data-toggle="collapse" data-target="#miner-config">{{ _("View the full configuration guide") }}
+          <div id="config-guide" class="btn btn-default pull-right btn-sm collapse-button">[+]</div></h3>
+      </div>
+  </div>
+</div>
+</div>

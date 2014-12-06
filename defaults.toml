@@ -5,18 +5,17 @@ log_level = "INFO"
 worker_hashrate_fold = 86400
 stage = false
 
-site_title = "SimpleMulti"
+site_title = "Simple Coin Multi"
 # the FQDN
-site_url = "http://www.simplemulti.com"
-coin_name = "Multi"
+site_url = "http://www.simplecoinmulti.com"
 # host for static assets e.g. {assets_address}/css/main.css
 assets_address = "/static"
 # logo img
 logo = "/img/logo.png"
 site_meta_desc = "A custom mining pool with automatic exchanging between currencies, no registration, and a focus on developing new tools for miners"
 # Default values for new miner config
-default_stratum_url = "stratum+tcp://stratum.simplemulti.com"
-default_stratum_port = "3363"
+default_stratum_url = "stratum+tcp://stratum.simplecoinmulti.com"
+default_stratum_port = "3333"
 charge_autoex_fees = false
 
 # i18n/localisation configuration
@@ -247,6 +246,12 @@ name = "Tagcoin"
 algo = "scrypt"
 address_version = [65]
 block_time = 240
+
+[currencies.NOBL]
+name = "Noblecoin"
+algo = "scrypt"
+address_version = [21]
+block_time = 60
 
 [currencies.EXCL]
 name = "Exclusivecoin"

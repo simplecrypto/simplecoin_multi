@@ -47,7 +47,7 @@
                 </strong>:&nbsp;{{ g.hashrates[algo] | hashrate }}
                 <br>
                 <strong data-placement="right"
-                  title="Total active clients mining on Simple {{ config['coin_name'] | safe }}">
+                  title="Total active clients mining on {{ config['site_name'] | safe }}">
                   &nbsp;{{ _("Active") }}&nbsp;{{ _("Miners") }}</strong>:&nbsp;{{ g.miner_count.get(algo, 0) }}
               </div>
             {% endfor %}
