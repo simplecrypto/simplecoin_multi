@@ -403,6 +403,8 @@ def collect_user_stats(user_address):
         ready_to_send=dec(0),
         sent=dec(0),
         by_currency=None,
+        sold_btc_total=dec(0),
+        payable_total=dec(0)
     )
     currency = dict(
         immature=dec(0),
@@ -410,7 +412,7 @@ def collect_user_stats(user_address):
         sold=dec(0),
         btc_converted=dec(0),
         payable=dec(0),
-        total_pending=dec(0),
+        total_pending=dec(0)
     )
 
     def lookup_curr(curr):
@@ -435,8 +437,6 @@ def collect_user_stats(user_address):
                    | (Block.orphan != True)).
                order_by(Credit.id.desc())).all()
 
-    sold_btc_total = Decimal('0')
-    payable_total = Decimal('0')
     for credit in credits:
         # By desired currency
         summary = lookup_curr(credit.currency_obj)
@@ -448,13 +448,13 @@ def collect_user_stats(user_address):
                 if credit.sell_amount is not None:
                     curr['sold'] += credit.amount
                     curr['btc_converted'] += credit.sell_amount
-                    sold_btc_total += credit.sell_amount
+                    summary['sold_btc_total'] += credit.sell_amount
                 else:
                     curr['unconverted'] += credit.amount
 
         if credit.payable:
             curr['payable'] += credit.payable_amount
-            payable_total += credit.payable_amount
+            summary['payable_total'] += credit.payable_amount
         if not credit.block.mature and not credit.block.orphan:
             curr['immature'] += credit.amount
         if not credit.block.orphan:
@@ -479,8 +479,6 @@ def collect_user_stats(user_address):
                 settings=settings,
                 next_payout=next_payout,
                 earning_summary=earning_summary,
-                sold_btc_total=sold_btc_total.quantize(current_app.SATOSHI),
-                payable_total=payable_total.quantize(current_app.SATOSHI),
                 hide_hr=hide_hr,
                 next_exchange=next_exchange,
                 f_per=f_perc)
