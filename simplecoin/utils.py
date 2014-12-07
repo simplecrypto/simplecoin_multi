@@ -435,6 +435,8 @@ def collect_user_stats(user_address):
                    | (Block.orphan != True)).
                order_by(Credit.id.desc())).all()
 
+    sold_btc_total = Decimal('0')
+    payable_total = Decimal('0')
     for credit in credits:
         # By desired currency
         summary = lookup_curr(credit.currency_obj)
@@ -446,11 +448,13 @@ def collect_user_stats(user_address):
                 if credit.sell_amount is not None:
                     curr['sold'] += credit.amount
                     curr['btc_converted'] += credit.sell_amount
+                    sold_btc_total += credit.sell_amount
                 else:
                     curr['unconverted'] += credit.amount
 
         if credit.payable:
             curr['payable'] += credit.payable_amount
+            payable_total += credit.payable_amount
         if not credit.block.mature and not credit.block.orphan:
             curr['immature'] += credit.amount
         if not credit.block.orphan:
@@ -475,6 +479,8 @@ def collect_user_stats(user_address):
                 settings=settings,
                 next_payout=next_payout,
                 earning_summary=earning_summary,
+                sold_btc_total=sold_btc_total.quantize(current_app.SATOSHI),
+                payable_total=payable_total.quantize(current_app.SATOSHI),
                 hide_hr=hide_hr,
                 next_exchange=next_exchange,
                 f_per=f_perc)

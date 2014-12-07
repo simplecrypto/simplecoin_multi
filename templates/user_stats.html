@@ -268,6 +268,11 @@ $(document).ready(function() {
             <td>{{ cdata['payable'] | currency }} {{ payout_currency }}</td>
           </tr>
           {% endfor %}
+          <tr>
+            <td colspan="4"></td>
+            <td style="border-top:1px solid white;">{{ sold_btc_total | currency }} BTC</td>
+            <td style="border-top:1px solid white;">{{ payable_total | currency }} {{ payout_currency }}</td>
+          </tr>
         </table>
       </div>
       {% endfor %}
