@@ -124,8 +124,17 @@ block_time = 600
 
 [currencies.VTC]
 name = "Vertcoin"
-algo = "scryptn"
+algo = "lyra2re"
 address_version = [71]
+block_time = 150
+
+[currencies.TEST_VTC]
+buyable = false
+sellable = false
+mineable = true
+name = "Vertcoin"
+algo = "lyra2re"
+address_version = [73]
 block_time = 150
 
 [currencies.MRY]
@@ -373,6 +382,11 @@ display = "Scrypt-N"
 hashes_per_share = 65536
 normalize_mult = 1
 display = "Scrypt"
+
+[algos.lyra2re]
+hashes_per_share = 33554432
+normalize_mult = 1
+display = "Lyra2RE"
 
 [[navbar.left_nav]]
 title = "Home"

@@ -27,20 +27,20 @@
   <div class="container">
     <div class="row">
         <div class="col-md-5 no-padding">
-          <h1 style="font-size:51px;">
+          <h2 style="font-size:36px;">
             <a style=" text-decoration:none;" href="/">
               <div>
-                <img src="{{ config['assets_address'] | safe }}{{ config['logo'] | safe }}" style="padding-bottom: 5px;float:left;width:64px;">
-                <p>{{ config['site_title'] | safe }} <span style="color: #B82D2A; font-size: 28pt;">Beta</span></p>
+                <img src="{{ config['assets_address'] | safe }}{{ config['logo'] | safe }}" style="padding-bottom: 5px;padding-right:5px;float:left;width:64px;">
+                {{ config['site_title'] | safe }} <span style="color: #B82D2A; font-size: 20pt;">Beta</span>
               </div>
             </a>
-          </h1>
+          </h2>
         </div>
         <div class="col-md-7 no-padding">
           {% if not no_header %}
           <h5 class="stats">
             {% for algo in g.algos %}
-              <div class="col-sm-4">
+              <div class="col-sm-3">
                 {{ g.algos[algo].display }} {{ _("Status:") }}<br>
                 <strong data-toggle="tooltip" data-placement="right"
                   title="Total hashrate for the pool, represented in Megahashes per second">&nbsp;{{ _("Hashrate") }}
