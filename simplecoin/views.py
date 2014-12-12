@@ -168,7 +168,13 @@ def block_stats_tab(algo):
 def get_locale():
     new_language = request.args.get('lang')
     if new_language:
-        session['lang'] = new_language
+        if str(new_language) in current_app.config['available_locales'].keys():
+            session['lang'] = new_language
+        else:
+            # Add an alert if unable to match the passed in locale
+            alert = {'severity': 'danger', 'key': -1, 'date': 'Check your URL',
+                     'title': 'Currency code not matched!', 'notify': 'all'}
+            g.alerts = [alert] if not g.alerts else g.alerts.append(alert)
     elif not 'lang' in session:
         locales = current_app.config['available_locales'].keys()
         session['lang'] = request.accept_languages.best_match(locales)
@@ -177,14 +183,16 @@ def get_locale():
 
 @main.before_request
 def add_pool_stats():
-    get_locale()
+    session.permanent = True
     g.algos = {k: v for k, v in algos.iteritems() if v.enabled is True}
     g.hashrates = {a: get_pool_hashrate(a) for a in g.algos}
     # Dictionary keyed by algo
     g.miner_count = cache.get('total_miners') or {}
-    g.alerts = get_alerts()
     g.anon_users = anon_users()
-    session.permanent = True
+    # Get alerts
+    yaml_alerts = get_alerts()
+    g.alerts = [yaml_alerts] if not 'alerts' in g else g.alerts.append(yaml_alerts)
+    get_locale()
 
 
 @main.route("/close/<int:id>")

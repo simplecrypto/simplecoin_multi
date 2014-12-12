@@ -223,7 +223,7 @@ def cache_profitability():
 
     query_currencies = [c.key for c in currencies.itervalues() if c.mineable and c.sellable]
     blocks = (Block.query.filter(Block.found_at > start_time).
-              filter(Block.currency.in_(query_currencies)))
+              filter(Block.currency.in_(query_currencies)).all())
 
     for block in blocks:
         chain_data = block.chain_profitability()
