@@ -191,7 +191,7 @@ def add_pool_stats():
     g.anon_users = anon_users()
     # Get alerts
     yaml_alerts = get_alerts()
-    g.alerts = [yaml_alerts] if not 'alerts' in g else g.alerts.append(yaml_alerts)
+    g.alerts = yaml_alerts if not 'alerts' in g else g.alerts.append(yaml_alerts)
     get_locale()
 
 
