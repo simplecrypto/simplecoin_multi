@@ -12,7 +12,6 @@ try:
 except ImportError:
     pass
 
-from apscheduler.threadpool import ThreadPool
 from apscheduler.scheduler import Scheduler
 from decimal import Decimal
 from redis import Redis
@@ -212,17 +211,17 @@ def create_app(mode, configs=None, log_level=None, **kwargs):
         app.logger.info("SimpleCoin cron scheduler starting up...")
         setproctitle.setproctitle("simplecoin_scheduler")
 
-        # Make app accessible from out monkey patched code. Messy....
-        ThreadPool.app = app
         sched = Scheduler(standalone=True)
-        # monkey patch the thread pool for flask contexts
-        ThreadPool._old_run_jobs = ThreadPool._run_jobs
 
-        def _run_jobs(self, core):
-            self.app.logger.debug("Starting patched threadpool worker!")
+        # monkey patch the scheduler to wrap each job call in its own flask
+        # context. Kind of sloppy way to pass in the app context...
+        Scheduler.app = app
+        Scheduler._old_run_job = Scheduler._run_job
+
+        def _run_job(self, *args, **kwargs):
             with self.app.app_context():
-                ThreadPool._old_run_jobs(self, core)
-        ThreadPool._run_jobs = _run_jobs
+                Scheduler._old_run_job(self, *args, **kwargs)
+        Scheduler._run_job = _run_job
 
         stage_tasks = set(["cache_profitability", "leaderboard",
                            "server_status", "update_network",
