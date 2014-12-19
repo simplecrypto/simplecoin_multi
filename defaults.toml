@@ -128,15 +128,6 @@ algo = "lyra2re"
 address_version = [71]
 block_time = 150
 
-[currencies.TEST_VTC]
-buyable = false
-sellable = false
-mineable = true
-name = "Vertcoin"
-algo = "lyra2re"
-address_version = [73]
-block_time = 150
-
 [currencies.MRY]
 name = "Murraycoin"
 algo = "scryptn"
