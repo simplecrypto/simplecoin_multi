@@ -49,6 +49,7 @@ mineable = false
 merged = false
 trans_confirmations = 6
 block_mature_confirms = 120
+satoshi_count = 100000000
 
 [currencies.BTC]
 name = "Bitcoin"

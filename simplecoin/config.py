@@ -176,14 +176,16 @@ class ConfigChecker(ConfigObject):
 
 
 class Currency(ConfigObject):
-    requires = ['_algo', 'name', 'address_version', 'trans_confirmations',
-                'block_time', 'block_mature_confirms']
+    requires = ['_algo', 'name', 'address_version', 'block_time']
     defaults = dict(sellable=False,
                     buyable=False,
                     merged=False,
                     minimum_payout='0.00000001',
                     coinserv={},
-                    pool_payout_addr=None)
+                    pool_payout_addr=None,
+                    trans_confirmations=6,
+                    block_mature_confirms=120,
+                    satoshi_count=100000000)
 
     def __init__(self, bootstrap):
         bootstrap['_algo'] = bootstrap.pop('algo', None)

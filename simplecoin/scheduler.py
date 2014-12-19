@@ -772,8 +772,6 @@ def credit_block(redis_key, simulate=False):
     block = Block(
         user=data.get('address'),
         height=data['height'],
-        total_value=(Decimal(data['total_subsidy']) / 100000000),
-        transaction_fees=(Decimal(data['fees']) / 100000000),
         difficulty=bits_to_difficulty(data['hex_bits']),
         hash=data['hash'],
         time_started=time_started,
@@ -782,6 +780,10 @@ def credit_block(redis_key, simulate=False):
         found_at=datetime.datetime.utcfromtimestamp(float(data['solve_time'])),
         algo=data['algo'],
         merged=merged)
+
+    sat_count = block.currency_obj.satoshi_count
+    block.total_value = (Decimal(data['total_subsidy']) / sat_count)
+    block.transaction_fees = (Decimal(data['fees']) / sat_count)
 
     db.session.add(block)
     db.session.flush()
