@@ -279,18 +279,25 @@ def collect_pool_stats():
 
     past_chain_profit = get_past_chain_profit()
 
-    server_status_defaults = {}
-    for powerpool in powerpools.itervalues():
-        server_status_defaults[powerpool.key] = \
-            dict(name=powerpool.stratum_address,
-                 offline=True,
-                 hashrate=0,
-                 workers=0,
-                 miners=0,
-                 profit_4d=past_chain_profit[powerpool.chain.id],
-                 currently_mining="???")
+    server_status_default = dict(name='',
+                                 offline=True,
+                                 hashrate=0,
+                                 workers=0,
+                                 miners=0,
+                                 profit_4d=0,
+                                 currently_mining="???")
 
-    server_status = cache.get('server_status') or server_status_defaults
+    cached_server_status = cache.get('server_status') or []
+
+    server_status = {}
+    for powerp in powerpools.itervalues():
+        server_status.setdefault(powerp.key, server_status_default.copy())
+
+        if powerp.key in cached_server_status:
+            server_status[powerp.key] = cached_server_status[powerp.key]
+
+        server_status[powerp.key]['name'] = powerp.stratum_address
+        server_status[powerp.key]['profit_4d'] = past_chain_profit[powerp.chain.id]
 
     block_stats_tab = session.get('block_stats_tab', "all")
 
