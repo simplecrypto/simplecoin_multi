@@ -1276,7 +1276,8 @@ def server_status():
             algo_miners.setdefault(powerpool.chain.algo.key, 0)
             algo_miners[powerpool.chain.algo.key] += data['address_count']
 
-            if 'last_flush_job' in data and 'currency' in data['last_flush_job']:
+            if 'last_flush_job' in data and data['last_flush_job'] \
+                    and 'currency' in data['last_flush_job']:
                 curr = data['last_flush_job']['currency']
                 servers[powerpool.key].update({'currently_mining': curr})
                 currency_hashrates.setdefault(currencies[curr], 0)
