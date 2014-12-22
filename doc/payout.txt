@@ -1,0 +1,68 @@
+Payouts for non-exchanged coins:
+All ran inside SCM's virtualenv: (cat setup.txt and copy/paste)
+	export WORKON_HOME=$HOME/.virtualenvs
+source /usr/local/bin/virtualenvwrapper.sh
+	workon scm
+Commands are separated by carriage returns
+
+python ~/scm/manage.py scheduler create_payouts -c ~/scm/example.toml
+
+Now, iterate for as many coins as you have.
+python ~/rpc/simplecoin_rpc_client/manage.py -f pull_payouts  -cl /config.yml -c BTC
+
+python ~/rpc/simplecoin_rpc_client/manage.py  -f send_payout -cl /config.yml -c BTC
+
+python ~/rpc/simplecoin_rpc_client/manage.py  -f associate_all -cl /config.yml -c BTC
+
+*This one iterate for all coins in crontab -e every hour. minute separation for each coin, you must insert into crontab -e
+
+python ~/rpc/simplecoin_rpc_client/manage.py -f confirm_trans  -cl /config.yml -c BTC
+
+Exchanging Payouts (in addition to the above)
+This creates the sell orders for the exchanging process:
+
+python ~/scm/manage.py  scheduler create_trade_req -c ~/scm/example.toml sell
+
+This command lists all of the open trade requests, both buy and sell. You will send the "sell" to the exchange. We will look at the "BUY" later.
+
+python ~/rpc/simplecoin_rpc_client/manage.py -cl /config.yml -f get_open_trade_requests -c BTC
+
+You will use this table for matching tr_id, amount, fee, and currency type in the next step. Copy this to your spreadsheet so you can reference it quickly. You'll need the BTC amounts to put back into the SCM. When you are done selling, you will need to close the "SELL" requests. To do this:
+
+python ~/rpc/simplecoin_rpc_client/manage.py  -f close_trade_request -cl /config.yml   -a 15 0.00001948  0 -c BTC
+
+The arguments are:
+-cl /config.yml   -a 15 0.00001948  0 -c BTC
+In order, your config in ~rpc/, logging pref (optional), tr_id (from get_open_trade_requests), fees from exchange, currency
+
+Then you buy:
+python scm/manage.py  scheduler create_trade_req -c ~/scm/example.toml buy
+and get the purchase list
+python rpc/simplecoin_rpc_client/manage.py -cl /config.yml -f get_open_trade_requests -c BTC
+
+fee explanation - its the order fee for buying in the exchange + withdrawing
+Then you close the buy tr_id the same way as above:
+
+python ~/rpc/simplecoin_rpc_client/manage.py  -f close_trade_request -cl /config.yml   -a 2 0.00166203  0.0000001 -c BTC
+
+close all your buy transactions
+
+python ~/scm/manage.py scheduler create_payouts -c ~/scm/example.toml  
+
+Then you have to pull, send, associate, and confirm the payouts in all currencies:
+
+Pull:
+python ~/rpc/simplecoin_rpc_client/manage.py -f pull_payouts  -cl /config.yml   -c BTC
+
+Send:
+python ~/rpc/simplecoin_rpc_client/manage.py  -f send_payout -cl /config.yml -c BTC
+
+Associate:
+python ~/rpc/simplecoin_rpc_client/manage.py  -f associate_all -cl /config.yml   -c BTC
+
+Confirm:
+python ~/rpc/simplecoin_rpc_client/manage.py -f confirm_trans  -cl /config.yml   -c BTC
+
+When completed with SCM operations, type in ‘deactivate’ to exit the virtualenv
+
+Rejoice! :)
