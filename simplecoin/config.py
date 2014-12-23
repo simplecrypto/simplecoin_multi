@@ -183,7 +183,10 @@ class Currency(ConfigObject):
                     merged=False,
                     minimum_payout='0.00000001',
                     coinserv={},
-                    pool_payout_addr=None)
+                    pool_payout_addr=None,
+                    block_explore=None,
+                    tx_explore=None
+                    )
 
     def __init__(self, bootstrap):
         bootstrap['_algo'] = bootstrap.pop('algo', None)
