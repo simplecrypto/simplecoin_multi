@@ -594,7 +594,7 @@ def update_block_state(block_id=None):
         if not blockheight:
             current_app.logger.warn("Skipping block state update because we "
                                     "failed trying to poll the RPC!")
-            continue
+            break
 
         # Skip checking if height difference isn't sufficient. Avoids polling
         # the RPC server excessively
