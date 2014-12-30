@@ -33,7 +33,13 @@
           </tr>
           <tr>
             <th>{{ _("Block Hash") }}</th>
-            <td><samp>{{ block.hash }}</samp></td>
+            <td>
+            {% if block.currency_obj.block_explore %}
+              <a href="{{ block.currency_obj.block_explore ~ block.hash }}">{{ block.hash }}</a>
+            {% else %}
+              <samp>{{ block.hash }}</samp>
+            {% endif %}
+            </td>
           </tr>
           <tr>
             <th>{{ _("Blockheight") }}</th>

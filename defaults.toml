@@ -87,6 +87,8 @@ algo = "scrypt"
 address_version = [30]
 merged = true
 block_time = 60
+block_explore = "https://dogechain.info/block/"
+tx_explore = "https://dogechain.info/tx/"
 
 [currencies.SYS]
 name = "Syscoin"
@@ -121,6 +123,8 @@ name = "Litecoin"
 algo = "scrypt"
 address_version = [48]
 block_time = 600
+block_explore = "http://qukuai.com/ltc/block/"
+tx_explore = "http://qukuai.com/ltc/tx/"
 
 [currencies.VTC]
 name = "Vertcoin"
