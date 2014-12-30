@@ -190,6 +190,12 @@ class Currency(ConfigObject):
 
     def __init__(self, bootstrap):
         bootstrap['_algo'] = bootstrap.pop('algo', None)
+        if bootstrap['_algo'] is None:
+            raise ConfigurationException(
+                "A currency in config.toml is missing an entry in "
+                "defaults.toml! The following config may help identify it: {}"
+                .format(bootstrap))
+
         ConfigObject.__init__(self, bootstrap)
         if self.coinserv:
             cfg = self.coinserv
