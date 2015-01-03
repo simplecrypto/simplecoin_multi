@@ -12,7 +12,8 @@ site_title = "Simple Coin Multi"
 site_url = "http://www.simplecoinmulti.com"
 
 # currency the pool owner gets paid in. This currency must be configured as
-# an exchangeable currency
+# an exchangeable currency. Additionally, the configuration guide's
+# 'Payout currency' field defaults to this currency
 pool_payout_currency = "LTC"
 
 # Database setup

@@ -84,7 +84,7 @@
             <div class="col-sm-5">
               <select class="form-control" id="availCurr" style="padding:8px 8px;">
                 {% for curr in payout_currencies %}
-                  <option value="{{ curr }}" id="usr-{{ curr }}"{% if curr.key == 'DOGE' %} selected{% endif %}>{{ curr }}</option>
+                  <option value="{{ curr }}" id="usr-{{ curr }}"{% if curr.key == default_curr %} selected{% endif %}>{{ curr }}</option>
                 {% endfor %}
               </select>
               <span class="help-block help-text">
@@ -96,7 +96,7 @@
             <div class="col-sm-5">
               <input type="text" class="form-control user-address-field" id="configUserAddr" name="DOGE">
               <span class="help-block help-text">
-                {{ _("Insert a valid") }} <span class="chosen-currency">DOGE</span> {{ _("address") }}</span>
+                {{ _("Insert a valid") }} <span class="chosen-currency">{{ default_curr }}</span> {{ _("address") }}</span>
               <span class="help-block checking-address default-hide">
                 <i class='fa fa-spinner fa-spin'></i> {{ _("Checking address validity") }}</span>
               <span class="help-block invalid-address default-hide">
