@@ -186,6 +186,7 @@ block_time = 42
 name = "Viacoin"
 algo = "scrypt"
 address_version = [71]
+merged = true
 block_time = 24
 block_mature_confirms = 3600
 
@@ -237,6 +238,7 @@ name = "Potcoin"
 algo = "scrypt"
 address_version = [55]
 block_time = 40
+block_mature_confirms = 260
 
 [currencies.AUR]
 name = "Auroracoin"
@@ -268,6 +270,12 @@ name = "Checkcoin"
 algo = "x11"
 address_version = [28]
 block_time = 150
+
+[currencies.GLD]
+name = "Goldcoin"
+algo = "scrypt"
+address_version = [32]
+block_time = 120
 
 # Tasks
 # =========================================
@@ -360,6 +368,7 @@ name = "cache_profitability"
 enabled = true
 second = 0
 minute = 8
+hour = "*/3"
 
 # Algorithms
 # =========================================

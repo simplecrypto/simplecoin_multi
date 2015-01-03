@@ -270,7 +270,7 @@ def cache_profitability():
                                  .format(chainid, btc_per))
 
         cache.set('chain_{}_profitability'.format(chainid),
-                  btc_per, timeout=3600 * 2)
+                  btc_per, timeout=3600 * 8)
 
 
 @crontab
