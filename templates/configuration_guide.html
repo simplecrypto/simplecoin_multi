@@ -130,7 +130,9 @@
           <label for="donateAmount" class="col-sm-2 col-sm-offset-2 control-label">{{ _("Starting difficulty:") }}</label>
           <div class="col-sm-5">
             <input type="text" class="form-control" id="mining-diff" name="mining-diff">
-            <span class="help-block" style="margin-bottom:0px;">{{ _("Optional. Specifies a starting difficulty") }}</span>
+            <span class="help-block invalid-address" style="margin-bottom:0px;">
+              <i class="fa fa-exclamation-triangle"></i> {{ _("Only 'sticks' on fixed diff ports!") }}
+            </span>
           </div>
         </div>
       </div>
