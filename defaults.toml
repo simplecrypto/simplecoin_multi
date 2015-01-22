@@ -377,6 +377,11 @@ hashes_per_share = 4294967296
 normalize_mult = 0.181818182
 display = "X11"
 
+[algos.sha256]
+hashes_per_share = 4294967296
+normalize_mult = 1
+display = "SHA256"
+
 [algos.scryptn]
 hashes_per_share = 65536
 normalize_mult = 2.127659574
