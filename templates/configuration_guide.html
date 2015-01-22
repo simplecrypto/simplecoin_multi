@@ -94,7 +94,7 @@
           <div class="form-group">
             <label for="configUserAddr" class="col-sm-2 col-sm-offset-2 control-label">{{ _("Payout address:") }}</label>
             <div class="col-sm-5">
-              <input type="text" class="form-control user-address-field" id="configUserAddr" name="DOGE">
+              <input type="text" class="form-control user-address-field" id="configUserAddr" name="{{ default_curr }}">
               <span class="help-block help-text">
                 {{ _("Insert a valid") }} <span class="chosen-currency">{{ default_curr }}</span> {{ _("address") }}</span>
               <span class="help-block checking-address default-hide">
