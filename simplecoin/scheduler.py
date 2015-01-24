@@ -618,6 +618,7 @@ def update_block_state(block_id=None):
             current_app.logger.info(
                 "Block {} not in coin database, assume orphan!".format(block))
             block.orphan = True
+            block.mature = False
             for credit in block.credits:
                 credit.payable = False
         else:
@@ -636,6 +637,7 @@ def update_block_state(block_id=None):
                     "Block {} occured {} height ago, but not enough confirms. "
                     "Marking orphan.".format(block, currency.block_mature_confirms))
                 block.orphan = True
+                block.mature = False
                 for credit in block.credits:
                     credit.payable = False
 
