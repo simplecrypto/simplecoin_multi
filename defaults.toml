@@ -374,27 +374,32 @@ hour = "*/3"
 # =========================================
 [algos.x11]
 hashes_per_share = 4294967296
-normalize_mult = 0.181818182
+#4000kh/s $85 = 47.058823529khs/$
+normalize_mult = 0.68
 display = "X11"
 
 [algos.sha256]
 hashes_per_share = 4294967296
-normalize_mult = 1
+#100000000khash/s $85 ~1176470.588235294khs/$
+normalize_mult = 0.0000272
 display = "SHA256"
 
 [algos.scryptn]
 hashes_per_share = 65536
-normalize_mult = 2.127659574
+#230kh/s $85 2.705882353khs/$
+normalize_mult = 11.826086891
 display = "Scrypt-N"
 
 [algos.scrypt]
 hashes_per_share = 65536
+#4000kh/s $125 32khs/$
 normalize_mult = 1
 display = "Scrypt"
 
 [algos.lyra2re]
 hashes_per_share = 33554432
-normalize_mult = 1
+#450kh/s $85 5.294117647khs/$
+normalize_mult = 6.044444462
 display = "Lyra2RE"
 
 [[navbar.left_nav]]
