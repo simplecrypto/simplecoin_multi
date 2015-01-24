@@ -628,6 +628,7 @@ def update_block_state(block_id=None):
                     "Block {} meets {} confirms, mark mature"
                     .format(block, currency.block_mature_confirms))
                 block.mature = True
+                block.orhpan = False
                 for credit in block.credits:
                     if credit.type == 0:
                         credit.payable = True
