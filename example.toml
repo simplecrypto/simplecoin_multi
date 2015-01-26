@@ -12,7 +12,8 @@ site_title = "Simple Coin Multi"
 site_url = "http://www.simplecoinmulti.com"
 
 # currency the pool owner gets paid in. This currency must be configured as
-# an exchangeable currency
+# an exchangeable currency. Additionally, the configuration guide's
+# 'Payout currency' field defaults to this currency
 pool_payout_currency = "LTC"
 
 # Database setup
@@ -75,12 +76,16 @@ address = "127.0.0.1"
 username = "admin1"
 password = "123"
 
-# Each of these is a port. Monitor address must match up to a PP stratum
-# monitor endpoint
+# Each of these is a port which will be displayed on the configuration
+# guide & pool stats
 [mining_servers.1]
 address = "localhost"
+# The [stratum] part of the monitor address must match the key you
+# use in PP for the stratum server
 monitor_address = "http://localhost:3855/stratum"
 port = 3333
 location = "CA"
+# diff can be set to any string, ie - for a vardiff port you may want 
+# something like: diff = "8-256"
 diff = 1
 chain = 1

@@ -87,6 +87,8 @@ algo = "scrypt"
 address_version = [30]
 merged = true
 block_time = 60
+block_explore = "https://dogechain.info/block/"
+tx_explore = "https://dogechain.info/tx/"
 
 [currencies.SYS]
 name = "Syscoin"
@@ -121,6 +123,8 @@ name = "Litecoin"
 algo = "scrypt"
 address_version = [48]
 block_time = 600
+block_explore = "http://qukuai.com/ltc/block/"
+tx_explore = "http://qukuai.com/ltc/tx/"
 
 [currencies.VTC]
 name = "Vertcoin"
@@ -182,6 +186,7 @@ block_time = 42
 name = "Viacoin"
 algo = "scrypt"
 address_version = [71]
+merged = true
 block_time = 24
 block_mature_confirms = 3600
 
@@ -233,6 +238,7 @@ name = "Potcoin"
 algo = "scrypt"
 address_version = [55]
 block_time = 40
+block_mature_confirms = 260
 
 [currencies.AUR]
 name = "Auroracoin"
@@ -264,6 +270,12 @@ name = "Checkcoin"
 algo = "x11"
 address_version = [28]
 block_time = 150
+
+[currencies.GLD]
+name = "Goldcoin"
+algo = "scrypt"
+address_version = [32]
+block_time = 120
 
 # Tasks
 # =========================================
@@ -356,27 +368,38 @@ name = "cache_profitability"
 enabled = true
 second = 0
 minute = 8
+hour = "*/3"
 
 # Algorithms
 # =========================================
 [algos.x11]
 hashes_per_share = 4294967296
-normalize_mult = 0.181818182
+#4000kh/s $85 = 47.058823529khs/$
+normalize_mult = 0.68
 display = "X11"
+
+[algos.sha256]
+hashes_per_share = 4294967296
+#100000000khash/s $85 ~1176470.588235294khs/$
+normalize_mult = 0.0000272
+display = "SHA256"
 
 [algos.scryptn]
 hashes_per_share = 65536
-normalize_mult = 2.127659574
+#230kh/s $85 2.705882353khs/$
+normalize_mult = 11.826086891
 display = "Scrypt-N"
 
 [algos.scrypt]
 hashes_per_share = 65536
+#4000kh/s $125 32khs/$
 normalize_mult = 1
 display = "Scrypt"
 
 [algos.lyra2re]
 hashes_per_share = 33554432
-normalize_mult = 1
+#450kh/s $85 5.294117647khs/$
+normalize_mult = 6.044444462
 display = "Lyra2RE"
 
 [[navbar.left_nav]]

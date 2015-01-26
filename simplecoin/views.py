@@ -24,21 +24,25 @@ main = Blueprint('main', __name__)
 def home():
     payout_currencies = currencies.buyable_currencies
     past_chain_profit = get_past_chain_profit()
+    default_curr = current_app.config['pool_payout_currency']
     return render_template('home.html',
                            payout_currencies=payout_currencies,
                            past_chain_profit=past_chain_profit,
-                           locations=locations)
+                           locations=locations,
+                           default_curr=default_curr)
 
 
 @main.route("/configuration_guide")
 def configuration_guide():
     payout_currencies = currencies.buyable_currencies
     past_chain_profit = get_past_chain_profit()
+    default_curr = current_app.config['pool_payout_currency']
 
     return render_template('config_guide_wrapper.html',
                            payout_currencies=payout_currencies,
                            locations=locations,
-                           past_chain_profit=past_chain_profit)
+                           past_chain_profit=past_chain_profit,
+                           default_curr=default_curr)
 
 
 @main.route("/faq")

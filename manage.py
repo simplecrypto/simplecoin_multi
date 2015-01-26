@@ -106,6 +106,53 @@ def del_payouts(start_id, stop_id, currency=None):
     db.session.commit()
 
 
+@manager.option("currency", type=str)
+def update_trade_requests(currency):
+    """
+    Looks at all uncompleted sell requests for a currency and
+    re-looks at their credits.
+
+    A Trade request's credits should always be payable - but this can
+    get messed up if there is a long chain of orphans that is only later
+    discovered (after the trade request is generated). This can happen from
+    a daemon being on the wrong fork for a while, and then switching to the
+    'official' fork.
+
+    It is important that this function be run AFTER running update_block_state
+    and del_payouts, which check the maturity of blocks & removes old incorrect
+    payouts
+
+    If any credits in the TR are discovered to now not be payable then subtract
+    that credit amount from the TR.
+    """
+    from simplecoin.models import TradeRequest
+    trs = TradeRequest.query.filter_by(_status=0, currency=currency,
+                                       type="sell").all()
+
+    adjustment = {}
+    for tr in trs:
+        for credit in tr.credits[:]:
+            if credit.payable is False:
+                print "Found unpayable credit for {} {} on TR #{}".format(credit.amount, credit.currency, tr.id)
+                tr.quantity -= credit.amount
+                tr.credits.remove(credit)
+                adjustment.setdefault(tr.id, 0)
+                adjustment[tr.id] -= credit.amount
+
+    if adjustment:
+        print "Preparing to update TRs: {}.".format(adjustment)
+    else:
+        print "Nothing to update...exiting."
+        exit(0)
+
+    res = raw_input("Are you really sure you want to perform this update? [y/n] ")
+    if res != "y" and res != "yes":
+        db.session.rollback()
+        return
+
+    db.session.commit()
+
+
 @manager.option('input', type=argparse.FileType('r'))
 def import_shares(input):
     for i, line in enumerate(input):

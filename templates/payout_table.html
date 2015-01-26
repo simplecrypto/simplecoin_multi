@@ -30,7 +30,17 @@
                 <th data-sort-value="{{ payout.timestamp }}">{{ payout.created_at | human_date_utc }}</th>
                 <th>{{ payout.amount | currency }}</th>
                 <th>{{ payout.currency }}</th>
-                <th>{% if payout.transaction %}{{ payout.transaction.txid }}{% endif %}</th>
+                <th>
+                {% if payout.transaction %}
+                    {% if payout.currency_obj.tx_explore %}
+                    <a href="{{ payout.currency_obj.tx_explore ~ payout.transaction.txid }}">{{ payout.transaction.txid }}</a>
+                    {% else %}
+                    {{ payout.transaction.txid }}
+                    {% endif %}
+                {% else %}
+                    {{ "..." }}
+                {% endif %}
+                </th>
                 <th>{{ payout.status }}</th>
               </tr>
             {% endfor %}

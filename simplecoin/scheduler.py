@@ -270,7 +270,7 @@ def cache_profitability():
                                  .format(chainid, btc_per))
 
         cache.set('chain_{}_profitability'.format(chainid),
-                  btc_per, timeout=3600 * 2)
+                  btc_per, timeout=3600 * 8)
 
 
 @crontab
@@ -594,7 +594,7 @@ def update_block_state(block_id=None):
         if not blockheight:
             current_app.logger.warn("Skipping block state update because we "
                                     "failed trying to poll the RPC!")
-            continue
+            break
 
         # Skip checking if height difference isn't sufficient. Avoids polling
         # the RPC server excessively
@@ -618,6 +618,7 @@ def update_block_state(block_id=None):
             current_app.logger.info(
                 "Block {} not in coin database, assume orphan!".format(block))
             block.orphan = True
+            block.mature = False
             for credit in block.credits:
                 credit.payable = False
         else:
@@ -627,6 +628,7 @@ def update_block_state(block_id=None):
                     "Block {} meets {} confirms, mark mature"
                     .format(block, currency.block_mature_confirms))
                 block.mature = True
+                block.orhpan = False
                 for credit in block.credits:
                     if credit.type == 0:
                         credit.payable = True
@@ -636,6 +638,7 @@ def update_block_state(block_id=None):
                     "Block {} occured {} height ago, but not enough confirms. "
                     "Marking orphan.".format(block, currency.block_mature_confirms))
                 block.orphan = True
+                block.mature = False
                 for credit in block.credits:
                     credit.payable = False
 
