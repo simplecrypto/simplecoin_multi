@@ -5,8 +5,8 @@
 
 ###### Pool specific info ###########
 
-# Title of the site
-site_title = "Simple Coin Multi"
+# Title of the site. Must not contain spaces or message signing will fail!
+site_title = "SimpleCoinMulti"
 
 # the FQDN
 site_url = "http://www.simplecoinmulti.com"
