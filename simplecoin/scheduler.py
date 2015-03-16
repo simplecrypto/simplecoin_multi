@@ -57,8 +57,12 @@ def crontab(func, *args, **kwargs):
                                  exc_info=True)
 
     t = time.time() - t
-    cache.set('cron_last_run_{}'.format(func.__name__),
-              dict(runtime=t, time=int(time.time())))
+
+    # Update data for viewing in the /crontabs view
+    key_name = 'cron_last_run_{}'.format(func.__name__)
+    cache.cache._client.hmset(
+        key_name, dict(runtime=t, time=int(time.time())))
+    cache.cache._client.expire(key_name, 86400)
     return res
 
 
