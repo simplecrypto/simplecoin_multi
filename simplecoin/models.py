@@ -670,9 +670,6 @@ class TimeSlice(object):
             raise Exception("Can't compress this!")
         upper_span = span + 1
 
-        # get the minute shares that are old enough to be compressed and
-        # deleted
-        recent = cls.floor_time(datetime.utcnow(), span) - cls.span_config[span]['window'] + cls.span_config[span]['slice']
         # the timestamp of the slice currently being processed
         current_slice = None
         # dictionary of lists keyed by item_hash
@@ -698,27 +695,50 @@ class TimeSlice(object):
                     for slc in slices:
                         db.session.delete(slc)
 
-        # traverse minute shares that are old enough in time order
-        for slc in cls.query.filter(cls.time < recent).filter_by(span=span).order_by(cls.time):
-            slice_time = cls.floor_time(slc.time, upper_span)
+            items.clear()
+            db.session.commit()
+            db.session.expire_all()
 
-            if current_slice is None:
-                current_slice = slice_time
+        # get the minute shares that are old enough to be compressed and
+        # deleted
+        upper_time = cls.floor_time(datetime.utcnow(), upper_span) - cls.span_config[span]['window']
+        lower_time = upper_time - cls.span_config[span]['window']
 
-            # we've encountered the next time slice, so commit the pending one
-            if slice_time != current_slice:
-                logging.debug("Processing slice " + str(current_slice))
-                create_upper()
-                items.clear()
-                current_slice = slice_time
+        # while there are some old slices to combine
+        while cls.query.filter(cls.time <= upper_time).filter_by(span=span).count() > 0:
 
-            # add the one min shares for this user the list of pending shares
-            # to be grouped together
-            key = slc.item_key
-            items.setdefault(key, [])
-            items[key].append(slc)
+            # traverse slices that are old enough to combine in time order
+            found_slices = 0
+            chunk_slices = 0
+            for slc in cls.query.filter(cls.time < upper_time).filter(cls.time >= lower_time).filter_by(span=span).order_by(cls.time):
+                slice_time = cls.floor_time(slc.time, upper_span)
 
-        create_upper()
+                if current_slice is None:
+                    current_slice = slice_time
+
+                # we've encountered the next time slice, so commit the pending one
+                if slice_time != current_slice:
+                    logging.info("Processing slice {} with {:,} members"
+                                 .format(current_slice, chunk_slices))
+                    chunk_slices = 0
+                    create_upper()
+                    current_slice = slice_time
+
+                # add the one min shares for this user the list of pending shares
+                # to be grouped together
+                key = slc.item_key
+                items.setdefault(key, [])
+                items[key].append(slc)
+                found_slices += 1
+                chunk_slices += 1
+
+            create_upper()
+
+            # Move the time span window backwards
+            logging.info("Found {:,} slices to combine from {} to {}!"
+                         .format(found_slices, upper_time, lower_time))
+            upper_time -= cls.span_config[span]['window']
+            lower_time -= cls.span_config[span]['window']
 
     @classmethod
     def get_span(cls, lower=None, upper=None, stamp=False, ret_query=False,
