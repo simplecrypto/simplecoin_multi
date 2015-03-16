@@ -327,8 +327,8 @@ class Block(base):
         earned per number of shares for every share chain that helped solve
         this block """
         # Get a some credit totals
-        chain_data = cache.cache._client.get(
-            "chain_profitability_{}".format(self.hash))
+        cache_key_name = "chain_profitability_{}".format(self.hash)
+        chain_data = cache.cache._client.get(cache_key_name)
         if chain_data:
             chain_data = cPickle.loads(chain_data)
             return chain_data
@@ -344,7 +344,8 @@ class Block(base):
                      obj=chain_payout)
             )
 
-        for credit in self.credits:
+        for credit in (Credit.query.with_polymorphic(CreditExchange).
+                       filter_by(block_id=self.id)):
             if not credit.sharechain_id:
                 continue
             chain = chain_data[credit.sharechain_id]
@@ -367,10 +368,10 @@ class Block(base):
                 # Determine shares that accounted for that sale quantity
                 data['sold_shares'] = data.pop('obj').chain_shares * sold_perc
 
-        if not uncacheable:
-            cache.cache._client.set(
-                "chain_profitability_{}".format(self.hash),
-                cPickle.dumps(chain_data))
+        if uncacheable is False:
+            cache.cache._client.set(cache_key_name,
+                                    cPickle.dumps(chain_data))
+            cache.cache._client.expire(cache_key_name, 86400 * 4)
         return chain_data
 
 
