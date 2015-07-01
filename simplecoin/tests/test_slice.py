@@ -26,7 +26,7 @@ class SliceTests(UnitTest):
         self.assertEqual(sum(res[0]['values'].values()), 44850)
 
     def test_compress(self):
-        start = datetime.datetime.utcnow()
+        start = datetime.datetime.utcnow().replace(second=0, microsecond=0)
         for x in xrange(1500):
             now = start - datetime.timedelta(minutes=x)
             v = ShareSlice(time=now, value=x, **self.slice_test_data)
@@ -41,13 +41,14 @@ class SliceTests(UnitTest):
         self.assertEqual(sum(res[0]['values'].values()), 45)
 
         res = ShareSlice.get_span(stamp=True)
+        print(res)
         self.assertEqual(sum(res[0]['values'].values()), 1124250)
 
         spans = {0: 0, 1: 0, 2: 0}
         for slc in ShareSlice.get_span(ret_query=True):
             spans[slc.span] += 1
         print spans
-        assert spans[0] <= 60
+        assert spans[0] <= 65
         assert spans[1] >= 48
 
         ShareSlice.compress(1)
@@ -57,7 +58,7 @@ class SliceTests(UnitTest):
         for slc in ShareSlice.get_span(ret_query=True):
             spans[slc.span] += 1
         print spans
-        assert spans[0] <= 61
+        assert spans[0] <= 65
         assert spans[1] <= 288
         assert spans[2] >= 1
 
