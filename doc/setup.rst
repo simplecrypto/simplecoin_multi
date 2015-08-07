@@ -34,6 +34,22 @@ to make this easier.
     pip install -r requirements.txt
     pip install -r dev-requirements.txt
 
+SimpleCoin uses environmental variables to know where to look for its
+configuration files, so we need to set those before we attempt to start the
+server or run any management commands. 
+
+.. code-block:: bash
+    
+    # If we'll just be using the dev server in the same directory, this is fine
+    export SIMPLECOIN_CONFIG=example.toml
+    # For production, best to use full paths
+    export SIMPLECOIN_CONFIG=/home/limpit/simplecoin/example.toml
+
+    # You can also define multiple configs that will be applied in numberical order
+    export SIMPLECOIN_CONFIG_1=/home/limpit/simplecoin/base.toml
+    export SIMPLECOIN_CONFIG_2=/home/limpit/simplecoin/specific.toml
+    # This is useful for staging servers, etc
+
 Initialize an empty database & add tables
 
 .. code-block:: bash
