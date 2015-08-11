@@ -573,7 +573,7 @@ def update_block_state(block_id=None):
                 current_app.logger.error(
                     "Unable to communicate with {} RPC server: {}"
                     .format(currency.key, e))
-                return None
+                heights[currency.key] = None
         return heights[currency.key]
 
     # Select immature & non-orphaned blocks if none are passed
@@ -598,7 +598,7 @@ def update_block_state(block_id=None):
         if not blockheight:
             current_app.logger.warn("Skipping block state update because we "
                                     "failed trying to poll the RPC!")
-            break
+            continue
 
         # Skip checking if height difference isn't sufficient. Avoids polling
         # the RPC server excessively
