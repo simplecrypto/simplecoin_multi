@@ -3,6 +3,7 @@ import itertools
 import datetime
 from pprint import pprint
 import time
+from requests import ConnectionError
 import simplejson as json
 import urllib3
 import sqlalchemy
@@ -289,7 +290,7 @@ def update_online_workers():
     for ppid, powerpool in powerpools.iteritems():
         try:
             data = powerpool.request('clients/')
-        except RemoteException:
+        except (RemoteException, ConnectionError):
             current_app.logger.warn("Unable to connect to PP {} to gather worker summary."
                                     .format(powerpool.full_info()), exc_info=True)
             continue
