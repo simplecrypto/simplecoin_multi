@@ -99,6 +99,9 @@ It's best practice to add this information to your configuration, and not ``defa
 * *address_version* - This is a number that is a valid prefix for an address on
   this coin network. See below for figuring this out.
 * *merged* - is this a merge mined coin?
+* *block_mature_confirms* - the number of blocks required to have passed before
+  you can spend a coinbase transaction. Usually defined by COINBASE_MATURITY in
+  the main.h of the core client.
 * *block_time* - the target block time in seconds
 * *block_explore* - a url prefix to which a block hash can be looked up
 * *tx_explore* - url prefix to which a transaction hash can be looked up
