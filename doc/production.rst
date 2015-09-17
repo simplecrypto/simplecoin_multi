@@ -102,7 +102,7 @@ It's best practice to add this information to your configuration, and not ``defa
 * *block_mature_confirms* - the number of blocks required to have passed before
   you can spend a coinbase transaction. Usually defined by COINBASE_MATURITY in
   the main.h of the core client.
-* *block_time* - the target block time in seconds
+* *block_time* - the target block time in seconds.
 * *block_explore* - a url prefix to which a block hash can be looked up
 * *tx_explore* - url prefix to which a transaction hash can be looked up
 
@@ -110,6 +110,19 @@ After you've added this information you'll now also need to define coinserver
 information and exchangeability. If you're not exchanging coins than nothing is
 buyable or sellable except the "pool payout" currency. This can be seen in the
 ``example.toml`` and is quite straightforward.
+
+Finding valid address versions can be done using cryptokit on the python
+command line. Assuming you've insalled cryptokit with pip, then the following
+will print the address version. Keep in mind that most currencies support a few
+different address versions, so consulting the authors or looking at source code
+would be good to ensure you've adding them all. Notice that the parameter is a
+list, allowing for multiple valid versions.
+
+.. code-block:: python
+
+    >>> from cryptokit import base58
+    >>> base58.get_bcaddress_version("zkFuhTiU8f5gRFdwDqwWN4QsU4MwE8134J") # enter your example address here
+    143
 
 Chain Configuration
 ----------------------
