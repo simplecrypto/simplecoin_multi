@@ -264,9 +264,9 @@ def cache_profitability():
 
         hps = chains[chainid].algo.hashes_per_share
         if main_shares != 0:
-            btc_per = btc_total / (main_shares * hps)
+            btc_per = btc_total / (main_shares * hps) * 1000
         elif merged_shares != 0:
-            btc_per = btc_total / (merged_shares * hps / merged_currencies)
+            btc_per = btc_total / (merged_shares * hps / merged_currencies) * 1000
         else:
             btc_per = 0
         btc_per *= 86400  # per day

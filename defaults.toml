@@ -5,16 +5,16 @@ log_level = "INFO"
 worker_hashrate_fold = 86400
 stage = false
 
-site_title = "Simple Coin Multi"
+site_title = "iHash"
 # the FQDN
-site_url = "http://www.simplecoinmulti.com"
+site_url = "http://ihash.co"
 # host for static assets e.g. {assets_address}/css/main.css
 assets_address = "/static"
 # logo img
 logo = "/img/logo.png"
 site_meta_desc = "A custom mining pool with automatic exchanging between currencies, no registration, and a focus on developing new tools for miners"
 # Default values for new miner config
-default_stratum_url = "stratum+tcp://stratum.simplecoinmulti.com"
+default_stratum_url = "stratum+tcp://stratum.ihash.co"
 default_stratum_port = "3333"
 charge_autoex_fees = false
 
@@ -56,6 +56,98 @@ algo = "sha256"
 address_version = [0, 5]
 block_time = 120
 
+[currencies.MZC]
+name = "Mazacoin"
+algo = "sha256"
+address_version = [50]
+block_time = 120
+
+[currencies.DVC]
+name = "Devcoin"
+algo = "sha256"
+address_version = [0]
+merged = true
+block_time = 600
+
+[currencies.NMC]
+name = "Namecoin"
+algo = "sha256"
+address_version = [52]
+merged = true
+block_time = 600
+
+[currencies.TRC]
+name = "Terracoin"
+algo = "sha256"
+address_version = [0]
+block_time = 120
+
+[currencies.NEOS]
+name = "Neoscoin"
+algo = "sha256"
+address_version = [53]
+block_time = 300
+
+[currencies.ACOIN]
+name = "Acoin"
+algo = "sha256"
+address_version = [23]
+block_time = 40
+
+[currencies.DGC]
+name = "Digitalcoin"
+algo = "sha256"
+address_version = [30]
+block_time = 40
+
+[currencies.TIT]
+name = "Titcoin"
+algo = "sha256"
+address_version = [0]
+block_time = 60
+
+[currencies.QTL]
+name = "Quatloocoin"
+algo = "scrypt"
+address_version = [58]
+block_time = 180
+
+[currencies.NOTE]
+name = "DNotes"
+algo = "scrypt"
+address_version = [31]
+block_time = 60
+
+[currencies.CCN]
+name = "Cannacoin"
+algo = "scrypt"
+address_version = [28]
+block_time = 60
+
+[currencies.ARCH]
+name = "Archcoin"
+algo = "scrypt"
+address_version = [23]
+block_time = 60
+
+[currencies.FST]
+name = "Fastcoin"
+algo = "scrypt"
+address_version = [96]
+block_time = 12
+
+[currencies.MYR]
+name = "Myriadcoin"
+algo = "sha256"
+address_version = [50]
+block_time = 150
+
+[currencies.GLD]
+name = "Goldcoin"
+algo = "scrypt"
+address_version = [32]
+block_time = 120
+
 [currencies.RBY]
 name = "Rubycoin"
 algo = "scrypt"
@@ -80,6 +172,12 @@ name = "Urocoin"
 algo = "x11"
 address_version = [68]
 block_time = 120
+
+[currencies.UIS]
+name = "Unitus"
+algo = "x11"
+address_version = [68]
+block_time = 60
 
 [currencies.DOGE]
 name = "Dogecoin"
@@ -189,12 +287,6 @@ address_version = [71]
 merged = true
 block_time = 24
 block_mature_confirms = 3600
-
-[currencies.FTC]
-name = "Feathercoin"
-algo = "scrypt"
-address_version = [14]
-block_time = 60
 
 [currencies.WDC]
 name = "Worldcoin"
@@ -384,23 +476,11 @@ hashes_per_share = 4294967296
 normalize_mult = 0.0000272
 display = "SHA256"
 
-[algos.scryptn]
-hashes_per_share = 65536
-#230kh/s $85 2.705882353khs/$
-normalize_mult = 11.826086891
-display = "Scrypt-N"
-
 [algos.scrypt]
 hashes_per_share = 65536
 #4000kh/s $125 32khs/$
 normalize_mult = 1
 display = "Scrypt"
-
-[algos.lyra2re]
-hashes_per_share = 33554432
-#450kh/s $85 5.294117647khs/$
-normalize_mult = 6.044444462
-display = "Lyra2RE"
 
 [[navbar.left_nav]]
 title = "Home"
@@ -438,13 +518,17 @@ icon = "star"
 link = "#"
 active_key = ""
 [[navbar.left_nav.dropdown]]
-title = "Simple Crypto Website"
+title = "Archcoin"
 icon = "globe"
-link = "http://www.simplecryptogroup.com"
+link = "http://archcoin.co"
 [[navbar.left_nav.dropdown]]
-title = "Source Code"
-icon = "github"
-link = "http://www.github.com/simplecrypto/simplecoin_multi"
+title = "BlockTrust"
+icon = "globe"
+link = "http://blocktrust.io"
+[[navbar.left_nav.dropdown]]
+title = "Moby"
+icon = "globe"
+link = "http://moby.io"
 
 [[navbar.right_nav]]
 title = "Contact Us"
@@ -452,22 +536,14 @@ icon = "bullhorn"
 link = "#"
 active_key = ""
 [[navbar.right_nav.dropdown]]
-title = "Email"
+title = "Help Desk"
 icon = "envelope"
-link = "mailto:simplecryptogroup@gmail.com"
-[[navbar.right_nav.dropdown]]
-title = "Simple Crypto Website"
-icon = "globe"
-link = "http://www.simplecryptogroup.com"
+link = "https://archsupport.freshdesk.com/solution/categories"
 [[navbar.right_nav.dropdown]]
 title = "IRC"
 icon = "comments"
-link = "https://kiwiirc.com/client/irc.freenode.net/#simplecrypto"
+link = "https://kiwiirc.com/client/irc.freenode.net/#archcoin"
 [[navbar.right_nav.dropdown]]
-title = "Reddit"
-icon = "reddit"
-link = "http://www.reddit.com/r/simplecrypto"
-[[navbar.right_nav.dropdown]]
-title = "Github"
+title = "Source Code"
 icon = "github"
-link = "http://www.github.com/simplecrypto/"
+link = "http://www.github.com/simplecrypto/simplecoin_multi"

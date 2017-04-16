@@ -60,7 +60,7 @@
                       <li>{{ _("Payout Method:") }} {{ stratum.chain.type }}</li>
                       <li>{{ _("Diff:") }} {{ stratum.diff }}</li>
                       <li>{{ stratum.chain.hr_fee_perc }}% {{ _("fee") }}</li>
-                      <li>{{ _("Past 4d Profit:") }} {{ past_chain_profit[stratum.chain.id] }} {{ _("BTC/MH") }}</li>
+                      <li>{{ _("Past 4d Profit:") }} {{ past_chain_profit[stratum.chain.id] }} {{ _("BTC/GH") }}</li>
                     </ul>
                   </div>
                 </label>
@@ -173,7 +173,7 @@
     </div>
   </div>
 
-  <div class="panel-heading">{{ _("Step 7. Edit your account settings") }}</div>
+  <div class="panel-heading">{{ _("Step 7. Edit your account settings - NOT MANDATORY!") }}</div>
   <div class="panel-body">
     <div class="row">
       <div class="col-sm-11 col-sm-offset-1">
@@ -185,7 +185,7 @@
         {{ _("More configuration of your account is available on your account
           settings page. Including:") }}
         <ul>
-          <li>{{ _("Setting additional payout addresses (this is required in order to collect some merged mining rewards!)") }}</li>
+          <li>{{ _("Setting additional payout addresses") }}</li>
           <li>{{ _("Add a donation to the pool") }}</li>
           <li>{{ _("Enable privacy (hides your address on the leaderboard)") }}</li>
         </ul>

@@ -14,7 +14,7 @@
       <tr>
         <th>{{ title }}</th>
         <th>{{ (pool_luck * 100) | round(2) }}%</th>
-        <th>{{ "{:,.4f}".format(effective_return) }}&nbsp;{{ config['coin_symbol'] | safe }}/MH/Day</th>
+        <th>{{ "{:,.4f}".format(effective_return) }}&nbsp;{{ config['coin_symbol'] | safe }}/GH/Day</th>
         <th>{{ orphan_perc | sig_round(2) }}%</th>
         <th>{{ pool_eff | round(2) }}%</th>
       </tr>
