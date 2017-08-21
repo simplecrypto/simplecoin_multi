@@ -9,6 +9,7 @@
   });
 </script>
 
+{% if locations | length > 1 %}
 <div id="miner-config" class="panel panel-default{% if active_page != "config" %} collapse{% endif %}">
   <div class="panel-heading">{{ _("Step 1. Pick the region nearest to you") }}</div>
   <div class="panel-body">
@@ -29,6 +30,7 @@
       </div>
     </div>
   </div>
+  {% endif %}
 
   <div class="panel-heading">{{ _("Step 2. Pick a port") }}
   </div>
@@ -40,7 +42,7 @@
             {{ _("Pick a server to view available ports") }}
           </div>
         {% for loc in locations.itervalues() %}
-          <div class="col-sm-12 no-padding default-hide" id="server-{{ loc }}">
+        <div class="col-sm-12 no-padding {% if locations | length > 1 %}default-hide{% endif %}" id="server-{{ loc }}">
           <h3><img src="{{ config['assets_address'] | safe }}{{ loc.country_flag }}"
                    style="width:25px;" class="too-damn-bright"> &nbsp;{{ loc.location_acronym }} {{ _("Ports") }}</h3>
           {% set algos = loc.stratums_by_algo() %}
