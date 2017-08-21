@@ -9,8 +9,8 @@
   });
 </script>
 
-{% if locations | length > 1 %}
 <div id="miner-config" class="panel panel-default{% if active_page != "config" %} collapse{% endif %}">
+{% if locations | length > 1 %}
   <div class="panel-heading">{{ _("Step 1. Pick the region nearest to you") }}</div>
   <div class="panel-body">
     <div class="row">
