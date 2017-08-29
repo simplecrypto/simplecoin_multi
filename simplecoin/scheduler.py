@@ -808,6 +808,8 @@ def credit_block(redis_key, simulate=False):
                 value = Decimal(value)
             elif key == "solve_index":
                 value = int(value)
+            elif key == "start_index":
+                value = int(value)
             # XXX: Could do extra check for setting duplicate data (overrite) here
             chain[key] = value
 
@@ -816,8 +818,10 @@ def credit_block(redis_key, simulate=False):
     for id, chain in chain_data.iteritems():
         if chain['shares'] == 0:
             continue
+        start_slice = chain['start_index'] if chain.has_key('start_index') else chain['solve_index'] - 1
         cpo = ChainPayout(chainid=id,
                           block=block,
+                          start_slice=start_slice,
                           solve_slice=chain['solve_index'],
                           chain_shares=chain['shares'])
         cpo.user_shares = {}
