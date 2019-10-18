@@ -1,6 +1,6 @@
 # Top level requirements
 git+https://github.com/simplecrypto/cryptokit.git@v0.2.13#egg=cryptokit
-Flask==0.10.1
+Flask==1.0
 Flask-Cache==0.12
 Flask-Migrate==1.2.0
 Flask-SQLAlchemy==1.0
