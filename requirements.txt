@@ -23,7 +23,7 @@ simplejson==3.6.3
 # Dependencies of top level requirements
 SQLAlchemy==0.9.1
 Jinja2==2.7.2
-Werkzeug==0.9.4
+Werkzeug==0.15.3
 alembic==0.6.4
 anyjson==0.3.3
 argparse==1.2.1
